@@ -1,6 +1,6 @@
 {
   "libVersion": "3.16.0",
-  "projectname": "es",
+  "projectname": "farland-driver-quote-miniapp",
   "setting": {
     "urlCheck": true,
     "coverView": true,
@@ -9,6 +9,26 @@
     "preloadBackgroundData": false,
     "autoAudits": false,
     "showShadowRootInWxmlPanel": true,
-    "compileHotReLoad": true
+    "compileHotReLoad": true,
+    "useApiHook": true,
+    "useStaticServer": false,
+    "useLanDebug": false,
+    "showES6CompileOption": false,
+    "checkInvalidKey": true,
+    "ignoreDevUnusedFiles": true,
+    "bigPackageSizeSupport": false
+  },
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "miniprogram/pages/driver/quick-quote/quick-quote",
+          "pathName": "miniprogram/pages/driver/quick-quote/quick-quote",
+          "query": "token=fuckyou",
+          "scene": null,
+          "launchMode": "default"
+        }
+      ]
+    }
   }
 }
