@@ -1,0 +1,96 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="state-card">加载中...</view>
+
+  <view wx:elif="{{invalid}}" class="state-card invalid">
+    <view class="state-title">链接失效</view>
+    <view class="state-desc">{{errorMessage || '该报价链接已失效'}}</view>
+  </view>
+
+  <view wx:elif="{{submitSuccess}}" class="state-card success">
+    <view class="state-title">报价提交成功</view>
+    <view class="state-desc">报价已提交，Farland 运营会再与您确认。</view>
+  </view>
+
+  <view wx:else>
+    <view class="title">{{pageTitle}}</view>
+    <view class="subtitle">Hi {{invite.driver_name}}，请填写本单报价</view>
+
+    <view class="card">
+      <view class="card-title">行程信息</view>
+      <view class="field"><text>司机姓名</text><text>{{invite.driver_name}}</text></view>
+      <view class="field"><text>订单编号</text><text>{{request.request_no}}</text></view>
+      <view class="field"><text>服务类型</text><text>{{request.service_type}}</text></view>
+      <view class="field"><text>日期</text><text>{{request.pickup_date}}</text></view>
+      <view class="field"><text>人数</text><text>{{request.passengers}}</text></view>
+      <view class="field"><text>行李</text><text>{{request.luggage_count}}</text></view>
+      <view class="field"><text>车型要求</text><text>{{request.vehicle_requirement || '-'}}</text></view>
+      <view class="field"><text>英文要求</text><text>{{request.language_requirement || '-'}}</text></view>
+      <view class="field"><text>特殊要求</text><text>{{request.special_requests || '-'}}</text></view>
+      <view class="field"><text>报价截止</text><text>{{request.quote_deadline || invite.expires_at}}</text></view>
+
+      <block wx:if="{{request.service_type==='transfer'}}">
+        <view class="field"><text>用车日期</text><text>{{request.pickup_date}}</text></view>
+        <view class="field"><text>上车时间</text><text>{{request.pickup_time}}</text></view>
+        <view class="field"><text>上车地点</text><text>{{request.pickup_location}}</text></view>
+        <view class="field"><text>下车地点</text><text>{{request.dropoff_location}}</text></view>
+        <view class="field"><text>中途停靠</text><text>{{request.stops.length ? request.stops.join('；') : '无'}}</text></view>
+        <view class="field"><text>是否接送机</text><text>{{request.airport_transfer ? '是' : '否'}}</text></view>
+        <view class="field"><text>航班号</text><text>{{request.flight_no || '-'}}</text></view>
+        <view class="field"><text>航班时间</text><text>{{request.flight_time || '-'}}</text></view>
+        <view class="field"><text>是否举牌</text><text>{{request.sign_required ? '是' : '否'}}</text></view>
+      </block>
+
+      <block wx:if="{{request.service_type==='charter'}}">
+        <view class="field"><text>包车类型</text><text>{{request.service_subtype}}</text></view>
+        <view class="field"><text>服务日期</text><text>{{request.pickup_date}}</text></view>
+        <view class="field"><text>服务时间</text><text>{{request.start_time}} - {{request.end_time}}</text></view>
+        <view class="field"><text>服务城市</text><text>{{request.service_city || '-'}}</text></view>
+        <view class="field"><text>服务区域</text><text>{{request.service_area || '-'}}</text></view>
+        <view class="field"><text>预计时长</text><text>{{request.estimated_hours || '-'}} 小时</text></view>
+        <view class="field"><text>上车地点</text><text>{{request.pickup_location || '-'}}</text></view>
+        <view class="field"><text>结束地点</text><text>{{request.dropoff_location || '-'}}</text></view>
+        <view class="field"><text>行程范围</text><text>{{request.itinerary_summary || '-'}}</text></view>
+        <view class="field"><text>计划停靠点</text><text>{{request.stops.length ? request.stops.join('；') : '无'}}</text></view>
+      </block>
+    </view>
+
+    <view class="card">
+      <view class="card-title">报价信息</view>
+      <view class="input-row">
+        <text>报价金额</text>
+        <input type="digit" value="{{quotePrice}}" data-field="quotePrice" bindinput="onInputChange" placeholder="请输入报价" />
+      </view>
+      <view class="input-row">
+        <text>币种</text>
+        <picker range="{{currencyOptions}}" value="{{currencyOptions.indexOf(currency)}}" bindchange="onCurrencyChange">
+          <view class="picker-value">{{currency}}</view>
+        </picker>
+      </view>
+
+      <block wx:if="{{request.service_type==='charter'}}">
+        <view class="input-row">
+          <text>报价类型</text>
+          <picker range="{{priceTypeOptions}}" value="{{priceTypeOptions.indexOf(priceType)}}" bindchange="onPriceTypeChange">
+            <view class="picker-value">{{priceType}}</view>
+          </picker>
+        </view>
+        <view class="input-row">
+          <text>包含小时数</text>
+          <input type="number" value="{{includedHours}}" data-field="includedHours" bindinput="onInputChange" placeholder="例如 8" />
+        </view>
+        <view class="input-row">
+          <text>超时费说明</text>
+          <input value="{{overtimeRate}}" data-field="overtimeRate" bindinput="onInputChange" placeholder="例如 USD 80/小时" />
+        </view>
+      </block>
+
+      <view class="input-row textarea-row">
+        <text>备注</text>
+        <textarea value="{{quoteNote}}" data-field="quoteNote" bindinput="onInputChange" placeholder="可填写路桥/停车说明" />
+      </view>
+    </view>
+
+    <button class="submit-btn" loading="{{submitting}}" bindtap="onSubmit">{{submitting ? '提交中...' : '提交报价'}}</button>
+    <view class="footer-tip">仅用于 Farland 内部合作司机报价，不代表最终派单确认。</view>
+  </view>
+</view>
