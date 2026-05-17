@@ -1,0 +1,18 @@
+.page { background: #f4f6fb; min-height: 100vh; padding: 24rpx; box-sizing: border-box; }
+.title { font-size: 38rpx; font-weight: 600; color: #1a2a52; }
+.subtitle { font-size: 28rpx; color: #4a5b7a; margin: 16rpx 0 20rpx; }
+.card, .state-card { background: #fff; border-radius: 18rpx; padding: 24rpx; margin-bottom: 20rpx; }
+.card-title { font-size: 30rpx; font-weight: 600; color: #1f3266; margin-bottom: 16rpx; }
+.field { display: flex; justify-content: space-between; gap: 20rpx; margin-bottom: 12rpx; font-size: 26rpx; color: #243454; }
+.field text:first-child { color: #63759a; flex: 0 0 190rpx; }
+.field text:last-child { flex: 1; text-align: right; word-break: break-word; }
+.input-row { margin-bottom: 18rpx; }
+.input-row text { display: block; color: #465c86; font-size: 24rpx; margin-bottom: 10rpx; }
+input, textarea, .picker-value { background: #f7f9ff; border: 1rpx solid #d8e1f5; border-radius: 12rpx; padding: 18rpx; font-size: 28rpx; color: #1e2d4e; }
+textarea { width: 100%; min-height: 120rpx; }
+.submit-btn { background: #1f6fff; color: #fff; border-radius: 44rpx; font-size: 30rpx; }
+.footer-tip { text-align: center; color: #7a89a8; font-size: 24rpx; margin-top: 16rpx; }
+.state-title { font-size: 34rpx; font-weight: 600; margin-bottom: 8rpx; }
+.state-desc { color: #4a5b7a; }
+.invalid .state-title { color: #b42318; }
+.success .state-title { color: #067647; }
