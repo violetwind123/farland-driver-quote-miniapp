@@ -1,0 +1,13 @@
+page {
+  background: #f4f6fb;
+  color: #1e2d4e;
+  font-size: 28rpx;
+}
+
+button::after {
+  border: none;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
