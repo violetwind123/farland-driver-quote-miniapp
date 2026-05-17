@@ -1,67 +1,41 @@
 <view class="page">
   <view class="header">
-    <text class="title">填写报价</text>
-    <text class="subtitle">请根据订单信息填写报价金额</text>
+    <text class="title">运营单子中心</text>
+    <text class="subtitle">{{operatorName}}，查看当前单子与报价情况</text>
   </view>
 
-  <view class="card quote-card">
-    <text class="card-title">报价金额</text>
+  <view class="order-list">
+    <block wx:for="{{orders}}" wx:key="id">
+      <view class="order-card">
+        <view class="order-top">
+          <text class="order-id">{{item.id}}</text>
+          <text class="order-type">{{item.type}}</text>
+        </view>
 
-    <view class="price-row">
-      <input
-        class="price-input"
-        type="digit"
-        placeholder="请输入报价金额"
-        value="{{price}}"
-        bindinput="onPriceInput"
-      />
-      <picker mode="selector" range="{{currencyOptions}}" bindchange="onCurrencyChange">
-        <view class="currency">{{currency}} ▼</view>
-      </picker>
-    </view>
+        <text class="route">{{item.route}}</text>
 
-    <textarea
-      class="note"
-      maxlength="200"
-      placeholder="备注（如等待时间、是否含停车费等）"
-      value="{{note}}"
-      bindinput="onNoteInput"
-    />
+        <view class="meta-row">
+          <text>用车时间</text>
+          <text>{{item.serviceTime}}</text>
+        </view>
+
+        <view class="meta-row">
+          <text>报价状态</text>
+          <text class="status">{{item.statusText}}</text>
+        </view>
+
+        <view class="meta-row">
+          <text>已收报价</text>
+          <text>{{item.quoteCount}} 份</text>
+        </view>
+
+        <view class="meta-row last-row">
+          <text>最新报价</text>
+          <text>{{item.latestQuote}}</text>
+        </view>
+      </view>
+    </block>
   </view>
 
-  <view class="card">
-    <text class="card-title">订单详情</text>
-
-    <view class="row">
-      <text>用车时间</text>
-      <text>{{order.date}} {{order.time}}</text>
-    </view>
-
-    <view class="row">
-      <text>上车地点</text>
-      <text>{{order.pickup}}</text>
-    </view>
-
-    <view class="row">
-      <text>下车地点</text>
-      <text>{{order.dropoff}}</text>
-    </view>
-
-    <view class="row">
-      <text>乘客人数</text>
-      <text>{{order.passengers}}人</text>
-    </view>
-
-    <view class="row">
-      <text>行李数量</text>
-      <text>{{order.luggage}}件</text>
-    </view>
-
-    <view class="row">
-      <text>车型要求</text>
-      <text>{{order.vehicle}}</text>
-    </view>
-  </view>
-
-  <button class="submit-btn" bindtap="submitQuote">提交报价</button>
+  <button class="fab" bindtap="onCreateOrderTap">＋</button>
 </view>
