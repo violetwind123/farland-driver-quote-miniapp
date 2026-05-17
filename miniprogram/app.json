@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "pages/auth/login/login",
+    "pages/operator/dashboard/dashboard",
+    "pages/operator/create-request/create-request",
+    "pages/operator/request-detail/request-detail",
+    "pages/driver/quick-quote/quick-quote"
+  ],
+  "window": {
+    "navigationBarTitleText": "Farland 用车报价",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black"
+  },
+  "sitemapLocation": "sitemap.json"
+}
