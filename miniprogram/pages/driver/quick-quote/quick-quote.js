@@ -3,6 +3,15 @@ const PRICE_TYPE_OPTIONS = ['all_in', 'base_plus_extra'];
 
 Page({
   data: {
+    step: 1,
+    identity: '',
+    operationCode: '',
+    operationCodeValid: false,
+    operationCodeError: '',
+    driverRegName: '',
+    driverRegPhone: '',
+    driverRegVehicle: '',
+    driverRegValid: false,
     loading: true,
     invalid: false,
     submitSuccess: false,
@@ -20,6 +29,77 @@ Page({
     submitting: false,
     currencyOptions: CURRENCY_OPTIONS,
     priceTypeOptions: PRICE_TYPE_OPTIONS,
+  },
+
+  onIdentitySelect(e) {
+    const identity = e.currentTarget.dataset.identity;
+    this.setData({
+      identity,
+      operationCode: '',
+      operationCodeValid: false,
+      operationCodeError: '',
+      driverRegName: '',
+      driverRegPhone: '',
+      driverRegVehicle: '',
+      driverRegValid: false,
+    });
+  },
+
+  onOperationCodeInput(e) {
+    this.setData({ operationCode: (e.detail.value || '').trim(), operationCodeError: '' });
+  },
+
+  verifyOperationCode() {
+    if (this.data.operationCode === 'Farland2026') {
+      this.setData({ operationCodeValid: true, operationCodeError: '' });
+      wx.showToast({ title: '运营身份验证成功', icon: 'success' });
+      return;
+    }
+
+    this.setData({ operationCodeValid: false, operationCodeError: 'Code 不正确，请重新输入' });
+    wx.showToast({ title: 'Code 错误', icon: 'none' });
+  },
+
+  onDriverRegInput(e) {
+    const { field } = e.currentTarget.dataset;
+    this.setData({ [field]: (e.detail.value || '').trim() });
+  },
+
+  submitDriverRegistration() {
+    const { driverRegName, driverRegPhone, driverRegVehicle } = this.data;
+    if (!driverRegName || !driverRegPhone || !driverRegVehicle) {
+      wx.showToast({ title: '请完整填写司机注册信息', icon: 'none' });
+      return;
+    }
+
+    const phoneOk = /^1\d{10}$/.test(driverRegPhone);
+    if (!phoneOk) {
+      wx.showToast({ title: '手机号格式不正确', icon: 'none' });
+      return;
+    }
+
+    this.setData({ driverRegValid: true });
+    wx.showToast({ title: '司机注册信息已保存', icon: 'success' });
+  },
+
+  goNextStep() {
+    const { identity, operationCodeValid, driverRegValid } = this.data;
+    if (!identity) {
+      wx.showToast({ title: '请先选择身份', icon: 'none' });
+      return;
+    }
+
+    if (identity === 'operation' && !operationCodeValid) {
+      wx.showToast({ title: '请先验证运营 Code', icon: 'none' });
+      return;
+    }
+
+    if (identity === 'driver' && !driverRegValid) {
+      wx.showToast({ title: '请先提交司机注册信息', icon: 'none' });
+      return;
+    }
+
+    this.setData({ step: 2 });
   },
 
   onLoad(options) {

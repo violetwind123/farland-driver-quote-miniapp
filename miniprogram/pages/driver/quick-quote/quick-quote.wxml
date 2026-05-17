@@ -1,4 +1,41 @@
 <view class="page">
+  <view wx:if="{{step === 1}}" class="card">
+    <view class="card-title">第一步：请选择身份</view>
+
+    <view class="identity-options">
+      <view class="identity-item {{identity==='operation' ? 'active' : ''}}" data-identity="operation" bindtap="onIdentitySelect">运营</view>
+      <view class="identity-item {{identity==='driver' ? 'active' : ''}}" data-identity="driver" bindtap="onIdentitySelect">司机</view>
+    </view>
+
+    <view wx:if="{{identity==='operation'}}" class="identity-panel">
+      <view class="input-row">
+        <text>运营 Code</text>
+        <input value="{{operationCode}}" bindinput="onOperationCodeInput" placeholder="请输入运营 Code" />
+      </view>
+      <view wx:if="{{operationCodeError}}" class="error-text">{{operationCodeError}}</view>
+      <button class="secondary-btn" bindtap="verifyOperationCode">验证 Code</button>
+    </view>
+
+    <view wx:if="{{identity==='driver'}}" class="identity-panel">
+      <view class="input-row">
+        <text>司机姓名</text>
+        <input value="{{driverRegName}}" data-field="driverRegName" bindinput="onDriverRegInput" placeholder="请输入姓名" />
+      </view>
+      <view class="input-row">
+        <text>手机号</text>
+        <input type="number" value="{{driverRegPhone}}" data-field="driverRegPhone" bindinput="onDriverRegInput" placeholder="请输入11位手机号" />
+      </view>
+      <view class="input-row">
+        <text>车牌号</text>
+        <input value="{{driverRegVehicle}}" data-field="driverRegVehicle" bindinput="onDriverRegInput" placeholder="请输入车牌号" />
+      </view>
+      <button class="secondary-btn" bindtap="submitDriverRegistration">提交注册信息</button>
+    </view>
+
+    <button class="submit-btn" bindtap="goNextStep">下一步</button>
+  </view>
+
+  <view wx:if="{{step === 2}}">
   <view wx:if="{{loading}}" class="state-card">加载中...</view>
 
   <view wx:elif="{{invalid}}" class="state-card invalid">
@@ -92,5 +129,6 @@
 
     <button class="submit-btn" loading="{{submitting}}" bindtap="onSubmit">{{submitting ? '提交中...' : '提交报价'}}</button>
     <view class="footer-tip">仅用于 Farland 内部合作司机报价，不代表最终派单确认。</view>
+  </view>
   </view>
 </view>
