@@ -201,14 +201,14 @@ Page({
     if (['cancelled', 'completed'].includes(request.status)) {
       return {
         title: 'Farland 报价邀请',
-        path: 'pages/operator/dashboard/dashboard',
+        path: 'pages/driver/quick-quote/quick-quote?token=invalid',
       };
     }
     if (!token) {
-      wx.showToast({ title: '请先生成报价邀请', icon: 'none' });
+      wx.showToast({ title: '报价邀请还未准备好，请稍后再试', icon: 'none' });
       return {
         title: 'Farland 报价邀请',
-        path: 'pages/operator/dashboard/dashboard',
+        path: 'pages/driver/quick-quote/quick-quote?token=invalid',
       };
     }
     return {

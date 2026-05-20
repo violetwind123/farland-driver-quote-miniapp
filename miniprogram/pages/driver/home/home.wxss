@@ -6,6 +6,9 @@
 .field { display: flex; justify-content: space-between; gap: 20rpx; margin-bottom: 12rpx; font-size: 26rpx; color: #253554; }
 .field text:first-child { color: #627392; flex: 0 0 150rpx; }
 .field text:last-child { flex: 1; text-align: right; word-break: break-word; }
+.wecom-hint { margin-top: 18rpx; padding: 16rpx; border-radius: 12rpx; background: #f7f9ff; color: #465c86; font-size: 24rpx; line-height: 1.6; }
+.wecom-box { margin-top: 16rpx; padding-top: 12rpx; border-top: 1rpx solid #edf1f7; }
+.wecom-missing { margin-top: 16rpx; color: #627392; font-size: 24rpx; line-height: 1.6; }
 .lock-tip { margin-bottom: 18rpx; padding: 16rpx; border-radius: 12rpx; background: #f2f3fa; color: #5B6596; font-size: 24rpx; line-height: 1.6; }
 .input-row { margin-bottom: 18rpx; }
 .input-row text { display: block; color: #465c86; font-size: 24rpx; margin-bottom: 10rpx; }
@@ -16,4 +19,4 @@ input, .picker-value { background: #f7f9ff; border: 1rpx solid #d8e1f5; border-r
 .order-head { display: flex; justify-content: space-between; gap: 16rpx; font-size: 28rpx; font-weight: 600; color: #253554; }
 .status { color: #5B6596; }
 .price { margin-top: 10rpx; font-size: 30rpx; font-weight: 600; color: #1f3266; }
-.note { margin-top: 8rpx; color: #253554; line-height: 1.5; white-space: pre-wrap; }
+.note { margin-top: 8rpx; color: #253554; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

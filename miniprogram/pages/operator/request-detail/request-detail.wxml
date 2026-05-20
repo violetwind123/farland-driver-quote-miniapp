@@ -30,11 +30,13 @@
 
     <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">
       <view class="section-title">分发到司机群</view>
-      <view class="content">报价邀请会自动准备好。需要发司机群时，使用页面右上角转发。</view>
+      <view class="content">报价邀请会自动准备好。准备完成后，点击下方按钮转发给司机。</view>
       <view wx:if="{{creatingInvite}}" class="muted">正在准备报价邀请...</view>
       <view wx:if="{{inviteError}}" class="error-text">{{inviteError}}</view>
       <button wx:if="{{inviteError}}" class="submit-btn" bindtap="onRetryCreateInvite">重试生成报价邀请</button>
       <view wx:if="{{token}}" class="muted">报价邀请已生成</view>
+      <view wx:else class="muted">报价邀请准备中，请稍后再转发。</view>
+      <button wx:if="{{token && request.status !== 'cancelled' && request.status !== 'completed'}}" open-type="share" class="share-btn">转发报价邀请给司机</button>
     </view>
 
     <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">

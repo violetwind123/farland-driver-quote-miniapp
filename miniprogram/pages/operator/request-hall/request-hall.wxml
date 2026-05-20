@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="tabs">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab {{activeTab === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >{{item.label}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="state">加载中...</view>
+
+  <block wx:else>
+    <view wx:if="{{!requests.length}}" class="state">暂无报价单</view>
+    <view wx:for="{{requests}}" wx:key="_id" class="request-item" data-id="{{item._id}}" bindtap="openDetail">
+      <view class="row">
+        <text class="request-no">{{item.request_no}}</text>
+        <text class="tag">{{item.dashboard_tag_text}}</text>
+      </view>
+      <view class="meta">{{item.service_type_text}} · {{item.service_date}} · {{item.driver_region}}</view>
+      <view class="preview">{{item.task_description_preview}}</view>
+      <view class="counts">报价 {{item.quote_count}} · 邀请 {{item.invite_count}} · 截止 {{item.quote_deadline}}</view>
+    </view>
+  </block>
+</view>

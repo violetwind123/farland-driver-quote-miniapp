@@ -5,6 +5,7 @@
 .section-title { font-size: 30rpx; font-weight: 600; margin-bottom: 16rpx; }
 .content { color: #253554; line-height: 1.7; white-space: pre-wrap; }
 .submit-btn { background: #5B6596; color: #fff; border-radius: 44rpx; }
+.share-btn { margin-top: 18rpx; background: #5B6596; color: #fff; border-radius: 44rpx; }
 .cancelled-panel { background: #f7f9ff; }
 .cancel-btn { margin-top: 16rpx; background: #5B6596; color: #fff; border-radius: 44rpx; }
 .secondary-btn { margin-top: 16rpx; background: #f2f4f7; color: #5B6596; border-radius: 44rpx; }

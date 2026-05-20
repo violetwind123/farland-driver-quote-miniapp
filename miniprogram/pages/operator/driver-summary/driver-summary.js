@@ -1,19 +1,23 @@
 Page({
   data: {
     loading: true,
-    summary: {},
+    driverRegionSummary: [],
   },
 
-  onShow() {
-    this.loadDashboard();
+  onLoad() {
+    this.loadDriverSummary();
   },
 
-  async loadDashboard() {
+  onPullDownRefresh() {
+    this.loadDriverSummary().finally(() => wx.stopPullDownRefresh());
+  },
+
+  async loadDriverSummary() {
     this.setData({ loading: true });
     try {
       const { result } = await wx.cloud.callFunction({
         name: 'getOperatorRequests',
-        data: { mode: 'summary' },
+        data: { mode: 'driver_summary' },
       });
       if (!result || !result.success) {
         wx.showToast({ title: (result && result.message) || '加载失败', icon: 'none' });
@@ -22,7 +26,7 @@ Page({
       }
       this.setData({
         loading: false,
-        summary: result.summary || {},
+        driverRegionSummary: result.driver_region_summary || [],
       });
     } catch (error) {
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -30,16 +34,8 @@ Page({
     }
   },
 
-  openRequestHall(e) {
-    const tab = e.currentTarget.dataset.tab || 'all';
-    wx.navigateTo({ url: `/pages/operator/request-hall/request-hall?tab=${tab}` });
-  },
-
-  openDriverSummary() {
-    wx.navigateTo({ url: '/pages/operator/driver-summary/driver-summary' });
-  },
-
-  goCreate() {
-    wx.navigateTo({ url: '/pages/operator/create-request/create-request' });
+  openRegion(e) {
+    const region = e.currentTarget.dataset.region;
+    wx.navigateTo({ url: `/pages/operator/drivers-by-region/drivers-by-region?region=${encodeURIComponent(region)}` });
   },
 });

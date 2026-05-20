@@ -7,88 +7,30 @@
 
   <block wx:else>
     <view class="summary-grid">
-      <view class="summary-card" data-tab="quoting" bindtap="onSummaryTap">
+      <view class="summary-card" data-tab="quoting" bindtap="openRequestHall">
         <view class="summary-value">{{summary.quoting_count || 0}}</view>
         <view class="summary-label">报价中</view>
       </view>
-      <view class="summary-card" data-tab="pending_selection" bindtap="onSummaryTap">
+      <view class="summary-card" data-tab="pending_selection" bindtap="openRequestHall">
         <view class="summary-value">{{summary.pending_selection_count || 0}}</view>
         <view class="summary-label">待选择</view>
       </view>
-      <view class="summary-card" data-tab="assigned" bindtap="onSummaryTap">
+      <view class="summary-card" data-tab="assigned" bindtap="openRequestHall">
         <view class="summary-value">{{summary.assigned_count || 0}}</view>
         <view class="summary-label">已选择</view>
       </view>
-      <view class="summary-card" data-tab="cancelled" bindtap="onSummaryTap">
+      <view class="summary-card" data-tab="cancelled" bindtap="openRequestHall">
         <view class="summary-value">{{summary.cancelled_count || 0}}</view>
         <view class="summary-label">已取消</view>
       </view>
     </view>
 
-    <view id="request-list" class="section">
-      <view class="section-title">待办</view>
-      <view class="todo-row">
-        <view class="todo-card">
-          <view class="todo-title">待选择司机</view>
-          <view class="todo-value">{{todo.pending_selection.length}}</view>
-          <view wx:if="{{todo.pending_selection[0]}}" class="todo-preview">{{todo.pending_selection[0].request_no}}</view>
-        </view>
-        <view class="todo-card">
-          <view class="todo-title">即将截止</view>
-          <view class="todo-value">{{todo.expiring_soon.length}}</view>
-          <view wx:if="{{todo.expiring_soon[0]}}" class="todo-preview">{{todo.expiring_soon[0].request_no}}</view>
-        </view>
-        <view class="todo-card">
-          <view class="todo-title">暂无报价</view>
-          <view class="todo-value">{{todo.no_quote.length}}</view>
-          <view wx:if="{{todo.no_quote[0]}}" class="todo-preview">{{todo.no_quote[0].request_no}}</view>
-        </view>
+    <view class="utility-card" bindtap="openDriverSummary">
+      <view>
+        <view class="utility-title">司机信息</view>
+        <view class="utility-desc">查看各区域司机和车辆资源</view>
       </view>
-    </view>
-
-    <view class="section">
-      <view class="section-title">司机区域</view>
-      <view wx:if="{{!driverRegionSummary.length}}" class="empty">暂无司机资料</view>
-      <view wx:for="{{driverRegionSummary}}" wx:key="region" class="region-card" data-region="{{item.region}}" bindtap="openRegion">
-        <view class="region-head">
-          <text class="region-name">{{item.region}}</text>
-          <text class="region-count">{{item.driver_count}} 位司机</text>
-        </view>
-        <view class="region-meta">车辆 {{item.vehicle_count}}</view>
-        <view class="vehicle-types">
-          <text wx:if="{{item.vehicle_type_counts.suv}}">SUV {{item.vehicle_type_counts.suv}}</text>
-          <text wx:if="{{item.vehicle_type_counts.suburban}}">Suburban {{item.vehicle_type_counts.suburban}}</text>
-          <text wx:if="{{item.vehicle_type_counts.van}}">Van {{item.vehicle_type_counts.van}}</text>
-          <text wx:if="{{item.vehicle_type_counts.sprinter}}">Sprinter {{item.vehicle_type_counts.sprinter}}</text>
-          <text wx:if="{{item.vehicle_type_counts.transit}}">Transit {{item.vehicle_type_counts.transit}}</text>
-          <text wx:if="{{item.vehicle_type_counts.bus}}">Bus {{item.vehicle_type_counts.bus}}</text>
-          <text wx:if="{{item.vehicle_type_counts.other}}">Other {{item.vehicle_type_counts.other}}</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="section">
-      <view class="section-title">报价单</view>
-      <view class="tabs">
-        <view
-          wx:for="{{tabs}}"
-          wx:key="key"
-          class="tab {{activeTab === item.key ? 'active' : ''}}"
-          data-key="{{item.key}}"
-          bindtap="onTabTap"
-        >{{item.label}}</view>
-      </view>
-
-      <view wx:if="{{!filteredRequests.length}}" class="empty">暂无报价单</view>
-      <view wx:for="{{filteredRequests}}" wx:key="_id" class="request-item" data-id="{{item._id}}" bindtap="openDetail">
-        <view class="row">
-          <text class="request-no">{{item.request_no}}</text>
-          <text class="tag">{{item.dashboard_tag_text}}</text>
-        </view>
-        <view class="meta">{{item.service_type_text}} · {{item.service_date}} · {{item.driver_region}}</view>
-        <view class="preview">{{item.task_description_preview}}</view>
-        <view class="counts">报价 {{item.quote_count}} · 邀请 {{item.invite_count}} · 截止 {{item.quote_deadline}}</view>
-      </view>
+      <view class="chevron">›</view>
     </view>
   </block>
 

@@ -11,13 +11,20 @@
         <view class="field"><text>姓名</text><text>{{driver.name}}</text></view>
         <view class="field"><text>电话</text><text>{{driver.phone}}</text></view>
         <view class="field"><text>服务区域</text><text>{{driver.service_region || '-'}}</text></view>
+        <view class="wecom-hint">请确保您的企业微信名称与小程序司机姓名一致，方便 Farland 运营在内部群和客户群中识别您。</view>
+        <view wx:if="{{driver.wecom_userid || driver.wecom_name || driver.wecom_department}}" class="wecom-box">
+          <view class="field"><text>企微 ID</text><text>{{driver.wecom_userid || '-'}}</text></view>
+          <view class="field"><text>企微名称</text><text>{{driver.wecom_name || '-'}}</text></view>
+          <view class="field"><text>企微部门</text><text>{{driver.wecom_department || '-'}}</text></view>
+        </view>
+        <view wx:else class="wecom-missing">企业微信信息暂未完善，如需补充请联系 Farland 运营。</view>
       </view>
       <view wx:else class="desc">暂无司机资料。请先通过 Farland 报价邀请提交一次司机信息。</view>
     </view>
 
-    <view class="panel">
+    <view wx:if="{{driver}}" class="panel">
       <view class="title">车辆信息</view>
-      <view wx:if="{{!canUpdateVehicle}}" class="lock-tip">{{vehicleLockedReason || '已有报价或已选择订单，车辆信息请联系 Farland 运营修改。'}}</view>
+      <view wx:if="{{!canUpdateVehicle}}" class="lock-tip">已有报价中或已选择订单，车辆信息请联系 Farland 运营修改。</view>
       <view class="input-row">
         <text>车辆类型</text>
         <picker range="{{vehicleTypeOptions}}" value="{{vehicleTypeIndex}}" bindchange="onVehicleTypeChange" disabled="{{!canUpdateVehicle}}">
@@ -32,21 +39,6 @@
     </view>
 
     <view class="panel">
-      <view class="title">已选择订单</view>
-      <view wx:if="{{!selectedOrders.length}}" class="empty">暂无已选择订单。</view>
-      <view wx:for="{{selectedOrders}}" wx:key="quote_id" class="order-item">
-        <view class="order-head">
-          <text>{{item.request_no}}</text>
-          <text class="status">{{item.display_status}}</text>
-        </view>
-        <view class="desc">{{item.service_date}} · {{item.driver_region}} · {{item.service_type_text}}</view>
-        <view class="price">{{item.quote_price}} {{item.currency}}</view>
-        <view class="note">{{item.quote_note || '无备注'}}</view>
-        <view class="desc">更新：{{item.updated_at}}</view>
-      </view>
-    </view>
-
-    <view class="panel">
       <view class="title">当前报价</view>
       <view wx:if="{{!quotingOrders.length}}" class="empty">暂无进行中的报价。</view>
       <view wx:for="{{quotingOrders}}" wx:key="quote_id" class="order-item">
@@ -56,7 +48,22 @@
         </view>
         <view class="desc">{{item.service_date}} · {{item.driver_region}} · {{item.service_type_text}}</view>
         <view class="price">{{item.quote_price}} {{item.currency}}</view>
-        <view class="note">{{item.quote_note || '无备注'}}</view>
+        <view wx:if="{{item.quote_note}}" class="note">{{item.quote_note}}</view>
+        <view class="desc">更新：{{item.updated_at}}</view>
+      </view>
+    </view>
+
+    <view class="panel">
+      <view class="title">已选择订单</view>
+      <view wx:if="{{!selectedOrders.length}}" class="empty">暂无已选择订单。</view>
+      <view wx:for="{{selectedOrders}}" wx:key="quote_id" class="order-item">
+        <view class="order-head">
+          <text>{{item.request_no}}</text>
+          <text class="status">{{item.display_status}}</text>
+        </view>
+        <view class="desc">{{item.service_date}} · {{item.driver_region}} · {{item.service_type_text}}</view>
+        <view class="price">{{item.quote_price}} {{item.currency}}</view>
+        <view wx:if="{{item.quote_note}}" class="note">{{item.quote_note}}</view>
         <view class="desc">更新：{{item.updated_at}}</view>
       </view>
     </view>
