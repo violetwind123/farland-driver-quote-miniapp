@@ -1,0 +1,20 @@
+<view class="page">
+  <view class="title">酒店预订需求</view>
+  <view class="desc">提交基础需求后，Farland 顾问将根据城市、日期、预算和偏好协助匹配酒店。</view>
+
+  <view class="form">
+    <view class="input-row"><text>城市 *</text><input value="{{form.city}}" data-field="city" bindinput="onInput" placeholder="例如 Boston / New York" /></view>
+    <view class="input-row"><text>入住日期 *</text><picker mode="date" value="{{form.check_in_date}}" data-field="check_in_date" bindchange="onDateChange"><view class="picker-value">{{form.check_in_date || '请选择入住日期'}}</view></picker></view>
+    <view class="input-row"><text>离店日期 *</text><picker mode="date" value="{{form.check_out_date}}" data-field="check_out_date" bindchange="onDateChange"><view class="picker-value">{{form.check_out_date || '请选择离店日期'}}</view></picker></view>
+    <view class="input-row"><text>房间数</text><input type="number" value="{{form.rooms}}" data-field="rooms" bindinput="onInput" /></view>
+    <view class="input-row"><text>入住人数</text><input type="number" value="{{form.guests}}" data-field="guests" bindinput="onInput" /></view>
+    <view class="input-row"><text>酒店等级</text><input value="{{form.hotel_level}}" data-field="hotel_level" bindinput="onInput" placeholder="例如 4星 / 5星 / 奢华酒店" /></view>
+    <view class="input-row"><text>预算范围</text><input value="{{form.budget_range}}" data-field="budget_range" bindinput="onInput" placeholder="例如 USD 300-500 / night" /></view>
+    <view class="input-row"><text>位置偏好</text><input value="{{form.location_preference}}" data-field="location_preference" bindinput="onInput" placeholder="例如 近学校 / 市中心 / 近机场" /></view>
+    <view class="input-row"><text>特殊需求</text><textarea value="{{form.special_requests}}" data-field="special_requests" bindinput="onInput" placeholder="房型、早餐、连通房、无障碍、品牌偏好等" /></view>
+    <view class="input-row"><text>联系人 *</text><input value="{{form.customer_name}}" data-field="customer_name" bindinput="onInput" /></view>
+    <view class="input-row"><text>联系方式 *</text><input value="{{form.contact}}" data-field="contact" bindinput="onInput" placeholder="微信 / 手机 / 邮箱" /></view>
+  </view>
+
+  <button class="submit-btn" loading="{{submitting}}" bindtap="submitRequest">{{submitting ? '提交中...' : '提交给 Farland 顾问'}}</button>
+</view>

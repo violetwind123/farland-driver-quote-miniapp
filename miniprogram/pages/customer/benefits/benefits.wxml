@@ -1,0 +1,7 @@
+<view class="page">
+  <view class="title">Farland 专属福利</view>
+  <view wx:for="{{benefits}}" wx:key="title" class="benefit-card">
+    <view class="benefit-title">{{item.title}}</view>
+    <view class="benefit-desc">{{item.description}}</view>
+  </view>
+</view>

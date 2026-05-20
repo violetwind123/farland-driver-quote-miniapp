@@ -1,0 +1,13 @@
+.page { min-height: 100vh; padding: 28rpx; box-sizing: border-box; background: #f4f6fb; }
+.profile-card { background: #5B6596; color: #fff; border-radius: 18rpx; padding: 30rpx; margin-bottom: 18rpx; }
+.welcome { font-size: 36rpx; font-weight: 700; }
+.member { margin-top: 10rpx; font-size: 26rpx; opacity: 0.9; }
+.shortcut-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-bottom: 18rpx; }
+.shortcut { background: #5B6596; color: #fff; border-radius: 40rpx; font-size: 26rpx; }
+.shortcut.secondary { background: #fff; color: #5B6596; }
+.panel { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 18rpx; }
+.section-title { font-size: 30rpx; font-weight: 700; color: #1f3266; margin-bottom: 14rpx; }
+.list-item, .benefit-item { padding: 16rpx 0; border-top: 1rpx solid #edf1f7; }
+.list-item:first-of-type, .benefit-item:first-of-type { border-top: 0; }
+.item-title { color: #253554; font-weight: 700; font-size: 27rpx; }
+.desc, .empty { margin-top: 8rpx; color: #627392; font-size: 24rpx; line-height: 1.5; }

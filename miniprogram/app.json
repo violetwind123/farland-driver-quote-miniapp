@@ -8,6 +8,9 @@
     "pages/operator/request-detail/request-detail",
     "pages/operator/driver-summary/driver-summary",
     "pages/operator/drivers-by-region/drivers-by-region",
+    "pages/hotel/request/request",
+    "pages/customer/home/home",
+    "pages/customer/benefits/benefits",
     "pages/driver/quick-quote/quick-quote",
     "pages/driver/home/home"
   ],

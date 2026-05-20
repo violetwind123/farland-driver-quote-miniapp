@@ -1,6 +1,9 @@
-.page { min-height: 100vh; padding: 72rpx 28rpx; box-sizing: border-box; background: #f4f6fb; }
-.brand { font-size: 52rpx; font-weight: 700; color: #17315f; }
-.subtitle { margin-top: 12rpx; color: #5B6596; font-size: 30rpx; }
-.panel { margin-top: 48rpx; background: #fff; border-radius: 16rpx; padding: 30rpx; }
-.desc { color: #465c86; line-height: 1.7; font-size: 28rpx; }
-.login-link { margin-top: 28rpx; background: #5B6596; color: #fff; border-radius: 44rpx; font-size: 28rpx; }
+.page { min-height: 100vh; padding: 56rpx 28rpx 44rpx; box-sizing: border-box; background: #f4f6fb; }
+.hero { margin-bottom: 34rpx; }
+.brand { font-size: 56rpx; font-weight: 700; color: #17315f; }
+.subtitle { margin-top: 12rpx; color: #5B6596; font-size: 28rpx; line-height: 1.5; }
+.service-card { background: #fff; border-radius: 16rpx; padding: 28rpx; margin-bottom: 18rpx; box-shadow: 0 10rpx 24rpx rgba(35, 51, 91, 0.06); }
+.card-title { font-size: 32rpx; font-weight: 700; color: #1f3266; }
+.card-desc { margin-top: 10rpx; color: #627392; font-size: 25rpx; line-height: 1.6; }
+.driver-note { margin-top: 36rpx; color: #627392; font-size: 24rpx; line-height: 1.6; text-align: center; }
+.operator-link { margin-top: 18rpx; color: #5B6596; font-size: 24rpx; text-align: center; }

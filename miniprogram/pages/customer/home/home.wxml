@@ -1,0 +1,42 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="panel">加载中...</view>
+
+  <block wx:else>
+    <view class="profile-card">
+      <view class="welcome">欢迎，{{profile.name}}</view>
+      <view class="member">{{profile.member_level}} · {{profile.points_balance}} 积分</view>
+    </view>
+
+    <view class="shortcut-row">
+      <button class="shortcut" bindtap="goHotelRequest">酒店预订</button>
+      <button class="shortcut secondary" bindtap="goBenefits">专属福利</button>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">用车安排</view>
+      <view wx:if="{{!transportationAppointments.length}}" class="empty">暂无确认用车安排。</view>
+      <view wx:for="{{transportationAppointments}}" wx:key="service_date" class="list-item">
+        <view class="item-title">{{item.service_type}} · {{item.service_date}}</view>
+        <view class="desc">{{item.route_summary}}</view>
+        <view class="desc">{{item.driver_name}} · {{item.vehicle_type}} {{item.vehicle_model}}</view>
+      </view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">酒店需求</view>
+      <view wx:if="{{!hotelRequests.length}}" class="empty">暂无酒店需求。</view>
+      <view wx:for="{{hotelRequests}}" wx:key="city" class="list-item">
+        <view class="item-title">{{item.city}}</view>
+        <view class="desc">{{item.check_in_date}} - {{item.check_out_date}} · {{item.status}}</view>
+      </view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">会员福利</view>
+      <view wx:for="{{benefits}}" wx:key="title" class="benefit-item">
+        <view class="item-title">{{item.title}}</view>
+        <view class="desc">{{item.description}}</view>
+      </view>
+    </view>
+  </block>
+</view>
