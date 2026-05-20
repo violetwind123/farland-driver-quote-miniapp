@@ -1,12 +1,13 @@
 Page({
   data: {
     loading: true,
-    profile: null,
+    profile: {},
     benefits: [],
     hotelRequests: [],
     transportationAppointments: [],
     todayItinerary: null,
     tripOverview: [],
+    topBenefits: [],
   },
 
   onLoad() {
@@ -24,8 +25,9 @@ Page({
       }
       this.setData({
         loading: false,
-        profile: result.profile || null,
+        profile: result.profile || {},
         benefits: result.benefits || [],
+        topBenefits: (result.benefits || []).slice(0, 2),
         hotelRequests: result.hotel_requests || [],
         transportationAppointments: result.transportation_appointments || [],
         todayItinerary: result.today_itinerary || null,

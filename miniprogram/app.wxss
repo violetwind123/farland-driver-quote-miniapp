@@ -2,6 +2,7 @@ page {
   background: #f4f6fb;
   color: #1e2d4e;
   font-size: 28rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
 }
 
 button::after {

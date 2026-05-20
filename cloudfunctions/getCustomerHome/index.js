@@ -6,49 +6,49 @@ exports.main = async () => {
   return {
     success: true,
     profile: {
-      name: '尊贵客户',
-      member_level: 'VIP Family',
-      points_balance: 1280,
+      name: 'Farland Guest',
+      member_level: 'Farland Signature',
+      points_balance: 3280,
     },
     today_itinerary: {
       date: '2026-06-03',
       city: 'Boston',
       title: 'Boston Campus Visit Day',
-      summary: '全天访校行程，Farland 顾问已协调酒店出发、校园停靠和用车安排。',
+      summary: '全天访校行程，Farland 顾问已协调酒店出发、校园停靠、午间节奏与用车安排。',
       items: [
         {
           time: '09:00',
           type: 'departure',
           title: '酒店出发',
-          description: 'Boston Marriott Cambridge 大堂集合出发。',
+          description: 'Boston Marriott Cambridge 大堂集合，司机将提前抵达等候。',
         },
         {
           time: '10:00',
           type: 'campus',
           title: 'Harvard University',
-          description: '校园参访与周边环境了解。',
+          description: '校园参访与周边生活环境了解。',
         },
         {
           time: '13:00',
           type: 'campus',
           title: 'MIT Campus Visit',
-          description: 'MIT 主校区参访，午餐时间根据现场安排调整。',
+          description: 'MIT 主校区参访，午餐时间根据现场节奏调整。',
         },
         {
           time: '16:00',
           type: 'campus',
           title: 'Boston College',
-          description: '下午访校结束后返回酒店。',
+          description: '下午访校结束后返回酒店，晚餐可由顾问协助建议。',
         },
       ],
       driver: {
         name: 'David',
-        phone: '+1 xxx',
+        phone: '+1 (617) 000-0000',
         vehicle: 'Chevrolet Suburban',
       },
       farland_contact: {
         name: 'Farland Advisor',
-        phone: '+1 xxx',
+        phone: '+1 (800) 000-0000',
       },
     },
     trip_overview: [
@@ -57,14 +57,14 @@ exports.main = async () => {
         date: '2026-06-03',
         city: 'Boston',
         title: 'Boston Campus Visit',
-        summary: 'Harvard / MIT / Boston College 访校与市区住宿。',
+        summary: 'Harvard / MIT / Boston College 访校与 Cambridge 周边住宿。',
       },
       {
         day: 2,
         date: '2026-06-04',
         city: 'New York',
         title: 'New York Transfer',
-        summary: '跨城转场与酒店入住，顾问协助确认时间。',
+        summary: '跨城转场与酒店入住，顾问协助确认出发时间和行李安排。',
       },
     ],
     transportation_appointments: [
@@ -74,10 +74,10 @@ exports.main = async () => {
         route_summary: 'Boston campus visit: Harvard / MIT / Boston College',
         status: 'assigned',
         driver_name: 'David',
-        driver_phone: '+1 xxx',
+        driver_phone: '+1 (617) 000-0000',
         vehicle_type: 'Suburban',
         vehicle_model: 'Chevrolet Suburban',
-        plate_number: 'confirmed after assignment',
+        plate_number: 'Confirmed',
       },
     ],
     hotel_requests: [
@@ -90,16 +90,16 @@ exports.main = async () => {
     ],
     benefits: [
       {
-        title: 'Airport Transfer Benefit',
-        description: 'Selected city airport transfer service benefit',
+        title: '机场接送礼遇',
+        description: '指定城市机场接送服务可享 Farland 会员权益',
       },
       {
-        title: 'Hotel Booking Benefit',
-        description: 'Selected hotel booking assistance and campus visit lodging advice',
+        title: '酒店预订礼遇',
+        description: '顾问协助筛选校园周边与高端品牌酒店方案',
       },
       {
-        title: 'Campus Visit Consultation',
-        description: 'US school visit route and planning support',
+        title: '访校行程咨询',
+        description: '美国学校参访动线、住宿区域与用车节奏建议',
       },
     ],
   };

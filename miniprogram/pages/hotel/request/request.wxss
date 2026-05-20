@@ -1,27 +1,213 @@
-.page { min-height: 100vh; padding: 28rpx 28rpx 132rpx; box-sizing: border-box; background: #f5f6fa; }
-.hero { background: #5B6596; color: #fff; border-radius: 22rpx; padding: 34rpx 30rpx 82rpx; }
-.brand { font-size: 30rpx; font-weight: 700; opacity: 0.92; }
-.hero-title { margin-top: 28rpx; font-size: 42rpx; font-weight: 700; letter-spacing: 0; }
-.hero-desc { margin-top: 14rpx; font-size: 25rpx; line-height: 1.5; opacity: 0.9; }
-.search-card { position: relative; margin-top: -54rpx; background: #fff; border-radius: 20rpx; padding: 28rpx; box-shadow: 0 16rpx 34rpx rgba(35, 51, 91, 0.12); }
-.card-title { font-size: 32rpx; font-weight: 700; color: #1f3266; margin-bottom: 22rpx; }
-.field-block { margin-bottom: 18rpx; padding: 20rpx; border-radius: 14rpx; background: #f7f9ff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
-.field-label { color: #627392; font-size: 23rpx; margin-bottom: 10rpx; }
-input, textarea { width: 100%; box-sizing: border-box; color: #1e2d4e; font-size: 28rpx; min-height: 42rpx; }
-.city-input { font-size: 36rpx; font-weight: 700; }
-.date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-bottom: 18rpx; }
-.date-box { min-height: 108rpx; padding: 20rpx; border-radius: 14rpx; background: #f7f9ff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
-.date-value { color: #1e2d4e; font-size: 30rpx; font-weight: 700; }
-.guest-row, .contact-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
-.guest-row { margin-bottom: 18rpx; }
-.contact-panel { margin-bottom: 18rpx; padding: 18rpx; border-radius: 16rpx; background: #fff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
-.contact-title { margin-bottom: 16rpx; color: #253554; font-size: 25rpx; font-weight: 700; line-height: 1.4; }
-.guest-item, .contact-item { padding: 20rpx; border-radius: 14rpx; background: #f7f9ff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
-.number-input { font-size: 32rpx; font-weight: 700; }
-textarea { min-height: 96rpx; line-height: 1.5; }
-.preference-textarea { min-height: 132rpx; }
-.query-btn { margin-top: 8rpx; background: #5B6596; color: #fff; border-radius: 46rpx; font-size: 30rpx; }
-.benefit-card { margin-top: 22rpx; background: #fff; border-radius: 18rpx; padding: 26rpx; }
-.benefit-title { color: #1f3266; font-size: 30rpx; font-weight: 700; margin-bottom: 18rpx; }
-.benefit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; }
-.benefit-grid view { background: #f2f3fa; color: #5B6596; border-radius: 12rpx; padding: 18rpx; font-size: 24rpx; text-align: center; }
+@import "/styles/theme.wxss";
+
+.hotel-page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 140rpx;
+  box-sizing: border-box;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(246,247,251,1) 28%),
+    #F6F7FB;
+}
+
+.brand-bar {
+  margin-bottom: 20rpx;
+}
+
+.brand-logo {
+  width: 260rpx;
+  height: 76rpx;
+  display: block;
+}
+
+.brand-text {
+  font-size: 44rpx;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #1D2540;
+}
+
+.brand-subtitle {
+  margin-top: 10rpx;
+  color: #7E889A;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.hero-swiper {
+  height: 420rpx;
+}
+
+.hero-card {
+  position: relative;
+  height: 380rpx;
+  overflow: hidden;
+  border-radius: 36rpx;
+  background: #D8DEEA;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(16, 24, 40, 0.04) 0%, rgba(16, 24, 40, 0.36) 100%);
+}
+
+.hero-copy {
+  position: absolute;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 28rpx;
+  color: #FFFFFF;
+}
+
+.hero-kicker {
+  color: rgba(255,255,255,0.84);
+}
+
+.hero-title {
+  margin-top: 10rpx;
+  font-size: 40rpx;
+  line-height: 1.22;
+  font-weight: 600;
+}
+
+.hero-desc {
+  margin-top: 14rpx;
+  color: rgba(255,255,255,0.88);
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.hotel-form {
+  margin-top: -52rpx;
+  padding: 28rpx;
+  position: relative;
+  z-index: 2;
+}
+
+.form-intro {
+  margin-top: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.field-group {
+  margin-bottom: 18rpx;
+}
+
+.field-label {
+  margin-bottom: 12rpx;
+  color: #5C6576;
+  font-size: 24rpx;
+}
+
+.grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.field-input {
+  width: 100%;
+  min-height: 88rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
+  border-radius: 24rpx;
+  background: #F8F9FD;
+  border: 1rpx solid #E8ECF5;
+  color: #182235;
+  font-size: 28rpx;
+  line-height: 1.4;
+}
+
+.picker-like {
+  display: flex;
+  align-items: center;
+}
+
+.field-textarea {
+  min-height: 160rpx;
+}
+
+.expand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6rpx 0 20rpx;
+  padding: 0 4rpx;
+}
+
+.expand-text,
+.expand-icon {
+  color: #5B6596;
+  font-size: 24rpx;
+}
+
+.advanced-wrap {
+  margin-bottom: 6rpx;
+}
+
+.hotel-submit-btn {
+  margin-top: 10rpx;
+}
+
+.submit-note {
+  margin-top: 14rpx;
+  text-align: center;
+  color: #7E889A;
+  font-size: 22rpx;
+}
+
+.hotel-benefits {
+  margin-top: 24rpx;
+  padding: 28rpx;
+}
+
+.benefit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+  margin-top: 20rpx;
+}
+
+.benefit-item {
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: #FAFBFE;
+  border: 1rpx solid #EDF1F7;
+}
+
+.benefit-icon-box {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 999rpx;
+  background: rgba(91, 101, 150, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.benefit-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.benefit-name {
+  margin-top: 18rpx;
+  color: #182235;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.benefit-desc {
+  margin-top: 8rpx;
+  color: #6E7788;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
