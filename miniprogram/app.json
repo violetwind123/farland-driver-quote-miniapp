@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/auth/login/login",
+    "pages/operator/dashboard/dashboard",
+    "pages/operator/create-request/create-request",
+    "pages/operator/request-detail/request-detail",
+    "pages/operator/drivers-by-region/drivers-by-region",
+    "pages/driver/quick-quote/quick-quote",
+    "pages/driver/home/home"
+  ],
+  "window": {
+    "navigationBarTitleText": "Farland",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black"
+  },
+  "sitemapLocation": "sitemap.json"
+}

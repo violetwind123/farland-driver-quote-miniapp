@@ -1,0 +1,19 @@
+.page { min-height: 100vh; padding: 24rpx; box-sizing: border-box; }
+.title { font-size: 36rpx; font-weight: 700; color: #17315f; margin-bottom: 18rpx; }
+.filters { display: flex; gap: 10rpx; overflow-x: auto; margin-bottom: 18rpx; }
+.filter { flex: 0 0 auto; padding: 12rpx 20rpx; border-radius: 28rpx; background: #f2f4f7; color: #627392; font-size: 24rpx; }
+.filter.active { background: #5B6596; color: #fff; }
+.state, .driver-card { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 18rpx; }
+.state { color: #627392; }
+.driver-head { display: flex; justify-content: space-between; gap: 16rpx; margin-bottom: 14rpx; }
+.driver-name { font-size: 30rpx; font-weight: 700; color: #253554; }
+.status { color: #5B6596; font-size: 24rpx; }
+.muted { color: #627392; font-size: 24rpx; margin-top: 6rpx; }
+.field { display: flex; justify-content: space-between; gap: 18rpx; margin-bottom: 10rpx; color: #253554; font-size: 25rpx; }
+.field text:first-child { color: #627392; flex: 0 0 160rpx; }
+.field text:last-child { flex: 1; text-align: right; word-break: break-word; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12rpx; margin: 18rpx 0; }
+.stats view { background: #f7f9ff; border-radius: 12rpx; padding: 16rpx; }
+.stats text { display: block; text-align: center; }
+.stats text:first-child { font-size: 34rpx; font-weight: 700; color: #5B6596; }
+.stats text:last-child { color: #627392; font-size: 22rpx; margin-top: 4rpx; }

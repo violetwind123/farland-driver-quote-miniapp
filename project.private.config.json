@@ -18,17 +18,5 @@
     "ignoreDevUnusedFiles": true,
     "bigPackageSizeSupport": false
   },
-  "condition": {
-    "miniprogram": {
-      "list": [
-        {
-          "name": "miniprogram/pages/driver/quick-quote/quick-quote",
-          "pathName": "miniprogram/pages/driver/quick-quote/quick-quote",
-          "query": "token=fuckyou",
-          "scene": null,
-          "launchMode": "default"
-        }
-      ]
-    }
-  }
+  "condition": {}
 }

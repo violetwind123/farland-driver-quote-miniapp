@@ -1,0 +1,22 @@
+.page { padding: 24rpx; }
+.panel { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 18rpx; }
+.title { font-size: 34rpx; font-weight: 600; margin-bottom: 12rpx; }
+.field { color: #4f6385; margin-bottom: 8rpx; }
+.section-title { font-size: 30rpx; font-weight: 600; margin-bottom: 16rpx; }
+.content { color: #253554; line-height: 1.7; white-space: pre-wrap; }
+.submit-btn { background: #5B6596; color: #fff; border-radius: 44rpx; }
+.cancelled-panel { background: #f7f9ff; }
+.cancel-btn { margin-top: 16rpx; background: #5B6596; color: #fff; border-radius: 44rpx; }
+.secondary-btn { margin-top: 16rpx; background: #f2f4f7; color: #5B6596; border-radius: 44rpx; }
+.input-row { margin-bottom: 18rpx; }
+.input-row text { display: block; color: #627392; font-size: 24rpx; margin-bottom: 10rpx; }
+.picker-value, textarea { width: 100%; box-sizing: border-box; background: #f7f9ff; border: 1rpx solid #d8e1f5; border-radius: 12rpx; padding: 18rpx; font-size: 28rpx; color: #1e2d4e; }
+textarea { min-height: 130rpx; }
+.button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
+.list-item { padding: 16rpx 0; border-top: 1rpx solid #edf1f7; }
+.list-item:first-of-type { border-top: 0; }
+.note { color: #253554; margin-top: 8rpx; line-height: 1.5; }
+.muted, .empty { color: #627392; font-size: 24rpx; margin-top: 6rpx; }
+.error-text { color: #5B6596; font-size: 24rpx; margin-top: 8rpx; }
+.select-btn { margin: 14rpx 0 0; background: #5B6596; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
+.selected-label { display: inline-block; margin-top: 12rpx; padding: 8rpx 18rpx; border-radius: 24rpx; background: #f2f3fa; color: #5B6596; font-size: 24rpx; }

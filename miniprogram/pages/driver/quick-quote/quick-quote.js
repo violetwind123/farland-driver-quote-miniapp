@@ -1,105 +1,45 @@
 const CURRENCY_OPTIONS = ['USD', 'CNY'];
-const PRICE_TYPE_OPTIONS = ['all_in', 'base_plus_extra'];
+const VEHICLE_TYPES = ['sedan', 'suv', 'suburban', 'van', 'sprinter', 'transit', 'bus', 'other'];
 
 Page({
   data: {
-    step: 1,
-    identity: '',
-    operationCode: '',
-    operationCodeValid: false,
-    operationCodeError: '',
-    driverRegName: '',
-    driverRegPhone: '',
-    driverRegVehicle: '',
-    driverRegValid: false,
     loading: true,
     invalid: false,
     submitSuccess: false,
+    cancelled: false,
+    cancelReasonDriver: '',
     errorMessage: '',
     token: '',
     invite: null,
     request: null,
+    driver: null,
+    vehicle: null,
+    isRegistered: false,
+    driverStatus: 'unregistered',
     pageTitle: 'Farland 用车报价邀请',
     quotePrice: '',
     currency: 'USD',
     quoteNote: '',
-    priceType: 'all_in',
-    includedHours: '',
-    overtimeRate: '',
+    hasExistingQuote: false,
+    existingQuoteStatus: '',
+    existingQuoteUpdatedAt: '',
+    requestStatus: '',
+    quoteFinalized: false,
+    quoteLocked: false,
+    quoteResultText: '',
+    quoteResultType: '',
+    currencyIndex: 0,
     submitting: false,
     currencyOptions: CURRENCY_OPTIONS,
-    priceTypeOptions: PRICE_TYPE_OPTIONS,
-  },
-
-  onIdentitySelect(e) {
-    const identity = e.currentTarget.dataset.identity;
-    this.setData({
-      identity,
-      operationCode: '',
-      operationCodeValid: false,
-      operationCodeError: '',
-      driverRegName: '',
-      driverRegPhone: '',
-      driverRegVehicle: '',
-      driverRegValid: false,
-    });
-  },
-
-  onOperationCodeInput(e) {
-    this.setData({ operationCode: (e.detail.value || '').trim(), operationCodeError: '' });
-  },
-
-  verifyOperationCode() {
-    if (this.data.operationCode === 'Farland2026') {
-      this.setData({ operationCodeValid: true, operationCodeError: '' });
-      wx.showToast({ title: '运营身份验证成功', icon: 'success' });
-      return;
-    }
-
-    this.setData({ operationCodeValid: false, operationCodeError: 'Code 不正确，请重新输入' });
-    wx.showToast({ title: 'Code 错误', icon: 'none' });
-  },
-
-  onDriverRegInput(e) {
-    const { field } = e.currentTarget.dataset;
-    this.setData({ [field]: (e.detail.value || '').trim() });
-  },
-
-  submitDriverRegistration() {
-    const { driverRegName, driverRegPhone, driverRegVehicle } = this.data;
-    if (!driverRegName || !driverRegPhone || !driverRegVehicle) {
-      wx.showToast({ title: '请完整填写司机注册信息', icon: 'none' });
-      return;
-    }
-
-    const phoneOk = /^1\d{10}$/.test(driverRegPhone);
-    if (!phoneOk) {
-      wx.showToast({ title: '手机号格式不正确', icon: 'none' });
-      return;
-    }
-
-    this.setData({ driverRegValid: true });
-    wx.showToast({ title: '司机注册信息已保存', icon: 'success' });
-  },
-
-  goNextStep() {
-    const { identity, operationCodeValid, driverRegValid } = this.data;
-    if (!identity) {
-      wx.showToast({ title: '请先选择身份', icon: 'none' });
-      return;
-    }
-
-    if (identity === 'operation' && !operationCodeValid) {
-      wx.showToast({ title: '请先验证运营 Code', icon: 'none' });
-      return;
-    }
-
-    if (identity === 'driver' && !driverRegValid) {
-      wx.showToast({ title: '请先提交司机注册信息', icon: 'none' });
-      return;
-    }
-
-    this.setData({ step: 2 });
+    vehicleTypeOptions: VEHICLE_TYPES,
+    vehicleTypeIndex: 0,
+    formDriverName: '',
+    formDriverPhone: '',
+    formVehicleType: VEHICLE_TYPES[0],
+    formVehicleModel: '',
+    formSeats: '',
+    formLuggageCapacity: '',
+    formPlateNumber: '',
   },
 
   onLoad(options) {
@@ -109,36 +49,60 @@ Page({
       return;
     }
     this.setData({ token });
-    this.loadInvite(token);
+    this.loadQuoteInfo(token);
   },
 
-  async loadInvite(token) {
-    this.setData({ loading: true, invalid: false, errorMessage: '' });
+  async loadQuoteInfo(token) {
     try {
       const { result } = await wx.cloud.callFunction({
         name: 'getQuoteInviteByToken',
         data: { token },
       });
-
       if (!result || !result.success) {
-        this.setData({ loading: false, invalid: true, errorMessage: (result && result.message) || '该报价链接已失效' });
+        const isCancelled = result && (
+          result.status === 'cancelled'
+          || (result.code === 410 && /取消/.test(result.message || result.msg || ''))
+        );
+        if (isCancelled) {
+          this.setData({
+            loading: false,
+            invalid: false,
+            cancelled: true,
+            cancelReasonDriver: result.cancel_reason_driver || '本报价单已取消，如有疑问，请联系 Farland 运营。',
+          });
+          return;
+        }
+        this.setData({ loading: false, invalid: true, errorMessage: (result && result.message) || '加载失败' });
         return;
       }
 
-      const { invite, request, existing_quote: existingQuote } = result;
-      const pageTitle = this.getPageTitle(request.service_type);
+      const existingQuote = result.existing_quote || null;
+      const currency = existingQuote && existingQuote.currency ? existingQuote.currency : 'USD';
+      const requestStatus = result.request && result.request.status ? result.request.status : '';
+      const quoteStatus = existingQuote ? existingQuote.quote_status : '';
+      const quoteResult = this.getQuoteResult(requestStatus, quoteStatus, !!existingQuote);
+      const quoteLocked = !!existingQuote || quoteResult.finalized;
       this.setData({
         loading: false,
-        invalid: false,
-        invite,
-        request,
-        pageTitle,
+        invite: result.invite,
+        request: result.request,
+        driver: result.driver,
+        vehicle: result.vehicle,
+        driverStatus: result.driver_status || 'unregistered',
+        isRegistered: result.driver_status === 'registered_with_vehicle',
+        pageTitle: this.getPageTitle(result.request.service_type),
         quotePrice: existingQuote && existingQuote.quote_price ? String(existingQuote.quote_price) : '',
-        currency: existingQuote && existingQuote.currency ? existingQuote.currency : 'USD',
+        currency,
         quoteNote: existingQuote && existingQuote.quote_note ? existingQuote.quote_note : '',
-        priceType: existingQuote && existingQuote.price_type ? existingQuote.price_type : 'all_in',
-        includedHours: existingQuote && existingQuote.included_hours ? String(existingQuote.included_hours) : '',
-        overtimeRate: existingQuote && existingQuote.overtime_rate ? existingQuote.overtime_rate : '',
+        hasExistingQuote: !!existingQuote,
+        existingQuoteStatus: quoteStatus,
+        existingQuoteUpdatedAt: existingQuote ? existingQuote.updated_at : '',
+        requestStatus,
+        quoteFinalized: quoteResult.finalized,
+        quoteLocked,
+        quoteResultText: quoteResult.text,
+        quoteResultType: quoteResult.type,
+        currencyIndex: Math.max(CURRENCY_OPTIONS.indexOf(currency), 0),
       });
     } catch (error) {
       this.setData({ loading: false, invalid: true, errorMessage: '系统繁忙，请稍后再试' });
@@ -151,47 +115,111 @@ Page({
     return 'Farland 用车报价邀请';
   },
 
+  getQuoteResult(requestStatus, quoteStatus, hasExistingQuote) {
+    if (quoteStatus === 'selected') {
+      return {
+        finalized: true,
+        type: 'selected',
+        text: '您的报价已被 Farland 运营选择，运营会再与您确认。',
+      };
+    }
+    if (quoteStatus === 'rejected') {
+      return {
+        finalized: true,
+        type: 'rejected',
+        text: '本单已选择其他司机，感谢您的报价。',
+      };
+    }
+    if (requestStatus === 'assigned') {
+      return {
+        finalized: true,
+        type: hasExistingQuote ? 'closed' : 'rejected',
+        text: hasExistingQuote ? '本单已完成司机选择，当前报价不能再修改。' : '本单已完成司机选择，当前不再接受报价。',
+      };
+    }
+    return { finalized: false, type: '', text: '' };
+  },
+
   onInputChange(e) {
-    const { field } = e.currentTarget.dataset;
-    this.setData({ [field]: e.detail.value });
+    this.setData({ [e.currentTarget.dataset.field]: e.detail.value });
   },
 
   onCurrencyChange(e) {
-    this.setData({ currency: CURRENCY_OPTIONS[Number(e.detail.value)] });
+    const currencyIndex = Number(e.detail.value);
+    this.setData({ currency: CURRENCY_OPTIONS[currencyIndex], currencyIndex });
   },
 
-  onPriceTypeChange(e) {
-    this.setData({ priceType: PRICE_TYPE_OPTIONS[Number(e.detail.value)] });
+  onVehicleTypeChange(e) {
+    const vehicleTypeIndex = Number(e.detail.value);
+    this.setData({
+      vehicleTypeIndex,
+      formVehicleType: VEHICLE_TYPES[vehicleTypeIndex],
+    });
   },
 
   async onSubmit() {
-    const { request, token, quotePrice, currency, quoteNote, priceType, includedHours, overtimeRate, submitting } = this.data;
+    const {
+      token,
+      quotePrice,
+      currency,
+      quoteNote,
+      submitting,
+      isRegistered,
+      driverStatus,
+      driver,
+      vehicle,
+      formDriverName,
+      formDriverPhone,
+      formVehicleType,
+      formVehicleModel,
+      formSeats,
+      formLuggageCapacity,
+      formPlateNumber,
+      quoteFinalized,
+      quoteLocked,
+    } = this.data;
     if (submitting) return;
-
+    if (quoteLocked || quoteFinalized) {
+      wx.showToast({ title: '报价已提交，不能重复提交', icon: 'none' });
+      return;
+    }
     const parsedPrice = Number(quotePrice);
     if (!quotePrice || Number.isNaN(parsedPrice) || parsedPrice <= 0) {
-      wx.showToast({ title: '请输入大于0的报价金额', icon: 'none' });
+      wx.showToast({ title: '请输入有效报价金额', icon: 'none' });
       return;
     }
 
-    const payload = {
-      token,
-      quote_price: parsedPrice,
-      currency,
-      quote_note: quoteNote || '',
-    };
-
-    if (request.service_type === 'charter') {
-      payload.price_type = priceType;
-      payload.included_hours = includedHours ? Number(includedHours) : undefined;
-      payload.overtime_rate = overtimeRate || '';
-    }
+    const driverProfile = driverStatus !== 'unregistered'
+      ? { name: driver.name, phone: driver.phone }
+      : { name: formDriverName, phone: formDriverPhone };
+    const vehicleProfile = isRegistered && vehicle
+      ? {
+        vehicle_type: vehicle.vehicle_type,
+        vehicle_model: vehicle.vehicle_model,
+        seats: vehicle.seats,
+        luggage_capacity: vehicle.luggage_capacity,
+        plate_number: vehicle.plate_number,
+      }
+      : {
+        vehicle_type: formVehicleType,
+        vehicle_model: formVehicleModel,
+        seats: formSeats,
+        luggage_capacity: formLuggageCapacity,
+        plate_number: formPlateNumber,
+      };
 
     this.setData({ submitting: true });
     try {
       const { result } = await wx.cloud.callFunction({
         name: 'submitQuickQuote',
-        data: payload,
+        data: {
+          token,
+          driver_profile: driverProfile,
+          vehicle_profile: vehicleProfile,
+          quote_price: parsedPrice,
+          currency,
+          quote_note: quoteNote || '',
+        },
       });
       if (!result || !result.success) {
         wx.showToast({ title: (result && result.message) || '提交失败', icon: 'none' });

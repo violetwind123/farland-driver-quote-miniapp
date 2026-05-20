@@ -1,0 +1,28 @@
+page {
+  background: #f4f6fb;
+  color: #1e2d4e;
+  font-size: 28rpx;
+}
+
+button::after {
+  border: 0;
+}
+
+button.primary-btn,
+button.submit-btn,
+button.select-btn,
+button.floating-add,
+.primary-btn,
+.submit-btn,
+.select-btn,
+.floating-add,
+.service-type.active {
+  background: #5B6596 !important;
+  color: #ffffff !important;
+}
+
+.status,
+.selected-label,
+.error-text {
+  color: #5B6596 !important;
+}

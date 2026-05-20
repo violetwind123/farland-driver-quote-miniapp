@@ -1,58 +1,53 @@
 # API
 
+## login
+无输入。用于运营登录和创建默认 `driver` 用户。
+
 ## createQuoteInvite
-输入：
 ```json
 {
-  "request_id": "req_transfer_001",
-  "driver_name": "David",
-  "driver_phone": "+1 6170000000",
-  "driver_wechat": "David Driver",
-  "expires_at": "2026-12-31 18:00"
+  "request_id": "req_charter_001",
+  "expires_at": "2026-06-01 18:00"
 }
 ```
-输出成功：
+
+返回：
 ```json
 {
   "success": true,
-  "token": "qq_xxx",
-  "share_path": "/pages/driver/quick-quote/quick-quote?token=qq_xxx"
+  "token": "q_xxx",
+  "share_path": "/pages/driver/quick-quote/quick-quote?token=q_xxx"
 }
-```
-输出失败：
-```json
-{ "success": false, "message": "参数不完整" }
 ```
 
 ## getQuoteInviteByToken
-输入：
-```json
-{ "token": "test-transfer-token-001" }
-```
-输出成功：返回 invite、request（已脱敏）、existing_quote。
-输出失败：
-```json
-{ "success": false, "message": "该报价链接已失效" }
-```
-
-## submitQuickQuote
-输入：
 ```json
 {
-  "token": "test-transfer-token-001",
-  "quote_price": 220,
-  "currency": "USD",
-  "quote_note": "含基础等待",
-  "price_type": "all_in",
-  "included_hours": 8,
-  "overtime_rate": "USD 80/hour"
+  "token": "q_xxx"
 }
 ```
-输出成功：
+
+返回司机可见 `request`、共享 `invite`、当前司机 `driver/vehicle`、`is_registered` 和已有报价。
+
+## submitQuickQuote
 ```json
-{ "success": true, "message": "报价已提交，Farland 运营会再与您确认。" }
+{
+  "token": "q_xxx",
+  "driver_profile": {
+    "name": "David",
+    "phone": "13800138000"
+  },
+  "vehicle_profile": {
+    "vehicle_type": "suburban",
+    "vehicle_model": "Chevrolet Suburban",
+    "seats": 7,
+    "luggage_capacity": 5,
+    "plate_number": "ABC123"
+  },
+  "quote_price": 680,
+  "currency": "USD",
+  "quote_note": "含基础等待"
+}
 ```
-输出失败：
-```json
-{ "success": false, "message": "报价金额必须大于0" }
-```
+
+首次报价创建 driver / vehicle / quote；重复报价更新原 quote。

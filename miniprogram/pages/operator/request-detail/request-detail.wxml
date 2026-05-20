@@ -1,0 +1,87 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="panel">加载中...</view>
+  <block wx:else>
+    <view class="panel">
+      <view class="title">{{request.request_no}}</view>
+      <view class="field">状态：{{request.status}}</view>
+      <view class="field">类型：{{request.service_type === 'transfer' ? '接送 / 转场' : '包车 / 多日用车'}}</view>
+      <view class="field">服务日期：{{request.service_date}}</view>
+      <view class="field">发布司机区域：{{request.driver_region}}</view>
+      <view class="field">截止：{{request.quote_deadline}}</view>
+    </view>
+
+    <view wx:if="{{request.status === 'cancelled'}}" class="panel cancelled-panel">
+      <view class="section-title">已取消</view>
+      <view class="field">取消原因：{{request.cancel_reason_type_text}}</view>
+      <view class="content">司机可见说明：{{request.cancel_reason_driver || '-'}}</view>
+      <view class="content">内部备注：{{request.cancel_reason_internal || '-'}}</view>
+      <view class="muted">取消时间：{{request.cancelled_at || '-'}}</view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">任务描述</view>
+      <view class="content">{{request.task_description}}</view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">内部备注</view>
+      <view class="content">{{request.internal_note || '无'}}</view>
+    </view>
+
+    <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">
+      <view class="section-title">分发到司机群</view>
+      <view class="content">报价邀请会自动准备好。需要发司机群时，使用页面右上角转发。</view>
+      <view wx:if="{{creatingInvite}}" class="muted">正在准备报价邀请...</view>
+      <view wx:if="{{inviteError}}" class="error-text">{{inviteError}}</view>
+      <button wx:if="{{inviteError}}" class="submit-btn" bindtap="onRetryCreateInvite">重试生成报价邀请</button>
+      <view wx:if="{{token}}" class="muted">报价邀请已生成</view>
+    </view>
+
+    <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">
+      <view class="section-title">取消报价单</view>
+      <view class="content">客户取消、行程变化、重复创建或测试订单时，可以取消报价单。取消后司机不能继续报价。</view>
+      <button class="cancel-btn" bindtap="openCancelForm">取消报价单</button>
+    </view>
+
+    <view wx:if="{{showCancelForm}}" class="panel cancel-form">
+      <view class="section-title">取消原因</view>
+      <view class="input-row">
+        <text>原因类型</text>
+        <picker range="{{cancelReasonTypes}}" range-key="label" value="{{cancelReasonIndex}}" bindchange="onCancelReasonChange">
+          <view class="picker-value">{{cancelReasonIndex >= 0 ? cancelReasonTypes[cancelReasonIndex].label : '请选择取消原因'}}</view>
+        </picker>
+      </view>
+      <view class="input-row">
+        <text>司机可见说明</text>
+        <textarea value="{{cancelReasonDriver}}" data-field="cancelReasonDriver" bindinput="onCancelInput" placeholder="客户行程调整，本次报价取消。后续如需重新报价，Farland 会另行通知。" />
+      </view>
+      <view class="input-row">
+        <text>内部备注</text>
+        <textarea value="{{cancelReasonInternal}}" data-field="cancelReasonInternal" bindinput="onCancelInput" placeholder="仅运营可见，例如客户改日期、原单作废、后续重发。" />
+      </view>
+      <view class="button-row">
+        <button class="secondary-btn" bindtap="closeCancelForm">返回</button>
+        <button class="cancel-btn" loading="{{cancelling}}" bindtap="submitCancelRequest">{{cancelling ? '取消中...' : '确认取消'}}</button>
+      </view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">司机报价</view>
+      <view wx:if="{{!quotes.length}}" class="empty">暂无报价</view>
+      <view wx:for="{{quotes}}" wx:key="_id" class="list-item">
+        <view>{{item.driver_name_snapshot}} · {{item.driver_phone_snapshot}}</view>
+        <view class="muted">{{item.vehicle_type_snapshot}} · {{item.vehicle_model_snapshot}} · {{item.seats_snapshot}} 座 · 行李 {{item.luggage_capacity_snapshot}}</view>
+        <view class="note">{{item.quote_price}} {{item.currency}} · {{item.quote_note || '无备注'}}</view>
+        <view class="muted">{{item.quote_status}} · {{item.updated_at}}</view>
+        <button
+          wx:if="{{item.quote_status !== 'selected' && request.status !== 'assigned' && request.status !== 'cancelled'}}"
+          class="select-btn"
+          loading="{{selectingQuoteId === item._id}}"
+          data-id="{{item._id}}"
+          bindtap="selectQuote"
+        >选择该司机</button>
+        <view wx:if="{{item.quote_status === 'selected'}}" class="selected-label">已选择</view>
+      </view>
+    </view>
+  </block>
+</view>

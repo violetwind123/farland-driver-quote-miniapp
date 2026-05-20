@@ -1,0 +1,18 @@
+<view class="page">
+  <view class="brand">Farland</view>
+  <view wx:if="{{!loading && !driverOnly && !errorMessage}}" class="panel auth-panel">
+    <view class="title">身份认证</view>
+    <view class="desc">请先完成微信身份认证，再进入对应工作流。</view>
+    <button class="primary-btn" bindtap="login">微信身份认证</button>
+  </view>
+  <view wx:if="{{loading}}" class="panel">认证中...</view>
+  <view wx:elif="{{driverOnly}}" class="panel">
+    <view class="title">司机账号已识别</view>
+    <view class="desc">请通过 Farland 发送的报价邀请链接进入报价页面。</view>
+  </view>
+  <view wx:elif="{{errorMessage}}" class="panel error">
+    <view class="title">认证失败</view>
+    <view class="desc">{{errorMessage}}</view>
+    <button class="primary-btn" bindtap="login">重新认证</button>
+  </view>
+</view>

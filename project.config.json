@@ -29,7 +29,10 @@
     "ignore": [],
     "include": []
   },
-  "appid": "wxc106950dd1984bfb",
+  "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "appid": "wxefc5ccc16edd5c2b",
   "editorSetting": {},
-  "libVersion": "3.16.0"
+  "libVersion": "3.16.0",
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
 }

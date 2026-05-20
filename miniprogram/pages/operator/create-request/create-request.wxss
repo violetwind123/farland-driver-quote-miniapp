@@ -1,0 +1,15 @@
+.page { padding: 24rpx; }
+.page-title { font-size: 36rpx; font-weight: 600; color: #17315f; margin-bottom: 20rpx; }
+.section, .panel { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 18rpx; }
+.section-title { font-size: 28rpx; font-weight: 600; margin-bottom: 18rpx; }
+.service-types { display: flex; gap: 16rpx; }
+.service-type { flex: 1; min-height: 96rpx; display: flex; align-items: center; justify-content: center; text-align: center; background: #eef3ff; color: #496080; border-radius: 12rpx; }
+.service-type.active { background: #5B6596; color: #fff; font-weight: 600; }
+.input-row { margin-bottom: 18rpx; }
+.input-row text { display: block; color: #627392; font-size: 24rpx; margin-bottom: 10rpx; }
+input, textarea, .picker-value { width: 100%; box-sizing: border-box; background: #f7f9ff; border: 1rpx solid #d8e1f5; border-radius: 12rpx; padding: 18rpx; font-size: 28rpx; color: #1e2d4e; }
+.placeholder { color: #95a2bb; }
+.deadline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
+textarea { min-height: 120rpx; }
+.large-textarea { min-height: 320rpx; line-height: 1.6; }
+.submit-btn { margin-top: 20rpx; background: #5B6596; color: #fff; border-radius: 44rpx; }

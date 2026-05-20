@@ -6,19 +6,21 @@
 .field { display: flex; justify-content: space-between; gap: 20rpx; margin-bottom: 12rpx; font-size: 26rpx; color: #243454; }
 .field text:first-child { color: #63759a; flex: 0 0 190rpx; }
 .field text:last-child { flex: 1; text-align: right; word-break: break-word; }
+.task-description { margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid #edf1f7; line-height: 1.7; white-space: pre-wrap; color: #243454; }
+.hint { margin-top: 14rpx; color: #7a89a8; font-size: 24rpx; line-height: 1.6; }
+.quote-notice { margin-bottom: 18rpx; padding: 16rpx; background: #f2f3fa; border-radius: 12rpx; color: #5B6596; font-size: 24rpx; line-height: 1.6; }
+.quote-notice text { display: block; margin-top: 6rpx; }
+.quote-result { margin-bottom: 18rpx; padding: 18rpx; border-radius: 12rpx; font-size: 26rpx; line-height: 1.6; }
+.quote-result.selected { background: #ecfdf3; color: #067647; }
+.quote-result.rejected { background: #f2f4f7; color: #475467; }
+.quote-result.closed { background: #fff7ed; color: #b54708; }
 .input-row { margin-bottom: 18rpx; }
 .input-row text { display: block; color: #465c86; font-size: 24rpx; margin-bottom: 10rpx; }
 input, textarea, .picker-value { background: #f7f9ff; border: 1rpx solid #d8e1f5; border-radius: 12rpx; padding: 18rpx; font-size: 28rpx; color: #1e2d4e; }
 textarea { width: 100%; min-height: 120rpx; }
-.identity-options { display: flex; gap: 16rpx; margin-bottom: 18rpx; }
-.identity-item { flex: 1; text-align: center; padding: 20rpx 0; border-radius: 12rpx; background: #edf2ff; color: #2c4478; font-size: 28rpx; }
-.identity-item.active { background: #1f6fff; color: #fff; font-weight: 600; }
-.identity-panel { margin-bottom: 20rpx; }
-.secondary-btn { background: #edf2ff; color: #1f6fff; border-radius: 40rpx; font-size: 28rpx; margin-top: 12rpx; }
-.error-text { color: #b42318; font-size: 24rpx; margin-bottom: 8rpx; }
-.submit-btn { background: #1f6fff; color: #fff; border-radius: 44rpx; font-size: 30rpx; }
+.submit-btn { background: #5B6596; color: #fff; border-radius: 44rpx; font-size: 30rpx; }
 .footer-tip { text-align: center; color: #7a89a8; font-size: 24rpx; margin-top: 16rpx; }
 .state-title { font-size: 34rpx; font-weight: 600; margin-bottom: 8rpx; }
 .state-desc { color: #4a5b7a; }
-.invalid .state-title { color: #b42318; }
+.invalid .state-title { color: #5B6596; }
 .success .state-title { color: #067647; }

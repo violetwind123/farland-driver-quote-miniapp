@@ -1,0 +1,53 @@
+<view class="page">
+  <view class="page-title">发布新报价单</view>
+
+  <view class="section">
+    <view class="section-title">服务类型</view>
+    <view class="service-types">
+      <view class="service-type {{form.service_type==='transfer' ? 'active' : ''}}" data-type="transfer" bindtap="switchType">接送 / 转场</view>
+      <view class="service-type {{form.service_type==='charter' ? 'active' : ''}}" data-type="charter" bindtap="switchType">包车 / 多日用车</view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">基础信息</view>
+    <view class="input-row">
+      <text>服务日期</text>
+      <picker mode="date" value="{{form.service_date}}" bindchange="onServiceDateChange">
+        <view class="picker-value {{form.service_date ? '' : 'placeholder'}}">{{form.service_date || '请选择服务日期'}}</view>
+      </picker>
+    </view>
+    <view class="input-row">
+      <text>发布司机区域</text>
+      <picker range="{{regionOptions}}" value="{{regionIndex}}" bindchange="onRegionChange">
+        <view class="picker-value {{form.driver_region ? '' : 'placeholder'}}">{{form.driver_region || '请选择司机区域'}}</view>
+      </picker>
+    </view>
+    <view class="deadline-grid">
+      <view class="input-row">
+        <text>报价截止日期</text>
+        <picker mode="date" value="{{form.deadline_date}}" bindchange="onDeadlineDateChange">
+          <view class="picker-value {{form.deadline_date ? '' : 'placeholder'}}">{{form.deadline_date || '请选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="input-row">
+        <text>报价截止时间</text>
+        <picker mode="time" value="{{form.deadline_time}}" bindchange="onDeadlineTimeChange">
+          <view class="picker-value {{form.deadline_time ? '' : 'placeholder'}}">{{form.deadline_time || '请选择时间'}}</view>
+        </picker>
+      </view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">任务描述</view>
+    <textarea class="large-textarea" data-field="task_description" value="{{form.task_description}}" bindinput="onInput" placeholder="{{taskDescriptionPlaceholder}}" />
+  </view>
+
+  <view class="panel">
+    <view class="section-title">内部备注（选填）</view>
+    <textarea data-field="internal_note" value="{{form.internal_note}}" bindinput="onInput" placeholder="仅运营内部可见，不会展示给司机。" />
+  </view>
+
+  <button class="submit-btn" loading="{{submitting}}" bindtap="submit">发布并进入订单详情</button>
+</view>

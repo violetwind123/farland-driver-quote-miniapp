@@ -1,0 +1,36 @@
+<view class="page">
+  <view class="title">{{region}} 司机</view>
+
+  <view class="filters">
+    <view
+      wx:for="{{filters}}"
+      wx:key="value"
+      class="filter {{activeVehicleType === item.value ? 'active' : ''}}"
+      data-value="{{item.value}}"
+      bindtap="onFilterTap"
+    >{{item.label}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="state">加载中...</view>
+  <view wx:elif="{{!drivers.length}}" class="state">暂无司机</view>
+
+  <view wx:for="{{drivers}}" wx:key="_id" class="driver-card">
+    <view class="driver-head">
+      <view>
+        <view class="driver-name">{{item.name || '未命名司机'}}</view>
+        <view class="muted">{{item.phone || '-'}}</view>
+      </view>
+      <view class="status">{{item.status || '-'}}</view>
+    </view>
+    <view class="field"><text>服务区域</text><text>{{item.service_region || '-'}}</text></view>
+    <view class="field"><text>车辆类型</text><text>{{item.vehicle_type || '-'}}</text></view>
+    <view class="field"><text>车辆型号</text><text>{{item.vehicle_model || '-'}}</text></view>
+    <view class="field"><text>座位 / 行李</text><text>{{item.seats || 0}} 座 · {{item.luggage_capacity || 0}}</text></view>
+    <view class="field"><text>车牌号</text><text>{{item.plate_number || '-'}}</text></view>
+    <view class="stats">
+      <view><text>{{item.active_quote_count || 0}}</text><text>当前报价</text></view>
+      <view><text>{{item.selected_order_count || 0}}</text><text>已选择</text></view>
+    </view>
+    <view class="muted">最近报价：{{item.last_quote_at || '-'}}</view>
+  </view>
+</view>
