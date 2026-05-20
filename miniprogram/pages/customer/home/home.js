@@ -5,6 +5,8 @@ Page({
     benefits: [],
     hotelRequests: [],
     transportationAppointments: [],
+    todayItinerary: null,
+    tripOverview: [],
   },
 
   onLoad() {
@@ -26,6 +28,8 @@ Page({
         benefits: result.benefits || [],
         hotelRequests: result.hotel_requests || [],
         transportationAppointments: result.transportation_appointments || [],
+        todayItinerary: result.today_itinerary || null,
+        tripOverview: result.trip_overview || [],
       });
     } catch (error) {
       wx.showToast({ title: '加载失败', icon: 'none' });

@@ -2,12 +2,15 @@
 .profile-card { background: #5B6596; color: #fff; border-radius: 18rpx; padding: 30rpx; margin-bottom: 18rpx; }
 .welcome { font-size: 36rpx; font-weight: 700; }
 .member { margin-top: 10rpx; font-size: 26rpx; opacity: 0.9; }
-.shortcut-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-bottom: 18rpx; }
-.shortcut { background: #5B6596; color: #fff; border-radius: 40rpx; font-size: 26rpx; }
-.shortcut.secondary { background: #fff; color: #5B6596; }
 .panel { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 18rpx; }
 .section-title { font-size: 30rpx; font-weight: 700; color: #1f3266; margin-bottom: 14rpx; }
 .list-item, .benefit-item { padding: 16rpx 0; border-top: 1rpx solid #edf1f7; }
 .list-item:first-of-type, .benefit-item:first-of-type { border-top: 0; }
+.trip-title { color: #253554; font-size: 30rpx; font-weight: 700; }
 .item-title { color: #253554; font-weight: 700; font-size: 27rpx; }
 .desc, .empty { margin-top: 8rpx; color: #627392; font-size: 24rpx; line-height: 1.5; }
+.timeline-item { display: flex; gap: 18rpx; padding: 18rpx 0; border-top: 1rpx solid #edf1f7; }
+.time { flex: 0 0 84rpx; color: #5B6596; font-size: 24rpx; font-weight: 700; }
+.timeline-body { flex: 1; }
+.info-box { margin-top: 14rpx; background: #f7f9ff; border-radius: 12rpx; padding: 18rpx; }
+.secondary-btn { margin-top: 18rpx; background: #fff; color: #5B6596; border: 1rpx solid #d8e1f5; border-radius: 40rpx; font-size: 26rpx; }
