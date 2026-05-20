@@ -99,6 +99,103 @@ Page({
     return found ? found.label : type || '-';
   },
 
+  getServiceTypeLabel(type) {
+    if (type === 'transfer') return '接送 / 转场';
+    if (type === 'charter') return '包车 / 多日用车';
+    return type || '-';
+  },
+
+  getStatusLabel(status) {
+    const labels = {
+      quoting: '报价中',
+      quoted: '已报价',
+      assigned: '已选择',
+      completed: '已完成',
+      cancelled: '已取消',
+      submitted: '已提交',
+      updated: '已更新',
+      selected: '已选择',
+      rejected: '未选中',
+    };
+    return labels[status] || status || '-';
+  },
+
+  formatSummaryValue(value) {
+    if (value === undefined || value === null || value === '') return '-';
+    return value;
+  },
+
+  buildQuoteSummary() {
+    const { request, quotes } = this.data;
+    const selectedQuote = (quotes || []).find((quote) => {
+      return quote.quote_status === 'selected' || quote._id === request.selected_quote_id;
+    });
+    const lines = [
+      '【Farland 司机报价汇总】',
+      `订单编号：${this.formatSummaryValue(request.request_no)}`,
+      `服务类型：${this.getServiceTypeLabel(request.service_type)}`,
+      `服务日期：${this.formatSummaryValue(request.service_date)}`,
+      `司机区域：${this.formatSummaryValue(request.driver_region)}`,
+      `状态：${this.getStatusLabel(request.status)}`,
+      `报价截止：${this.formatSummaryValue(request.quote_deadline)}`,
+      '',
+      '【任务描述】',
+      this.formatSummaryValue(request.task_description),
+    ];
+
+    if (selectedQuote) {
+      lines.push(
+        '',
+        '【已选择司机】',
+        `${this.formatSummaryValue(selectedQuote.driver_name_snapshot)}｜${this.formatSummaryValue(selectedQuote.vehicle_model_snapshot)}｜${this.formatSummaryValue(selectedQuote.currency)} ${this.formatSummaryValue(selectedQuote.quote_price)}`
+      );
+    }
+
+    if (request.status === 'cancelled') {
+      lines.push(
+        '',
+        '【取消信息】',
+        `取消原因：${this.formatSummaryValue(request.cancel_reason_type_text || this.getCancelReasonLabel(request.cancel_reason_type))}`,
+        `司机可见说明：${this.formatSummaryValue(request.cancel_reason_driver)}`,
+        `内部备注：${this.formatSummaryValue(request.cancel_reason_internal)}`,
+        `取消时间：${this.formatSummaryValue(request.cancelled_at)}`
+      );
+    }
+
+    lines.push('', '【司机报价】');
+    if (!quotes || !quotes.length) {
+      lines.push('暂无司机报价');
+      return lines.join('\n');
+    }
+
+    quotes.forEach((quote, index) => {
+      lines.push(
+        `${index + 1}. ${this.formatSummaryValue(quote.driver_name_snapshot)}｜${this.formatSummaryValue(quote.driver_phone_snapshot)}`,
+        `车辆：${this.formatSummaryValue(quote.vehicle_type_snapshot)}｜${this.formatSummaryValue(quote.vehicle_model_snapshot)}｜${this.formatSummaryValue(quote.seats_snapshot)}座｜行李${this.formatSummaryValue(quote.luggage_capacity_snapshot)}`,
+        `报价：${this.formatSummaryValue(quote.currency)} ${this.formatSummaryValue(quote.quote_price)}`,
+        `备注：${this.formatSummaryValue(quote.quote_note)}`,
+        `状态：${this.getStatusLabel(quote.quote_status)}`,
+        `提交/更新：${this.formatSummaryValue(quote.submitted_at)} / ${this.formatSummaryValue(quote.updated_at)}`
+      );
+      if (index < quotes.length - 1) lines.push('');
+    });
+
+    return lines.join('\n');
+  },
+
+  copyQuoteSummary() {
+    const data = this.buildQuoteSummary();
+    wx.setClipboardData({
+      data,
+      success: () => {
+        wx.showToast({ title: '已复制报价汇总', icon: 'success' });
+      },
+      fail: () => {
+        wx.showToast({ title: '复制失败', icon: 'none' });
+      },
+    });
+  },
+
   onShareAppMessage() {
     const { request, token } = this.data;
     if (['cancelled', 'completed'].includes(request.status)) {

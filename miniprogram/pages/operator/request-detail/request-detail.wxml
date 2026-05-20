@@ -67,6 +67,7 @@
 
     <view class="panel">
       <view class="section-title">司机报价</view>
+      <button class="summary-btn" bindtap="copyQuoteSummary">复制报价汇总</button>
       <view wx:if="{{!quotes.length}}" class="empty">暂无报价</view>
       <view wx:for="{{quotes}}" wx:key="_id" class="list-item">
         <view>{{item.driver_name_snapshot}} · {{item.driver_phone_snapshot}}</view>
