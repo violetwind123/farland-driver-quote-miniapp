@@ -1,9 +1,2 @@
-.page { min-height: 100vh; padding: 56rpx 28rpx 44rpx; box-sizing: border-box; background: #f4f6fb; }
-.hero { margin-bottom: 34rpx; }
-.brand { font-size: 56rpx; font-weight: 700; color: #17315f; }
-.subtitle { margin-top: 12rpx; color: #5B6596; font-size: 28rpx; line-height: 1.5; }
-.service-card { background: #fff; border-radius: 16rpx; padding: 28rpx; margin-bottom: 18rpx; box-shadow: 0 10rpx 24rpx rgba(35, 51, 91, 0.06); }
-.card-title { font-size: 32rpx; font-weight: 700; color: #1f3266; }
-.card-desc { margin-top: 10rpx; color: #627392; font-size: 25rpx; line-height: 1.6; }
-.driver-note { margin-top: 36rpx; color: #627392; font-size: 24rpx; line-height: 1.6; text-align: center; }
-.operator-link { margin-top: 18rpx; color: #5B6596; font-size: 24rpx; text-align: center; }
+.page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f4f6fb; }
+.desc { color: #627392; font-size: 26rpx; }

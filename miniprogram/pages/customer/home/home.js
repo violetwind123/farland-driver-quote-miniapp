@@ -34,7 +34,7 @@ Page({
   },
 
   goHotelRequest() {
-    wx.navigateTo({ url: '/pages/hotel/request/request' });
+    wx.switchTab({ url: '/pages/hotel/request/request' });
   },
 
   goBenefits() {

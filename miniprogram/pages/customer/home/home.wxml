@@ -3,7 +3,7 @@
 
   <block wx:else>
     <view class="profile-card">
-      <view class="welcome">欢迎，{{profile.name}}</view>
+      <view class="welcome">我的行程</view>
       <view class="member">{{profile.member_level}} · {{profile.points_balance}} 积分</view>
     </view>
 

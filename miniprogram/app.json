@@ -1,6 +1,8 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/hotel/request/request",
+    "pages/customer/home/home",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
     "pages/operator/request-hall/request-hall",
@@ -8,8 +10,6 @@
     "pages/operator/request-detail/request-detail",
     "pages/operator/driver-summary/driver-summary",
     "pages/operator/drivers-by-region/drivers-by-region",
-    "pages/hotel/request/request",
-    "pages/customer/home/home",
     "pages/customer/benefits/benefits",
     "pages/driver/quick-quote/quick-quote",
     "pages/driver/home/home"
@@ -18,6 +18,22 @@
     "navigationBarTitleText": "Farland",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#627392",
+    "selectedColor": "#5B6596",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/hotel/request/request",
+        "text": "酒店预订"
+      },
+      {
+        "pagePath": "pages/customer/home/home",
+        "text": "我的行程"
+      }
+    ]
   },
   "sitemapLocation": "sitemap.json"
 }

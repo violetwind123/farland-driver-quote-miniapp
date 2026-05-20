@@ -16,6 +16,15 @@ Page({
     },
   },
 
+  onLoad(options) {
+    const token = options && options.token;
+    if (token) {
+      wx.redirectTo({
+        url: `/pages/driver/quick-quote/quick-quote?token=${token}`,
+      });
+    }
+  },
+
   onInput(e) {
     const field = e.currentTarget.dataset.field;
     this.setData({ [`form.${field}`]: e.detail.value });
@@ -48,7 +57,7 @@ Page({
         title: '已提交',
         content: '酒店需求已提交，Farland 顾问将联系您。',
         showCancel: false,
-        success: () => wx.navigateBack(),
+        success: () => wx.switchTab({ url: '/pages/customer/home/home' }),
       });
     } catch (error) {
       wx.showToast({ title: '提交失败', icon: 'none' });

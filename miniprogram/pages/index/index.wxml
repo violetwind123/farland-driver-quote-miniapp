@@ -1,24 +1,3 @@
 <view class="page">
-  <view class="hero">
-    <view class="brand">Farland</view>
-    <view class="subtitle">高端定制旅行 · 美国访校 · 酒店预订 · 用车服务</view>
-  </view>
-
-  <view class="service-card" bindtap="goHotelRequest">
-    <view class="card-title">酒店预订</view>
-    <view class="card-desc">精选美国酒店与访校住宿安排，由 Farland 顾问协助跟进。</view>
-  </view>
-
-  <view class="service-card" bindtap="showTransportContact">
-    <view class="card-title">美国用车预约</view>
-    <view class="card-desc">机场接送、访校包车、跨城转场，请联系 Farland 顾问预约。</view>
-  </view>
-
-  <view class="service-card" bindtap="goCustomerHome">
-    <view class="card-title">客户主页</view>
-    <view class="card-desc">查看我的预约、积分与专属福利。</view>
-  </view>
-
-  <view class="driver-note">司机请通过 Farland 运营发送的报价邀请进入报价页面。</view>
-  <view class="operator-link" bindtap="goOperatorLogin">运营入口</view>
+  <view class="desc">正在进入 Farland...</view>
 </view>
