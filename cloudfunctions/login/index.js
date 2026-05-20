@@ -9,41 +9,27 @@ exports.main = async () => {
 
   const now = new Date().toISOString();
   const userRes = await db.collection('users').where({ openid: OPENID }).limit(1).get();
-  let user = userRes.data[0];
+  const user = userRes.data[0];
 
   if (!user) {
-    const created = await db.collection('users').add({
-      data: {
-        openid: OPENID,
-        role: 'driver',
-        name: '',
-        phone: '',
-        status: 'active',
-        driver_id: '',
-        created_at: now,
-        updated_at: now,
-        last_login_at: now,
-      },
-    });
-    user = {
-      _id: created._id,
-      openid: OPENID,
-      role: 'driver',
-      name: '',
-      phone: '',
-      status: 'active',
-      driver_id: '',
-      created_at: now,
-      updated_at: now,
-      last_login_at: now,
+    return {
+      success: false,
+      message: '该入口仅限 Farland 运营使用，请联系管理员开通权限。',
     };
-  } else {
-    await db.collection('users').doc(user._id).update({
-      data: { last_login_at: now, updated_at: now },
-    });
-    user.last_login_at = now;
-    user.updated_at = now;
   }
+
+  if (user.role !== 'operator' || user.status !== 'active') {
+    return {
+      success: false,
+      message: '该入口仅限 Farland 运营使用，请联系管理员开通权限。',
+    };
+  }
+
+  await db.collection('users').doc(user._id).update({
+    data: { last_login_at: now, updated_at: now },
+  });
+  user.last_login_at = now;
+  user.updated_at = now;
 
   return { success: true, user };
 };
