@@ -27,6 +27,12 @@ Page({
     cancelReasonType: '',
     cancelReasonDriver: '',
     cancelReasonInternal: '',
+    statusText: '',
+    statusClass: '',
+    quoteCount: 0,
+    selectedQuote: null,
+    nextActionText: '',
+    deadlineRiskText: '',
   },
 
   onLoad(options) {
@@ -48,17 +54,26 @@ Page({
     }
     const canShareInvite = !['cancelled', 'completed'].includes(result.request.status);
     const invite = canShareInvite && result.invites ? result.invites[0] : null;
+    const request = {
+      ...result.request,
+      cancel_reason_type_text: this.getCancelReasonLabel(result.request.cancel_reason_type),
+    };
+    const quotes = result.quotes || [];
+    const selectedQuote = quotes.find((quote) => quote.quote_status === 'selected' || quote._id === request.selected_quote_id) || null;
     this.setData({
       loading: false,
-      request: {
-        ...result.request,
-        cancel_reason_type_text: this.getCancelReasonLabel(result.request.cancel_reason_type),
-      },
+      request,
       invites: result.invites || [],
-      quotes: result.quotes || [],
+      quotes,
       token: invite ? invite.token : '',
       sharePath: invite ? `/pages/driver/quick-quote/quick-quote?token=${invite.token}` : '',
       inviteError: '',
+      statusText: this.getStatusLabel(request.status),
+      statusClass: this.getStatusClass(request.status),
+      quoteCount: quotes.length,
+      selectedQuote,
+      nextActionText: this.getNextActionText(request, quotes, invite),
+      deadlineRiskText: this.getDeadlineRiskText(request),
     });
     if (!invite && ['quoting', 'quoted'].includes(result.request.status)) {
       this.ensureQuoteInvite(result.request.quote_deadline);
@@ -118,6 +133,41 @@ Page({
       rejected: '未选中',
     };
     return labels[status] || status || '-';
+  },
+
+  getStatusClass(status) {
+    const classes = {
+      quoting: 'status-quoting',
+      quoted: 'status-quoting',
+      assigned: 'status-assigned',
+      completed: 'status-completed',
+      cancelled: 'status-cancelled',
+      submitted: 'status-quoting',
+      updated: 'status-quoting',
+      selected: 'status-assigned',
+      rejected: 'status-cancelled',
+    };
+    return classes[status] || 'status-default';
+  },
+
+  getNextActionText(request, quotes, invite) {
+    if (!request || !request.status) return '加载报价单信息';
+    if (request.status === 'cancelled') return '报价单已取消，保留历史报价用于记录。';
+    if (request.status === 'completed') return '服务已完成。';
+    if (request.status === 'assigned') return '已选择司机，可复制报价汇总或继续跟进后续服务。';
+    if (quotes && quotes.length) return '已有司机报价，请比较报价并选择司机。';
+    if (invite) return '报价邀请已生成，请转发给司机群等待报价。';
+    return '正在准备报价邀请，稍后可转发给司机。';
+  },
+
+  getDeadlineRiskText(request) {
+    if (!request || !request.quote_deadline || !['quoting', 'quoted'].includes(request.status)) return '';
+    const deadline = new Date(String(request.quote_deadline).replace(' ', 'T'));
+    const diff = deadline.getTime() - Date.now();
+    if (Number.isNaN(diff)) return '';
+    if (diff < 0) return '报价已过截止时间';
+    if (diff <= 24 * 60 * 60 * 1000) return '24 小时内截止';
+    return '';
   },
 
   formatSummaryValue(value) {

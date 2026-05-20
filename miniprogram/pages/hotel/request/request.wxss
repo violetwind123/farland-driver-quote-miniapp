@@ -275,8 +275,11 @@
   border-radius: 50%;
   background: rgba(91, 101, 150, 0.10);
   color: #5B6596;
-  font-size: 34rpx;
-  font-weight: 600;
+}
+
+.benefit-icon image {
+  width: 38rpx;
+  height: 38rpx;
 }
 
 .benefit-text {

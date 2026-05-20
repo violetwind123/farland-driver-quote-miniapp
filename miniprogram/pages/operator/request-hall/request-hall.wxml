@@ -16,11 +16,15 @@
     <view wx:for="{{requests}}" wx:key="_id" class="request-item" data-id="{{item._id}}" bindtap="openDetail">
       <view class="row">
         <text class="request-no">{{item.request_no}}</text>
-        <text class="tag">{{item.dashboard_tag_text}}</text>
+        <text class="status-pill status-{{item.dashboard_tag}}">{{item.dashboard_tag_text}}</text>
       </view>
       <view class="meta">{{item.service_type_text}} · {{item.service_date}} · {{item.driver_region}}</view>
       <view class="preview">{{item.task_description_preview}}</view>
-      <view class="counts">报价 {{item.quote_count}} · 邀请 {{item.invite_count}} · 截止 {{item.quote_deadline}}</view>
+      <view class="request-footer">
+        <view class="count-pill">报价 {{item.quote_count}}</view>
+        <view class="count-pill">邀请 {{item.invite_count}}</view>
+      </view>
+      <view class="deadline {{item.dashboard_tag === 'expiring_soon' ? 'deadline-risk' : ''}}">截止 {{item.quote_deadline}}</view>
     </view>
   </block>
 </view>

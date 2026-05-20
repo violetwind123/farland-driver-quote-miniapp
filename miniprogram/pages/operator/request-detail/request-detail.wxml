@@ -1,9 +1,38 @@
 <view class="page">
   <view wx:if="{{loading}}" class="panel">加载中...</view>
   <block wx:else>
+    <view class="command-card">
+      <view class="command-top">
+        <view>
+          <view class="command-kicker">运营决策</view>
+          <view class="command-title">{{request.request_no}}</view>
+        </view>
+        <view class="status-pill {{statusClass}}">{{statusText}}</view>
+      </view>
+      <view class="command-grid">
+        <view class="command-metric">
+          <view class="metric-value">{{quoteCount}}</view>
+          <view class="metric-label">司机报价</view>
+        </view>
+        <view class="command-metric">
+          <view class="metric-value">{{invites.length}}</view>
+          <view class="metric-label">邀请记录</view>
+        </view>
+        <view class="command-metric wide">
+          <view class="metric-value small">{{request.quote_deadline || '-'}}</view>
+          <view class="metric-label">报价截止</view>
+        </view>
+      </view>
+      <view wx:if="{{deadlineRiskText}}" class="risk-banner">{{deadlineRiskText}}</view>
+      <view class="next-action">{{nextActionText}}</view>
+      <view wx:if="{{selectedQuote}}" class="selected-summary">
+        已选择：{{selectedQuote.driver_name_snapshot}} · {{selectedQuote.vehicle_model_snapshot}} · {{selectedQuote.currency}} {{selectedQuote.quote_price}}
+      </view>
+    </view>
+
     <view class="panel">
-      <view class="title">{{request.request_no}}</view>
-      <view class="field">状态：{{request.status}}</view>
+      <view class="title">报价单信息</view>
+      <view class="field">状态：<text class="status-pill inline {{statusClass}}">{{statusText}}</text></view>
       <view class="field">类型：{{request.service_type === 'transfer' ? '接送 / 转场' : '包车 / 多日用车'}}</view>
       <view class="field">服务日期：{{request.service_date}}</view>
       <view class="field">发布司机区域：{{request.driver_region}}</view>
@@ -72,10 +101,13 @@
       <button class="summary-btn" bindtap="copyQuoteSummary">复制报价汇总</button>
       <view wx:if="{{!quotes.length}}" class="empty">暂无报价</view>
       <view wx:for="{{quotes}}" wx:key="_id" class="list-item">
-        <view>{{item.driver_name_snapshot}} · {{item.driver_phone_snapshot}}</view>
+        <view class="quote-head">
+          <view>{{item.driver_name_snapshot}} · {{item.driver_phone_snapshot}}</view>
+          <view class="status-pill inline {{item.quote_status === 'selected' ? 'status-assigned' : (item.quote_status === 'rejected' ? 'status-cancelled' : 'status-quoting')}}">{{item.quote_status === 'selected' ? '已选择' : (item.quote_status === 'rejected' ? '未选中' : (item.quote_status === 'updated' ? '已更新' : '已提交'))}}</view>
+        </view>
         <view class="muted">{{item.vehicle_type_snapshot}} · {{item.vehicle_model_snapshot}} · {{item.seats_snapshot}} 座 · 行李 {{item.luggage_capacity_snapshot}}</view>
         <view class="note">{{item.quote_price}} {{item.currency}} · {{item.quote_note || '无备注'}}</view>
-        <view class="muted">{{item.quote_status}} · {{item.updated_at}}</view>
+        <view class="muted">{{item.updated_at}}</view>
         <button
           wx:if="{{item.quote_status !== 'selected' && request.status !== 'assigned' && request.status !== 'cancelled'}}"
           class="select-btn"
@@ -83,7 +115,6 @@
           data-id="{{item._id}}"
           bindtap="selectQuote"
         >选择该司机</button>
-        <view wx:if="{{item.quote_status === 'selected'}}" class="selected-label">已选择</view>
       </view>
     </view>
   </block>

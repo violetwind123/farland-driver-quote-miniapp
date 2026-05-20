@@ -76,21 +76,11 @@
   <view class="benefit-card">
     <view class="benefit-title">Farland 会员 尊享特权</view>
     <view class="benefit-grid">
-      <view class="benefit-item">
-        <view class="benefit-icon">H</view>
-        <view class="benefit-text">酒店礼遇</view>
-      </view>
-      <view class="benefit-item">
-        <view class="benefit-icon">✦</view>
-        <view class="benefit-text">积分福利</view>
-      </view>
-      <view class="benefit-item">
-        <view class="benefit-icon">U</view>
-        <view class="benefit-text">访校服务</view>
-      </view>
-      <view class="benefit-item">
-        <view class="benefit-icon">C</view>
-        <view class="benefit-text">联系顾问</view>
+      <view wx:for="{{benefitItems}}" wx:key="title" class="benefit-item">
+        <view class="benefit-icon">
+          <image src="{{item.icon}}" mode="aspectFit" />
+        </view>
+        <view class="benefit-text">{{item.title}}</view>
       </view>
     </view>
   </view>

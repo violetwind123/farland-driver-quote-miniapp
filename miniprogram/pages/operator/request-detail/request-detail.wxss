@@ -1,5 +1,5 @@
-.page { padding: 24rpx; }
-.panel { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 18rpx; }
+.page { padding: 24rpx; background: #f4f6fb; min-height: 100vh; box-sizing: border-box; }
+.panel { background: #fff; border-radius: 24rpx; padding: 24rpx; margin-bottom: 18rpx; box-shadow: 0 8rpx 24rpx rgba(31, 36, 51, 0.04); }
 .title { font-size: 34rpx; font-weight: 600; margin-bottom: 12rpx; }
 .field { color: #4f6385; margin-bottom: 8rpx; }
 .section-title { font-size: 30rpx; font-weight: 600; margin-bottom: 16rpx; }
@@ -22,3 +22,24 @@ textarea { min-height: 130rpx; }
 .select-btn { margin: 14rpx 0 0; background: #5B6596; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
 .summary-btn { margin: 0 0 18rpx; background: #5B6596; color: #fff; border-radius: 36rpx; font-size: 26rpx; }
 .selected-label { display: inline-block; margin-top: 12rpx; padding: 8rpx 18rpx; border-radius: 24rpx; background: #f2f3fa; color: #5B6596; font-size: 24rpx; }
+.command-card { background: #fff; border-radius: 30rpx; padding: 28rpx; margin-bottom: 20rpx; box-shadow: 0 18rpx 42rpx rgba(31, 36, 51, 0.08); }
+.command-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; }
+.command-kicker { color: #7E889A; font-size: 22rpx; letter-spacing: 1rpx; text-transform: uppercase; }
+.command-title { margin-top: 8rpx; color: #182235; font-size: 36rpx; font-weight: 700; }
+.status-pill { display: inline-flex; align-items: center; justify-content: center; min-height: 46rpx; padding: 0 18rpx; border-radius: 999rpx; font-size: 23rpx; font-weight: 600; white-space: nowrap; }
+.status-pill.inline { min-height: 38rpx; padding: 0 14rpx; font-size: 22rpx; vertical-align: middle; }
+.status-quoting { background: rgba(91, 101, 150, 0.10); color: #5B6596; }
+.status-assigned { background: rgba(23, 153, 91, 0.10); color: #17995B; }
+.status-cancelled { background: rgba(119, 126, 144, 0.12); color: #687084; }
+.status-completed { background: rgba(31, 36, 51, 0.08); color: #1F2433; }
+.status-default { background: #f2f4f7; color: #627392; }
+.command-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 24rpx; }
+.command-metric { background: #f7f9ff; border-radius: 20rpx; padding: 20rpx; }
+.command-metric.wide { grid-column: span 2; }
+.metric-value { color: #182235; font-size: 34rpx; font-weight: 700; }
+.metric-value.small { font-size: 25rpx; line-height: 1.4; word-break: break-word; }
+.metric-label { margin-top: 6rpx; color: #7E889A; font-size: 22rpx; }
+.risk-banner { margin-top: 18rpx; padding: 16rpx 18rpx; border-radius: 18rpx; background: rgba(244, 156, 69, 0.12); color: #C36F16; font-size: 24rpx; }
+.next-action { margin-top: 18rpx; color: #253554; font-size: 26rpx; line-height: 1.6; }
+.selected-summary { margin-top: 14rpx; padding: 18rpx; border-radius: 18rpx; background: rgba(23, 153, 91, 0.08); color: #167A4D; font-size: 24rpx; line-height: 1.5; }
+.quote-head { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; color: #253554; font-size: 28rpx; font-weight: 600; }
