@@ -1,22 +1,27 @@
-.page { min-height: 100vh; padding: 28rpx 28rpx 130rpx; box-sizing: border-box; background: #f4f6fb; }
-.brand-area { margin-bottom: 20rpx; }
-.brand { font-size: 46rpx; font-weight: 700; color: #17315f; }
-.tagline { margin-top: 8rpx; color: #5B6596; font-size: 26rpx; }
-.banner-swiper { height: 260rpx; margin-bottom: -34rpx; }
-.banner-card { height: 230rpx; border-radius: 22rpx; padding: 32rpx; box-sizing: border-box; color: #fff; }
-.banner-one { background: #5B6596; }
-.banner-two { background: #28476f; }
-.banner-title { font-size: 34rpx; font-weight: 700; }
-.banner-desc { margin-top: 16rpx; font-size: 25rpx; line-height: 1.5; opacity: 0.92; }
-.search-card, .benefit-card { position: relative; background: #fff; border-radius: 18rpx; padding: 24rpx; box-shadow: 0 12rpx 26rpx rgba(35, 51, 91, 0.08); }
-.card-title { font-size: 32rpx; font-weight: 700; color: #1f3266; margin-bottom: 16rpx; }
-.input-row { margin-bottom: 20rpx; }
-.input-row text { display: block; color: #465c86; font-size: 24rpx; margin-bottom: 10rpx; }
-input, textarea, .picker-value { width: 100%; box-sizing: border-box; background: #f7f9ff; border: 1rpx solid #d8e1f5; border-radius: 12rpx; padding: 18rpx; color: #1e2d4e; font-size: 28rpx; }
-textarea { min-height: 110rpx; }
-.date-grid, .more-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
-.submit-btn { margin-top: 12rpx; background: #5B6596; color: #fff; border-radius: 44rpx; }
-.benefit-card { margin-top: 22rpx; }
-.benefit-title { font-size: 30rpx; font-weight: 700; color: #1f3266; margin-bottom: 16rpx; }
+.page { min-height: 100vh; padding: 28rpx 28rpx 132rpx; box-sizing: border-box; background: #f5f6fa; }
+.hero { background: #5B6596; color: #fff; border-radius: 22rpx; padding: 34rpx 30rpx 82rpx; }
+.brand { font-size: 30rpx; font-weight: 700; opacity: 0.92; }
+.hero-title { margin-top: 28rpx; font-size: 42rpx; font-weight: 700; letter-spacing: 0; }
+.hero-desc { margin-top: 14rpx; font-size: 25rpx; line-height: 1.5; opacity: 0.9; }
+.search-card { position: relative; margin-top: -54rpx; background: #fff; border-radius: 20rpx; padding: 28rpx; box-shadow: 0 16rpx 34rpx rgba(35, 51, 91, 0.12); }
+.card-title { font-size: 32rpx; font-weight: 700; color: #1f3266; margin-bottom: 22rpx; }
+.field-block { margin-bottom: 18rpx; padding: 20rpx; border-radius: 14rpx; background: #f7f9ff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
+.field-label { color: #627392; font-size: 23rpx; margin-bottom: 10rpx; }
+input, textarea { width: 100%; box-sizing: border-box; color: #1e2d4e; font-size: 28rpx; min-height: 42rpx; }
+.city-input { font-size: 36rpx; font-weight: 700; }
+.date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-bottom: 18rpx; }
+.date-box { min-height: 108rpx; padding: 20rpx; border-radius: 14rpx; background: #f7f9ff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
+.date-value { color: #1e2d4e; font-size: 30rpx; font-weight: 700; }
+.guest-row, .contact-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
+.guest-row { margin-bottom: 18rpx; }
+.contact-panel { margin-bottom: 18rpx; padding: 18rpx; border-radius: 16rpx; background: #fff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
+.contact-title { margin-bottom: 16rpx; color: #253554; font-size: 25rpx; font-weight: 700; line-height: 1.4; }
+.guest-item, .contact-item { padding: 20rpx; border-radius: 14rpx; background: #f7f9ff; border: 1rpx solid #dfe6f2; box-sizing: border-box; }
+.number-input { font-size: 32rpx; font-weight: 700; }
+textarea { min-height: 96rpx; line-height: 1.5; }
+.preference-textarea { min-height: 132rpx; }
+.query-btn { margin-top: 8rpx; background: #5B6596; color: #fff; border-radius: 46rpx; font-size: 30rpx; }
+.benefit-card { margin-top: 22rpx; background: #fff; border-radius: 18rpx; padding: 26rpx; }
+.benefit-title { color: #1f3266; font-size: 30rpx; font-weight: 700; margin-bottom: 18rpx; }
 .benefit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; }
-.benefit-grid view { background: #f7f9ff; color: #465c86; border-radius: 12rpx; padding: 18rpx; font-size: 24rpx; text-align: center; }
+.benefit-grid view { background: #f2f3fa; color: #5B6596; border-radius: 12rpx; padding: 18rpx; font-size: 24rpx; text-align: center; }

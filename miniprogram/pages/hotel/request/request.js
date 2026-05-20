@@ -1,6 +1,7 @@
 Page({
   data: {
     submitting: false,
+    showContactFields: false,
     form: {
       city: '',
       check_in_date: '',
@@ -38,8 +39,16 @@ Page({
   async submitRequest() {
     const { form, submitting } = this.data;
     if (submitting) return;
-    if (!form.city || !form.check_in_date || !form.check_out_date || !form.customer_name || !form.contact) {
-      wx.showToast({ title: '请填写必填信息', icon: 'none' });
+    if (!form.city || !form.check_in_date || !form.check_out_date) {
+      wx.showToast({ title: '请填写城市和日期', icon: 'none' });
+      return;
+    }
+    if (!this.data.showContactFields) {
+      this.setData({ showContactFields: true });
+      return;
+    }
+    if (!form.customer_name || !form.contact) {
+      wx.showToast({ title: '请填写联系方式', icon: 'none' });
       return;
     }
     this.setData({ submitting: true });

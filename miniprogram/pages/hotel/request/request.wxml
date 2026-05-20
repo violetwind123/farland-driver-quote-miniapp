@@ -1,53 +1,73 @@
 <view class="page">
-  <view class="brand-area">
+  <view class="hero">
     <view class="brand">Farland</view>
-    <view class="tagline">尊享美国酒店与访校住宿服务</view>
+    <view class="hero-title">美国酒店与访校住宿</view>
+    <view class="hero-desc">高端酒店 · 校园周边 · 家庭旅行 · 顾问协助</view>
   </view>
 
-  <swiper class="banner-swiper" indicator-dots autoplay circular>
-    <swiper-item>
-      <view class="banner-card banner-one">
-        <view class="banner-title">以居为旅 · 美国访校住宿</view>
-        <view class="banner-desc">校园周边、家庭旅行、长期停留，由 Farland 顾问协助安排。</view>
-      </view>
-    </swiper-item>
-    <swiper-item>
-      <view class="banner-card banner-two">
-        <view class="banner-title">精选酒店 · 舒适抵达</view>
-        <view class="banner-desc">结合行程动线、学校位置和家庭偏好筛选住宿方案。</view>
-      </view>
-    </swiper-item>
-  </swiper>
-
   <view class="search-card">
-    <view class="card-title">酒店查询</view>
-    <view class="input-row"><text>目的城市 *</text><input value="{{form.city}}" data-field="city" bindinput="onInput" placeholder="Boston / New York" /></view>
+    <view class="card-title">查询酒店方案</view>
+
+    <view class="field-block">
+      <view class="field-label">目的城市</view>
+      <input class="city-input" value="{{form.city}}" data-field="city" bindinput="onInput" placeholder="Boston / New York / Los Angeles" />
+    </view>
+
     <view class="date-grid">
-      <view class="input-row"><text>入住日期 *</text><picker mode="date" value="{{form.check_in_date}}" data-field="check_in_date" bindchange="onDateChange"><view class="picker-value">{{form.check_in_date || '选择日期'}}</view></picker></view>
-      <view class="input-row"><text>离店日期 *</text><picker mode="date" value="{{form.check_out_date}}" data-field="check_out_date" bindchange="onDateChange"><view class="picker-value">{{form.check_out_date || '选择日期'}}</view></picker></view>
+      <picker mode="date" value="{{form.check_in_date}}" data-field="check_in_date" bindchange="onDateChange">
+        <view class="date-box">
+          <view class="field-label">入住日期</view>
+          <view class="date-value">{{form.check_in_date || '请选择'}}</view>
+        </view>
+      </picker>
+      <picker mode="date" value="{{form.check_out_date}}" data-field="check_out_date" bindchange="onDateChange">
+        <view class="date-box">
+          <view class="field-label">离店日期</view>
+          <view class="date-value">{{form.check_out_date || '请选择'}}</view>
+        </view>
+      </picker>
     </view>
-    <view class="date-grid">
-      <view class="input-row"><text>房间数</text><input type="number" value="{{form.rooms}}" data-field="rooms" bindinput="onInput" /></view>
-      <view class="input-row"><text>入住人数</text><input type="number" value="{{form.guests}}" data-field="guests" bindinput="onInput" /></view>
+
+    <view class="guest-row">
+      <view class="guest-item">
+        <view class="field-label">房间数</view>
+        <input class="number-input" type="number" value="{{form.rooms}}" data-field="rooms" bindinput="onInput" />
+      </view>
+      <view class="guest-item">
+        <view class="field-label">入住人数</view>
+        <input class="number-input" type="number" value="{{form.guests}}" data-field="guests" bindinput="onInput" />
+      </view>
     </view>
-    <view class="input-row"><text>关键词 / 学校 / 酒店偏好</text><input value="{{form.location_preference}}" data-field="location_preference" bindinput="onInput" placeholder="Harvard 周边 / 市中心 / 奢华酒店" /></view>
-    <view class="input-row"><text>联系人 *</text><input value="{{form.customer_name}}" data-field="customer_name" bindinput="onInput" /></view>
-    <view class="input-row"><text>联系方式 *</text><input value="{{form.contact}}" data-field="contact" bindinput="onInput" placeholder="微信 / 手机 / 邮箱" /></view>
-    <view class="more-grid">
-      <input value="{{form.hotel_level}}" data-field="hotel_level" bindinput="onInput" placeholder="酒店等级" />
-      <input value="{{form.budget_range}}" data-field="budget_range" bindinput="onInput" placeholder="预算范围" />
+
+    <view class="field-block">
+      <view class="field-label">学校 / 区域 / 酒店偏好</view>
+      <textarea class="preference-textarea" value="{{form.location_preference}}" data-field="location_preference" bindinput="onInput" placeholder="例如 Harvard 周边、近机场、市中心、4星或5星、预算范围、早餐或连通房需求" />
     </view>
-    <view class="input-row"><text>补充需求</text><textarea value="{{form.special_requests}}" data-field="special_requests" bindinput="onInput" placeholder="房型、早餐、连通房、品牌偏好等" /></view>
-    <button class="submit-btn" loading="{{submitting}}" bindtap="submitRequest">{{submitting ? '查询中...' : '查询'}}</button>
+
+    <view wx:if="{{showContactFields}}" class="contact-panel">
+      <view class="contact-title">留下联系方式，Farland 顾问会跟进酒店方案</view>
+      <view class="contact-row">
+        <view class="contact-item">
+          <view class="field-label">联系人</view>
+          <input value="{{form.customer_name}}" data-field="customer_name" bindinput="onInput" placeholder="姓名" />
+        </view>
+        <view class="contact-item">
+          <view class="field-label">联系方式</view>
+          <input value="{{form.contact}}" data-field="contact" bindinput="onInput" placeholder="微信 / 手机" />
+        </view>
+      </view>
+    </view>
+
+    <button class="query-btn" loading="{{submitting}}" bindtap="submitRequest">{{showContactFields ? (submitting ? '提交中...' : '提交给 Farland 顾问') : '查询酒店方案'}}</button>
   </view>
 
   <view class="benefit-card">
-    <view class="benefit-title">Farland 会员 尊享特权</view>
+    <view class="benefit-title">Farland 会员权益</view>
     <view class="benefit-grid">
       <view>酒店预订礼遇</view>
       <view>积分福利</view>
-      <view>访校服务</view>
-      <view>联系顾问</view>
+      <view>访校住宿建议</view>
+      <view>顾问协助</view>
     </view>
   </view>
 </view>
