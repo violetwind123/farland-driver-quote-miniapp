@@ -1,8 +1,9 @@
 {
   "pages": [
-    "pages/index/index",
     "pages/hotel/request/request",
     "pages/customer/home/home",
+    "pages/index/index",
+    "pages/customer/benefits/benefits",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
     "pages/operator/request-hall/request-hall",
@@ -10,7 +11,6 @@
     "pages/operator/request-detail/request-detail",
     "pages/operator/driver-summary/driver-summary",
     "pages/operator/drivers-by-region/drivers-by-region",
-    "pages/customer/benefits/benefits",
     "pages/driver/quick-quote/quick-quote",
     "pages/driver/home/home"
   ],
@@ -27,11 +27,15 @@
     "list": [
       {
         "pagePath": "pages/hotel/request/request",
-        "text": "酒店预订"
+        "text": "酒店预订",
+        "iconPath": "assets/icons/tab-hotel.png",
+        "selectedIconPath": "assets/icons/tab-hotel-active.png"
       },
       {
         "pagePath": "pages/customer/home/home",
-        "text": "我的行程"
+        "text": "我的行程",
+        "iconPath": "assets/icons/tab-trip.png",
+        "selectedIconPath": "assets/icons/tab-trip-active.png"
       }
     ]
   },

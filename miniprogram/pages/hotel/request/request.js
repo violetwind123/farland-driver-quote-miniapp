@@ -1,26 +1,27 @@
 Page({
   data: {
-    logoReady: false,
+    logoReady: true,
     submitting: false,
-    showAdvanced: false,
+    displayCheckIn: '',
+    displayCheckOut: '',
+    displayCheckInLabel: '入住',
+    displayCheckOutLabel: '离店',
+    nights: 1,
     heroSlides: [
       {
-        image: '/assets/images/hotel-hero-01.svg',
-        eyebrow: 'Farland Hotel',
-        title: '静奢入住，从行程开始',
-        desc: '围绕美国访校、家庭旅行与城市停留，匹配更合适的酒店方案。',
+        image: '/assets/images/hotel-hero-01.png',
+        title: '以居为旅 · 美国访校住宿',
+        desc: '精选酒店 · 家庭旅行 · 校园周边',
       },
       {
-        image: '/assets/images/hotel-hero-02.svg',
-        eyebrow: 'Curated Stays',
-        title: '区域、品牌与动线，一次考虑',
-        desc: '根据学校位置、出行节奏和家庭偏好，减少无效筛选。',
+        image: '/assets/images/hotel-hero-02.png',
+        title: 'Farland Hotel Collection',
+        desc: '顾问协助预订 · 行程联动 · 尊享礼遇',
       },
       {
-        image: '/assets/images/hotel-hero-03.svg',
-        eyebrow: 'Premium Access',
-        title: '礼遇与体验，同样重要',
-        desc: 'Farland 顾问协助确认房型、入住体验与行程衔接。',
+        image: '/assets/images/hotel-hero-03.png',
+        title: '高端定制住宿安排',
+        desc: 'Boston · New York · Bay Area · Los Angeles',
       },
     ],
     benefitItems: [
@@ -46,7 +47,7 @@ Page({
       },
     ],
     form: {
-      city: '',
+      city: 'Boston',
       check_in_date: '',
       check_out_date: '',
       rooms: '1',
@@ -55,8 +56,8 @@ Page({
       budget_range: '',
       location_preference: '',
       special_requests: '',
-      customer_name: '',
-      contact: '',
+      customer_name: 'Farland Guest',
+      contact: 'Pending advisor follow-up',
     },
   },
 
@@ -66,15 +67,24 @@ Page({
       wx.redirectTo({
         url: `/pages/driver/quick-quote/quick-quote?token=${token}`,
       });
+      return;
     }
+    this.initDefaultDates();
   },
 
   onLogoError() {
     this.setData({ logoReady: false });
   },
 
-  toggleAdvanced() {
-    this.setData({ showAdvanced: !this.data.showAdvanced });
+  onServiceTabTap(e) {
+    const type = e.currentTarget.dataset.type;
+    if (type !== 'hotel') {
+      wx.showToast({ title: '该服务即将开放，请联系 Farland 顾问', icon: 'none' });
+    }
+  },
+
+  useCurrentLocation() {
+    wx.showToast({ title: '定位功能暂未开放，请手动填写城市', icon: 'none' });
   },
 
   onInput(e) {
@@ -84,21 +94,109 @@ Page({
 
   onDateChange(e) {
     const field = e.currentTarget.dataset.field;
-    this.setData({ [`form.${field}`]: e.detail.value });
+    this.setData({ [`form.${field}`]: e.detail.value }, () => {
+      const { check_in_date, check_out_date } = this.data.form;
+      if (check_in_date && check_out_date && !this.isValidDateRange(check_in_date, check_out_date)) {
+        wx.showToast({ title: '离店日期需晚于入住日期', icon: 'none' });
+        this.setData({ 'form.check_out_date': '' }, () => this.updateDateDisplay());
+        return;
+      }
+      this.updateDateDisplay();
+    });
+  },
+
+  initDefaultDates() {
+    const today = new Date();
+    const tomorrow = new Date(today.getTime() + 86400000);
+    this.setData({
+      'form.check_in_date': this.formatDateValue(today),
+      'form.check_out_date': this.formatDateValue(tomorrow),
+    }, () => this.updateDateDisplay());
+  },
+
+  updateDateDisplay() {
+    const { check_in_date, check_out_date } = this.data.form;
+    const displayCheckIn = this.formatShortDate(check_in_date);
+    const displayCheckOut = this.formatShortDate(check_out_date);
+    const displayCheckInLabel = this.formatDateLabel(check_in_date, '入住');
+    const displayCheckOutLabel = this.formatDateLabel(check_out_date, '离店');
+    const nights = this.calculateNights(check_in_date, check_out_date);
+    this.setData({
+      displayCheckIn,
+      displayCheckOut,
+      displayCheckInLabel,
+      displayCheckOutLabel,
+      nights,
+    });
+  },
+
+  formatShortDate(dateText) {
+    if (!dateText) return '选择日期';
+    const parts = dateText.split('-');
+    if (parts.length !== 3) return dateText;
+    return `${parts[1]}.${parts[2]}`;
+  },
+
+  formatDateValue(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  },
+
+  formatDateLabel(dateText, fallback) {
+    if (!dateText) return fallback;
+    const target = new Date(`${dateText}T00:00:00`);
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffDays = Math.round((target.getTime() - todayStart.getTime()) / 86400000);
+    if (diffDays === 0) return '今天';
+    if (diffDays === 1) return '明天';
+    return fallback;
+  },
+
+  calculateNights(checkIn, checkOut) {
+    if (!checkIn || !checkOut) return 1;
+    const start = new Date(`${checkIn}T00:00:00`);
+    const end = new Date(`${checkOut}T00:00:00`);
+    const diff = end.getTime() - start.getTime();
+    if (Number.isNaN(diff) || diff <= 0) return 1;
+    return Math.max(1, Math.round(diff / 86400000));
+  },
+
+  isValidDateRange(checkIn, checkOut) {
+    return new Date(`${checkOut}T00:00:00`).getTime() > new Date(`${checkIn}T00:00:00`).getTime();
   },
 
   async submitRequest() {
     const { form, submitting } = this.data;
     if (submitting) return;
-    if (!form.city || !form.check_in_date || !form.check_out_date || !form.customer_name || !form.contact) {
-      wx.showToast({ title: '请填写必填信息', icon: 'none' });
+    if (!form.city) {
+      wx.showToast({ title: '请填写目的城市', icon: 'none' });
+      return;
+    }
+    if (!form.check_in_date) {
+      wx.showToast({ title: '请选择入住日期', icon: 'none' });
+      return;
+    }
+    if (!form.check_out_date) {
+      wx.showToast({ title: '请选择离店日期', icon: 'none' });
+      return;
+    }
+    if (!this.isValidDateRange(form.check_in_date, form.check_out_date)) {
+      wx.showToast({ title: '离店日期需晚于入住日期', icon: 'none' });
       return;
     }
     this.setData({ submitting: true });
     try {
+      const payload = {
+        ...form,
+        customer_name: form.customer_name || 'Farland Guest',
+        contact: form.contact || 'Pending advisor follow-up',
+      };
       const { result } = await wx.cloud.callFunction({
         name: 'createHotelRequest',
-        data: form,
+        data: payload,
       });
       if (!result || !result.success) {
         wx.showToast({ title: (result && result.message) || '提交失败', icon: 'none' });

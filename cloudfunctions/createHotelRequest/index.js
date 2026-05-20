@@ -5,7 +5,7 @@ const db = cloud.database();
 
 exports.main = async (event = {}) => {
   const now = new Date().toISOString();
-  const requiredFields = ['city', 'check_in_date', 'check_out_date', 'customer_name', 'contact'];
+  const requiredFields = ['city', 'check_in_date', 'check_out_date'];
   const missing = requiredFields.find((field) => !event[field]);
   if (missing) {
     return { success: false, message: '请填写完整酒店需求信息' };
@@ -21,8 +21,8 @@ exports.main = async (event = {}) => {
     budget_range: event.budget_range || '',
     location_preference: event.location_preference || '',
     special_requests: event.special_requests || '',
-    customer_name: event.customer_name,
-    contact: event.contact,
+    customer_name: event.customer_name || 'Farland Guest',
+    contact: event.contact || 'Pending advisor follow-up',
     status: 'new',
     supplier: '',
     stars_search_payload: null,
