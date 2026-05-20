@@ -1,22 +1,12 @@
 Page({
   data: {
     loading: false,
-    driverOnly: false,
     errorMessage: '',
-  },
-
-  onLoad() {
-    const cached = wx.getStorageSync('farland_user');
-    if (cached && cached.role === 'operator') {
-      wx.redirectTo({ url: '/pages/operator/dashboard/dashboard' });
-    } else if (cached && cached.role === 'driver') {
-      wx.redirectTo({ url: '/pages/driver/home/home' });
-    }
   },
 
   async login() {
     if (this.data.loading) return;
-    this.setData({ loading: true, driverOnly: false, errorMessage: '' });
+    this.setData({ loading: true, errorMessage: '' });
     try {
       const { result } = await wx.cloud.callFunction({ name: 'login' });
       if (!result || !result.success) {
@@ -26,11 +16,14 @@ Page({
 
       const { user } = result;
       wx.setStorageSync('farland_user', user);
-      if (user.role === 'operator') {
-        wx.redirectTo({ url: '/pages/operator/dashboard/dashboard' });
+      if (user.role === 'operator' && user.status === 'active') {
+        wx.reLaunch({ url: '/pages/operator/dashboard/dashboard' });
         return;
       }
-      wx.redirectTo({ url: '/pages/driver/home/home' });
+      this.setData({
+        loading: false,
+        errorMessage: '该入口仅限 Farland 运营使用，请联系管理员开通权限。',
+      });
     } catch (error) {
       console.error('login failed', error);
       this.setData({

@@ -1,0 +1,9 @@
+<view class="page">
+  <view class="brand">Farland</view>
+  <view class="subtitle">内部用车报价系统</view>
+
+  <view class="panel">
+    <view class="desc">司机请通过 Farland 运营发送的报价邀请进入报价页面。</view>
+    <button class="login-link" bindtap="goOperatorLogin">运营登录</button>
+  </view>
+</view>

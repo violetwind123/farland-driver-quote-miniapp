@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/index/index",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
     "pages/operator/request-hall/request-hall",
