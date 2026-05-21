@@ -9,6 +9,29 @@ For stable product context, read:
 - `docs/product/context.md`
 - `docs/product/farland-student-transport-itinerary-spec.md`
 
+## Current ICT Demo Priority
+
+For the current ICT demo, prioritize:
+
+- hotel booking page visual stability
+- My Trip page as a clean customer itinerary page
+- customer-safe assigned transportation display
+- points, benefits, and advisor contact
+- preserving the internal driver quote MVP
+
+Do not implement unless explicitly requested:
+
+- full customer quote selection flow
+- `transfer_request` backend
+- `transport_quote` backend
+- `transport_order` backend
+- payment
+- live map
+- customer self-dispatch
+- customer driver bidding
+
+Keep Transfer Detail as an optional or hidden demo flow, not the primary customer homepage.
+
 Client-facing transport should feel like curated Farland service options, not raw driver bidding. Operations can manage driver quotes, assignments, substitutions, and internal notes, but clients should see a clean service flow:
 
 ```text

@@ -13,7 +13,36 @@ The product combines:
 - short charter support for campus visits
 - operations-managed driver and vehicle sourcing
 
-## 2. Target Customer
+## 2. Current Demo Scope vs Long-Term Scope
+
+### Current ICT Demo Scope
+
+The current ICT demo should stay focused on a clean customer-facing service experience:
+
+- hotel booking request
+- My Trip page
+- mock itinerary data
+- customer-safe transportation appointment display
+- points, benefits, and advisor contact
+- internal driver quote system remains unchanged
+
+For this demo, Transfer Detail can exist as an optional or hidden flow. It should not dominate the customer homepage.
+
+### Long-Term Scope
+
+The following entities define the long-term student transport and itinerary roadmap:
+
+- `transfer_request`
+- `transport_quote`
+- `transport_order`
+- `charter_service`
+- `charter_segment`
+- `activity_event`
+- transparent service fee quote flow
+
+These long-term entities are product direction. They are not all required for the current ICT demo implementation.
+
+## 3. Target Customer
 
 Primary customers:
 
@@ -32,7 +61,7 @@ Common scenarios:
 - family school visit transport
 - short charter for school visits
 
-## 3. Business Model
+## 4. Business Model
 
 Farland uses a transparent coordination fee model.
 
@@ -51,7 +80,7 @@ Client quote cards must show:
 
 The service fee covers Farland's coordination work, not hidden markup.
 
-## 4. Core Transport Logic
+## 5. Core Transport Logic
 
 Transport must remain split into three separate entities:
 
@@ -65,7 +94,7 @@ transfer_request -> transport_quote -> transport_order
 
 Do not collapse these states into one object. A quote is not an order. A selected quote is not a driver assignment.
 
-## 5. Client Visibility Rules
+## 6. Client Visibility Rules
 
 Clients should see:
 
@@ -97,7 +126,7 @@ Clients should not see:
 - driver phone before assignment
 - vehicle plate before assignment
 
-## 6. Driver Profile Logic
+## 7. Driver Profile Logic
 
 Before assignment, clients may see a driver profile teaser only:
 
@@ -124,7 +153,7 @@ After assignment, clients may see:
 - plate number
 - pickup meeting point
 
-## 7. Transparent Pricing Logic
+## 8. Transparent Pricing Logic
 
 Quote cards should display pricing as:
 
@@ -152,7 +181,7 @@ Avoid wording such as:
 - 低价司机
 - 原始报价池
 
-## 8. Driver Change Backup Support
+## 9. Driver Change Backup Support
 
 Farland should not promise that the same driver is guaranteed for every service, especially for multi-day charter.
 
@@ -168,7 +197,7 @@ Client-facing fallback wording:
 如因工时、档期或当地规定需要调整，Farland 将协调同等级替补并同步确认。
 ```
 
-## 9. Charter Logic
+## 10. Charter Logic
 
 Charter should be shown in three layers:
 
@@ -193,7 +222,7 @@ Segment layer:
 17:30 返回酒店
 ```
 
-## 10. MVP Scope
+## 11. MVP Scope
 
 Current MVP should prioritize:
 
@@ -216,7 +245,7 @@ Do not implement yet:
 - full supplier portal
 - full charter operations automation
 
-## 11. UI Style
+## 12. UI Style
 
 UI should feel:
 
@@ -241,7 +270,7 @@ Avoid:
 - loud discounts
 - dense backend tables on customer pages
 
-## 12. Product Principle
+## 13. Product Principle
 
 The core product rule:
 

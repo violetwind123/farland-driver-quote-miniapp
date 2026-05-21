@@ -2,7 +2,19 @@
 
 ## Current Focus
 
-Build the Farland student transport and daily itinerary MVP without breaking the existing internal driver quote flow.
+Prepare the ICT demo version while preserving internal driver quote MVP.
+
+## Immediate Stabilization
+
+- [ ] Verify tabBar works in WeChat DevTools
+- [ ] Remove custom tabBar config if no custom-tab-bar exists
+- [ ] Verify image asset paths exist
+- [ ] Simplify My Trip page for demo
+- [ ] Keep Transfer Detail as optional hidden flow
+- [ ] Test hotel request submission
+- [ ] Test quick-quote token entry
+- [ ] Test operator dashboard
+- [ ] Confirm no frontend wx.cloud.database()
 
 ## Phase 0: Documentation
 
@@ -11,7 +23,7 @@ Build the Farland student transport and daily itinerary MVP without breaking the
 - [x] Add `docs/product/farland-student-transport-itinerary-spec.md`
 - [x] Add initial `TODO.md`
 
-## Phase 1: Mock Data
+## Phase 1: ICT Demo Data
 
 - [x] Add mock trip data through `getCustomerHome`
 - [x] Add mock daily itinerary data through `getCustomerHome`
@@ -21,7 +33,7 @@ Build the Farland student transport and daily itinerary MVP without breaking the
 - [x] Add mock charter service data through `getCustomerHome`
 - [x] Add mock activity events through `getCustomerHome`
 
-## Phase 2: Client UI
+## Phase 2: ICT Demo Client UI
 
 - [x] My Trip page
 - [x] Day View timeline
@@ -31,7 +43,7 @@ Build the Farland student transport and daily itinerary MVP without breaking the
 - [x] Charter display card
 - [x] Transfer detail page
 
-## Phase 3: State Logic
+## Phase 3: ICT Demo Display Logic
 
 - [x] Show request card before quote
 - [x] Show quote options after published
@@ -40,14 +52,29 @@ Build the Farland student transport and daily itinerary MVP without breaking the
 - [ ] Replace request card with confirmed ride card after order confirmation
 - [ ] Add selectable mock state for accepted quote
 
-## Phase 4: Backend Integration
+## Long-Term Roadmap
 
-- [ ] Create transfer request
-- [ ] Publish curated quote options
+These items are post-demo product direction. Do not implement them during ICT demo stabilization unless explicitly requested.
+
+### Transfer Backend
+
+- [ ] Create `transfer_request` backend
+- [ ] Publish curated `transport_quote` options
 - [ ] Select quote
-- [ ] Confirm order
+- [ ] Confirm `transport_order`
 - [ ] Assign driver
-- [ ] Write activity events
+- [ ] Write `activity_event` records
+
+### Long-Term Transport Product
+
+- [ ] Production customer quote selection flow
+- [ ] Transparent service fee quote flow
+- [ ] Charter service backend
+- [ ] Charter segment timeline integration
+- [ ] Driver assignment release rules
+- [ ] Customer notifications
+- [ ] Payment
+- [ ] Live map
 
 ## Phase 5: QA And Release
 
