@@ -21,6 +21,7 @@ Prepare the ICT demo version while preserving internal driver quote MVP.
 - [x] Add `AGENTS.md`
 - [x] Add `docs/product/context.md`
 - [x] Add `docs/product/farland-student-transport-itinerary-spec.md`
+- [x] Add `docs/product/p1-1-data-boundary-customer-quotes.md`
 - [x] Add initial `TODO.md`
 
 ## Phase 1: ICT Demo Data
@@ -58,12 +59,17 @@ These items are post-demo product direction. Do not implement them during ICT de
 
 ### Transfer Backend
 
+- [ ] Add shared role helper before P1.1 backend work
 - [ ] Create `transfer_request` backend
+- [ ] Add `publishCustomerQuote`
+- [ ] Add `getCustomerTransportQuotes`
+- [ ] Add `selectCustomerQuote`
 - [ ] Publish curated `transport_quote` options
 - [ ] Select quote
 - [ ] Confirm `transport_order`
 - [ ] Assign driver
 - [ ] Write `activity_event` records
+- [ ] Add audit logs for customer quote publish/select/order creation
 
 ### Long-Term Transport Product
 
@@ -89,6 +95,22 @@ These items are post-demo product direction. Do not implement them during ICT de
 - [ ] Confirm miniprogram package size under 2MB
 
 ## Change Log
+
+### 2026-05-21
+
+- Feature completed: documented P1.1 data boundary between internal driver quotes and customer-facing curated quotes.
+- Files changed:
+  - `AGENTS.md`
+  - `docs/product/context.md`
+  - `docs/product/p1-1-data-boundary-customer-quotes.md`
+  - `TODO.md`
+- Notes:
+  - `driver_quotes` is explicitly internal-only.
+  - `customer_transport_quotes` is the only future customer-visible quote source.
+  - Operator review is required before customer quote publishing.
+  - Farland service fee 10% must be calculated in Cloud Functions only.
+- Next recommended task:
+  - Keep the current ICT demo stable; do not implement P1.1 backend until explicitly requested.
 
 ### 2026-05-21
 

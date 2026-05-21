@@ -7,6 +7,7 @@ Farland is an advisor-led travel operation mini-program for high-end student and
 For stable product context, read:
 
 - `docs/product/context.md`
+- `docs/product/p1-1-data-boundary-customer-quotes.md`
 - `docs/product/farland-student-transport-itinerary-spec.md`
 
 ## Current ICT Demo Priority
@@ -31,6 +32,22 @@ Do not implement unless explicitly requested:
 - customer driver bidding
 
 Keep Transfer Detail as an optional or hidden demo flow, not the primary customer homepage.
+
+## P1.1 Data Boundary
+
+For customer-facing transportation quote work, follow `docs/product/p1-1-data-boundary-customer-quotes.md`.
+
+Non-negotiable boundary:
+
+```text
+driver_quotes = internal supply quotes for operator review
+customer_transport_quotes = customer-visible curated quotes after operator publish
+transport_orders = confirmed customer transportation orders
+```
+
+Do not connect customer pages or customer-facing cloud functions directly to `driver_quotes`.
+
+Any customer-visible quote must be published by an operator first. Farland service fee 10% must be calculated in Cloud Functions, not frontend JS or WXML.
 
 Client-facing transport should feel like curated Farland service options, not raw driver bidding. Operations can manage driver quotes, assignments, substitutions, and internal notes, but clients should see a clean service flow:
 
