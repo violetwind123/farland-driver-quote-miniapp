@@ -1,45 +1,107 @@
-Farland Driver Quote Mini Program is an internal WeChat Mini Program for Farland operator-to-driver quote collection.
+# Farland Mini Program
 
-## MVP Scope
+Farland Mini Program is an advisor-led WeChat Mini Program for hotel requests, customer itinerary visibility, and internal driver quote coordination.
 
-The product is not a public ride-hailing platform. Current MVP only supports:
+It is not a public ride-hailing marketplace. Customers see Farland-curated service options, not raw driver bidding.
 
-- Operator creates a simplified quote request.
-- Operator shares a Mini Program quote card to driver WeChat groups.
-- Driver opens quick quote by token.
-- Driver submits or views quote result.
-- Operator reviews quotes and selects one driver.
-- Operator may cancel a request with a structured cancellation reason.
-- Driver home is a personal center, not an order hall.
+## Current Scope
 
-Out of scope for now:
+The current version supports:
 
-- Customer quote
-- Dispatch order
-- Payment
-- Map or tracking
-- Finance/margin tools
-- Driver available order hall
+- Customer-facing hotel booking entry.
+- Customer-facing My Trip page.
+- Operator request creation and request detail management.
+- Driver quick quote by Mini Program card token.
+- Operator review and customer publishing of driver quotes.
+- Invite-only customer access to transfer quote detail.
+- Customer quote selection as a request signal.
+- Operator final driver confirmation or driver rejection.
+- Customer-visible assigned driver details after operator confirmation.
+- Customer-visible driver-unavailable notice and reselect flow after operator rejection.
+
+Still out of scope:
+
+- Payment.
+- Live map or tracking.
+- Customer self-dispatch.
+- Public driver bidding.
+- Customer access to raw `driver_quotes`.
+- Full `transport_orders` backend.
+- Automated SMS or external notification system.
+
+## Core Product Flow
+
+### Driver Quote Flow
+
+```text
+operator creates ride request
+→ operator shares driver quote card
+→ driver submits quote
+→ operator reviews quote
+→ operator publishes curated customer quote
+→ customer views published quote
+→ customer chooses a driver option
+→ operator confirms driver or marks driver unavailable
+```
+
+### Customer Quote Visibility
+
+Customers never read `driver_quotes` directly.
+
+Customer-facing quote data comes from:
+
+```text
+customer_transport_quotes
+```
+
+Pricing is calculated in cloud functions:
+
+```text
+client_total = driver_quote_amount + Farland service fee
+Farland service fee = driver_quote_amount * 10%
+```
 
 ## Pages
 
-### Auth
+### Entry And Auth
 
+- `pages/index/index`
+  - Preload / routing entry.
+  - Routes driver, operator, and customer by access context.
 - `pages/auth/login/login`
+  - Operator login fallback.
+
+### Customer
+
+- `pages/hotel/request/request`
+  - Default customer tab.
+  - Hotel request UI.
+- `pages/customer/home/home`
+  - My Trip customer tab.
+  - Shows customer-safe itinerary and transport summaries.
+- `pages/customer/transfer-detail/transfer-detail`
+  - Invite-bound customer transfer quote detail.
+  - Shows published customer quotes.
+  - Lets customer choose a driver option.
+  - Shows pending confirmation, assigned driver, or driver-unavailable notice.
+- `pages/customer/benefits/benefits`
+  - Customer benefits page.
 
 ### Operator
 
 - `pages/operator/dashboard/dashboard`
-  - Lightweight control center.
-  - Loads summary only.
+  - Operator control center.
 - `pages/operator/request-hall/request-hall`
-  - Loads request list by tab.
+  - Request list by status.
 - `pages/operator/create-request/create-request`
   - Creates simplified quote request.
 - `pages/operator/request-detail/request-detail`
-  - Shows request, invite/share button, quotes, selection, cancellation, quote summary copy.
+  - Request detail.
+  - Share to driver.
+  - Share to customer.
+  - Review, reject, publish, confirm, or cancel.
 - `pages/operator/driver-summary/driver-summary`
-  - Loads regional driver/vehicle summary only.
+  - Regional driver/vehicle summary.
 - `pages/operator/drivers-by-region/drivers-by-region`
   - Read-only driver and vehicle list for one region.
 
@@ -48,30 +110,46 @@ Out of scope for now:
 - `pages/driver/quick-quote/quick-quote`
   - Token entry from shared Mini Program card.
 - `pages/driver/home/home`
-  - Driver personal center: profile, WeCom hint, vehicle info, current quotes, selected orders.
+  - Driver personal center.
 
 ## Cloud Functions
 
+### Access And Home
+
 - `login`
+- `checkEntryAccess`
 - `getOperatorRequests`
-  - `mode: "summary"` returns dashboard summary only.
-  - `mode: "requests"` returns request list for request hall.
-  - `mode: "driver_summary"` returns regional driver summary.
+- `getCustomerHome`
+- `getDriverHome`
+
+### Request And Invite
+
 - `createRideRequest`
 - `getRequestDetail`
 - `createQuoteInvite`
+- `createCustomerInvite`
 - `getQuoteInviteByToken`
-- `submitQuickQuote`
-- `selectDriverQuote`
 - `cancelRideRequest`
-- `getDriverHome`
-- `updateDriverVehicle`
+
+### Driver Quote
+
+- `submitQuickQuote`
+- `reviewDriverQuote`
+- `createCustomerQuoteDraft`
+- `publishCustomerQuotesBatch`
+- `selectCustomerQuote`
+- `selectDriverQuote`
+
+### Driver Directory
+
 - `getDriverProfile`
 - `getDriversByRegion`
+- `getDriverHome`
+- `updateDriverVehicle`
 
 ## Database Collections
 
-Use exactly these six collections:
+Core collections:
 
 - `users`
 - `drivers`
@@ -79,28 +157,25 @@ Use exactly these six collections:
 - `ride_requests`
 - `quote_invites`
 - `driver_quotes`
+- `customer_invites`
+- `customer_transport_quotes`
+- `audit_logs`
 
-Recommended production permission:
-
-- Frontend pages should not directly read/write collections.
-- All collections should be accessible through cloud functions only.
-- No `wx.cloud.database()` should appear in `miniprogram/` frontend files.
+Frontend pages should not directly read or write collections. Use cloud functions only.
 
 ## Key Rules
 
-- Driver quote entry must be:
+- Use `cloud.getWXContext().OPENID` for identity.
+- Do not accept `OPENID` from frontend input.
+- Do not use `wx.cloud.database()` in `miniprogram/`.
+- Driver quote entry must remain:
   - `pages/driver/quick-quote/quick-quote?token=xxx`
-- Shared quote cards must never route drivers to operator pages.
-- `openid` must come from `cloud.getWXContext().OPENID`.
-- Frontend must not send `openid`, `driver_id`, or `request_id` for quote submission.
-- `getQuoteInviteByToken` must not return:
-  - `internal_note`
-  - other driver quotes
-  - customer price
-  - margin
-  - operator internal fields
-- One `request_id + driver_id` has at most one active quote record; repeated submissions update the existing quote.
-- `driver_quotes` must save driver and vehicle snapshots.
+- Customer transfer entry is invite-bound:
+  - `pages/customer/transfer-detail/transfer-detail?request_id=xxx&invite_code=xxx`
+- Customers can see only published/selected/confirmed customer quotes.
+- Customers cannot see draft, withdrawn, rejected, or internal driver quotes.
+- Operator final confirmation is required before driver phone and plate are shown.
+- If a customer-selected driver becomes unavailable, customer sees a reselect notice.
 
 ## Deployment Checklist
 
@@ -108,9 +183,19 @@ Recommended production permission:
    - `miniprogramRoot: "miniprogram/"`
    - `cloudfunctionRoot: "cloudfunctions/"`
 2. Confirm `miniprogram/app.js` uses the correct CloudBase `env`.
-3. Create the six database collections.
+3. Create required database collections.
 4. Set collection permissions to cloud-function-only access.
-5. Deploy each cloud function with dependencies installed in cloud.
+5. Deploy updated cloud functions:
+   - `checkEntryAccess`
+   - `getRequestDetail`
+   - `createCustomerInvite`
+   - `reviewDriverQuote`
+   - `createCustomerQuoteDraft`
+   - `publishCustomerQuotesBatch`
+   - `getCustomerTransportQuotes`
+   - `selectCustomerQuote`
+   - `selectDriverQuote`
+   - `cancelRideRequest`
 6. Reopen WeChat DevTools and clear cache after structural changes.
 7. Confirm no frontend file uses `wx.cloud.database()`.
 
@@ -119,26 +204,49 @@ Recommended production permission:
 ### Operator
 
 1. Login as operator.
-2. Dashboard loads summary only.
-3. Tap each summary card and verify it opens request hall with the correct tab.
-4. Tap driver information and verify it opens driver summary.
-5. Create a quote request.
-6. Open request detail.
-7. Confirm visible share button appears only after token is ready.
-8. Share quote card and confirm path includes quick-quote token.
-9. Select one quote; selected quote becomes `selected`, others become `rejected`, request becomes `assigned`.
-10. Cancel an eligible request with reason; old invite becomes cancelled.
-11. Copy quote summary from request detail.
+2. Create a ride request.
+3. Open request detail.
+4. Share driver quote card.
+5. Confirm driver quote appears after driver submission.
+6. Reject an unselected quote and confirm it does not notify customer.
+7. Publish a quote to customer.
+8. Share customer card.
+9. Confirm customer selection appears as `客户已选择`.
+10. Confirm driver and verify customer sees assigned driver details.
+11. Mark a customer-selected driver as unavailable and verify customer sees the reselect notice.
+12. Cancel an eligible request and verify customer/driver-safe cancellation text.
+
+### Customer
+
+1. Open customer card with `request_id` and `invite_code`.
+2. Confirm invite binds to the current WeChat identity.
+3. Confirm published quotes render.
+4. Select a driver.
+5. Confirm UI changes to `待确认`.
+6. After operator confirmation, confirm assigned driver details display.
+7. After operator marks driver unavailable, confirm the reselect notice displays:
+   - `司机因个人行程调整无法接待，Farland 已为您补偿20元，请您重新选择司机。`
+8. Re-select another driver option.
 
 ### Driver
 
 1. Open shared quick-quote card with valid token.
-2. Unregistered driver submits driver, vehicle, and quote information.
-3. Registered driver sees own driver and vehicle profile.
-4. Driver cannot submit again after final result where submission is locked.
-5. Driver sees selected result if selected.
-6. Driver sees not-selected result if rejected.
-7. Cancelled token shows cancellation message, not operator dashboard.
-8. Invalid token shows invalid quote link.
-9. Driver home shows profile, WeCom hint, vehicle info, current quotes, and selected orders.
-10. Vehicle edit is locked when active quoting or selected orders exist.
+2. Submit driver, vehicle, and quote information.
+3. Confirm existing driver profile prefills when available.
+4. Confirm cancelled token shows cancellation message.
+5. Confirm invalid token shows invalid quote link.
+6. Confirm driver home remains a personal center, not an order hall.
+
+## Validation Commands
+
+```bash
+node --check cloudfunctions/createCustomerInvite/index.js
+node --check cloudfunctions/createCustomerQuoteDraft/index.js
+node --check cloudfunctions/getCustomerTransportQuotes/index.js
+node --check cloudfunctions/publishCustomerQuotesBatch/index.js
+node --check cloudfunctions/reviewDriverQuote/index.js
+node --check cloudfunctions/selectCustomerQuote/index.js
+node --check miniprogram/pages/operator/request-detail/request-detail.js
+node --check miniprogram/pages/customer/transfer-detail/transfer-detail.js
+git diff --check
+```

@@ -2,18 +2,24 @@
 
 ## Current Focus
 
-Prepare the ICT demo version while preserving internal driver quote MVP.
+Stabilize the customer quote selection and operator confirmation flow after P1.2A implementation.
 
 ## Immediate Stabilization
 
+- [x] Restore operator/driver/customer role-based entry behavior
+- [x] Add customer invite card flow from operator request detail
+- [x] Add customer quote read-only detail backed by `customer_transport_quotes`
+- [x] Add customer driver selection signal
+- [x] Add operator confirmation after customer chooses a driver
+- [x] Add operator driver-unavailable rejection path after customer selection
+- [x] Show assigned driver details on customer page after operator confirmation
+- [x] Show customer reselect notice after selected driver becomes unavailable
 - [ ] Verify tabBar works in WeChat DevTools
-- [ ] Remove custom tabBar config if no custom-tab-bar exists
 - [ ] Verify image asset paths exist
-- [ ] Simplify My Trip page for demo
-- [ ] Keep Transfer Detail as optional hidden flow
 - [ ] Test hotel request submission
 - [ ] Test quick-quote token entry
 - [ ] Test operator dashboard
+- [ ] Test full customer quote selection flow on real deployed cloud functions
 - [ ] Confirm no frontend wx.cloud.database()
 
 ## Phase 0: Documentation
@@ -50,8 +56,9 @@ Prepare the ICT demo version while preserving internal driver quote MVP.
 - [x] Show quote options after published
 - [x] Navigate from My Trip summary to Transfer Detail
 - [x] Show driver details only after assignment
-- [ ] Replace request card with confirmed ride card after order confirmation
-- [ ] Add selectable mock state for accepted quote
+- [x] Show customer selected quote as pending operator confirmation
+- [x] Replace quote options with assigned driver card after operator confirmation
+- [x] Show driver-unavailable notice and allow customer reselection
 
 ## Long-Term Roadmap
 
@@ -61,18 +68,18 @@ These items are post-demo product direction. Do not implement them during ICT de
 
 - [ ] Add shared role helper before P1.1 backend work
 - [ ] Create `transfer_request` backend
-- [ ] Add `reviewDriverQuote`
-- [ ] Add `createCustomerQuoteDraft`
-- [ ] Add `publishCustomerQuotesBatch`
+- [x] Add `reviewDriverQuote`
+- [x] Add `createCustomerQuoteDraft`
+- [x] Add `publishCustomerQuotesBatch`
 - [ ] Add `withdrawCustomerQuotes`
-- [ ] Add `getCustomerTransportQuotes`
-- [ ] Add `selectCustomerQuote`
-- [ ] Publish curated `transport_quote` options
-- [ ] Select quote
+- [x] Add `getCustomerTransportQuotes`
+- [x] Add `selectCustomerQuote`
+- [x] Publish curated `transport_quote` options through `customer_transport_quotes`
+- [x] Select quote as customer intent signal
 - [ ] Confirm `transport_order`
 - [ ] Assign driver
-- [ ] Write `activity_event` records
-- [ ] Add audit logs for approve/reject/draft/publish/withdraw/select/order creation
+- [x] Write audit logs for invite, approve/reject, draft, publish, read, and select
+- [ ] Add audit logs for withdraw/order creation
 
 ### Long-Term Transport Product
 
@@ -88,16 +95,70 @@ These items are post-demo product direction. Do not implement them during ICT de
 ## Phase 5: QA And Release
 
 - [ ] Deploy `getCustomerHome`
+- [ ] Deploy `createCustomerInvite`
+- [ ] Deploy `reviewDriverQuote`
+- [ ] Deploy `createCustomerQuoteDraft`
+- [ ] Deploy `publishCustomerQuotesBatch`
+- [ ] Deploy `getCustomerTransportQuotes`
+- [ ] Deploy `selectCustomerQuote`
+- [ ] Deploy updated `getRequestDetail`
+- [ ] Deploy updated `selectDriverQuote`
 - [ ] Test customer hotel request flow
 - [ ] Test My Trip mock data rendering
 - [ ] Test Transfer Detail quote cards
-- [ ] Test quote selection toast
+- [ ] Test quote selection pending state
+- [ ] Test operator sees customer selected quote
+- [ ] Test operator confirms driver and customer sees assigned driver details
+- [ ] Test operator marks driver unavailable and customer sees reselect compensation notice
 - [ ] Regression test driver quick-quote token flow
 - [ ] Regression test operator dashboard and request detail
 - [ ] Confirm no frontend direct database access
 - [ ] Confirm miniprogram package size under 2MB
 
 ## Change Log
+
+### 2026-05-21
+
+- Feature completed: updated README, TODO, and product context for current customer quote flow.
+- Files changed:
+  - `README.md`
+  - `TODO.md`
+  - `docs/product/context.md`
+- Notes:
+  - README now documents hotel, My Trip, customer invite, operator quote publishing, customer selection, and operator confirmation/rejection.
+  - Product context now marks P1.2A customer quote flow as implemented and clarifies that customer selection is not a confirmed order.
+  - TODO now reflects completed P1.2A flow and the next QA/deployment tasks.
+- Next recommended task:
+  - Commit and push the documentation updates after review.
+
+### 2026-05-21
+
+- Feature completed: implemented customer quote selection and operator confirmation flow.
+- Commit:
+  - `bc435ce Implement customer quote selection and operator confirmation flow`
+- Files changed:
+  - `cloudfunctions/createCustomerInvite`
+  - `cloudfunctions/reviewDriverQuote`
+  - `cloudfunctions/createCustomerQuoteDraft`
+  - `cloudfunctions/publishCustomerQuotesBatch`
+  - `cloudfunctions/getCustomerTransportQuotes`
+  - `cloudfunctions/selectCustomerQuote`
+  - `cloudfunctions/getRequestDetail/index.js`
+  - `cloudfunctions/selectDriverQuote/index.js`
+  - `miniprogram/pages/operator/request-detail/*`
+  - `miniprogram/pages/customer/transfer-detail/*`
+  - `miniprogram/pages/customer/home/*`
+  - `miniprogram/pages/index/*`
+- Notes:
+  - Operators can send both driver and customer Mini Program cards.
+  - Customer invite links bind by `cloud.getWXContext().OPENID`.
+  - Operator can publish curated customer quote cards from reviewed driver quotes.
+  - Customer can choose a driver option, which remains pending until operator confirmation.
+  - Operator confirmation assigns the driver and exposes customer-safe driver details.
+  - Operator driver-unavailable rejection cancels the selected customer quote and shows a customer reselect notice.
+  - Customer pages still do not read `driver_quotes` directly.
+- Next recommended task:
+  - Deploy all changed cloud functions, then run the full operator-driver-customer QA checklist in WeChat DevTools.
 
 ### 2026-05-21
 

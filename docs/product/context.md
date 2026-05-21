@@ -23,6 +23,10 @@ The current ICT demo should stay focused on a clean customer-facing service expe
 - My Trip page
 - mock itinerary data
 - customer-safe transportation appointment display
+- invite-bound customer transfer quote detail
+- operator-reviewed customer quote publishing
+- customer driver selection as a pending intent signal
+- operator final driver confirmation or driver-unavailable handling
 - points, benefits, and advisor contact
 - internal driver quote system remains unchanged
 
@@ -59,12 +63,65 @@ Rules:
 - `customer_transport_quotes` is the only future quote source for customer pages.
 - Operator review is required before any quote becomes customer-visible.
 - Farland service fee 10% must be calculated in Cloud Functions only.
-- Transfer Detail is currently demo/mock only until `customer_transport_quotes` is implemented.
+- Transfer Detail now reads published `customer_transport_quotes` for invite-bound requests.
 - My Trip home should show summaries and entry points, not raw quote pools.
 
 See `docs/product/p1-1-data-boundary-customer-quotes.md` for the full P1.1 boundary.
 
-## 4. Target Customer
+## 4. P1.2A Implemented Customer Quote Flow
+
+The current implementation supports the minimal safe customer quote flow:
+
+```text
+driver quote submitted
+→ operator reviews driver quote
+→ operator publishes curated customer quote
+→ customer opens invite-bound transfer detail
+→ customer chooses a driver option
+→ operator confirms driver or marks driver unavailable
+```
+
+Implemented cloud functions:
+
+- `createCustomerInvite`
+- `reviewDriverQuote`
+- `createCustomerQuoteDraft`
+- `publishCustomerQuotesBatch`
+- `getCustomerTransportQuotes`
+- `selectCustomerQuote`
+
+Current status semantics:
+
+- `driver_quotes.quote_status`
+  - legacy internal driver quote status
+  - do not repurpose for customer review state
+- `driver_quotes.operator_review_status`
+  - `pending`
+  - `approved`
+  - `rejected`
+- `customer_transport_quotes.quote_status`
+  - `draft`
+  - `published`
+  - `selected`
+  - `cancelled`
+
+Customer selection is not a confirmed order. It means:
+
+```text
+客户倾向选择该司机，等待 Farland 运营确认司机是否可接单。
+```
+
+Operator confirmation uses the existing `selectDriverQuote` path and sets the request to assigned. Only after this step may the customer see driver contact and vehicle details.
+
+If a customer-selected driver becomes unavailable, the operator can reject that quote. The customer sees:
+
+```text
+司机因个人行程调整无法接待，Farland 已为您补偿20元，请您重新选择司机。
+```
+
+This still does not create a production `transport_order`. That remains a future roadmap item.
+
+## 5. Target Customer
 
 Primary customers:
 
@@ -83,7 +140,7 @@ Common scenarios:
 - family school visit transport
 - short charter for school visits
 
-## 5. Business Model
+## 6. Business Model
 
 Farland uses a transparent coordination fee model.
 
@@ -102,7 +159,7 @@ Client quote cards must show:
 
 The service fee covers Farland's coordination work, not hidden markup.
 
-## 6. Core Transport Logic
+## 7. Core Transport Logic
 
 Transport must remain split into three separate entities:
 
@@ -116,7 +173,7 @@ transfer_request -> transport_quote -> transport_order
 
 Do not collapse these states into one object. A quote is not an order. A selected quote is not a driver assignment.
 
-## 7. Client Visibility Rules
+## 8. Client Visibility Rules
 
 Clients should see:
 
@@ -148,7 +205,7 @@ Clients should not see:
 - driver phone before assignment
 - vehicle plate before assignment
 
-## 8. Driver Profile Logic
+## 9. Driver Profile Logic
 
 Before assignment, clients may see a driver profile teaser only:
 
@@ -175,7 +232,7 @@ After assignment, clients may see:
 - plate number
 - pickup meeting point
 
-## 9. Transparent Pricing Logic
+## 10. Transparent Pricing Logic
 
 Quote cards should display pricing as:
 
@@ -203,7 +260,7 @@ Avoid wording such as:
 - 低价司机
 - 原始报价池
 
-## 10. Driver Change Backup Support
+## 11. Driver Change Backup Support
 
 Farland should not promise that the same driver is guaranteed for every service, especially for multi-day charter.
 
@@ -219,7 +276,7 @@ Client-facing fallback wording:
 如因工时、档期或当地规定需要调整，Farland 将协调同等级替补并同步确认。
 ```
 
-## 11. Charter Logic
+## 12. Charter Logic
 
 Charter should be shown in three layers:
 
@@ -244,7 +301,7 @@ Segment layer:
 17:30 返回酒店
 ```
 
-## 12. MVP Scope
+## 13. MVP Scope
 
 Current MVP should prioritize:
 
@@ -253,6 +310,7 @@ Current MVP should prioritize:
 - transfer request visibility
 - Farland-curated quote cards
 - transparent driver quote + Farland service fee 10% pricing
+- customer quote selection as pending operator confirmation
 - confirmed ride card
 - charter display card
 - mock data before backend integration
@@ -267,7 +325,7 @@ Do not implement yet:
 - full supplier portal
 - full charter operations automation
 
-## 13. UI Style
+## 14. UI Style
 
 UI should feel:
 
@@ -292,7 +350,7 @@ Avoid:
 - loud discounts
 - dense backend tables on customer pages
 
-## 14. Product Principle
+## 15. Product Principle
 
 The core product rule:
 
