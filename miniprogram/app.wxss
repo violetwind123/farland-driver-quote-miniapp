@@ -1,6 +1,6 @@
 page {
-  background: #f4f6fb;
-  color: #1e2d4e;
+  background: #F5F6FA;
+  color: #1E2635;
   font-size: 28rpx;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
 }
@@ -18,12 +18,12 @@ button.floating-add,
 .select-btn,
 .floating-add,
 .service-type.active {
-  background: #5B6596 !important;
+  background: #6672A8 !important;
   color: #ffffff !important;
 }
 
 .status,
 .selected-label,
 .error-text {
-  color: #5B6596 !important;
+  color: #6672A8 !important;
 }

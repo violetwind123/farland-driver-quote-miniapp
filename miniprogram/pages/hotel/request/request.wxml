@@ -1,14 +1,7 @@
 <view class="hotel-page">
-  <view class="top-brand">
-    <image
-      wx:if="{{logoReady}}"
-      class="brand-logo"
-      src="/assets/images/logo-farland.png"
-      mode="aspectFit"
-      binderror="onLogoError"
-    />
+  <view class="hero-brand">
+    <image wx:if="{{logoReady}}" class="brand-logo" src="/assets/images/logo-farland-emboss.png" mode="aspectFit" binderror="onLogoError" />
     <view wx:else class="text-logo">Farland</view>
-    <text class="brand-subtitle">尊享美国酒店与访校住宿服务</text>
   </view>
 
   <swiper class="hero-swiper" indicator-dots autoplay circular interval="4800">
@@ -26,17 +19,14 @@
 
   <view class="search-card">
     <view class="search-tabs">
-      <view class="tab active" data-type="hotel" bindtap="onServiceTabTap">实时酒店</view>
-      <view class="tab" data-type="package" bindtap="onServiceTabTap">酒店套餐</view>
-      <view class="tab" data-type="campus" bindtap="onServiceTabTap">
-        访校住宿
-        <text class="new-badge">NEW</text>
-      </view>
+      <view class="tab-slider {{serviceType === 'campus' ? 'campus' : ''}}"></view>
+      <view class="tab {{serviceType === 'hotel' ? 'active' : ''}}" data-type="hotel" bindtap="onServiceTabTap">酒店预订</view>
+      <view class="tab {{serviceType === 'campus' ? 'active' : ''}}" data-type="campus" bindtap="onServiceTabTap">访校酒店</view>
     </view>
 
     <view class="city-row">
-      <input class="city-name" value="{{form.city}}" data-field="city" bindinput="onInput" placeholder="Boston" />
-      <view class="location-link" bindtap="useCurrentLocation">⌖ 我的位置</view>
+      <input class="city-name" value="{{form.city}}" data-field="city" bindinput="onInput" placeholder="{{placePlaceholder}}" />
+      <view class="location-link" bindtap="useCurrentLocation">⌖ {{placeActionText}}</view>
     </view>
 
     <view class="date-room-row">
@@ -73,15 +63,54 @@
     </button>
   </view>
 
-  <view class="benefit-card">
-    <view class="benefit-title">Farland 会员 尊享特权</view>
-    <view class="benefit-grid">
-      <view wx:for="{{benefitItems}}" wx:key="title" class="benefit-item">
-        <view class="benefit-icon">
-          <image src="{{item.icon}}" mode="aspectFit" />
+  <view class="advisor-service-card">
+    <view class="service-kicker">FARLAND CONCIERGE</view>
+
+    <view class="service-list">
+      <view class="service-row">
+        <image class="service-icon" src="/assets/icons/service-campus.png" mode="aspectFit" />
+        <view class="service-copy">
+          <view class="service-name">大学参访预约</view>
+          <view class="service-detail">官方 Campus Tour / Info Session 查询协助</view>
         </view>
-        <view class="benefit-text">{{item.title}}</view>
+      </view>
+
+      <view class="service-row">
+        <image class="service-icon" src="/assets/icons/service-route.png" mode="aspectFit" />
+        <view class="service-copy">
+          <view class="service-name">行程方案制定</view>
+          <view class="service-detail">按学校位置与交通时间优化路线</view>
+        </view>
+      </view>
+
+      <view class="service-row">
+        <image class="service-icon" src="/assets/icons/service-room.png" mode="aspectFit" />
+        <view class="service-copy">
+          <view class="service-name">酒店礼遇协助</view>
+          <view class="service-detail">房型、早餐、延迟退房等申请协助</view>
+        </view>
+      </view>
+
+      <view class="service-row">
+        <image class="service-icon" src="/assets/icons/service-date.png" mode="aspectFit" />
+        <view class="service-copy">
+          <view class="service-name">热门日期方案</view>
+          <view class="service-detail">优先确认可订、可取消的稳定选择</view>
+        </view>
+      </view>
+
+      <view class="service-row">
+        <image class="service-icon" src="/assets/icons/service-transfer.png" mode="aspectFit" />
+        <view class="service-copy">
+          <view class="service-name">接送预约协助</view>
+          <view class="service-detail">按车型、行李与英文需求确认报价</view>
+        </view>
       </view>
     </view>
+
+    <view class="service-note">
+      以上服务均为 Farland Concierge 免费服务。
+    </view>
   </view>
+
 </view>

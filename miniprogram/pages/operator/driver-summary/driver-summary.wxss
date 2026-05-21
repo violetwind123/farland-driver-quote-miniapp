@@ -1,10 +1,10 @@
-.page { min-height: 100vh; padding: 24rpx; box-sizing: border-box; background: #f4f6fb; }
+.page { min-height: 100vh; padding: 24rpx; box-sizing: border-box; background: #F5F6FA; }
 .state, .region-card { background: #fff; border-radius: 16rpx; }
-.state { padding: 28rpx; color: #627392; }
+.state { padding: 28rpx; color: #6E7788; }
 .region-card { padding: 24rpx; margin-bottom: 16rpx; }
 .region-head { display: flex; justify-content: space-between; gap: 16rpx; }
 .region-name { font-size: 30rpx; font-weight: 700; color: #253554; }
-.region-count, .region-meta { color: #627392; font-size: 24rpx; }
+.region-count, .region-meta { color: #6E7788; font-size: 24rpx; }
 .region-meta { margin-top: 8rpx; }
 .vehicle-types { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 14rpx; }
-.vehicle-types text { background: #f2f3fa; color: #5B6596; border-radius: 20rpx; padding: 6rpx 12rpx; font-size: 22rpx; }
+.vehicle-types text { background: #f2f3fa; color: #6672A8; border-radius: 20rpx; padding: 6rpx 12rpx; font-size: 22rpx; }

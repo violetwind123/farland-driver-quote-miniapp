@@ -7,7 +7,9 @@ Page({
       });
       return;
     }
-    this.routeByAccess();
+    setTimeout(() => {
+      wx.switchTab({ url: '/pages/hotel/request/request' });
+    }, 2000);
   },
 
   async routeByAccess() {

@@ -3,28 +3,28 @@
 
   <block wx:else>
     <view class="trip-hero card-surface">
-      <view class="section-kicker">Farland itinerary</view>
+      <view class="section-kicker hero-kicker">我的行程</view>
       <view class="trip-hero-title">我的行程</view>
       <view class="trip-hero-meta">{{profile.member_level}} · {{profile.points_balance}} 积分</view>
-      <view class="trip-stats">
-        <view class="trip-stat">
-          <view class="trip-stat-value">{{transportationAppointments.length}}</view>
-          <view class="trip-stat-label">已确认用车</view>
-        </view>
-        <view class="trip-stat">
-          <view class="trip-stat-value">{{hotelRequests.length}}</view>
-          <view class="trip-stat-label">酒店需求</view>
-        </view>
+      <view class="trip-next-card">
+        <view class="trip-next-label">下一项确认行程</view>
+        <view class="trip-next-title">{{nextConfirmed.title}}</view>
+        <view class="trip-next-meta">{{nextConfirmed.date}} {{nextConfirmed.time}} · {{nextConfirmed.city}}</view>
       </view>
     </view>
 
     <view class="section-shell">
-      <view class="section-kicker">Today</view>
+      <view class="section-kicker">今日</view>
       <view class="section-title">今日行程</view>
       <view wx:if="{{!todayItinerary}}" class="empty-state">暂无今日行程</view>
       <view wx:else class="today-card card-surface">
-        <view class="today-topline">{{todayItinerary.date}} · {{todayItinerary.city}}</view>
-        <view class="today-title">{{todayItinerary.title}}</view>
+        <view class="today-header">
+          <view>
+            <view class="today-topline">{{todayItinerary.date}} · {{todayItinerary.city}}</view>
+            <view class="today-title">{{todayItinerary.title}}</view>
+          </view>
+          <view class="status-pill confirmed">已确认</view>
+        </view>
         <view class="body-text">{{todayItinerary.summary}}</view>
 
         <view class="timeline">
@@ -32,68 +32,156 @@
             <view class="timeline-time">{{item.time}}</view>
             <view class="timeline-dot"></view>
             <view class="timeline-copy">
-              <view class="timeline-title">{{item.title}}</view>
+              <view class="timeline-title-row">
+                <view class="timeline-title">{{item.title}}</view>
+                <view wx:if="{{item.client_status}}" class="mini-status">{{item.client_status === 'quoted' ? '已收到方案' : item.client_status}}</view>
+              </view>
               <view class="body-text">{{item.description}}</view>
             </view>
           </view>
         </view>
 
-        <view wx:if="{{todayItinerary.driver}}" class="driver-card">
-          <view class="driver-label">用车安排</view>
-          <view class="driver-main">{{todayItinerary.driver.name}} · {{todayItinerary.driver.vehicle}}</view>
-          <view class="driver-sub">{{todayItinerary.driver.phone}}</view>
+        <view wx:if="{{todayItinerary.driver}}" class="transport-card">
+          <view class="transport-kicker">用车安排</view>
+          <view class="transport-main">{{todayItinerary.driver.name}} · {{todayItinerary.driver.vehicle}}</view>
+          <view class="transport-sub">{{todayItinerary.driver.phone}}</view>
         </view>
 
-        <view wx:if="{{todayItinerary.farland_contact}}" class="advisor-row">
-          <view>Farland 顾问</view>
-          <view>{{todayItinerary.farland_contact.name}} · {{todayItinerary.farland_contact.phone}}</view>
+        <view wx:if="{{todayItinerary.farland_contact}}" class="advisor-card">
+          <view class="transport-kicker">Farland 顾问</view>
+          <view class="transport-main">{{todayItinerary.farland_contact.name}}</view>
+          <view class="transport-sub">{{todayItinerary.farland_contact.phone}}</view>
+        </view>
+
+        <view class="cta-row">
+          <button class="cta-secondary" bindtap="callDriver">联系司机</button>
+          <button class="cta-primary" bindtap="contactAdvisor">联系顾问</button>
         </view>
       </view>
     </view>
 
     <view class="section-shell">
-      <view class="section-kicker">Overview</view>
-      <view class="section-title">整体行程</view>
+      <view class="section-kicker">用车协调</view>
+      <view class="section-title">接送需求与方案</view>
+      <view wx:if="{{!transferRequests.length}}" class="empty-state">暂无接送需求。</view>
+      <view wx:else class="stack-list">
+        <view wx:for="{{transferRequests}}" wx:key="request_id" class="transfer-card card-surface">
+          <view class="transfer-head">
+            <view>
+              <view class="transfer-title">{{item.title}}</view>
+              <view class="transfer-meta">{{item.created_by_text}}</view>
+            </view>
+            <view class="status-chip {{item.statusClass}}">{{item.status_text}}</view>
+          </view>
+
+          <view class="route-line">
+            <view class="route-dot"></view>
+            <view class="route-text">{{item.pickup}}</view>
+            <view class="route-arrow">→</view>
+            <view class="route-text">{{item.dropoff}}</view>
+          </view>
+
+          <view class="request-grid">
+            <view>
+              <view class="field-label">时间</view>
+              <view class="field-value">{{item.pickup_time_text}}</view>
+            </view>
+            <view>
+              <view class="field-label">人数 / 行李</view>
+              <view class="field-value">{{item.passengers}} 人 / {{item.luggage}} 件</view>
+            </view>
+          </view>
+
+          <view class="ops-card">
+            <view class="ops-title">{{item.ops_status_text}}</view>
+            <view class="ops-sub">已收到 {{item.quoteCount}} 个优选用车方案，报价中展示司机报价、Farland 服务费 10% 与预计总价。</view>
+          </view>
+
+          <button class="detail-btn" data-request-id="{{item.request_id}}" bindtap="viewTransferDetail">查看用车方案</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-shell">
+      <view class="section-kicker">包车</view>
+      <view class="section-title">访校包车服务</view>
+      <view wx:if="{{!charterServices.length}}" class="empty-state">暂无包车服务。</view>
+      <view wx:else class="stack-list">
+        <view wx:for="{{charterServices}}" wx:key="charter_id" class="charter-card card-surface">
+          <view class="transfer-head">
+            <view>
+              <view class="transfer-title">{{item.title}}</view>
+              <view class="transfer-meta">{{item.date_range_text}} · {{item.vehicle_class}}</view>
+            </view>
+            <view class="status-chip confirmed">{{item.status_text}}</view>
+          </view>
+          <view class="body-text">{{item.service_area}}</view>
+          <view class="charter-note">{{item.continuity_text}}</view>
+          <view class="charter-segments">
+            <view wx:for="{{item.segments}}" wx:for-item="segment" wx:key="time" class="segment-row">
+              <view class="segment-time">{{segment.time}}</view>
+              <view>
+                <view class="segment-title">{{segment.title}}</view>
+                <view class="segment-route">{{segment.route}}</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-shell">
+      <view class="section-kicker">后续</view>
+      <view class="section-title">后续行程</view>
       <view wx:if="{{!tripOverview.length}}" class="empty-state">暂无完整行程安排，请联系 Farland 顾问。</view>
-      <view wx:else class="overview-list">
-        <view wx:for="{{tripOverview}}" wx:key="day" class="overview-item card-surface">
-          <view class="day-pill">Day {{item.day}}</view>
-          <view class="overview-title">{{item.title}}</view>
-          <view class="overview-meta">{{item.date}} · {{item.city}}</view>
+      <view wx:else class="stack-list">
+        <view wx:for="{{tripOverview}}" wx:key="day" class="day-card card-surface">
+          <view class="day-row">
+            <view class="day-pill">Day {{item.day}}</view>
+            <view class="status-chip {{item.statusClass}}">{{item.statusText}}</view>
+          </view>
+          <view class="day-title">{{item.title}}</view>
+          <view class="day-meta">{{item.date}} · {{item.city}}</view>
           <view class="body-text">{{item.summary}}</view>
         </view>
       </view>
     </view>
 
     <view class="section-shell">
-      <view class="service-grid">
-        <view class="service-card card-surface">
-          <view class="section-kicker">Transport</view>
-          <view class="service-title">我的用车</view>
-          <view wx:if="{{!transportationAppointments.length}}" class="body-text">暂无确认用车安排。</view>
-          <view wx:for="{{transportationAppointments}}" wx:key="service_date" class="service-item">
-            <view class="service-main">{{item.service_type}} · {{item.service_date}}</view>
-            <view class="body-text">{{item.route_summary}}</view>
-            <view class="service-sub">{{item.driver_name}} · {{item.driver_phone}}</view>
-            <view class="service-sub">{{item.vehicle_type}} {{item.vehicle_model}} · {{item.plate_number}}</view>
+      <view class="section-kicker">用车</view>
+      <view class="section-title">已确认接送</view>
+      <view wx:if="{{!transportOrders.length}}" class="empty-state">暂无确认用车安排。</view>
+      <view wx:else class="stack-list">
+        <view wx:for="{{transportOrders}}" wx:key="order_id" class="service-card card-surface">
+          <view class="stay-head">
+            <view class="service-title">{{item.title}}</view>
+            <view class="status-chip {{item.statusClass}}">{{item.status_text}}</view>
           </view>
+          <view class="body-text">{{item.pickup}} → {{item.dropoff}}</view>
+          <view class="service-sub">{{item.pickup_time_text}} · {{item.vehicle_class}}</view>
+          <view wx:if="{{item.driver}}" class="service-sub">{{item.driver.display_name}} · {{item.driver.vehicle_model}} · {{item.driver.plate_number}}</view>
         </view>
+      </view>
+    </view>
 
-        <view class="service-card card-surface">
-          <view class="section-kicker">Hotel</view>
-          <view class="service-title">我的酒店</view>
-          <view wx:if="{{!hotelRequests.length}}" class="body-text">暂无酒店需求。</view>
-          <view wx:for="{{hotelRequests}}" wx:key="city" class="service-item">
-            <view class="service-main">{{item.city}}</view>
-            <view class="body-text">{{item.check_in_date}} - {{item.check_out_date}}</view>
-            <view class="service-sub">{{item.status}}</view>
+    <view class="section-shell">
+      <view class="section-kicker">酒店</view>
+      <view class="section-title">我的酒店</view>
+      <view wx:if="{{!hotelCards.length}}" class="empty-state">暂无酒店需求。</view>
+      <view wx:else class="stack-list">
+        <view wx:for="{{hotelCards}}" wx:key="id" class="stay-card card-surface">
+          <view class="stay-head">
+            <view class="stay-title">{{item.displayName}}</view>
+            <view class="status-chip {{item.statusClass}}">{{item.statusText}}</view>
           </view>
+          <view class="stay-meta">{{item.check_in_date}} - {{item.check_out_date}}</view>
+          <view class="body-text">{{item.subline}}</view>
         </view>
       </view>
     </view>
 
     <view class="benefit-panel card-surface">
-      <view class="section-kicker">Privileges</view>
+      <view class="section-kicker">权益</view>
       <view class="section-title">积分福利</view>
       <view class="benefit-meta">{{profile.points_balance}} 积分 · {{profile.member_level}}</view>
       <view wx:for="{{topBenefits}}" wx:key="title" class="benefit-row">

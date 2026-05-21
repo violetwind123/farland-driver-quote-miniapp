@@ -1,0 +1,103 @@
+<view class="transfer-detail-page">
+  <view wx:if="{{loading}}" class="empty-state">正在加载用车方案...</view>
+
+  <block wx:else>
+    <view wx:if="{{!request}}" class="empty-state">暂无接送需求。</view>
+
+    <block wx:else>
+      <view class="detail-hero">
+        <view class="hero-kicker">TRANSFER REQUEST</view>
+        <view class="hero-title">接送需求</view>
+        <view class="hero-route">{{request.pickup}} → {{request.dropoff}}</view>
+        <view class="hero-status">{{request.status_text}}</view>
+      </view>
+
+      <view class="detail-card">
+        <view class="section-kicker">REQUEST SNAPSHOT</view>
+        <view class="section-title">需求快照</view>
+        <view class="snapshot-grid">
+          <view class="snapshot-item">
+            <view class="field-label">上车点</view>
+            <view class="field-value">{{request.pickup}}</view>
+          </view>
+          <view class="snapshot-item">
+            <view class="field-label">下车点</view>
+            <view class="field-value">{{request.dropoff}}</view>
+          </view>
+          <view class="snapshot-item">
+            <view class="field-label">时间</view>
+            <view class="field-value">{{request.pickup_time_text}}</view>
+          </view>
+          <view class="snapshot-item">
+            <view class="field-label">人数 / 行李</view>
+            <view class="field-value">{{request.passengers}} 人 / {{request.luggage}} 件</view>
+          </view>
+        </view>
+        <view class="snapshot-note">{{request.created_by_text}}</view>
+      </view>
+
+      <view class="detail-card status-card">
+        <view class="section-kicker">FARLAND STATUS</view>
+        <view class="section-title">运营状态</view>
+        <view class="body-text">{{request.ops_status_text}}</view>
+        <view class="status-helper">报价阶段不会显示司机手机号、车牌或内部报价池。</view>
+      </view>
+
+      <view class="detail-card">
+        <view class="section-kicker">QUOTE OPTIONS</view>
+        <view class="section-title">优选用车方案</view>
+        <view class="body-text">Farland 已为您筛选以下优选用车方案。价格包含司机报价、Farland 服务费 10% 与预计总价。</view>
+
+        <view class="quote-list">
+          <view wx:for="{{quotes}}" wx:key="quote_id" class="quote-card">
+            <view class="quote-head">
+              <view>
+                <view class="quote-title">{{item.public_title}}</view>
+                <view class="quote-sub">{{item.suitable_for}}</view>
+              </view>
+              <view wx:if="{{item.is_recommended}}" class="recommend-badge">推荐</view>
+            </view>
+
+            <view class="quote-profile">{{item.driver_profile_teaser}}</view>
+            <view class="quote-meta">{{item.vehicle_class}} · {{item.capacity_text}}</view>
+
+            <view class="price-grid">
+              <view>
+                <view class="price-label">司机报价</view>
+                <view class="price-value">{{item.currency}} {{item.driver_quote_amount}}</view>
+              </view>
+              <view>
+                <view class="price-label">Farland 服务费 {{item.feeRateText}}</view>
+                <view class="price-value">{{item.currency}} {{item.farland_service_fee_amount}}</view>
+              </view>
+              <view>
+                <view class="price-label">预计总价</view>
+                <view class="price-total">{{item.currency}} {{item.client_visible_total}}</view>
+              </view>
+            </view>
+
+            <view class="quote-detail">包含：{{item.includesText}}</view>
+            <view class="quote-detail muted">不含：{{item.excludesText}}</view>
+
+            <view class="quote-footer">
+              <view class="quote-expiry">{{item.valid_until_text}}</view>
+              <button class="quote-btn" data-quote-id="{{item.quote_id}}" bindtap="chooseQuote">选择此方案</button>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="detail-card">
+        <view class="section-kicker">ACTIVITY</view>
+        <view class="section-title">处理进度</view>
+        <view class="activity-list">
+          <view wx:for="{{activityEvents}}" wx:key="time" class="activity-row">
+            <view class="activity-time">{{item.time}}</view>
+            <view class="activity-dot"></view>
+            <view class="activity-message">{{item.message}}</view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </block>
+</view>

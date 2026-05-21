@@ -1,0 +1,76 @@
+.tabbar-shell {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  padding-bottom: env(safe-area-inset-bottom);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.98) 100%);
+  border-top: 1rpx solid rgba(31, 36, 51, 0.06);
+  box-shadow:
+    0 -1rpx 2rpx rgba(255, 255, 255, 0.92) inset,
+    0 -10rpx 28rpx rgba(17, 24, 39, 0.035);
+  -webkit-backdrop-filter: blur(24rpx);
+  backdrop-filter: blur(24rpx);
+}
+
+.tabbar-content {
+  height: 106rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.tabbar-item {
+  flex: 1;
+  height: 106rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8A91A1;
+}
+
+.tabbar-item-inner {
+  min-width: 138rpx;
+  height: 76rpx;
+  border-radius: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.tabbar-item.active .tabbar-item-inner {
+  background:
+    radial-gradient(circle at 80% 0%, rgba(102, 114, 168, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(102, 114, 168, 0.105), rgba(102, 114, 168, 0.055));
+  border: 1rpx solid rgba(102, 114, 168, 0.07);
+  box-shadow:
+    0 1rpx 2rpx rgba(255, 255, 255, 0.9) inset,
+    0 4rpx 12rpx rgba(102, 114, 168, 0.06);
+}
+
+.tabbar-icon {
+  width: 42rpx;
+  height: 42rpx;
+  opacity: 0.62;
+}
+
+.tabbar-label {
+  margin-top: 5rpx;
+  color: #98A1B3;
+  font-size: 21rpx;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.tabbar-item.active .tabbar-icon {
+  opacity: 1;
+}
+
+.tabbar-item.active .tabbar-label {
+  color: #6672A8;
+  font-weight: 600;
+}

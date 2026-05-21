@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/hotel/request/request",
     "pages/customer/home/home",
+    "pages/customer/transfer-detail/transfer-detail",
     "pages/customer/benefits/benefits",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
@@ -20,22 +21,19 @@
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
-    "color": "#627392",
-    "selectedColor": "#5B6596",
+    "custom": true,
+    "color": "#8A91A1",
+    "selectedColor": "#6672A8",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/hotel/request/request",
-        "text": "酒店预订",
-        "iconPath": "assets/icons/tab-hotel.png",
-        "selectedIconPath": "assets/icons/tab-hotel-active.png"
+        "text": "酒店预订"
       },
       {
         "pagePath": "pages/customer/home/home",
-        "text": "我的行程",
-        "iconPath": "assets/icons/tab-trip.png",
-        "selectedIconPath": "assets/icons/tab-trip-active.png"
+        "text": "我的行程"
       }
     ]
   },

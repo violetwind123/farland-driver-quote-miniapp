@@ -2,6 +2,9 @@ Page({
   data: {
     logoReady: true,
     submitting: false,
+    serviceType: 'hotel',
+    placePlaceholder: 'Boston',
+    placeActionText: '我的位置',
     displayCheckIn: '',
     displayCheckOut: '',
     displayCheckInLabel: '入住',
@@ -9,17 +12,17 @@ Page({
     nights: 1,
     heroSlides: [
       {
-        image: '/assets/images/hotel-hero-01.png',
+        image: '/assets/images/hotel-lobby-01.jpg',
         title: '以居为旅 · 美国访校住宿',
         desc: '精选酒店 · 家庭旅行 · 校园周边',
       },
       {
-        image: '/assets/images/hotel-hero-02.png',
+        image: '/assets/images/hotel-member-bg.jpg',
         title: 'Farland Hotel Collection',
         desc: '顾问协助预订 · 行程联动 · 尊享礼遇',
       },
       {
-        image: '/assets/images/hotel-hero-03.png',
+        image: '/assets/images/hotel-soft-bg.jpg',
         title: '高端定制住宿安排',
         desc: 'Boston · New York · Bay Area · Los Angeles',
       },
@@ -47,7 +50,7 @@ Page({
       },
     ],
     form: {
-      city: 'Boston',
+      city: '',
       check_in_date: '',
       check_out_date: '',
       rooms: '1',
@@ -72,19 +75,43 @@ Page({
     this.initDefaultDates();
   },
 
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 0 });
+    }
+  },
+
   onLogoError() {
     this.setData({ logoReady: false });
   },
 
   onServiceTabTap(e) {
     const type = e.currentTarget.dataset.type;
-    if (type !== 'hotel') {
-      wx.showToast({ title: '该服务即将开放，请联系 Farland 顾问', icon: 'none' });
+    if (type === this.data.serviceType) return;
+    this.applyServiceType(type);
+  },
+
+  applyServiceType(type) {
+    if (type === 'campus') {
+      this.setData({
+        serviceType: 'campus',
+        placePlaceholder: 'Loomis Chaffee School',
+        placeActionText: '选择学校',
+      });
+      return;
     }
+    this.setData({
+      serviceType: 'hotel',
+      placePlaceholder: 'Boston',
+      placeActionText: '我的位置',
+    });
   },
 
   useCurrentLocation() {
-    wx.showToast({ title: '定位功能暂未开放，请手动填写城市', icon: 'none' });
+    const message = this.data.serviceType === 'campus'
+      ? '请手动填写学校或校园区域'
+      : '定位功能暂未开放，请手动填写城市';
+    wx.showToast({ title: message, icon: 'none' });
   },
 
   onInput(e) {
@@ -172,7 +199,10 @@ Page({
     const { form, submitting } = this.data;
     if (submitting) return;
     if (!form.city) {
-      wx.showToast({ title: '请填写目的城市', icon: 'none' });
+      wx.showToast({
+        title: this.data.serviceType === 'campus' ? '请填写学校' : '请填写目的城市',
+        icon: 'none',
+      });
       return;
     }
     if (!form.check_in_date) {
@@ -191,6 +221,7 @@ Page({
     try {
       const payload = {
         ...form,
+        special_requests: form.special_requests || (this.data.serviceType === 'campus' ? '访校酒店需求' : ''),
         customer_name: form.customer_name || 'Farland Guest',
         contact: form.contact || 'Pending advisor follow-up',
       };

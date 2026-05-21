@@ -1,0 +1,88 @@
+# Farland Mini Program Agent Instructions
+
+## Product Positioning
+
+Farland is an advisor-led travel operation mini-program for high-end student and family travel. It is not a public ride-hailing marketplace.
+
+For stable product context, read:
+
+- `docs/product/context.md`
+- `docs/product/farland-student-transport-itinerary-spec.md`
+
+Client-facing transport should feel like curated Farland service options, not raw driver bidding. Operations can manage driver quotes, assignments, substitutions, and internal notes, but clients should see a clean service flow:
+
+```text
+transfer_request -> transport_quote -> transport_order
+```
+
+## Non-Negotiable Product Rules
+
+- Do not expose raw driver quote pools to clients.
+- Do not describe the product as driver bidding, ride hailing, nearby drivers, or instant dispatch.
+- Driver details, phone numbers, vehicle plate numbers, and exact assignment information are client-visible only after assignment is real.
+- Internal cost, margin, internal notes, supplier private notes, and fallback logic are never client-visible.
+- Client-facing quote cards must show:
+  - driver quote
+  - Farland service fee at 10%
+  - estimated total
+- The Farland service fee should be presented as service coordination, not hidden markup.
+- Clients should see their request immediately after submission, even if Farland is still sourcing options.
+- Quote selected does not mean driver assigned.
+- Confirmed order does not always mean driver details are released.
+
+## Client-Facing Vocabulary
+
+Use:
+
+- 接送需求已提交
+- Farland 正在为您确认用车方案
+- 已收到优选用车方案
+- 司机报价
+- Farland 服务费 10%
+- 预计总价
+- 已选择方案，等待最终确认
+- 接送已预约
+- 已分配司机
+- 由 Farland 严选车队提供
+
+Avoid:
+
+- 司机抢单
+- 司机竞价
+- 最低价司机
+- 附近司机
+- 立即叫车
+- 保证升级
+- 保证最低价
+- 保证有车
+
+## Development Rules
+
+- Keep changes narrowly scoped to the requested files.
+- Do not rewrite app routing or tabBar unless explicitly requested.
+- Do not modify the existing driver quick-quote token flow unless explicitly requested.
+- Do not modify quote submission, driver selection, or cancellation cloud functions unless explicitly requested.
+- Do not add frontend direct database access. Mini-program pages must not use `wx.cloud.database()`.
+- Prefer mock data first before connecting backend logic.
+- Keep UI iOS-like, premium, restrained, and clean.
+- Use Farland primary color `#6672A8`.
+- Avoid OTA-style promotion layouts, heavy shadows, and large purple blocks.
+- After completing a feature, update `TODO.md` with date, feature completed, files changed, notes, and the next recommended task.
+
+## Current Architecture Guardrails
+
+- Customer visible tabs are `酒店预订` and `我的行程`.
+- Driver quote flow remains hidden behind shared quote cards:
+  `pages/driver/quick-quote/quick-quote?token=xxx`
+- Operator backend remains internal and should not appear in customer navigation.
+- `app.js` must only initialize CloudBase and must not auto-route by role.
+
+## Testing Expectations
+
+After code changes:
+
+- Run syntax checks for changed JavaScript files where possible.
+- Search mini-program frontend for `wx.cloud.database()` if data access is touched.
+- Verify customer UI does not expose internal cost, margin, internal notes, or raw driver quote pools.
+- Verify driver quote card path still opens quick-quote with token.
+- Verify package-size-sensitive image assets remain compressed.
