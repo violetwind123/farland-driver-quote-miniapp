@@ -65,6 +65,25 @@ Build the Farland student transport and daily itinerary MVP without breaking the
 
 ### 2026-05-21
 
+- Feature completed: stabilized customer entry and simplified My Trip home for demo review.
+- Files changed:
+  - `miniprogram/app.json`
+  - `miniprogram/pages/index/index.js`
+  - `miniprogram/pages/hotel/request/request.js`
+  - `miniprogram/pages/hotel/request/request.wxml`
+  - `miniprogram/pages/hotel/request/request.wxss`
+  - `miniprogram/pages/customer/home/home.wxml`
+  - `docs/TEST_CASES.md`
+- Notes:
+  - Hotel page is now the first registered page.
+  - Index remains only as token fallback and immediately routes normal entry to the hotel tab.
+  - Hotel requests no longer silently submit placeholder contact data.
+  - My Trip home now keeps quote/charter detail out of the homepage and uses `我的用车` as the summary entry.
+- Next recommended task:
+  - Run WeChat DevTools preview and manually verify tabBar, hotel request contact prompt, and transfer detail navigation.
+
+### 2026-05-21
+
 - Feature completed: added project AI instructions and transport product context docs.
 - Files changed:
   - `AGENTS.md`

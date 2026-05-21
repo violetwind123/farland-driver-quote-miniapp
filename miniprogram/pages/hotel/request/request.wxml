@@ -58,6 +58,11 @@
       <text class="arrow">›</text>
     </view>
 
+    <view wx:if="{{showContactFields}}" class="contact-mini">
+      <input value="{{form.customer_name}}" data-field="customer_name" bindinput="onInput" placeholder="联系人" />
+      <input value="{{form.contact}}" data-field="contact" bindinput="onInput" placeholder="微信 / 手机 / 邮箱" />
+    </view>
+
     <button class="query-btn" loading="{{submitting}}" bindtap="submitRequest">
       {{submitting ? '提交中...' : '查询'}}
     </button>

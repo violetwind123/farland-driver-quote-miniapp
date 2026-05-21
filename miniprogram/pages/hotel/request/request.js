@@ -2,6 +2,7 @@ Page({
   data: {
     logoReady: true,
     submitting: false,
+    showContactFields: false,
     serviceType: 'hotel',
     placePlaceholder: 'Boston',
     placeActionText: '我的位置',
@@ -59,8 +60,8 @@ Page({
       budget_range: '',
       location_preference: '',
       special_requests: '',
-      customer_name: 'Farland Guest',
-      contact: 'Pending advisor follow-up',
+      customer_name: '',
+      contact: '',
     },
   },
 
@@ -217,13 +218,16 @@ Page({
       wx.showToast({ title: '离店日期需晚于入住日期', icon: 'none' });
       return;
     }
+    if (!form.customer_name || !form.contact) {
+      this.setData({ showContactFields: true });
+      wx.showToast({ title: '请留下联系人和联系方式', icon: 'none' });
+      return;
+    }
     this.setData({ submitting: true });
     try {
       const payload = {
         ...form,
         special_requests: form.special_requests || (this.data.serviceType === 'campus' ? '访校酒店需求' : ''),
-        customer_name: form.customer_name || 'Farland Guest',
-        contact: form.contact || 'Pending advisor follow-up',
       };
       const { result } = await wx.cloud.callFunction({
         name: 'createHotelRequest',

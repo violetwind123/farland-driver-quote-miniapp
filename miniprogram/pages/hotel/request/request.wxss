@@ -338,6 +338,24 @@
   line-height: 1;
 }
 
+.contact-mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.contact-mini input {
+  height: 72rpx;
+  min-height: 72rpx;
+  padding: 0 20rpx;
+  border-radius: 18rpx;
+  background: #F7F8FC;
+  color: #1D2433;
+  font-size: 24rpx;
+  box-sizing: border-box;
+}
+
 .query-btn {
   margin-top: 26rpx;
   height: 82rpx;

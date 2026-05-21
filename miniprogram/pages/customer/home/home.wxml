@@ -61,78 +61,8 @@
     </view>
 
     <view class="section-shell">
-      <view class="section-kicker">用车协调</view>
-      <view class="section-title">接送需求与方案</view>
-      <view wx:if="{{!transferRequests.length}}" class="empty-state">暂无接送需求。</view>
-      <view wx:else class="stack-list">
-        <view wx:for="{{transferRequests}}" wx:key="request_id" class="transfer-card card-surface">
-          <view class="transfer-head">
-            <view>
-              <view class="transfer-title">{{item.title}}</view>
-              <view class="transfer-meta">{{item.created_by_text}}</view>
-            </view>
-            <view class="status-chip {{item.statusClass}}">{{item.status_text}}</view>
-          </view>
-
-          <view class="route-line">
-            <view class="route-dot"></view>
-            <view class="route-text">{{item.pickup}}</view>
-            <view class="route-arrow">→</view>
-            <view class="route-text">{{item.dropoff}}</view>
-          </view>
-
-          <view class="request-grid">
-            <view>
-              <view class="field-label">时间</view>
-              <view class="field-value">{{item.pickup_time_text}}</view>
-            </view>
-            <view>
-              <view class="field-label">人数 / 行李</view>
-              <view class="field-value">{{item.passengers}} 人 / {{item.luggage}} 件</view>
-            </view>
-          </view>
-
-          <view class="ops-card">
-            <view class="ops-title">{{item.ops_status_text}}</view>
-            <view class="ops-sub">已收到 {{item.quoteCount}} 个优选用车方案，报价中展示司机报价、Farland 服务费 10% 与预计总价。</view>
-          </view>
-
-          <button class="detail-btn" data-request-id="{{item.request_id}}" bindtap="viewTransferDetail">查看用车方案</button>
-        </view>
-      </view>
-    </view>
-
-    <view class="section-shell">
-      <view class="section-kicker">包车</view>
-      <view class="section-title">访校包车服务</view>
-      <view wx:if="{{!charterServices.length}}" class="empty-state">暂无包车服务。</view>
-      <view wx:else class="stack-list">
-        <view wx:for="{{charterServices}}" wx:key="charter_id" class="charter-card card-surface">
-          <view class="transfer-head">
-            <view>
-              <view class="transfer-title">{{item.title}}</view>
-              <view class="transfer-meta">{{item.date_range_text}} · {{item.vehicle_class}}</view>
-            </view>
-            <view class="status-chip confirmed">{{item.status_text}}</view>
-          </view>
-          <view class="body-text">{{item.service_area}}</view>
-          <view class="charter-note">{{item.continuity_text}}</view>
-          <view class="charter-segments">
-            <view wx:for="{{item.segments}}" wx:for-item="segment" wx:key="time" class="segment-row">
-              <view class="segment-time">{{segment.time}}</view>
-              <view>
-                <view class="segment-title">{{segment.title}}</view>
-                <view class="segment-route">{{segment.route}}</view>
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <view class="section-shell">
       <view class="section-kicker">后续</view>
-      <view class="section-title">后续行程</view>
+      <view class="section-title">整体行程</view>
       <view wx:if="{{!tripOverview.length}}" class="empty-state">暂无完整行程安排，请联系 Farland 顾问。</view>
       <view wx:else class="stack-list">
         <view wx:for="{{tripOverview}}" wx:key="day" class="day-card card-surface">
@@ -149,9 +79,39 @@
 
     <view class="section-shell">
       <view class="section-kicker">用车</view>
-      <view class="section-title">已确认接送</view>
-      <view wx:if="{{!transportOrders.length}}" class="empty-state">暂无确认用车安排。</view>
+      <view class="section-title">我的用车</view>
+      <view wx:if="{{!transferRequests.length && !transportOrders.length && !charterServices.length}}" class="empty-state">暂无用车安排。</view>
       <view wx:else class="stack-list">
+        <view wx:for="{{transferRequests}}" wx:key="request_id" class="transfer-card compact card-surface">
+          <view class="transfer-head">
+            <view>
+              <view class="transfer-title">{{item.title}}</view>
+              <view class="transfer-meta">{{item.pickup_time_text}} · {{item.created_by_text}}</view>
+            </view>
+            <view class="status-chip {{item.statusClass}}">{{item.status_text}}</view>
+          </view>
+          <view class="route-line compact">
+            <view class="route-dot"></view>
+            <view class="route-text">{{item.pickup}}</view>
+            <view class="route-arrow">→</view>
+            <view class="route-text">{{item.dropoff}}</view>
+          </view>
+          <view class="ops-sub">已收到 {{item.quoteCount}} 个优选用车方案。</view>
+          <button class="detail-btn" data-request-id="{{item.request_id}}" bindtap="viewTransferDetail">查看用车方案</button>
+        </view>
+
+        <view wx:for="{{charterServices}}" wx:key="charter_id" class="charter-card compact card-surface">
+          <view class="transfer-head">
+            <view>
+              <view class="transfer-title">{{item.title}}</view>
+              <view class="transfer-meta">{{item.date_range_text}} · {{item.vehicle_class}}</view>
+            </view>
+            <view class="status-chip confirmed">{{item.status_text}}</view>
+          </view>
+          <view class="body-text">{{item.service_area}}</view>
+          <view class="charter-note">{{item.continuity_text}}</view>
+        </view>
+
         <view wx:for="{{transportOrders}}" wx:key="order_id" class="service-card card-surface">
           <view class="stay-head">
             <view class="service-title">{{item.title}}</view>
