@@ -37,6 +37,37 @@ transfer_request -> customer_transport_quotes -> transport_orders
 
 These two layers must remain separate.
 
+## Operator Review And Publish Workflow
+
+Customer-visible quotes are not created automatically from raw driver quotes.
+
+Required workflow:
+
+```text
+driver_quotes submitted
+-> operator reviews each quote one by one
+-> approved quote becomes customer_transport_quotes draft
+-> operator edits customer-visible explanation
+-> operator batch publishes selected draft quotes
+-> customer can view published quotes
+-> operator can withdraw published/viewed quotes before customer selects or confirms
+```
+
+This workflow allows operations to review each supply quote carefully while still publishing multiple customer-safe options at once.
+
+Key rules:
+
+- Every driver quote must be reviewed individually.
+- Approved driver quotes become customer quote drafts first, not published quotes.
+- Draft customer quotes are operator-only.
+- Operator must edit or confirm customer-visible explanation before publishing.
+- Customer-visible quote publishing can be batched.
+- Operators may withdraw `published` or `viewed` customer quotes before customer selection or confirmation.
+- Withdrawals require `withdraw_reason`.
+- Selected quotes cannot be silently withdrawn. They must become `quote_change_required` or trigger customer notification.
+- Confirmed quotes cannot be withdrawn. Use order cancellation or order modification flow.
+- Every approve, reject, publish, and withdraw action must write an audit log.
+
 ## Entity Boundary
 
 ### `driver_quotes`
@@ -139,6 +170,9 @@ Required fields include:
 - `published_by`
 - `published_at`
 - `valid_until`
+- `withdraw_reason`
+- `withdrawn_by`
+- `withdrawn_at`
 
 Customer-visible wording example:
 
@@ -207,7 +241,7 @@ Allowed operator edits:
 
 No customer-facing quote can be published automatically from `driver_quotes`.
 
-Before publishing to customer, operator must confirm:
+Before approving a driver quote, operator must confirm:
 
 - driver quote is valid
 - vehicle fits passenger and luggage count
@@ -218,6 +252,18 @@ Before publishing to customer, operator must confirm:
 - customer-facing explanation is safe and understandable
 - internal notes are not exposed
 - driver phone and plate are hidden unless assignment is confirmed
+
+After approval, a customer quote draft may be created. Before publishing that draft, operator must edit or confirm customer-visible fields:
+
+- quote title
+- suitable-for text
+- included / excluded items
+- wait time rule
+- cancellation rule
+- overtime rule
+- operator explanation
+- validity time
+- recommended marker
 
 Every customer-facing quote should include `operator_explanation`.
 
@@ -234,17 +280,32 @@ Examples:
 ### `driver_quotes`
 
 ```text
-submitted -> reviewed -> selected -> used_in_customer_quote
+submitted -> reviewing -> approved -> used_in_customer_quote
 ```
 
 Terminal states:
 
 ```text
 rejected
-withdrawn
-expired
-cancelled
 ```
+
+Allowed statuses:
+
+```text
+submitted
+reviewing
+approved
+rejected
+used_in_customer_quote
+```
+
+Meaning:
+
+- `submitted`: driver submitted raw quote.
+- `reviewing`: operator is checking the quote.
+- `approved`: operator approved the quote for customer quote draft creation.
+- `rejected`: operator rejected the quote.
+- `used_in_customer_quote`: this quote has been used to create a customer-facing draft or published quote.
 
 ### `customer_transport_quotes`
 
@@ -258,7 +319,19 @@ Terminal states:
 expired
 withdrawn
 cancelled
-declined
+```
+
+Allowed statuses:
+
+```text
+draft
+published
+viewed
+selected
+confirmed
+withdrawn
+expired
+cancelled
 ```
 
 Customer can only see:
@@ -275,8 +348,16 @@ Customer cannot see:
 ```text
 draft
 withdrawn
-internal rejected quotes
+rejected driver quotes
+internal driver quotes
 ```
+
+Withdrawal rules:
+
+- `published` quotes can be withdrawn by operator with `withdraw_reason`.
+- `viewed` quotes can be withdrawn by operator with `withdraw_reason`.
+- `selected` quotes cannot be silently withdrawn. Use `quote_change_required` or customer notification.
+- `confirmed` quotes cannot be withdrawn. Use order cancellation or order modification flow.
 
 ### `transport_orders`
 
@@ -296,7 +377,23 @@ no_show
 
 Do not implement until explicitly requested.
 
-### `publishCustomerQuote`
+### `reviewDriverQuote`
+
+Permission:
+
+```text
+operator / super_admin only
+```
+
+Responsibilities:
+
+1. Require operator or super_admin role.
+2. Read `driver_quotes` by `driver_quote_id`.
+3. Set status to `reviewing`, `approved`, or `rejected`.
+4. Require rejection reason for rejected quotes.
+5. Write audit log for approve or reject.
+
+### `createCustomerQuoteDraft`
 
 Permission:
 
@@ -311,11 +408,48 @@ Responsibilities:
 3. Verify driver quote belongs to the related internal request.
 4. Verify quote is not cancelled, rejected, or expired.
 5. Calculate 10% service fee on server.
-6. Create `customer_transport_quotes`.
+6. Create `customer_transport_quotes` with `quote_status = draft`.
 7. Update `driver_quotes.quote_status = used_in_customer_quote`.
 8. Write audit log.
 
 Must not allow frontend-supplied totals.
+
+### `publishCustomerQuotesBatch`
+
+Permission:
+
+```text
+operator / super_admin only
+```
+
+Responsibilities:
+
+1. Require operator or super_admin role.
+2. Accept a list of `customer_transport_quote` draft ids.
+3. Verify all quote ids are `draft`.
+4. Verify every quote has customer-visible explanation and validity time.
+5. Set selected drafts to `published`.
+6. Set `published_by` and `published_at`.
+7. Write audit log for every published quote.
+
+### `withdrawCustomerQuotes`
+
+Permission:
+
+```text
+operator / super_admin only
+```
+
+Responsibilities:
+
+1. Require operator or super_admin role.
+2. Accept a list of `customer_transport_quote` ids.
+3. Require `withdraw_reason`.
+4. Allow withdrawal only for `published` and `viewed` quotes.
+5. Set status to `withdrawn`, plus `withdraw_reason`, `withdrawn_by`, and `withdrawn_at`.
+6. Do not silently withdraw `selected` quotes.
+7. Reject withdrawal for `confirmed` quotes and direct operator to order cancellation or modification.
+8. Write audit log for every withdrawn quote.
 
 ### `getCustomerTransportQuotes`
 
@@ -417,8 +551,11 @@ Customer frontend must not receive:
 
 Important future events should write to `audit_logs`:
 
-- operator reviewed driver quote
+- operator approved driver quote
+- operator rejected driver quote
+- operator created customer quote draft
 - operator published customer quote
+- operator withdrew customer quote
 - customer viewed quote
 - customer selected quote
 - transport order created
@@ -438,15 +575,22 @@ Before implementation, documentation must state:
 6. Customers cannot read `driver_quotes`.
 7. My Trip home should not display raw quote pools.
 8. Customers see reviewed itinerary, quote, and order data only.
+9. Operators review driver quotes one by one before drafts are created.
+10. Operators can batch publish selected draft customer quotes.
+11. Operators can withdraw published/viewed quotes with a reason before customer selection.
+12. Selected quotes require customer notification or quote-change flow if they need to be changed.
+13. Confirmed quotes use order cancellation or modification flow, not quote withdrawal.
 
 ## Future Implementation Order
 
 When P1.1 implementation is explicitly requested:
 
 1. Add shared role helper.
-2. Add `publishCustomerQuote`.
-3. Add `getCustomerTransportQuotes`.
-4. Add `selectCustomerQuote`.
-5. Add audit logs.
-6. Only then connect Transfer Detail to `customer_transport_quotes`.
-
+2. Add `reviewDriverQuote`.
+3. Add `createCustomerQuoteDraft`.
+4. Add `publishCustomerQuotesBatch`.
+5. Add `withdrawCustomerQuotes`.
+6. Add `getCustomerTransportQuotes`.
+7. Add `selectCustomerQuote`.
+8. Add audit logs.
+9. Only then connect Transfer Detail to `customer_transport_quotes`.

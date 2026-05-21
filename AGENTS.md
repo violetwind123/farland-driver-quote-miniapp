@@ -49,6 +49,23 @@ Do not connect customer pages or customer-facing cloud functions directly to `dr
 
 Any customer-visible quote must be published by an operator first. Farland service fee 10% must be calculated in Cloud Functions, not frontend JS or WXML.
 
+P1.1 quote publishing workflow:
+
+```text
+driver_quotes submitted
+-> operator reviews each quote one by one
+-> approved quote becomes customer_transport_quotes draft
+-> operator edits customer-visible explanation
+-> operator batch publishes selected draft quotes
+-> customer can view published quotes
+```
+
+Customers can only see `published`, `viewed`, `selected`, or `confirmed` customer quotes. Customers never see `draft`, `withdrawn`, `rejected`, or internal driver quotes.
+
+Operators may withdraw `published` or `viewed` customer quotes with `withdraw_reason`. Selected quotes cannot be silently withdrawn; they require customer notification or a quote-change flow. Confirmed quotes require order cancellation or modification flow.
+
+Every approve, reject, publish, and withdraw action must write an audit log.
+
 Client-facing transport should feel like curated Farland service options, not raw driver bidding. Operations can manage driver quotes, assignments, substitutions, and internal notes, but clients should see a clean service flow:
 
 ```text

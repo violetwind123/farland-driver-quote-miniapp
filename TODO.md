@@ -61,7 +61,10 @@ These items are post-demo product direction. Do not implement them during ICT de
 
 - [ ] Add shared role helper before P1.1 backend work
 - [ ] Create `transfer_request` backend
-- [ ] Add `publishCustomerQuote`
+- [ ] Add `reviewDriverQuote`
+- [ ] Add `createCustomerQuoteDraft`
+- [ ] Add `publishCustomerQuotesBatch`
+- [ ] Add `withdrawCustomerQuotes`
 - [ ] Add `getCustomerTransportQuotes`
 - [ ] Add `selectCustomerQuote`
 - [ ] Publish curated `transport_quote` options
@@ -69,7 +72,7 @@ These items are post-demo product direction. Do not implement them during ICT de
 - [ ] Confirm `transport_order`
 - [ ] Assign driver
 - [ ] Write `activity_event` records
-- [ ] Add audit logs for customer quote publish/select/order creation
+- [ ] Add audit logs for approve/reject/draft/publish/withdraw/select/order creation
 
 ### Long-Term Transport Product
 
