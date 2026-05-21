@@ -40,16 +40,33 @@
         <view class="section-kicker">FARLAND STATUS</view>
         <view class="section-title">运营状态</view>
         <view class="body-text">{{request.ops_status_text}}</view>
-        <view class="status-helper">报价阶段不会显示司机手机号、车牌或内部报价池。</view>
+        <view wx:if="{{request.status !== 'cancelled' && request.status !== 'assigned'}}" class="status-helper">报价阶段不会显示司机手机号、车牌或内部报价池。</view>
       </view>
 
-      <view class="detail-card">
+      <view wx:if="{{request.status === 'assigned'}}" class="detail-card">
+        <view class="section-kicker">ASSIGNED DRIVER</view>
+        <view class="section-title">已确认司机</view>
+        <view class="body-text">司机：{{request.assigned_transport.driver_name || '待确认'}}</view>
+        <view class="body-text">车辆：{{request.assigned_transport.vehicle_model || request.assigned_transport.vehicle_type || '待确认'}}</view>
+        <view class="body-text">电话：{{request.assigned_transport.driver_phone || '待确认'}}</view>
+        <view wx:if="{{request.assigned_transport.plate_number}}" class="body-text">车牌：{{request.assigned_transport.plate_number}}</view>
+      </view>
+
+      <view wx:if="{{request.status !== 'cancelled' && request.status !== 'assigned'}}" class="detail-card">
         <view class="section-kicker">QUOTE OPTIONS</view>
         <view class="section-title">优选用车方案</view>
-        <view class="body-text">Farland 已为您筛选以下优选用车方案。价格包含司机报价、Farland 服务费 10% 与预计总价。</view>
+        <view wx:if="{{hasPublishedQuotes}}" class="body-text">Farland 已为您筛选以下优选用车方案。价格包含司机报价、Farland 服务费 10% 与预计总价。</view>
+        <view wx:else class="body-text">Farland 正在为您确认用车方案。方案发布后会在这里显示。</view>
+        <view wx:if="{{selectedQuoteId}}" class="pending-confirm-card">
+          <view>已选择：{{selectedQuoteTitle}}。Farland 将确认司机是否可接单，确认后这里会显示司机联系方式。</view>
+          <button class="pending-refresh-btn" loading="{{refreshingDetail}}" bindtap="refreshStatus">刷新状态</button>
+        </view>
+        <view wx:if="{{customerNotice}}" class="driver-unavailable-card">
+          {{customerNotice}}
+        </view>
 
-        <view class="quote-list">
-          <view wx:for="{{quotes}}" wx:key="quote_id" class="quote-card">
+        <view wx:if="{{hasPublishedQuotes}}" class="quote-list">
+          <view wx:for="{{quotes}}" wx:key="quote_id" class="quote-card {{selectedQuoteId === item.quote_id ? 'selected' : ''}}">
             <view class="quote-head">
               <view>
                 <view class="quote-title">{{item.public_title}}</view>
@@ -81,7 +98,11 @@
 
             <view class="quote-footer">
               <view class="quote-expiry">{{item.valid_until_text}}</view>
-              <button class="quote-btn" data-quote-id="{{item.quote_id}}" bindtap="chooseQuote">选择此方案</button>
+              <button
+                class="quote-btn {{selectedQuoteId === item.quote_id ? 'pending' : ''}}"
+                data-quote-id="{{item.quote_id}}"
+                bindtap="chooseQuote"
+              >{{selectedQuoteId === item.quote_id ? '待确认' : '选择该司机'}}</button>
             </view>
           </view>
         </view>

@@ -13,7 +13,7 @@
       </view>
     </view>
 
-    <view class="section-shell">
+    <view wx:if="{{!inviteMode}}" class="section-shell">
       <view class="section-kicker">今日</view>
       <view class="section-title">今日行程</view>
       <view wx:if="{{!todayItinerary}}" class="empty-state">暂无今日行程</view>
@@ -60,7 +60,7 @@
       </view>
     </view>
 
-    <view class="section-shell">
+    <view wx:if="{{!inviteMode}}" class="section-shell">
       <view class="section-kicker">后续</view>
       <view class="section-title">整体行程</view>
       <view wx:if="{{!tripOverview.length}}" class="empty-state">暂无完整行程安排，请联系 Farland 顾问。</view>
@@ -96,7 +96,11 @@
             <view class="route-arrow">→</view>
             <view class="route-text">{{item.dropoff}}</view>
           </view>
-          <view class="ops-sub">已收到 {{item.quoteCount}} 个优选用车方案。</view>
+          <view wx:if="{{item.status === 'cancelled'}}" class="ops-sub">{{item.cancel_reason_driver || '该用车需求已取消，如需重新安排请联系 Farland 顾问。'}}</view>
+          <view wx:elif="{{item.status === 'assigned' && item.assigned_transport}}" class="ops-sub">
+            司机：{{item.assigned_transport.driver_name || '待确认'}} · {{item.assigned_transport.vehicle_model || item.assigned_transport.vehicle_type || '车辆待确认'}}
+          </view>
+          <view wx:else class="ops-sub">已收到 {{item.quoteCount}} 个优选用车方案。</view>
           <button class="detail-btn" data-request-id="{{item.request_id}}" bindtap="viewTransferDetail">查看用车方案</button>
         </view>
 
@@ -124,7 +128,7 @@
       </view>
     </view>
 
-    <view class="section-shell">
+    <view wx:if="{{!inviteMode}}" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">我的酒店</view>
       <view wx:if="{{!hotelCards.length}}" class="empty-state">暂无酒店需求。</view>
@@ -140,7 +144,7 @@
       </view>
     </view>
 
-    <view class="benefit-panel card-surface">
+    <view wx:if="{{!inviteMode}}" class="benefit-panel card-surface">
       <view class="section-kicker">权益</view>
       <view class="section-title">积分福利</view>
       <view class="benefit-meta">{{profile.points_balance}} 积分 · {{profile.member_level}}</view>
@@ -151,7 +155,7 @@
       <button class="benefit-btn" bindtap="goBenefits">查看全部福利</button>
     </view>
 
-    <view class="advisor-panel">
+    <view wx:if="{{!inviteMode}}" class="advisor-panel">
       如需酒店预订、美国用车或访校服务，请联系 Farland 顾问为您安排。
     </view>
   </block>

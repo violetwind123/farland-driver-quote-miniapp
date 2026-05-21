@@ -157,6 +157,16 @@
     0 6rpx 18rpx rgba(17, 24, 39, 0.035);
 }
 
+.quote-card.selected {
+  border-color: rgba(102, 114, 168, 0.28);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(102, 114, 168, 0.075), transparent 34%),
+    #FFFFFF;
+  box-shadow:
+    0 1rpx 2rpx rgba(255, 255, 255, 0.92) inset,
+    0 8rpx 24rpx rgba(102, 114, 168, 0.09);
+}
+
 .quote-head {
   display: flex;
   align-items: flex-start;
@@ -252,8 +262,51 @@
   padding: 0 24rpx;
 }
 
+.quote-btn.pending {
+  background: #EEF1F8;
+  color: #6672A8;
+}
+
 .quote-btn::after {
   border: none;
+}
+
+.pending-confirm-card {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(102, 114, 168, 0.08);
+  color: #4F5A8A;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.pending-refresh-btn {
+  margin-top: 14rpx;
+  width: 160rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  border-radius: 999rpx;
+  background: #FFFFFF;
+  color: #6672A8;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 0;
+}
+
+.pending-refresh-btn::after {
+  border: none;
+}
+
+.driver-unavailable-card {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(217, 74, 74, 0.08);
+  color: #B23A3A;
+  font-size: 24rpx;
+  line-height: 1.55;
+  font-weight: 500;
 }
 
 .activity-list {

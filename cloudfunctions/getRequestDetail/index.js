@@ -7,7 +7,7 @@ async function getOperator() {
   const { OPENID } = cloud.getWXContext();
   const userRes = await db.collection('users').where({ openid: OPENID }).limit(1).get();
   const user = userRes.data[0];
-  return user && user.status === 'active' && user.role === 'operator' ? user : null;
+  return user && user.status === 'active' && ['operator', 'super_admin'].includes(user.role) ? user : null;
 }
 
 exports.main = async (event = {}) => {
@@ -18,10 +18,25 @@ exports.main = async (event = {}) => {
   const requestRes = await db.collection('ride_requests').doc(event.request_id).get().catch(() => null);
   if (!requestRes || !requestRes.data) return { success: false, message: '报价单不存在' };
 
-  const [inviteRes, quoteRes] = await Promise.all([
+  const [inviteRes, quoteRes, customerQuoteRes] = await Promise.all([
     db.collection('quote_invites').where({ request_id: event.request_id }).orderBy('created_at', 'desc').get(),
     db.collection('driver_quotes').where({ request_id: event.request_id }).orderBy('updated_at', 'desc').get(),
+    db.collection('customer_transport_quotes').where({ request_id: event.request_id }).limit(50).get().catch(() => ({ data: [] })),
   ]);
+  const customerQuoteMap = {};
+  (customerQuoteRes.data || []).forEach((quote) => {
+    if (quote.source_driver_quote_id) customerQuoteMap[quote.source_driver_quote_id] = quote;
+  });
+  const quotes = quoteRes.data.map((quote) => {
+    const customerQuote = customerQuoteMap[quote._id];
+    return {
+      ...quote,
+      customer_quote_id: customerQuote ? customerQuote._id : '',
+      customer_quote_status: customerQuote ? customerQuote.quote_status : '',
+      customer_selected_at: customerQuote ? customerQuote.selected_at || '' : '',
+      customer_selected: customerQuote ? customerQuote.quote_status === 'selected' : false,
+    };
+  });
 
   return {
     success: true,
@@ -43,6 +58,6 @@ exports.main = async (event = {}) => {
       updated_at: requestRes.data.updated_at,
     },
     invites: inviteRes.data,
-    quotes: quoteRes.data,
+    quotes,
   };
 };

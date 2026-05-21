@@ -5,11 +5,23 @@ Page({
   },
 
   onShow() {
+    const app = getApp();
+    const cached = app.globalData && app.globalData.preload && app.globalData.preload.operatorDashboard;
+    if (cached) {
+      this.setData({
+        loading: false,
+        summary: cached.summary || {},
+      });
+      delete app.globalData.preload.operatorDashboard;
+      this.loadDashboard({ silent: true });
+      return;
+    }
     this.loadDashboard();
   },
 
-  async loadDashboard() {
-    this.setData({ loading: true });
+  async loadDashboard(options = {}) {
+    const silent = Boolean(options.silent);
+    if (!silent) this.setData({ loading: true });
     try {
       const { result } = await wx.cloud.callFunction({
         name: 'getOperatorRequests',
@@ -17,7 +29,7 @@ Page({
       });
       if (!result || !result.success) {
         wx.showToast({ title: (result && result.message) || '加载失败', icon: 'none' });
-        this.setData({ loading: false });
+        if (!silent) this.setData({ loading: false });
         return;
       }
       this.setData({
@@ -26,7 +38,7 @@ Page({
       });
     } catch (error) {
       wx.showToast({ title: '加载失败', icon: 'none' });
-      this.setData({ loading: false });
+      if (!silent) this.setData({ loading: false });
     }
   },
 

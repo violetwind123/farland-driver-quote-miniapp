@@ -1,8 +1,6 @@
 <view class="page">
   <view class="splash-card">
     <image class="splash-logo" src="/assets/images/logo-farland-splash.png" mode="aspectFit" />
-    <view class="splash-title">Farland</view>
-    <view class="splash-desc">高端定制旅行 · 美国访校 · 酒店预订</view>
     <view class="loading-line">
       <view class="loading-bar"></view>
     </view>

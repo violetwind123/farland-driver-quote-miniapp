@@ -101,6 +101,41 @@ These items are post-demo product direction. Do not implement them during ICT de
 
 ### 2026-05-21
 
+- Feature completed: added invite-only customer access for transfer quote detail.
+- Files changed:
+  - `cloudfunctions/createCustomerInvite`
+  - `cloudfunctions/getCustomerTransportQuotes`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.js`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.wxml`
+  - `TODO.md`
+- Notes:
+  - Operators can create one-time customer invite links for a `ride_requests` record.
+  - First customer access claims the invite with `cloud.getWXContext().OPENID` and creates or updates a `customer` user record.
+  - Already-claimed invites can be reopened only by the same customer OpenID.
+  - Transfer Detail now calls `getCustomerTransportQuotes` instead of mock `getCustomerHome` data.
+  - Customer pages still read only `customer_transport_quotes`; they never read `driver_quotes`.
+- Next recommended task:
+  - Add minimal operator UI to create/copy customer invite links after quotes are published.
+
+### 2026-05-21
+
+- Feature completed: added P1.2A backend foundation cloud functions for reviewed customer quote publishing.
+- Files changed:
+  - `cloudfunctions/reviewDriverQuote`
+  - `cloudfunctions/createCustomerQuoteDraft`
+  - `cloudfunctions/publishCustomerQuotesBatch`
+  - `cloudfunctions/getCustomerTransportQuotes`
+  - `TODO.md`
+- Notes:
+  - No mini-program UI, app routing, tabBar, quick-quote, or legacy `selectDriverQuote` logic was changed.
+  - New functions keep operator review state separate from legacy `driver_quotes.quote_status`.
+  - Customer-facing quote reads use `customer_transport_quotes` and never read `driver_quotes`.
+  - Helpers are local to each cloud function directory so deployment does not depend on root-level shared code.
+- Next recommended task:
+  - Implement the minimal operator request-detail controls for review, draft creation, and batch publish.
+
+### 2026-05-21
+
 - Feature completed: documented P1.1 data boundary between internal driver quotes and customer-facing curated quotes.
 - Files changed:
   - `AGENTS.md`

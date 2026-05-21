@@ -58,20 +58,121 @@
     </view>
 
     <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">
-      <view class="section-title">分发到司机群</view>
-      <view class="content">报价邀请会自动准备好。准备完成后，点击下方按钮转发给司机。</view>
+      <view class="section-title">转发入口</view>
       <view wx:if="{{creatingInvite}}" class="muted">正在准备报价邀请...</view>
       <view wx:if="{{inviteError}}" class="error-text">{{inviteError}}</view>
       <button wx:if="{{inviteError}}" class="submit-btn" bindtap="onRetryCreateInvite">重试生成报价邀请</button>
-      <view wx:if="{{token}}" class="muted">报价邀请已生成</view>
-      <view wx:else class="muted">报价邀请准备中，请稍后再转发。</view>
-      <button wx:if="{{token && request.status !== 'cancelled' && request.status !== 'completed'}}" open-type="share" class="share-btn">转发报价邀请给司机</button>
+      <view wx:if="{{customerInviteError}}" class="error-text">{{customerInviteError}}</view>
+      <view class="share-grid">
+        <button
+          wx:if="{{token && request.status !== 'cancelled' && request.status !== 'completed'}}"
+          open-type="share"
+          class="share-btn driver-share-btn"
+          bindtap="onDriverShareTap"
+        >转发司机</button>
+        <button
+          wx:else
+          class="share-btn driver-share-btn disabled"
+          disabled="true"
+        >司机邀请准备中</button>
+        <button
+          class="customer-link-btn"
+          loading="{{creatingCustomerInvite}}"
+          disabled="{{creatingCustomerInvite || !customerInvitePath}}"
+          open-type="share"
+          bindtap="onCustomerShareTap"
+        >{{creatingCustomerInvite || !customerInvitePath ? '客户邀请准备中' : '转发客户'}}</button>
+      </view>
+      <view class="share-status">{{token ? '司机邀请已准备' : '司机邀请准备中'}} · {{customerInvitePath ? '客户邀请已准备' : '客户邀请准备中'}}</view>
     </view>
 
-    <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">
-      <view class="section-title">取消报价单</view>
-      <view class="content">客户取消、行程变化、重复创建或测试订单时，可以取消报价单。取消后司机不能继续报价。</view>
-      <button class="cancel-btn" bindtap="openCancelForm">取消报价单</button>
+    <view class="panel">
+      <view class="section-title">司机报价</view>
+      <view class="quote-toolbar">
+        <button class="summary-btn" bindtap="copyQuoteSummary">复制报价汇总</button>
+        <button class="refresh-btn" loading="{{refreshingDetail}}" bindtap="refreshDetail">{{refreshingDetail ? '刷新中' : '刷新状态'}}</button>
+      </view>
+      <view wx:if="{{!quotes.length}}" class="empty">暂无报价</view>
+      <view wx:for="{{quotes}}" wx:key="_id" class="list-item">
+        <view class="quote-head">
+          <view>{{item.driver_name_snapshot}} · {{item.driver_phone_snapshot}}</view>
+          <view class="status-pill inline {{item.quote_status === 'selected' ? 'status-assigned' : (item.quote_status === 'rejected' ? 'status-cancelled' : 'status-quoting')}}">{{item.quote_status === 'selected' ? '已选择' : (item.quote_status === 'rejected' ? '未选中' : (item.quote_status === 'updated' ? '已更新' : '已提交'))}}</view>
+        </view>
+        <view class="muted">{{item.vehicle_type_snapshot}} · {{item.vehicle_model_snapshot}} · {{item.seats_snapshot}} 座 · 行李 {{item.luggage_capacity_snapshot}}</view>
+        <view class="note">{{item.quote_price}} {{item.currency}} · {{item.quote_note || '无备注'}}</view>
+        <view class="muted">{{item.updated_at}}</view>
+        <view class="review-row">
+          <view wx:if="{{item.operator_review_status === 'approved'}}" class="review-chip approved">已审核通过{{item.latest_customer_quote_id ? ' · 已生成客户报价' : ''}}</view>
+          <view wx:elif="{{item.operator_review_status === 'rejected'}}" class="review-chip rejected">运营未采纳</view>
+          <view wx:else class="review-chip pending">待运营审核</view>
+          <view wx:if="{{item.customer_selected}}" class="review-chip customer-selected">客户已选择</view>
+        </view>
+        <view
+          wx:if="{{item.operator_review_status !== 'approved' && item.operator_review_status !== 'rejected' && item.quote_status !== 'selected' && item.quote_status !== 'rejected' && request.status !== 'assigned' && request.status !== 'cancelled'}}"
+          class="quote-action-row"
+        >
+          <button
+            class="reject-btn"
+            loading="{{reviewingQuoteId === item._id && !publishingCustomerQuotes}}"
+            data-id="{{item._id}}"
+            bindtap="rejectDriverQuote"
+          >
+            <view>拒绝报价</view>
+            <view class="action-hint">不通知司机</view>
+          </button>
+          <button
+            class="publish-btn"
+            loading="{{reviewingQuoteId === item._id && publishingCustomerQuotes}}"
+            data-id="{{item._id}}"
+            bindtap="approveAndPublishQuote"
+          >
+            <view>报送客户</view>
+            <view class="action-hint light">发布客户报价</view>
+          </button>
+          <button
+            class="select-btn inline"
+            loading="{{selectingQuoteId === item._id}}"
+            data-id="{{item._id}}"
+            bindtap="selectQuote"
+          >
+            <view>选择司机</view>
+            <view class="action-hint light">正式分配</view>
+          </button>
+        </view>
+        <view
+          wx:elif="{{item.customer_selected && item.operator_review_status === 'approved' && item.quote_status !== 'selected' && item.quote_status !== 'rejected' && request.status !== 'assigned' && request.status !== 'cancelled'}}"
+          class="quote-action-row approved-actions"
+        >
+          <button
+            class="driver-decline-btn"
+            loading="{{reviewingQuoteId === item._id}}"
+            data-id="{{item._id}}"
+            bindtap="rejectDriverQuote"
+          >
+            <view>司机拒绝</view>
+            <view class="action-hint danger">客户需重选</view>
+          </button>
+          <button
+            class="select-btn inline"
+            loading="{{selectingQuoteId === item._id}}"
+            data-id="{{item._id}}"
+            bindtap="selectQuote"
+          >
+            <view>确认司机</view>
+            <view class="action-hint light">客户可见联系方式</view>
+          </button>
+        </view>
+        <view
+          wx:elif="{{item.operator_review_status === 'approved' && item.quote_status !== 'selected' && item.quote_status !== 'rejected' && request.status !== 'assigned' && request.status !== 'cancelled'}}"
+          class="customer-waiting-row"
+        >
+          <view class="action-placeholder">已报送客户，等待客户选择</view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="bottom-danger-panel">
+      <button class="cancel-order-btn" bindtap="openCancelForm">取消订单</button>
     </view>
 
     <view wx:if="{{showCancelForm}}" class="panel cancel-form">
@@ -93,28 +194,6 @@
       <view class="button-row">
         <button class="secondary-btn" bindtap="closeCancelForm">返回</button>
         <button class="cancel-btn" loading="{{cancelling}}" bindtap="submitCancelRequest">{{cancelling ? '取消中...' : '确认取消'}}</button>
-      </view>
-    </view>
-
-    <view class="panel">
-      <view class="section-title">司机报价</view>
-      <button class="summary-btn" bindtap="copyQuoteSummary">复制报价汇总</button>
-      <view wx:if="{{!quotes.length}}" class="empty">暂无报价</view>
-      <view wx:for="{{quotes}}" wx:key="_id" class="list-item">
-        <view class="quote-head">
-          <view>{{item.driver_name_snapshot}} · {{item.driver_phone_snapshot}}</view>
-          <view class="status-pill inline {{item.quote_status === 'selected' ? 'status-assigned' : (item.quote_status === 'rejected' ? 'status-cancelled' : 'status-quoting')}}">{{item.quote_status === 'selected' ? '已选择' : (item.quote_status === 'rejected' ? '未选中' : (item.quote_status === 'updated' ? '已更新' : '已提交'))}}</view>
-        </view>
-        <view class="muted">{{item.vehicle_type_snapshot}} · {{item.vehicle_model_snapshot}} · {{item.seats_snapshot}} 座 · 行李 {{item.luggage_capacity_snapshot}}</view>
-        <view class="note">{{item.quote_price}} {{item.currency}} · {{item.quote_note || '无备注'}}</view>
-        <view class="muted">{{item.updated_at}}</view>
-        <button
-          wx:if="{{item.quote_status !== 'selected' && request.status !== 'assigned' && request.status !== 'cancelled'}}"
-          class="select-btn"
-          loading="{{selectingQuoteId === item._id}}"
-          data-id="{{item._id}}"
-          bindtap="selectQuote"
-        >选择该司机</button>
       </view>
     </view>
   </block>

@@ -1,8 +1,8 @@
 {
   "pages": [
+    "pages/index/index",
     "pages/hotel/request/request",
     "pages/customer/home/home",
-    "pages/index/index",
     "pages/customer/transfer-detail/transfer-detail",
     "pages/customer/benefits/benefits",
     "pages/auth/login/login",

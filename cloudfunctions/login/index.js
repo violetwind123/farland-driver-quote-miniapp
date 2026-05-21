@@ -3,6 +3,10 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+function isOperatorRole(user) {
+  return user && user.status === 'active' && ['operator', 'super_admin'].includes(user.role);
+}
+
 exports.main = async () => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { success: false, message: '无法获取用户身份' };
@@ -18,7 +22,7 @@ exports.main = async () => {
     };
   }
 
-  if (user.role !== 'operator' || user.status !== 'active') {
+  if (!isOperatorRole(user)) {
     return {
       success: false,
       message: '该入口仅限 Farland 运营使用，请联系管理员开通权限。',

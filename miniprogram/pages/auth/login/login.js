@@ -16,7 +16,7 @@ Page({
 
       const { user } = result;
       wx.setStorageSync('farland_user', user);
-      if (user.role === 'operator' && user.status === 'active') {
+      if (['operator', 'super_admin'].includes(user.role) && user.status === 'active') {
         wx.reLaunch({ url: '/pages/operator/dashboard/dashboard' });
         return;
       }

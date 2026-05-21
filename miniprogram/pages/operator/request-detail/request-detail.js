@@ -9,7 +9,13 @@ Page({
     sharePath: '',
     creatingInvite: false,
     inviteError: '',
+    shareMode: 'driver',
+    customerInvitePath: '',
+    creatingCustomerInvite: false,
+    customerInviteError: '',
     selectingQuoteId: '',
+    reviewingQuoteId: '',
+    publishingCustomerQuotes: false,
     showCancelForm: false,
     cancelling: false,
     cancelReasonTypes: [
@@ -33,6 +39,7 @@ Page({
     selectedQuote: null,
     nextActionText: '',
     deadlineRiskText: '',
+    refreshingDetail: false,
   },
 
   onLoad(options) {
@@ -43,13 +50,46 @@ Page({
     this.loadDetail();
   },
 
-  async loadDetail() {
+  onShow() {
+    if (this.data.requestId && !this.data.loading) {
+      this.loadDetail({ silent: true });
+    }
+    this.startDetailPolling();
+  },
+
+  onHide() {
+    this.stopDetailPolling();
+  },
+
+  onUnload() {
+    this.stopDetailPolling();
+  },
+
+  startDetailPolling() {
+    this.stopDetailPolling();
+    this.detailPollTimer = setInterval(() => {
+      if (!this.data.requestId || this.data.loading || this.data.reviewingQuoteId || this.data.selectingQuoteId || this.data.cancelling) return;
+      this.loadDetail({ silent: true });
+    }, 8000);
+  },
+
+  stopDetailPolling() {
+    if (this.detailPollTimer) {
+      clearInterval(this.detailPollTimer);
+      this.detailPollTimer = null;
+    }
+  },
+
+  async loadDetail(options = {}) {
+    const silent = Boolean(options.silent);
+    if (silent) this.setData({ refreshingDetail: true });
     const { result } = await wx.cloud.callFunction({
       name: 'getRequestDetail',
       data: { request_id: this.data.requestId },
     });
     if (!result || !result.success) {
-      wx.showToast({ title: (result && result.message) || '加载失败', icon: 'none' });
+      if (!silent) wx.showToast({ title: (result && result.message) || '加载失败', icon: 'none' });
+      if (silent) this.setData({ refreshingDetail: false });
       return;
     }
     const canShareInvite = !['cancelled', 'completed'].includes(result.request.status);
@@ -74,10 +114,18 @@ Page({
       selectedQuote,
       nextActionText: this.getNextActionText(request, quotes, invite),
       deadlineRiskText: this.getDeadlineRiskText(request),
+      refreshingDetail: false,
     });
     if (!invite && ['quoting', 'quoted'].includes(result.request.status)) {
       this.ensureQuoteInvite(result.request.quote_deadline);
     }
+    if (canShareInvite) {
+      this.createCustomerInvite({ silent: true });
+    }
+  },
+
+  refreshDetail() {
+    this.loadDetail({ silent: true });
   },
 
   async ensureQuoteInvite(expiresAt) {
@@ -107,6 +155,67 @@ Page({
 
   onRetryCreateInvite() {
     this.ensureQuoteInvite(this.data.request.quote_deadline);
+  },
+
+  async createCustomerInvite(options = {}) {
+    const silent = Boolean(options.silent);
+    if (this.data.creatingCustomerInvite) return;
+
+    this.setData({ creatingCustomerInvite: true, customerInviteError: '' });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'createCustomerInvite',
+        data: {
+          request_id: this.data.requestId,
+          customer_name: 'Farland Customer',
+          customer_phone: '',
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({
+          creatingCustomerInvite: false,
+          customerInviteError: (result && result.message) || '客户链接生成失败',
+        });
+        return;
+      }
+      const invitePath = result.invite_link || result.path || '';
+      this.setData({
+        creatingCustomerInvite: false,
+        customerInvitePath: invitePath,
+        customerInviteError: '',
+      });
+      if (!silent) wx.showToast({ title: '客户邀请已准备', icon: 'success' });
+      return invitePath;
+    } catch (error) {
+      console.error('createCustomerInvite failed', error);
+      const rawMessage = (error && (error.errMsg || error.message)) || '客户链接生成失败';
+      const message = rawMessage.replace('cloud.callFunction:fail ', '');
+      this.setData({
+        creatingCustomerInvite: false,
+        customerInviteError: message.length > 60 ? '客户链接生成失败，请查看控制台' : message,
+      });
+      return '';
+    }
+  },
+
+  async prepareCustomerShare() {
+    if (this.data.creatingCustomerInvite) return;
+    this.setData({ shareMode: 'customer' });
+    if (!this.data.customerInvitePath) {
+      await this.createCustomerInvite();
+    }
+  },
+
+  prepareDriverShare() {
+    this.setData({ shareMode: 'driver' });
+  },
+
+  onCustomerShareTap() {
+    this.prepareCustomerShare();
+  },
+
+  onDriverShareTap() {
+    this.prepareDriverShare();
   },
 
   getCancelReasonLabel(type) {
@@ -246,7 +355,138 @@ Page({
     });
   },
 
-  onShareAppMessage() {
+  buildCustomerQuotePayload(quote) {
+    const vehicleText = [quote.vehicle_type_snapshot, quote.vehicle_model_snapshot].filter(Boolean).join(' · ');
+    const title = `${quote.driver_name_snapshot || 'Farland 司机'}${vehicleText ? `｜${vehicleText}` : ''}`;
+    const explanation = [
+      'Farland 已审核该司机报价。',
+      quote.quote_note ? `司机备注：${quote.quote_note}` : '',
+    ].filter(Boolean).join('\n');
+
+    return {
+      request_id: this.data.requestId,
+      driver_quote_id: quote._id,
+      title,
+      operator_explanation: explanation,
+      included_items: ['基础接送服务', 'Farland 顾问协调', '司机与车辆信息核验'],
+      excluded_items: ['临时加点', '超时等待', '停车费/过路费如实际发生'],
+      valid_until: this.data.request.quote_deadline || '',
+      is_recommended: false,
+    };
+  },
+
+  async approveAndPublishQuote(e) {
+    const quoteId = e.currentTarget.dataset.id;
+    const quote = (this.data.quotes || []).find((item) => item._id === quoteId);
+    if (!quote || this.data.reviewingQuoteId || this.data.publishingCustomerQuotes) return;
+
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '✅ 报送客户',
+        content: '确认审核通过该司机报价，并发布给客户查看吗？客户将看到司机报价、Farland 服务费 10% 和预计总价。',
+        confirmText: '报送',
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+
+    this.setData({ reviewingQuoteId: quoteId, publishingCustomerQuotes: true });
+    try {
+      const reviewRes = await wx.cloud.callFunction({
+        name: 'reviewDriverQuote',
+        data: {
+          request_id: this.data.requestId,
+          driver_quote_id: quoteId,
+          action: 'approve',
+          review_note: '审核通过并报送客户',
+        },
+      });
+      if (!reviewRes.result || !reviewRes.result.success) {
+        wx.showToast({ title: (reviewRes.result && reviewRes.result.message) || '审核失败', icon: 'none' });
+        this.setData({ reviewingQuoteId: '', publishingCustomerQuotes: false });
+        return;
+      }
+
+      const draftRes = await wx.cloud.callFunction({
+        name: 'createCustomerQuoteDraft',
+        data: this.buildCustomerQuotePayload(quote),
+      });
+      if (!draftRes.result || !draftRes.result.success) {
+        wx.showToast({ title: (draftRes.result && draftRes.result.message) || '客户报价生成失败', icon: 'none' });
+        this.setData({ reviewingQuoteId: '', publishingCustomerQuotes: false });
+        return;
+      }
+
+      const publishRes = await wx.cloud.callFunction({
+        name: 'publishCustomerQuotesBatch',
+        data: { request_id: this.data.requestId },
+      });
+      if (!publishRes.result || !publishRes.result.success) {
+        wx.showToast({ title: (publishRes.result && publishRes.result.message) || '发布失败', icon: 'none' });
+        this.setData({ reviewingQuoteId: '', publishingCustomerQuotes: false });
+        return;
+      }
+
+      wx.showToast({ title: '已报送客户', icon: 'success' });
+      this.setData({ reviewingQuoteId: '', publishingCustomerQuotes: false });
+      this.loadDetail();
+    } catch (error) {
+      console.error('approveAndPublishQuote failed', error);
+      wx.showToast({ title: '报送失败', icon: 'none' });
+      this.setData({ reviewingQuoteId: '', publishingCustomerQuotes: false });
+    }
+  },
+
+  async rejectDriverQuote(e) {
+    const quoteId = e.currentTarget.dataset.id;
+    if (!quoteId || this.data.reviewingQuoteId) return;
+    const quote = (this.data.quotes || []).find((item) => item._id === quoteId);
+    const isCustomerSelected = Boolean(quote && quote.customer_selected);
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: isCustomerSelected ? '❌ 司机拒绝' : '❌ 拒绝报价',
+        content: isCustomerSelected
+          ? '确认该司机无法接单吗？该客户报价会从客户侧移除，客户刷新后可重新选择其他司机。'
+          : '确认将该报价标记为运营未采纳吗？该操作不会通知司机。',
+        confirmText: '拒绝',
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+
+    this.setData({ reviewingQuoteId: quoteId });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'reviewDriverQuote',
+        data: {
+          request_id: this.data.requestId,
+          driver_quote_id: quoteId,
+          action: 'reject',
+          rejection_reason: isCustomerSelected ? '司机确认无法接单' : '运营未采纳该报价',
+        },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '拒绝失败', icon: 'none' });
+        this.setData({ reviewingQuoteId: '' });
+        return;
+      }
+      wx.showToast({ title: '已拒绝', icon: 'success' });
+      this.setData({ reviewingQuoteId: '' });
+      this.loadDetail();
+    } catch (error) {
+      console.error('rejectDriverQuote failed', error);
+      wx.showToast({ title: '拒绝失败', icon: 'none' });
+      this.setData({ reviewingQuoteId: '' });
+    }
+  },
+
+  declineDriverAfterCustomerSelected(e) {
+    return this.rejectDriverQuote(e);
+  },
+
+  buildDriverShare() {
     const { request, token } = this.data;
     if (['cancelled', 'completed'].includes(request.status)) {
       return {
@@ -267,14 +507,36 @@ Page({
     };
   },
 
+  buildCustomerShare() {
+    const { request, customerInvitePath } = this.data;
+    if (!customerInvitePath) {
+      wx.showToast({ title: '客户邀请还未准备好，请稍后再试', icon: 'none' });
+      return {
+        title: 'Farland 用车方案',
+        path: 'pages/hotel/request/request',
+      };
+    }
+    return {
+      title: `Farland 我的行程${request.service_date ? `｜${request.service_date}` : ''}`,
+      path: customerInvitePath.replace(/^\//, ''),
+    };
+  },
+
+  onShareAppMessage() {
+    if (this.data.shareMode === 'customer') {
+      return this.buildCustomerShare();
+    }
+    return this.buildDriverShare();
+  },
+
   async selectQuote(e) {
     const quoteId = e.currentTarget.dataset.id;
     if (!quoteId || this.data.selectingQuoteId) return;
     const confirmed = await new Promise((resolve) => {
       wx.showModal({
-        title: '确认选择司机',
+        title: '✅ 确认司机',
         content: '确认选择该司机吗？选择后其他报价将标记为未选中。',
-        confirmText: '确认选择',
+        confirmText: '确认',
         success: (res) => resolve(res.confirm),
         fail: () => resolve(false),
       });

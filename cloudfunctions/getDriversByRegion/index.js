@@ -7,7 +7,7 @@ async function getOperator() {
   const { OPENID } = cloud.getWXContext();
   const userRes = await db.collection('users').where({ openid: OPENID }).limit(1).get();
   const user = userRes.data[0];
-  return user && user.status === 'active' && user.role === 'operator' ? user : null;
+  return user && user.status === 'active' && ['operator', 'super_admin'].includes(user.role) ? user : null;
 }
 
 async function getDriverQuoteStats(driverId) {

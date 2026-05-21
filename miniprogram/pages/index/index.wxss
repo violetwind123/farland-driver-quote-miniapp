@@ -22,21 +22,6 @@
   filter: drop-shadow(0 16rpx 28rpx rgba(73, 82, 126, 0.20));
 }
 
-.splash-title {
-  margin-top: 18rpx;
-  color: #182235;
-  font-size: 36rpx;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.splash-desc {
-  margin-top: 14rpx;
-  color: #6E7788;
-  font-size: 24rpx;
-  line-height: 1.5;
-}
-
 .loading-line {
   width: 180rpx;
   height: 6rpx;

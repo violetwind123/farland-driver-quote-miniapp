@@ -5,9 +5,18 @@
 .section-title { font-size: 30rpx; font-weight: 600; margin-bottom: 16rpx; }
 .content { color: #253554; line-height: 1.7; white-space: pre-wrap; }
 .submit-btn { background: #6672A8; color: #fff; border-radius: 44rpx; }
-.share-btn { margin-top: 18rpx; background: #6672A8; color: #fff; border-radius: 44rpx; }
+.share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 16rpx; }
+.share-btn,
+.customer-link-btn { margin: 0; color: #fff; border-radius: 44rpx; font-size: 27rpx; }
+.driver-share-btn { background: #4B5565; }
+.driver-share-btn.disabled { background: #C9CED8; color: #fff; }
+.customer-link-btn { background: #6672A8; }
+.share-status { margin-top: 12rpx; color: #8A91A1; font-size: 22rpx; line-height: 1.4; text-align: center; }
 .cancelled-panel { background: #f7f9ff; }
 .cancel-btn { margin-top: 16rpx; background: #6672A8; color: #fff; border-radius: 44rpx; }
+.bottom-danger-panel { margin: 8rpx 0 22rpx; }
+.cancel-order-btn { margin: 0; height: 88rpx; line-height: 88rpx; border-radius: 999rpx; background: #D94A4A; color: #fff; font-size: 30rpx; font-weight: 600; box-shadow: 0 8rpx 18rpx rgba(217, 74, 74, 0.14); }
+.cancel-order-btn::after { border: none; }
 .secondary-btn { margin-top: 16rpx; background: #f2f4f7; color: #6672A8; border-radius: 44rpx; }
 .input-row { margin-bottom: 18rpx; }
 .input-row text { display: block; color: #6E7788; font-size: 24rpx; margin-bottom: 10rpx; }
@@ -19,8 +28,30 @@ textarea { min-height: 130rpx; }
 .note { color: #253554; margin-top: 8rpx; line-height: 1.5; }
 .muted, .empty { color: #6E7788; font-size: 24rpx; margin-top: 6rpx; }
 .error-text { color: #6672A8; font-size: 24rpx; margin-top: 8rpx; }
-.select-btn { margin: 14rpx 0 0; background: #6672A8; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
-.summary-btn { margin: 0 0 18rpx; background: #6672A8; color: #fff; border-radius: 36rpx; font-size: 26rpx; }
+.select-btn { margin: 14rpx 0 0; background: #17995B; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
+.select-btn.inline { margin: 0; }
+.quote-action-row { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 10rpx; margin-top: 14rpx; align-items: center; }
+.quote-action-row.approved-actions { grid-template-columns: 1fr 1fr; }
+.customer-waiting-row { margin-top: 14rpx; }
+.quote-action-row button { min-height: 72rpx; line-height: 1.2; padding: 10rpx 8rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.quote-action-row button::after { border: none; }
+.reject-btn { margin: 0; background: rgba(217, 74, 74, 0.10); color: #B64747; border-radius: 36rpx; font-size: 24rpx; }
+.driver-decline-btn { margin: 0; background: #D94A4A; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
+.publish-btn { margin: 0; background: #6672A8; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
+.action-hint { margin-top: 2rpx; color: #8A91A1; font-size: 18rpx; line-height: 1.2; font-weight: 400; }
+.action-hint.light { color: rgba(255, 255, 255, 0.74); }
+.action-hint.danger { color: rgba(255, 255, 255, 0.78); }
+.action-placeholder { min-height: 64rpx; border-radius: 36rpx; display: flex; align-items: center; justify-content: center; background: rgba(23, 153, 91, 0.10); color: #17995B; font-size: 24rpx; font-weight: 500; }
+.review-row { margin-top: 12rpx; }
+.review-chip { display: inline-flex; align-items: center; min-height: 36rpx; padding: 0 14rpx; border-radius: 999rpx; font-size: 22rpx; }
+.review-chip.pending { background: rgba(102, 114, 168, 0.08); color: #6672A8; }
+.review-chip.approved { background: rgba(23, 153, 91, 0.10); color: #17995B; }
+.review-chip.rejected { background: rgba(119, 126, 144, 0.12); color: #687084; }
+.review-chip.customer-selected { margin-left: 8rpx; background: rgba(102, 114, 168, 0.12); color: #6672A8; }
+.quote-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; margin-bottom: 18rpx; }
+.summary-btn { margin: 0; background: #6672A8; color: #fff; border-radius: 36rpx; font-size: 26rpx; }
+.refresh-btn { margin: 0; background: #F2F4F7; color: #6672A8; border-radius: 36rpx; font-size: 26rpx; }
+.refresh-btn::after { border: none; }
 .selected-label { display: inline-block; margin-top: 12rpx; padding: 8rpx 18rpx; border-radius: 24rpx; background: #f2f3fa; color: #6672A8; font-size: 24rpx; }
 .command-card { background: #fff; border-radius: 30rpx; padding: 28rpx; margin-bottom: 20rpx; box-shadow: 0 18rpx 42rpx rgba(31, 36, 51, 0.08); }
 .command-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; }
