@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "external_trip_id": "ext_trip_20260603_boston_charter",
+  "trip_type": "charter",
+  "title": "Boston Campus Visit Day",
+  "status": "active",
+  "city": "Boston",
+  "country": "US",
+  "timezone": "America/New_York",
+  "start_at": "2026-06-03T09:00:00-04:00",
+  "end_at": "2026-06-03T18:00:00-04:00",
+  "summary": "Harvard / MIT / Boston College 访校包车服务",
+  "customer": {
+    "display_name": "李同学家庭"
+  },
+  "source": {
+    "source_type": "import_json",
+    "source_id": "import_20260522_002",
+    "request_id": ""
+  },
+  "charter": {
+    "title": "访校包车服务",
+    "vehicle_class": "Large SUV",
+    "service_area": "Boston / Cambridge 校园路线",
+    "backup_note": "优先安排同一司机；如因工时或档期需要调整，Farland 将协调同等级替补。",
+    "segments": [
+      {
+        "time": "09:00",
+        "title": "酒店出发",
+        "route": "Boston Marriott Cambridge -> Harvard University"
+      },
+      {
+        "time": "13:00",
+        "title": "校际转场",
+        "route": "Harvard / MIT 周边 -> Boston College"
+      },
+      {
+        "time": "17:30",
+        "title": "返回酒店",
+        "route": "Boston College -> Boston Marriott Cambridge"
+      }
+    ]
+  },
+  "hotels": [],
+  "itinerary_days": [],
+  "documents": [],
+  "advisor": {
+    "name": "Farland Advisor",
+    "phone": "+1-800-000-0000"
+  }
+}

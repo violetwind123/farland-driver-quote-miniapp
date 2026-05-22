@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "external_trip_id": "ext_trip_20260603_boston_transfer",
+  "trip_type": "transfer",
+  "title": "Boston College 返程接送",
+  "status": "active",
+  "city": "Boston",
+  "country": "US",
+  "timezone": "America/New_York",
+  "start_at": "2026-06-03T17:30:00-04:00",
+  "end_at": "2026-06-03T18:30:00-04:00",
+  "summary": "Boston College -> Boston Marriott Cambridge",
+  "customer": {
+    "display_name": "王女士",
+    "phone": "+1-617-555-0101"
+  },
+  "source": {
+    "source_type": "import_json",
+    "source_id": "import_20260522_001",
+    "request_id": ""
+  },
+  "transfer": {
+    "pickup": "Boston College",
+    "dropoff": "Boston Marriott Cambridge",
+    "pickup_time_text": "2026-06-03 17:30",
+    "passenger_count": 3,
+    "luggage_count": 3,
+    "vehicle_preference": "商务 SUV",
+    "customer_visible_note": "Farland 正在为您确认用车方案。"
+  },
+  "hotels": [],
+  "itinerary_days": [],
+  "documents": [],
+  "advisor": {
+    "name": "Farland Advisor",
+    "phone": "+1-800-000-0000"
+  }
+}

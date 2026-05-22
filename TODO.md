@@ -4,6 +4,42 @@
 
 Settle admin import tooling around safe auth before building Web admin screens.
 
+## P2 Phases
+
+### Phase P2-A: Docs and schema
+
+- [x] Add customer trip schema
+- [x] Add customer trip import batch schema
+- [x] Add transfer sample JSON
+- [x] Add charter sample JSON
+- [x] Add mixed sample JSON
+- [x] Add P2 customer system product doc
+
+### Phase P2-B: claimCustomerInvite + customer_trip_access
+
+- [x] Add claimCustomerInvite
+- [ ] Move invite binding out of selectCustomerQuote
+- [ ] Standardize customer_trip_access naming around `bind_mode`
+- [ ] Make getCustomerTransportQuotes read only after authorized access
+
+### Phase P2-C: getCustomerHome real aggregation stabilization
+
+- [ ] Stabilize customer_trips aggregation
+- [ ] Hide trip_only history after visible_until
+- [ ] Render charter only if present
+
+### Phase P2-D: Operator customer directory
+
+- [ ] Add adminListCustomers
+- [ ] Add adminUpdateCustomerList
+- [ ] Add operator customer directory page
+
+### Phase P2-E: JSON import
+
+- [x] Add importCustomerTripJSON dry_run
+- [x] Add import apply
+- [x] Add audit logs
+
 ## Recent Update
 
 ### 2026-05-21

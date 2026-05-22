@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://farland.example/schema/customer-trip-import-batch.schema.json",
+  "title": "Farland Customer Trip Import Batch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "batch_id", "dry_run", "trips"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "enum": ["manual_json", "csv_upload", "ai_generated_json"]
+        },
+        "source_name": {
+          "type": "string"
+        }
+      }
+    },
+    "default_access": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bind_mode": {
+          "type": "string",
+          "enum": ["trip_only", "farland_profile"]
+        },
+        "visible_until": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "trips": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "./customer-trip.schema.json"
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ For stable product context, read:
 - `docs/product/p1-1-data-boundary-customer-quotes.md`
 - `docs/product/farland-student-transport-itinerary-spec.md`
 - `docs/product/p2-customer-system-and-trip-json.md`
+- `docs/product/p2-customer-system-trip-json.md`
 - `docs/product/admin-web-auth-plan.md`
 
 ## Current ICT Demo Priority
@@ -132,6 +133,7 @@ Avoid:
 
 ## Customer System Guardrails
 
+- Before implementing P2 customer trip features, read `docs/product/p2-customer-system-trip-json.md`.
 - Customer binding is explicit, not fully silent:
   `invite_code` -> choose `绑定 Farland 服务档案` or `仅查看本次行程` -> enter display name -> Cloud Function binds OPENID.
 - `display_name` is required for customer invite claim.
@@ -140,6 +142,12 @@ Avoid:
 - Future itinerary import must use validated standard JSON and must support `dry_run` before writing.
 - Operator customer management can look like a cloud table, but CloudBase collections remain the source of truth.
 - Do not build production `admin-web` screens until the Web auth strategy in `docs/product/admin-web-auth-plan.md` is chosen.
+- Do not create duplicate customer pages.
+- Do not let customer pages read `driver_quotes`.
+- Do not use external spreadsheets as the source of truth.
+- AI-generated JSON must be validated before import.
+- Invite binding should be centralized in future `claimCustomerInvite`.
+- `selectCustomerQuote` must not perform identity binding in the final architecture.
 - Do not implement subpackage refactors, image cloud compression triggers, payment, live map, notifications, full CRM, or external spreadsheet sync unless explicitly requested.
 
 ## Current Architecture Guardrails

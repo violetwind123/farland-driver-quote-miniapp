@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0.0",
+  "external_trip_id": "ext_trip_20260603_boston_mixed",
+  "trip_type": "mixed",
+  "title": "Boston Family School Visit",
+  "status": "active",
+  "city": "Boston",
+  "country": "US",
+  "timezone": "America/New_York",
+  "start_at": "2026-06-03T08:15:00-04:00",
+  "end_at": "2026-06-06T12:00:00-04:00",
+  "summary": "机场接送、酒店入住与 Boston 校园参访安排。",
+  "customer": {
+    "display_name": "王女士",
+    "phone": "+1-617-555-0101"
+  },
+  "source": {
+    "source_type": "import_json",
+    "source_id": "import_20260522_003",
+    "request_id": ""
+  },
+  "transfer": {
+    "pickup": "Logan Airport Terminal E",
+    "dropoff": "Boston Marriott Cambridge",
+    "pickup_time_text": "2026-06-03 08:15",
+    "passenger_count": 3,
+    "luggage_count": 3,
+    "vehicle_preference": "商务 SUV"
+  },
+  "charter": {
+    "title": "Boston 访校包车服务",
+    "vehicle_class": "Large SUV",
+    "service_area": "Boston / Cambridge 校园路线",
+    "backup_note": "Farland 将协调同等级替补车辆以保证行程连续性。",
+    "segments": [
+      {
+        "time": "09:00",
+        "title": "酒店出发",
+        "route": "Boston Marriott Cambridge -> Harvard University"
+      },
+      {
+        "time": "13:00",
+        "title": "校际转场",
+        "route": "MIT 周边 -> Boston College"
+      }
+    ]
+  },
+  "hotels": [
+    {
+      "city": "Boston",
+      "hotel_name": "Boston Marriott Cambridge",
+      "room_type": "双床房",
+      "check_in_date": "2026-06-03",
+      "check_out_date": "2026-06-06",
+      "status": "confirmed",
+      "customer_visible_note": "酒店位置便于 Cambridge 与 Boston 校园访问。"
+    }
+  ],
+  "itinerary_days": [
+    {
+      "date": "2026-06-03",
+      "title": "抵达与入住",
+      "summary": "Farland 顾问已协调机场接送和酒店入住。",
+      "items": [
+        {
+          "time": "08:15",
+          "type": "arrival",
+          "title": "抵达 Logan Airport",
+          "description": "请按顾问提示前往约定会合区域。",
+          "linked_entity_type": "transfer",
+          "linked_entity_id": "transfer_airport_pickup",
+          "client_status": "接送已预约"
+        },
+        {
+          "time": "10:00",
+          "type": "hotel",
+          "title": "酒店入住协调",
+          "description": "如需提前寄存行李，请联系 Farland 顾问。",
+          "linked_entity_type": "hotel",
+          "linked_entity_id": "hotel_boston_marriott",
+          "client_status": "已确认"
+        }
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "title": "酒店确认单",
+      "document_type": "hotel_confirmation",
+      "url": "",
+      "visible_to_customer": true
+    },
+    {
+      "title": "内部供应商备注",
+      "document_type": "other",
+      "url": "",
+      "visible_to_customer": false
+    }
+  ],
+  "advisor": {
+    "name": "Farland Advisor",
+    "phone": "+1-800-000-0000",
+    "wechat_id": "farland_advisor"
+  }
+}

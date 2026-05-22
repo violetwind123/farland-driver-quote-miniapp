@@ -108,6 +108,17 @@ Current implementation direction:
 
 See `docs/product/p2-customer-system-and-trip-json.md`.
 
+P2-A documentation and schema standard:
+
+- `docs/product/p2-customer-system-trip-json.md`
+- `docs/schema/customer-trip.schema.json`
+- `docs/schema/customer-trip-import-batch.schema.json`
+- `docs/schema/examples/customer-trip.transfer.sample.json`
+- `docs/schema/examples/customer-trip.charter.sample.json`
+- `docs/schema/examples/customer-trip.mixed.sample.json`
+
+Use this standard before implementing additional customer trip features.
+
 Deferred until explicitly requested:
 
 - subpackage refactor
