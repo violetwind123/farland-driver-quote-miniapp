@@ -5,8 +5,14 @@ const { writeAuditLog } = require('./lib/audit');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
-function normalizeBindType(value) {
-  return value === 'trip_only' ? 'trip_only' : 'profile';
+function normalizeBindMode(value) {
+  if (value === 'farland_profile' || value === 'profile') return 'farland_profile';
+  if (value === 'trip_only') return 'trip_only';
+  return 'trip_only';
+}
+
+function legacyAccessType(bindMode) {
+  return bindMode === 'farland_profile' ? 'profile' : 'trip_only';
 }
 
 function isExpired(invite, now) {
@@ -21,25 +27,44 @@ function toIso(value) {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 }
 
-function getVisibleUntil({ bindType, invite, now }) {
-  if (bindType !== 'trip_only') return '';
-  const inviteExpiry = toIso(invite.expires_at);
-  if (inviteExpiry) return inviteExpiry;
+function getServiceDateVisibleUntil(request, now) {
+  const raw = request.service_date || request.pickup_date || request.pickup_time || request.pickup_time_text || '';
+  const serviceDate = raw ? new Date(String(raw).replace(' ', 'T')) : null;
+  if (serviceDate && !Number.isNaN(serviceDate.getTime())) {
+    return new Date(serviceDate.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  }
   return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 }
 
-async function upsertTripAccess({ caller, userId, requestId, request, invite, bindType, nowIso, now }) {
+function getTripEndVisibleUntil(request) {
+  const raw = request.trip_end_at || request.end_at || request.end_time || request.service_end_at || '';
+  return toIso(raw);
+}
+
+function getVisibleUntil({ bindMode, request, now }) {
+  if (bindMode !== 'trip_only') return '';
+  const tripEnd = getTripEndVisibleUntil(request);
+  if (tripEnd) return tripEnd;
+  return getServiceDateVisibleUntil(request, now);
+}
+
+async function upsertTripAccess({ caller, userId, requestId, request, invite, bindMode, nowIso, now }) {
   const tripId = request.customer_trip_id || request.trip_id || '';
-  const visibleUntil = getVisibleUntil({ bindType, invite, now });
+  const visibleUntil = getVisibleUntil({ bindMode, request, now });
   const accessData = {
+    openid: caller.openid,
+    user_id: userId,
     customer_openid: caller.openid,
     customer_user_id: userId,
     trip_id: tripId,
     request_id: requestId,
-    access_type: bindType,
+    bind_mode: bindMode,
+    access_type: legacyAccessType(bindMode),
     visible_from: nowIso,
     visible_until: visibleUntil,
     status: 'active',
+    invite_id: invite._id,
+    invite_code_snapshot: invite.invite_code || '',
     source_invite_id: invite._id,
     updated_at: nowIso,
   };
@@ -70,7 +95,9 @@ exports.main = async (event = {}) => {
   const {
     request_id,
     invite_code,
-    bind_type = 'profile',
+    bind_mode,
+    bind_type,
+    access_type,
     display_name = '',
   } = event;
 
@@ -109,12 +136,21 @@ exports.main = async (event = {}) => {
     return { success: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
   }
 
-  const safeBindType = normalizeBindType(bind_type);
-  const safeName = String(display_name || invite.customer_name || request.customer_name || 'Farland 客户').trim();
+  const isReopenBySameOpenid = invite.status === 'claimed' && invite.claimed_openid === caller.openid;
+  const requestedBindMode = bind_mode || bind_type || access_type;
+  const existingBindMode = isReopenBySameOpenid
+    ? invite.claimed_bind_mode || invite.bind_mode || invite.bind_type || invite.access_type
+    : '';
+  const safeBindMode = normalizeBindMode(requestedBindMode || existingBindMode);
+  const rawDisplayName = String(display_name || '').trim();
+  if (!isReopenBySameOpenid && !rawDisplayName) {
+    return { success: false, code: 422, error_code: 'DISPLAY_NAME_REQUIRED', message: '请填写称呼' };
+  }
+  const safeName = String(rawDisplayName || invite.display_name || invite.customer_name || request.customer_name || 'Farland 客户').trim();
   const userRes = await db.collection('users').where({ openid: caller.openid }).limit(1).get();
   const existingUser = userRes.data[0];
   let userId = existingUser ? existingUser._id : '';
-  const shouldCreateCustomerProfile = safeBindType === 'profile';
+  const shouldCreateCustomerProfile = safeBindMode === 'farland_profile';
 
   if (shouldCreateCustomerProfile) {
     if (!existingUser) {
@@ -151,19 +187,33 @@ exports.main = async (event = {}) => {
     requestId: request_id,
     request,
     invite,
-    bindType: safeBindType,
+    bindMode: safeBindMode,
     nowIso,
     now,
-  }).catch(() => '');
+  }).catch((error) => {
+    return { error };
+  });
+  if (!accessId || accessId.error) {
+    return {
+      success: false,
+      code: 500,
+      error_code: 'CUSTOMER_TRIP_ACCESS_WRITE_FAILED',
+      message: '客户行程访问权限写入失败',
+      errMsg: accessId && accessId.error && accessId.error.message ? accessId.error.message : '',
+    };
+  }
 
   await Promise.all([
     db.collection('customer_invites').doc(invite._id).update({
       data: {
         status: 'claimed',
-        bind_type: safeBindType,
+        bind_mode: safeBindMode,
+        bind_type: legacyAccessType(safeBindMode),
         display_name: safeName,
         claimed_openid: caller.openid,
         claimed_user_id: userId,
+        claimed_bind_mode: safeBindMode,
+        claimed_access_id: accessId,
         claimed_at: invite.claimed_at || nowIso,
         updated_at: nowIso,
       },
@@ -173,7 +223,8 @@ exports.main = async (event = {}) => {
         customer_openid: caller.openid,
         customer_name: safeName,
         customer_phone: request.customer_phone || invite.customer_phone || '',
-        customer_bind_type: safeBindType,
+        customer_bind_mode: safeBindMode,
+        customer_bind_type: legacyAccessType(safeBindMode),
         updated_at: nowIso,
       },
     }).catch(() => null),
@@ -186,10 +237,11 @@ exports.main = async (event = {}) => {
     action: 'customer_invite_claimed',
     target_type: 'customer_invite',
     target_id: invite._id,
-      related_request_id: request_id,
+    related_request_id: request_id,
     detail: {
       invite_code,
-      bind_type: safeBindType,
+      bind_mode: safeBindMode,
+      bind_type: legacyAccessType(safeBindMode),
       customer_trip_access_id: accessId,
     },
     created_at: nowIso,
@@ -199,7 +251,8 @@ exports.main = async (event = {}) => {
     success: true,
     code: 0,
     request_id,
-    bind_type: safeBindType,
+    bind_mode: safeBindMode,
+    bind_type: legacyAccessType(safeBindMode),
     display_name: safeName,
     customer_trip_access_id: accessId,
   };
