@@ -9,6 +9,7 @@
 .summary-value { font-size: 46rpx; font-weight: 700; color: #6672A8; }
 .summary-label { margin-top: 4rpx; color: #6E7788; font-size: 24rpx; }
 .utility-card { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 26rpx 24rpx; margin-bottom: 16rpx; }
+.customer-invite-entry { border: 1rpx solid rgba(102, 114, 168, 0.22); background: #F7F9FF; }
 .utility-title { font-size: 30rpx; font-weight: 700; color: #1f3266; }
 .utility-desc { margin-top: 8rpx; color: #6E7788; font-size: 24rpx; }
 .chevron { color: #9aa6c6; font-size: 48rpx; line-height: 1; }

@@ -128,6 +128,16 @@
   margin-top: 28rpx;
 }
 
+.claim-note {
+  margin-top: 18rpx;
+  padding: 22rpx;
+  border-radius: 22rpx;
+  background: rgba(102, 114, 168, 0.08);
+  color: #4B5565;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
 .claim-option {
   padding: 24rpx;
   border-radius: 24rpx;

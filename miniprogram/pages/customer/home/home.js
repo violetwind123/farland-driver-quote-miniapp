@@ -19,7 +19,7 @@ Page({
     inviteMode: false,
     operatorPreview: false,
     needsInviteClaim: false,
-    claimBindType: 'profile',
+    claimBindType: 'farland_profile',
     claimDisplayName: '',
     claimSubmitting: false,
   },
@@ -186,7 +186,7 @@ Page({
   },
 
   selectClaimBindType(e) {
-    const bindType = e.currentTarget.dataset.bindType || 'profile';
+    const bindType = e.currentTarget.dataset.bindType || 'farland_profile';
     this.setData({ claimBindType: bindType });
   },
 
@@ -195,7 +195,7 @@ Page({
   },
 
   async submitInviteClaim() {
-    const { inviteCode, inviteRequestId, claimBindType, claimDisplayName } = this.data;
+    const { inviteCode, inviteRequestId, claimDisplayName } = this.data;
     const safeName = String(claimDisplayName || '').trim();
     if (!safeName) {
       wx.showToast({ title: '请填写称呼', icon: 'none' });
@@ -208,7 +208,7 @@ Page({
         data: {
           request_id: inviteRequestId,
           invite_code: inviteCode,
-          bind_type: claimBindType,
+          bind_mode: 'farland_profile',
           display_name: safeName,
         },
       });

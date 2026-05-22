@@ -41,6 +41,14 @@
       <view class="chevron">›</view>
     </view>
 
+    <view class="utility-card customer-invite-entry" bindtap="openCustomerInviteRequests">
+      <view>
+        <view class="utility-title">邀请客户查看</view>
+        <view class="utility-desc">选择用车需求，生成客户行程/报价查看链接</view>
+      </view>
+      <view class="chevron">›</view>
+    </view>
+
     <view class="utility-card" bindtap="openHotelRequest">
       <view>
         <view class="utility-title">酒店预订页</view>

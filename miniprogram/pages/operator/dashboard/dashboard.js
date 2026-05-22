@@ -59,6 +59,10 @@ Page({
     wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
   },
 
+  openCustomerInviteRequests() {
+    wx.navigateTo({ url: '/pages/operator/request-hall/request-hall?tab=all' });
+  },
+
   goCreate() {
     wx.navigateTo({ url: '/pages/operator/create-request/create-request' });
   },

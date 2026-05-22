@@ -11,6 +11,8 @@ Page({
     inviteError: '',
     shareMode: 'driver',
     customerInvitePath: '',
+    customerInviteCode: '',
+    customerInviteExpiresAt: '',
     creatingCustomerInvite: false,
     customerInviteError: '',
     selectingQuoteId: '',
@@ -167,7 +169,7 @@ Page({
         name: 'createCustomerInvite',
         data: {
           request_id: this.data.requestId,
-          customer_name: 'Farland Customer',
+          customer_name: this.data.request.customer_name || 'Farland Customer',
           customer_phone: '',
         },
       });
@@ -182,6 +184,8 @@ Page({
       this.setData({
         creatingCustomerInvite: false,
         customerInvitePath: invitePath,
+        customerInviteCode: result.invite_code || '',
+        customerInviteExpiresAt: result.expires_at || '',
         customerInviteError: '',
       });
       if (!silent) wx.showToast({ title: '客户邀请已准备', icon: 'success' });
@@ -196,6 +200,29 @@ Page({
       });
       return '';
     }
+  },
+
+  async onCreateCustomerInviteTap() {
+    const invitePath = await this.createCustomerInvite();
+    if (invitePath) {
+      this.setData({ shareMode: 'customer' });
+    }
+  },
+
+  copyCustomerInvitePath() {
+    if (!this.data.customerInvitePath) {
+      wx.showToast({ title: '客户邀请还未准备好', icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: this.data.customerInvitePath,
+      success: () => {
+        wx.showToast({ title: '已复制客户路径', icon: 'success' });
+      },
+      fail: () => {
+        wx.showToast({ title: '复制失败', icon: 'none' });
+      },
+    });
   },
 
   async prepareCustomerShare() {

@@ -8,7 +8,7 @@ const db = cloud.database();
 function normalizeBindMode(value) {
   if (value === 'farland_profile' || value === 'profile') return 'farland_profile';
   if (value === 'trip_only') return 'trip_only';
-  return 'trip_only';
+  return 'farland_profile';
 }
 
 function legacyAccessType(bindMode) {
@@ -49,7 +49,7 @@ function getVisibleUntil({ bindMode, request, now }) {
 }
 
 async function upsertTripAccess({ caller, userId, requestId, request, invite, bindMode, nowIso, now }) {
-  const tripId = request.customer_trip_id || request.trip_id || '';
+  const tripId = request.customer_trip_id || request.trip_id || requestId;
   const visibleUntil = getVisibleUntil({ bindMode, request, now });
   const accessData = {
     openid: caller.openid,
@@ -69,12 +69,19 @@ async function upsertTripAccess({ caller, userId, requestId, request, invite, bi
     updated_at: nowIso,
   };
 
-  const existingRes = await db.collection('customer_trip_access')
-    .where({ customer_openid: caller.openid, request_id: requestId, source_invite_id: invite._id })
-    .limit(1)
-    .get()
-    .catch(() => ({ data: [] }));
-  const existing = existingRes.data[0];
+  const [canonicalRes, legacyRes] = await Promise.all([
+    db.collection('customer_trip_access')
+      .where({ openid: caller.openid, request_id: requestId, invite_id: invite._id })
+      .limit(1)
+      .get()
+      .catch(() => ({ data: [] })),
+    db.collection('customer_trip_access')
+      .where({ customer_openid: caller.openid, request_id: requestId, source_invite_id: invite._id })
+      .limit(1)
+      .get()
+      .catch(() => ({ data: [] })),
+  ]);
+  const existing = (canonicalRes.data && canonicalRes.data[0]) || (legacyRes.data && legacyRes.data[0]);
   if (existing) {
     await db.collection('customer_trip_access').doc(existing._id).update({ data: accessData });
     return existing._id;
@@ -89,6 +96,45 @@ async function upsertTripAccess({ caller, userId, requestId, request, invite, bi
     },
   });
   return created._id;
+}
+
+async function ensureCustomerUser({ caller, existingUser, invite, request, bindMode, safeName, nowIso }) {
+  if (!existingUser) {
+    const created = await db.collection('users').add({
+      data: {
+        openid: caller.openid,
+        role: 'customer',
+        status: 'active',
+        name: safeName,
+        display_name: safeName,
+        phone: invite.customer_phone || request.customer_phone || '',
+        customer_invite_id: invite._id,
+        customer_binding_mode: bindMode,
+        customer_status: 'active',
+        created_at: nowIso,
+        updated_at: nowIso,
+      },
+    });
+    return created._id;
+  }
+
+  if (existingUser.role === 'guest' || existingUser.role === 'customer' || !existingUser.role) {
+    await db.collection('users').doc(existingUser._id).update({
+      data: {
+        role: 'customer',
+        status: 'active',
+        name: safeName || existingUser.name || '',
+        display_name: safeName || existingUser.display_name || existingUser.name || '',
+        phone: existingUser.phone || invite.customer_phone || request.customer_phone || '',
+        customer_invite_id: existingUser.customer_invite_id || invite._id,
+        customer_binding_mode: bindMode,
+        customer_status: 'active',
+        updated_at: nowIso,
+      },
+    }).catch(() => null);
+  }
+
+  return existingUser._id;
 }
 
 exports.main = async (event = {}) => {
@@ -149,37 +195,16 @@ exports.main = async (event = {}) => {
   const safeName = String(rawDisplayName || invite.display_name || invite.customer_name || request.customer_name || 'Farland 客户').trim();
   const userRes = await db.collection('users').where({ openid: caller.openid }).limit(1).get();
   const existingUser = userRes.data[0];
-  let userId = existingUser ? existingUser._id : '';
+  const userId = await ensureCustomerUser({
+    caller,
+    existingUser,
+    invite,
+    request,
+    bindMode: safeBindMode,
+    safeName,
+    nowIso,
+  });
   const shouldCreateCustomerProfile = safeBindMode === 'farland_profile';
-
-  if (shouldCreateCustomerProfile) {
-    if (!existingUser) {
-      const created = await db.collection('users').add({
-        data: {
-          openid: caller.openid,
-          role: 'customer',
-          status: 'active',
-          name: safeName,
-          phone: invite.customer_phone || request.customer_phone || '',
-          customer_invite_id: invite._id,
-          created_at: nowIso,
-          updated_at: nowIso,
-        },
-      });
-      userId = created._id;
-    } else if (existingUser.role === 'guest' || existingUser.role === 'customer' || !existingUser.role) {
-      await db.collection('users').doc(existingUser._id).update({
-        data: {
-          role: 'customer',
-          status: 'active',
-          name: safeName || existingUser.name || '',
-          phone: existingUser.phone || invite.customer_phone || request.customer_phone || '',
-          customer_invite_id: existingUser.customer_invite_id || invite._id,
-          updated_at: nowIso,
-        },
-      }).catch(() => null);
-    }
-  }
 
   const accessId = await upsertTripAccess({
     caller,
