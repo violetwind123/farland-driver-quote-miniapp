@@ -1,0 +1,162 @@
+.page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 160rpx;
+  box-sizing: border-box;
+  background: #F5F6FA;
+}
+
+.hero,
+.panel {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 26rpx 24rpx;
+  margin-bottom: 18rpx;
+  box-shadow: 0 8rpx 24rpx rgba(31, 36, 51, 0.04);
+}
+
+.kicker {
+  color: #7E889A;
+  font-size: 21rpx;
+  letter-spacing: 1rpx;
+}
+
+.title {
+  margin-top: 8rpx;
+  color: #17315F;
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.desc {
+  margin-top: 10rpx;
+  color: #6E7788;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.section-title {
+  color: #1F3266;
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+}
+
+.json-input {
+  width: 100%;
+  min-height: 420rpx;
+  box-sizing: border-box;
+  padding: 20rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+  border: 1rpx solid #DDE4F3;
+  color: #1D2433;
+  font-size: 24rpx;
+  line-height: 1.5;
+  font-family: Menlo, Monaco, Consolas, monospace;
+}
+
+.secondary-btn,
+.preview-btn,
+.apply-btn {
+  margin: 18rpx 0 0;
+  height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 38rpx;
+  font-size: 26rpx;
+}
+
+.secondary-btn {
+  background: #F2F4F7;
+  color: #6672A8;
+}
+
+.field-label {
+  margin-top: 18rpx;
+  margin-bottom: 8rpx;
+  color: #6E7788;
+  font-size: 24rpx;
+}
+
+.picker-value,
+.text-input {
+  min-height: 76rpx;
+  box-sizing: border-box;
+  padding: 18rpx 20rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+  border: 1rpx solid #DDE4F3;
+  color: #1D2433;
+  font-size: 26rpx;
+}
+
+.access-fields {
+  margin-top: 12rpx;
+}
+
+.error-panel {
+  background: #FFF7F7;
+}
+
+.error-row {
+  padding: 14rpx 0;
+  border-top: 1rpx solid rgba(217, 74, 74, 0.12);
+  color: #B64747;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.error-row:first-of-type {
+  border-top: none;
+}
+
+.result-line {
+  color: #253554;
+  font-size: 25rpx;
+  margin-bottom: 10rpx;
+}
+
+.operation-row {
+  margin-top: 14rpx;
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+}
+
+.operation-main {
+  color: #1D2433;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.operation-sub {
+  margin-top: 6rpx;
+  color: #6E7788;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.button-bar {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 32rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+}
+
+.preview-btn {
+  margin: 0;
+  background: #F2F4F7;
+  color: #6672A8;
+}
+
+.apply-btn {
+  margin: 0;
+  background: #6672A8;
+  color: #FFFFFF;
+}
+
+button::after {
+  border: none;
+}

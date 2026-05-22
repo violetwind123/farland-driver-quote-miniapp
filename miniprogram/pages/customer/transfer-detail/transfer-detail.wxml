@@ -40,7 +40,7 @@
         <view class="section-kicker">FARLAND STATUS</view>
         <view class="section-title">运营状态</view>
         <view class="body-text">{{request.ops_status_text}}</view>
-        <view wx:if="{{request.status !== 'cancelled' && request.status !== 'assigned'}}" class="status-helper">报价阶段不会显示司机手机号、车牌或内部报价池。</view>
+        <view wx:if="{{request.status !== 'cancelled' && request.status !== 'assigned'}}" class="status-helper">报价阶段仅展示 Farland 发布的用车方案。</view>
       </view>
 
       <view wx:if="{{request.status === 'assigned'}}" class="detail-card">
@@ -58,7 +58,7 @@
         <view wx:if="{{hasPublishedQuotes}}" class="body-text">Farland 已为您筛选以下优选用车方案。价格包含司机报价、Farland 服务费 10% 与预计总价。</view>
         <view wx:else class="body-text">Farland 正在为您确认用车方案。方案发布后会在这里显示。</view>
         <view wx:if="{{selectedQuoteId}}" class="pending-confirm-card">
-          <view>已选择：{{selectedQuoteTitle}}。Farland 将确认司机是否可接单，确认后这里会显示司机联系方式。</view>
+          <view>已选择方案，等待最终确认。Farland 将确认后续安排。</view>
           <button class="pending-refresh-btn" loading="{{refreshingDetail}}" bindtap="refreshStatus">刷新状态</button>
         </view>
         <view wx:if="{{customerNotice}}" class="driver-unavailable-card">
@@ -98,11 +98,7 @@
 
             <view class="quote-footer">
               <view class="quote-expiry">{{item.valid_until_text}}</view>
-              <button
-                class="quote-btn {{selectedQuoteId === item.quote_id ? 'pending' : ''}}"
-                data-quote-id="{{item.quote_id}}"
-                bindtap="chooseQuote"
-              >{{selectedQuoteId === item.quote_id ? '待确认' : '选择该司机'}}</button>
+              <view class="quote-readonly">{{selectedQuoteId === item.quote_id ? '已选择' : '顾问确认'}}</view>
             </view>
           </view>
         </view>

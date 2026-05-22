@@ -51,6 +51,14 @@ Page({
     wx.navigateTo({ url: '/pages/operator/driver-summary/driver-summary' });
   },
 
+  openHotelRequest() {
+    wx.switchTab({ url: '/pages/hotel/request/request' });
+  },
+
+  openCustomerImport() {
+    wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
+  },
+
   goCreate() {
     wx.navigateTo({ url: '/pages/operator/create-request/create-request' });
   },

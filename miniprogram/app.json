@@ -8,6 +8,7 @@
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
     "pages/operator/request-hall/request-hall",
+    "pages/operator/customer-import/customer-import",
     "pages/operator/create-request/create-request",
     "pages/operator/request-detail/request-detail",
     "pages/operator/driver-summary/driver-summary",

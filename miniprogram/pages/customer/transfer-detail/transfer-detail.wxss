@@ -271,6 +271,19 @@
   border: none;
 }
 
+.quote-readonly {
+  flex: 0 0 auto;
+  min-width: 142rpx;
+  height: 58rpx;
+  line-height: 58rpx;
+  border-radius: 999rpx;
+  text-align: center;
+  background: rgba(102, 114, 168, 0.10);
+  color: #6672A8;
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
 .pending-confirm-card {
   margin-top: 18rpx;
   padding: 18rpx 20rpx;

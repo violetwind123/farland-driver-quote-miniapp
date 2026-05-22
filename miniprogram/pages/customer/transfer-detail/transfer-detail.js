@@ -140,28 +140,8 @@ Page({
     const quote = (this.data.quotes || []).find((item) => item.quote_id === quoteId || item._id === quoteId);
     this.setData({
       selectedQuoteId: quoteId,
-      selectedQuoteTitle: quote ? quote.public_title : '该司机方案',
+      selectedQuoteTitle: quote ? quote.public_title : '该方案',
     });
-    try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'selectCustomerQuote',
-        data: {
-          request_id: this.data.requestId,
-          customer_quote_id: quoteId,
-          invite_code: this.data.inviteCode,
-        },
-      });
-      if (!result || !result.success) {
-        wx.showToast({ title: (result && result.message) || '选择失败', icon: 'none' });
-        this.loadTransferDetail(this.data.requestId, this.data.inviteCode, { silent: true });
-        return;
-      }
-      wx.showToast({ title: '待确认，Farland 将确认司机是否可接单', icon: 'none' });
-      this.loadTransferDetail(this.data.requestId, this.data.inviteCode, { silent: true });
-      this.startStatusPolling();
-    } catch (error) {
-      wx.showToast({ title: '选择失败', icon: 'none' });
-      this.loadTransferDetail(this.data.requestId, this.data.inviteCode, { silent: true });
-    }
+    wx.showToast({ title: '请联系 Farland 顾问确认方案', icon: 'none' });
   },
 });

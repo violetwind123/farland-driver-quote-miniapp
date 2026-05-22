@@ -6,6 +6,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
+const CUSTOMER_VISIBLE_STATUSES = ['published', 'viewed', 'selected', 'confirmed'];
+
 function toClientQuote(quote) {
   return {
     _id: quote._id,
@@ -32,171 +34,66 @@ function toClientQuote(quote) {
     capacity_text: `${quote.seats_snapshot || '-'} 人 / ${quote.luggage_capacity_snapshot || '-'} 件行李`,
     seats_snapshot: quote.seats_snapshot || 0,
     luggage_capacity_snapshot: quote.luggage_capacity_snapshot || 0,
-    driver_name_snapshot: quote.driver_name_snapshot || '',
-    driver_profile_teaser: quote.driver_name_snapshot ? `${quote.driver_name_snapshot}｜Farland 已审核` : 'Farland 已审核司机方案',
+    driver_profile_teaser: quote.driver_profile_teaser || '由 Farland 严选车队提供',
     quote_status: quote.quote_status,
     is_selected_by_customer: quote.quote_status === 'selected',
     selected_at: quote.selected_at || '',
   };
 }
 
-async function getAssignedTransport(requestId) {
-  const quoteRes = await db.collection('driver_quotes')
-    .where({ request_id: requestId, quote_status: 'selected' })
-    .limit(1)
-    .get()
-    .catch(() => ({ data: [] }));
-  const quote = quoteRes.data[0];
-  if (!quote) return null;
+function toAssignedTransport(order) {
+  if (!order) return null;
+  const driver = order.driver || {};
   return {
-    driver_name: quote.driver_name_snapshot || '',
-    driver_phone: quote.driver_phone_snapshot || '',
-    vehicle_type: quote.vehicle_type_snapshot || '',
-    vehicle_model: quote.vehicle_model_snapshot || '',
-    seats: quote.seats_snapshot || 0,
-    luggage_capacity: quote.luggage_capacity_snapshot || 0,
-    plate_number: quote.plate_number_snapshot || '',
-    currency: quote.currency || 'USD',
-    quote_price: quote.quote_price || '',
+    driver_name: order.driver_name || driver.display_name || driver.name || '',
+    driver_phone: order.driver_phone || driver.phone || '',
+    vehicle_type: order.vehicle_type || order.vehicle_class || driver.vehicle_type || '',
+    vehicle_model: order.vehicle_model || driver.vehicle_model || '',
+    seats: order.seats || driver.seats || 0,
+    luggage_capacity: order.luggage_capacity || driver.luggage_capacity || 0,
+    plate_number: order.plate_number || driver.plate_number || '',
+    meeting_point: order.meeting_point || driver.meeting_point || '',
   };
 }
 
-async function claimInviteIfNeeded({ requestId, inviteCode, caller, request }) {
-  if (!inviteCode) return { ok: true, request };
+async function getAssignedTransport(requestId) {
+  const orderRes = await db.collection('transport_orders')
+    .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
+    .orderBy('updated_at', 'desc')
+    .limit(1)
+    .get()
+    .catch(() => ({ data: [] }));
+  return toAssignedTransport(orderRes.data[0]);
+}
+
+async function verifyInviteAccess({ requestId, inviteCode, caller, operatorPreview }) {
+  if (!inviteCode) {
+    return { ok: false, code: 403, error_code: 'FORBIDDEN', message: '无权限查看该用车方案' };
+  }
 
   const inviteRes = await db.collection('customer_invites')
     .where({ invite_code: inviteCode, request_id: requestId })
     .limit(1)
-    .get();
+    .get()
+    .catch(() => ({ data: [] }));
   const invite = inviteRes.data[0];
   if (!invite) {
     return { ok: false, code: 403, error_code: 'INVALID_INVITE', message: '邀请链接无效' };
   }
-
-  if (isOperator(caller.user)) {
-    return { ok: true, request };
+  if (operatorPreview) {
+    return { ok: true, invite };
   }
-
-  const now = new Date();
-  const nowIso = now.toISOString();
-  if (invite.status === 'claimed') {
-    if (invite.claimed_openid !== caller.openid && !isOperator(caller.user)) {
-      return { ok: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
-    }
-    if (invite.claimed_openid === caller.openid && !request.customer_openid) {
-      await db.collection('ride_requests').doc(requestId).update({
-        data: {
-          customer_openid: caller.openid,
-          customer_name: request.customer_name || invite.customer_name || '',
-          customer_phone: request.customer_phone || invite.customer_phone || '',
-          updated_at: nowIso,
-        },
-      }).catch(() => null);
-      return {
-        ok: true,
-        request: {
-          ...request,
-          customer_openid: caller.openid,
-          customer_name: request.customer_name || invite.customer_name || '',
-          customer_phone: request.customer_phone || invite.customer_phone || '',
-        },
-      };
-    }
-    return { ok: true, request };
+  if (invite.status !== 'claimed') {
+    return { ok: false, code: 428, error_code: 'INVITE_NOT_CLAIMED', message: '请先确认查看方式' };
   }
-
-  if (invite.status !== 'unused') {
-    return { ok: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
+  if (invite.claimed_openid !== caller.openid) {
+    return { ok: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
   }
-
-  const expiresAt = invite.expires_at instanceof Date ? invite.expires_at : new Date(invite.expires_at);
-  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < now.getTime()) {
-    await db.collection('customer_invites').doc(invite._id).update({
-      data: {
-        status: 'expired',
-        updated_at: nowIso,
-      },
-    }).catch(() => null);
-    return { ok: false, code: 403, error_code: 'INVITE_EXPIRED', message: '邀请链接已过期' };
-  }
-
-  const userRes = await db.collection('users').where({ openid: caller.openid }).limit(1).get();
-  const existingUser = userRes.data[0];
-  let userId = existingUser ? existingUser._id : '';
-  if (!existingUser) {
-    const created = await db.collection('users').add({
-      data: {
-        openid: caller.openid,
-        role: 'customer',
-        status: 'active',
-        name: invite.customer_name || '',
-        phone: invite.customer_phone || '',
-        customer_invite_id: invite._id,
-        created_at: nowIso,
-        updated_at: nowIso,
-      },
-    });
-    userId = created._id;
-  } else if (existingUser.role === 'guest' || existingUser.role === 'customer' || !existingUser.role) {
-    await db.collection('users').doc(existingUser._id).update({
-      data: {
-        role: 'customer',
-        status: 'active',
-        name: existingUser.name || invite.customer_name || '',
-        phone: existingUser.phone || invite.customer_phone || '',
-        customer_invite_id: existingUser.customer_invite_id || invite._id,
-        updated_at: nowIso,
-      },
-    }).catch(() => null);
-  }
-
-  await Promise.all([
-    db.collection('customer_invites').doc(invite._id).update({
-      data: {
-        status: 'claimed',
-        claimed_openid: caller.openid,
-        claimed_user_id: userId,
-        claimed_at: nowIso,
-        updated_at: nowIso,
-      },
-    }),
-    db.collection('ride_requests').doc(requestId).update({
-      data: {
-        customer_openid: caller.openid,
-        customer_name: request.customer_name || invite.customer_name || '',
-        customer_phone: request.customer_phone || invite.customer_phone || '',
-        updated_at: nowIso,
-      },
-    }).catch(() => null),
-  ]);
-
-  await writeAuditLog(db, {
-    actor_openid: caller.openid,
-    actor_user_id: userId,
-    actor_role: 'customer',
-    action: 'customer_invite_claimed',
-    target_type: 'customer_invite',
-    target_id: invite._id,
-    related_request_id: requestId,
-    detail: {
-      invite_code: inviteCode,
-    },
-    created_at: nowIso,
-  }).catch(() => null);
-
-  return {
-    ok: true,
-    request: {
-      ...request,
-      customer_openid: caller.openid,
-      customer_name: request.customer_name || invite.customer_name || '',
-      customer_phone: request.customer_phone || invite.customer_phone || '',
-    },
-  };
+  return { ok: true, invite };
 }
 
 exports.main = async (event = {}) => {
-  const { request_id, invite_code } = event;
+  const { request_id, invite_code = '' } = event;
   if (!request_id) {
     return { success: false, code: 422, error_code: 'VALIDATION_ERROR', message: '缺少 request_id' };
   }
@@ -207,55 +104,53 @@ exports.main = async (event = {}) => {
   }
 
   const requestRes = await db.collection('ride_requests').doc(request_id).get().catch(() => null);
-  let request = requestRes && requestRes.data;
+  const request = requestRes && requestRes.data;
   if (!request) {
-    return { success: false, code: 404, error_code: 'NOT_FOUND', message: '报价单不存在' };
+    return { success: false, code: 404, error_code: 'NOT_FOUND', message: '用车需求不存在' };
   }
 
   const operatorPreview = isOperator(caller.user);
-  const inviteResult = await claimInviteIfNeeded({
-    requestId: request_id,
-    inviteCode: invite_code,
-    caller,
-    request,
-  });
-  if (!inviteResult.ok) {
-    return {
-      success: false,
-      code: inviteResult.code,
-      error_code: inviteResult.error_code,
-      message: inviteResult.message,
-    };
-  }
-  request = inviteResult.request;
-
-  if (request.customer_openid && request.customer_openid !== caller.openid && !operatorPreview) {
-    return { success: false, code: 403, error_code: 'FORBIDDEN', message: '无权限查看该用车方案' };
-  }
-  if (!request.customer_openid && !operatorPreview) {
-    return { success: false, code: 403, error_code: 'FORBIDDEN', message: '该用车方案暂未绑定客户访问权限' };
+  if (!operatorPreview && request.customer_openid !== caller.openid) {
+    const inviteAccess = await verifyInviteAccess({
+      requestId: request_id,
+      inviteCode: invite_code,
+      caller,
+      operatorPreview,
+    });
+    if (!inviteAccess.ok) {
+      return {
+        success: false,
+        code: inviteAccess.code,
+        error_code: inviteAccess.error_code,
+        message: inviteAccess.message,
+      };
+    }
   }
 
   const quoteRes = await db.collection('customer_transport_quotes')
-    .where({ request_id, quote_status: _.in(['published', 'selected']) })
+    .where({ request_id, quote_status: _.in(CUSTOMER_VISIBLE_STATUSES) })
     .orderBy('is_recommended', 'desc')
     .orderBy('updated_at', 'desc')
     .limit(3)
     .get();
-  const quotes = (quoteRes.data || []).map(toClientQuote);
-  const cancelledRes = await db.collection('customer_transport_quotes')
-    .where({ request_id, quote_status: 'cancelled' })
-    .orderBy('updated_at', 'desc')
-    .limit(3)
-    .get()
-    .catch(() => ({ data: [] }));
-  const customerNoticeQuote = (cancelledRes.data || []).find((quote) => {
-    return quote.customer_action_required === 'reselect_driver' || quote.customer_notice;
-  });
+  const rawQuotes = quoteRes.data || [];
+  const quotes = rawQuotes.map(toClientQuote);
+  const now = new Date().toISOString();
+
+  await Promise.all(rawQuotes
+    .filter((quote) => quote.quote_status === 'published' && !operatorPreview)
+    .map((quote) => db.collection('customer_transport_quotes').doc(quote._id).update({
+      data: {
+        quote_status: 'viewed',
+        viewed_by_openid: caller.openid,
+        viewed_at: quote.viewed_at || now,
+        updated_at: now,
+      },
+    }).catch(() => null)));
+
   const assignedTransport = request.status === 'assigned'
     ? await getAssignedTransport(request_id)
     : null;
-  const now = new Date().toISOString();
 
   await writeAuditLog(db, {
     actor_openid: caller.openid,
@@ -293,15 +188,13 @@ exports.main = async (event = {}) => {
       luggage: request.luggage || request.luggage_count || '',
       status_text: request.status === 'cancelled'
         ? '用车需求已取消'
-        : (request.status === 'assigned' ? '已确认司机' : (request.status_text || 'Farland 正在为您确认用车方案')),
+        : (request.status === 'assigned' ? '接送已预约' : (quotes.length ? '已收到优选用车方案' : 'Farland 正在为您确认用车方案')),
       ops_status_text: request.status === 'cancelled'
         ? (request.cancel_reason_driver || '该用车需求已取消，如需重新安排请联系 Farland 顾问。')
-        : (request.status === 'assigned' ? 'Farland 已确认司机接单，以下为司机与车辆信息。' : (request.ops_status_text || 'Farland 正在为您确认用车方案')),
+        : (request.status === 'assigned' ? 'Farland 已完成最终确认。' : (quotes.length ? 'Farland 已为您筛选以下优选用车方案。' : 'Farland 正在为您确认用车方案。')),
       created_by_text: request.customer_name ? `${request.customer_name} 的用车需求` : 'Farland 顾问已记录该用车需求',
     },
     assigned_transport: assignedTransport,
-    customer_notice: customerNoticeQuote ? customerNoticeQuote.customer_notice : '',
-    customer_action_required: customerNoticeQuote ? customerNoticeQuote.customer_action_required : '',
     quotes,
   };
 };

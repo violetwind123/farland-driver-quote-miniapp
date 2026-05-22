@@ -84,6 +84,7 @@
         >{{creatingCustomerInvite || !customerInvitePath ? '客户邀请准备中' : '转发客户'}}</button>
       </view>
       <view class="share-status">{{token ? '司机邀请已准备' : '司机邀请准备中'}} · {{customerInvitePath ? '客户邀请已准备' : '客户邀请准备中'}}</view>
+      <button class="customer-preview-btn" bindtap="previewCustomerHome">预览客户主页</button>
     </view>
 
     <view class="panel">

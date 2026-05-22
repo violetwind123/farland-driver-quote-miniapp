@@ -2,7 +2,118 @@
 
 ## Current Focus
 
-Stabilize the customer quote selection and operator confirmation flow after P1.2A implementation.
+Settle admin import tooling around safe auth before building Web admin screens.
+
+## Recent Update
+
+### 2026-05-21
+
+- Feature completed: added Mini Program operator customer trip import UI.
+- Files changed:
+  - `miniprogram/app.json`
+  - `miniprogram/pages/operator/dashboard/dashboard.js`
+  - `miniprogram/pages/operator/dashboard/dashboard.wxml`
+  - `miniprogram/pages/operator/customer-import/customer-import.js`
+  - `miniprogram/pages/operator/customer-import/customer-import.json`
+  - `miniprogram/pages/operator/customer-import/customer-import.wxml`
+  - `miniprogram/pages/operator/customer-import/customer-import.wxss`
+  - `TODO.md`
+- Notes:
+  - Operator dashboard now links to a JSON import page.
+  - Import page supports JSON paste, dry-run preview, optional access grant by `customer_user_id` or existing `request_id`, and confirmed write.
+  - The page uses `wx.cloud.callFunction` only and does not directly access the database.
+- Next recommended task:
+  - Deploy `importCustomerTripJSON`, then test sample JSON dry-run and confirmed write in WeChat DevTools.
+
+### 2026-05-21
+
+- Feature completed: documented Web admin auth decision path before continuing admin-web.
+- Files changed:
+  - `docs/product/admin-web-auth-plan.md`
+  - `AGENTS.md`
+  - `TODO.md`
+  - `admin-web/package.json`
+- Notes:
+  - Web admin cannot assume the Mini Program `wx.cloud.callFunction` OPENID chain.
+  - Production `admin-web` screens are paused until a Web auth strategy is chosen.
+  - Recommended next step is a Mini Program operator import UI first, because it reuses current operator OPENID and `requireRole`.
+  - `admin-web/package.json` is only a placeholder scaffold; dependencies were not installed.
+- Next recommended task:
+  - Build `pages/operator/customer-import/customer-import` for JSON paste, dry-run preview, and confirmed write.
+
+### 2026-05-21
+
+- Feature completed: added `importCustomerTripJSON` dry-run trip import cloud function.
+- Files changed:
+  - `cloudfunctions/importCustomerTripJSON`
+  - `docs/product/context.md`
+  - `docs/product/p2-customer-system-and-trip-json.md`
+  - `TODO.md`
+- Notes:
+  - Operator/super_admin can validate `customer-trip-v1` JSON with default `dry_run`.
+  - Real writes require `dry_run: false`.
+  - The function rejects sensitive customer-unsafe keys and does not accept frontend OPENID.
+  - On write it upserts `customer_trips`, optionally grants `customer_trip_access` via `customer_user_id` or existing `request_id`, and writes an audit log.
+- Next recommended task:
+  - Add a minimal operator import UI with JSON paste, dry-run preview, and confirm write.
+
+### 2026-05-21
+
+- Feature completed: added `customer_trip_access` write/read path for customer home visibility.
+- Files changed:
+  - `cloudfunctions/claimCustomerInvite`
+  - `cloudfunctions/getCustomerHome`
+  - `docs/product/context.md`
+  - `docs/product/p2-customer-system-and-trip-json.md`
+  - `TODO.md`
+- Notes:
+  - `claimCustomerInvite` now creates or updates `customer_trip_access` after explicit customer confirmation.
+  - `getCustomerHome` now reads active `customer_trip_access`, filters expired `visible_until`, reads `customer_trips`, and keeps migration fallback for older invite/request data.
+  - Trip-only access expires in Cloud Functions rather than only being hidden in UI.
+- Next recommended task:
+  - Add `importCustomerTripJSON` with `dry_run` so operations can create `customer_trips` from validated JSON.
+
+### 2026-05-21
+
+- Feature completed: documented P2 customer system and standard trip JSON foundations.
+- Files changed:
+  - `AGENTS.md`
+  - `docs/product/context.md`
+  - `docs/product/p2-customer-system-and-trip-json.md`
+  - `docs/schemas/customer-trip.schema.json`
+  - `docs/samples/customer-trip-transfer.sample.json`
+  - `docs/samples/customer-trip-charter.sample.json`
+  - `TODO.md`
+- Notes:
+  - Security rules are now explicit: no frontend database access, no frontend OPENID, Cloud Function role checks, and no customer access to internal quote data.
+  - Customer binding remains explicit with profile vs trip-only choice and required display name.
+  - P2 data direction is `customer_trip_access`, `customer_trips`, `visible_until`, standard JSON, and `dry_run` imports.
+  - Subpackages, image cloud compression, maps, payment, notifications, and external spreadsheet sync remain deferred.
+- Next recommended task:
+  - Implement `customer_trip_access` and update `getCustomerHome` to read real customer trips by access rules.
+
+### 2026-05-21
+
+- Feature completed: split customer invite claiming from read-only published quote access.
+- Files changed:
+  - `cloudfunctions/claimCustomerInvite`
+  - `cloudfunctions/getCustomerHome`
+  - `cloudfunctions/getCustomerTransportQuotes`
+  - `miniprogram/pages/customer/home/home.js`
+  - `miniprogram/pages/customer/home/home.wxml`
+  - `miniprogram/pages/customer/home/home.wxss`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.js`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.wxml`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.wxss`
+  - `TODO.md`
+- Notes:
+  - Customer invite claim is now explicit through `claimCustomerInvite` with profile vs trip-only binding.
+  - `getCustomerTransportQuotes` no longer claims invites and no longer reads `driver_quotes`.
+  - Customer Transfer Detail is read-only for P1.2A; it no longer calls `selectCustomerQuote`.
+  - `getCustomerHome` no longer returns a fake Farland Guest itinerary for unbound users.
+  - Operators can preview the customer homepage from request detail and return through an operator-only button.
+- Next recommended task:
+  - Deploy `claimCustomerInvite`, `getCustomerHome`, and `getCustomerTransportQuotes`, then preview the invite flow in WeChat DevTools.
 
 ## Immediate Stabilization
 
@@ -14,12 +125,16 @@ Stabilize the customer quote selection and operator confirmation flow after P1.2
 - [x] Add operator driver-unavailable rejection path after customer selection
 - [x] Show assigned driver details on customer page after operator confirmation
 - [x] Show customer reselect notice after selected driver becomes unavailable
+- [x] Split customer invite claim from quote read
+- [x] Gate customer selection UI for read-only P1.2A
+- [x] Add operator-only customer homepage preview return path
+- [x] Add operator dashboard shortcut to hotel booking page
 - [ ] Verify tabBar works in WeChat DevTools
 - [ ] Verify image asset paths exist
 - [ ] Test hotel request submission
 - [ ] Test quick-quote token entry
 - [ ] Test operator dashboard
-- [ ] Test full customer quote selection flow on real deployed cloud functions
+- [ ] Test customer invite claim and read-only quote viewing on deployed cloud functions
 - [ ] Confirm no frontend wx.cloud.database()
 
 ## Phase 0: Documentation
@@ -28,6 +143,9 @@ Stabilize the customer quote selection and operator confirmation flow after P1.2
 - [x] Add `docs/product/context.md`
 - [x] Add `docs/product/farland-student-transport-itinerary-spec.md`
 - [x] Add `docs/product/p1-1-data-boundary-customer-quotes.md`
+- [x] Add `docs/product/p2-customer-system-and-trip-json.md`
+- [x] Add `docs/schemas/customer-trip.schema.json`
+- [x] Add transfer and charter customer trip JSON samples
 - [x] Add initial `TODO.md`
 
 ## Phase 1: ICT Demo Data
@@ -96,6 +214,8 @@ These items are post-demo product direction. Do not implement them during ICT de
 
 - [ ] Deploy `getCustomerHome`
 - [ ] Deploy `createCustomerInvite`
+- [ ] Deploy `claimCustomerInvite`
+- [ ] Deploy `importCustomerTripJSON`
 - [ ] Deploy `reviewDriverQuote`
 - [ ] Deploy `createCustomerQuoteDraft`
 - [ ] Deploy `publishCustomerQuotesBatch`
@@ -106,7 +226,9 @@ These items are post-demo product direction. Do not implement them during ICT de
 - [ ] Test customer hotel request flow
 - [ ] Test My Trip mock data rendering
 - [ ] Test Transfer Detail quote cards
-- [ ] Test quote selection pending state
+- [ ] Test customer invite claim options
+- [ ] Test read-only published quote viewing
+- [ ] Test quote selection UI stays hidden in P1.2A
 - [ ] Test operator sees customer selected quote
 - [ ] Test operator confirms driver and customer sees assigned driver details
 - [ ] Test operator marks driver unavailable and customer sees reselect compensation notice

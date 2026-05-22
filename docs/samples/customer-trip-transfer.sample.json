@@ -1,0 +1,88 @@
+{
+  "schema_version": "customer-trip-v1",
+  "trip_id": "trip_boston_transfer_001",
+  "trip_type": "transfer",
+  "title": "Boston Airport Pickup",
+  "city": "Boston",
+  "date_start": "2026-06-03",
+  "date_end": "2026-06-03",
+  "status": "active",
+  "customer": {
+    "display_name": "王女士",
+    "preferred_language": "zh-CN"
+  },
+  "advisor": {
+    "name": "Farland Advisor",
+    "phone": "+1 (800) 000-0000"
+  },
+  "participants": [
+    {
+      "display_name": "学生",
+      "role": "student"
+    },
+    {
+      "display_name": "家长",
+      "role": "parent"
+    }
+  ],
+  "hotel_requests": [
+    {
+      "city": "Boston",
+      "hotel_name": "Boston Marriott Cambridge",
+      "room_type": "双床房",
+      "check_in_date": "2026-06-03",
+      "check_out_date": "2026-06-06",
+      "status": "confirmed",
+      "customer_visible_note": "Farland 顾问已为您确认校园周边入住安排。"
+    }
+  ],
+  "transport_requests": [
+    {
+      "request_id": "tr_boston_airport_001",
+      "service_type": "transfer",
+      "pickup": "Logan Airport Terminal E",
+      "dropoff": "Boston Marriott Cambridge",
+      "pickup_time_text": "2026-06-03 08:15",
+      "passengers": 3,
+      "luggage": 3,
+      "status": "confirmed",
+      "status_text": "接送已预约",
+      "customer_visible_note": "由 Farland 严选车队提供。司机信息将在最终分配后展示。"
+    }
+  ],
+  "charter_services": [],
+  "daily_itinerary": [
+    {
+      "date": "2026-06-03",
+      "city": "Boston",
+      "title": "抵达与入住",
+      "summary": "Farland 顾问已协调机场接送和酒店入住。",
+      "items": [
+        {
+          "time": "08:15",
+          "type": "arrival",
+          "title": "抵达 Logan Airport",
+          "description": "请按顾问提示前往约定会合区域。",
+          "linked_entity_type": "transport_request",
+          "linked_entity_id": "tr_boston_airport_001",
+          "client_status": "接送已预约"
+        },
+        {
+          "time": "10:00",
+          "type": "hotel",
+          "title": "酒店入住协调",
+          "description": "如需提前寄存行李，请联系 Farland 顾问。",
+          "linked_entity_type": "hotel_request",
+          "linked_entity_id": "hotel_boston_001",
+          "client_status": "已确认"
+        }
+      ]
+    }
+  ],
+  "benefits": [
+    {
+      "title": "机场接送礼遇",
+      "description": "指定城市机场接送服务可享 Farland 会员权益。"
+    }
+  ]
+}

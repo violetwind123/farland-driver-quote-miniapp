@@ -68,9 +68,58 @@ Rules:
 
 See `docs/product/p1-1-data-boundary-customer-quotes.md` for the full P1.1 boundary.
 
-## 4. P1.2A Implemented Customer Quote Flow
+## 4. P1.2A Customer Binding And Read-Only Quote Flow
 
-The current implementation supports the minimal safe customer quote flow:
+Customer binding is explicit:
+
+```text
+customer opens invite card
+→ chooses 绑定 Farland 服务档案 or 仅查看本次行程
+→ enters display name
+→ Cloud Function binds OPENID
+→ customer can view the assigned trip/request scope
+```
+
+Quote reads are customer-safe:
+
+- `claimCustomerInvite` owns invite claim and OPENID binding.
+- `getCustomerHome` must not show fake customer trip data to unbound users.
+- `getCustomerTransportQuotes` reads only `customer_transport_quotes`.
+- Transfer Detail is read-only for the current P1.2A boundary.
+- Full customer quote selection is not the current primary demo path.
+
+## 5. P2 Customer System Direction
+
+P2 focuses on:
+
+- `customer_trip_access`
+- `customer_trips`
+- `visible_until`
+- standard itinerary JSON schema
+- `importCustomerTripJSON` with required `dry_run`
+- operator customer list with controlled safe edits
+
+Current implementation direction:
+
+- `claimCustomerInvite` writes `customer_trip_access` after explicit customer confirmation.
+- `getCustomerHome` reads active access records before loading customer trips.
+- Trip-only access with expired `visible_until` is filtered by Cloud Functions.
+- `importCustomerTripJSON` validates standard trip JSON, defaults to `dry_run`, and writes only through operator/super_admin Cloud Function access.
+
+See `docs/product/p2-customer-system-and-trip-json.md`.
+
+Deferred until explicitly requested:
+
+- subpackage refactor
+- image cloud compression trigger
+- payment
+- live map
+- full notification system
+- external spreadsheet as source of truth
+
+## 6. Previous P1.2A Customer Quote Flow Notes
+
+Earlier implementation work explored a fuller customer quote flow:
 
 ```text
 driver quote submitted
@@ -89,6 +138,8 @@ Implemented cloud functions:
 - `publishCustomerQuotesBatch`
 - `getCustomerTransportQuotes`
 - `selectCustomerQuote`
+
+Current product priority gates customer-facing selection UI for the ICT demo. Keep this flow internal or hidden unless explicitly requested.
 
 Current status semantics:
 
@@ -121,7 +172,7 @@ If a customer-selected driver becomes unavailable, the operator can reject that 
 
 This still does not create a production `transport_order`. That remains a future roadmap item.
 
-## 5. Target Customer
+## 7. Target Customer
 
 Primary customers:
 
@@ -324,8 +375,36 @@ Do not implement yet:
 - customer driver bidding
 - full supplier portal
 - full charter operations automation
+- cloud image processing for vehicle photos or itinerary attachments
 
-## 14. UI Style
+## 14. Future Image Asset Handling
+
+Image handling is a future optimization track. Do not implement this during current P1.2A stabilization unless explicitly requested.
+
+Principles:
+
+- The frontend may choose, preview, and upload images.
+- The frontend must not run custom compression algorithms with Canvas or JavaScript libraries.
+- Use `wx.chooseMedia` with WeChat's built-in compressed option where appropriate.
+- Large images should eventually be processed in cloud after upload.
+- Preferred future output for photos:
+  - WebP
+  - max width 1280px
+  - quality around 80
+  - target under 200KB where practical
+- Vehicle photos should be optimized for list/detail display, not archived as raw camera originals.
+- Store processed image URL or fileID in business records.
+- Keep original fileID only if needed for audit or reprocessing.
+- Original images may be deleted after successful processing when no longer needed.
+
+Future implementation options:
+
+1. Cloud function image processing, for example `processVehicleImage`.
+2. Tencent Cloud image processing / CI pipeline.
+
+Do not add `sharp`, Jimp, or other heavy image dependencies until the vehicle photo upload flow is explicitly scoped.
+
+## 15. UI Style
 
 UI should feel:
 
@@ -350,7 +429,7 @@ Avoid:
 - loud discounts
 - dense backend tables on customer pages
 
-## 15. Product Principle
+## 16. Product Principle
 
 The core product rule:
 

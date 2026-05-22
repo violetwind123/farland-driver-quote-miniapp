@@ -1,0 +1,117 @@
+{
+  "schema_version": "customer-trip-v1",
+  "trip_id": "trip_boston_charter_001",
+  "trip_type": "charter",
+  "title": "Boston Campus Visit Day",
+  "city": "Boston",
+  "date_start": "2026-06-03",
+  "date_end": "2026-06-03",
+  "status": "active",
+  "customer": {
+    "display_name": "李同学家庭",
+    "preferred_language": "zh-CN"
+  },
+  "advisor": {
+    "name": "Farland Advisor",
+    "phone": "+1 (800) 000-0000",
+    "wechat": "farland_advisor"
+  },
+  "participants": [
+    {
+      "display_name": "李同学",
+      "role": "student"
+    },
+    {
+      "display_name": "家长",
+      "role": "parent"
+    }
+  ],
+  "hotel_requests": [
+    {
+      "city": "Boston",
+      "hotel_name": "Boston Marriott Cambridge",
+      "room_type": "双床房",
+      "check_in_date": "2026-06-02",
+      "check_out_date": "2026-06-05",
+      "status": "confirmed",
+      "customer_visible_note": "酒店位置便于 Cambridge 与 Boston 校园访问。"
+    }
+  ],
+  "transport_requests": [],
+  "charter_services": [
+    {
+      "charter_id": "charter_boston_campus_001",
+      "title": "访校包车服务",
+      "date_range_text": "2026-06-03｜每日 10 小时",
+      "vehicle_class": "Large SUV",
+      "service_area": "Boston / Cambridge 校园路线",
+      "continuity_text": "优先安排同一司机；如因工时或档期需要调整，Farland 将协调同等级替补。",
+      "status": "confirmed",
+      "segments": [
+        {
+          "time": "09:00",
+          "title": "酒店出发",
+          "route": "Boston Marriott Cambridge -> Harvard University",
+          "customer_visible_note": "建议提前 10 分钟在酒店大堂集合。"
+        },
+        {
+          "time": "13:00",
+          "title": "校际转场",
+          "route": "Harvard / MIT 周边 -> Boston College"
+        },
+        {
+          "time": "17:30",
+          "title": "返回酒店",
+          "route": "Boston College -> Boston Marriott Cambridge"
+        }
+      ]
+    }
+  ],
+  "daily_itinerary": [
+    {
+      "date": "2026-06-03",
+      "city": "Boston",
+      "title": "Boston Campus Visit",
+      "summary": "全天访校行程，Farland 顾问已协调酒店出发、校园停靠、午间节奏与用车安排。",
+      "items": [
+        {
+          "time": "09:00",
+          "type": "departure",
+          "title": "酒店出发",
+          "description": "Boston Marriott Cambridge 大堂集合。",
+          "linked_entity_type": "charter_service",
+          "linked_entity_id": "charter_boston_campus_001",
+          "client_status": "已确认"
+        },
+        {
+          "time": "10:00",
+          "type": "campus",
+          "title": "Harvard University",
+          "description": "校园参访与周边生活环境了解。"
+        },
+        {
+          "time": "13:00",
+          "type": "campus",
+          "title": "MIT Campus Visit",
+          "description": "MIT 主校区参访，午餐时间根据现场节奏调整。"
+        },
+        {
+          "time": "16:00",
+          "type": "campus",
+          "title": "Boston College",
+          "description": "下午访校结束后返回酒店。"
+        }
+      ]
+    }
+  ],
+  "benefits": [
+    {
+      "title": "访校行程咨询",
+      "description": "美国学校参访动线、住宿区域与用车节奏建议。"
+    },
+    {
+      "title": "酒店预订礼遇",
+      "description": "顾问协助筛选校园周边与高端品牌酒店方案。"
+    }
+  ]
+}

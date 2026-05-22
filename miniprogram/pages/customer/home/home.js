@@ -17,13 +17,20 @@ Page({
     inviteCode: '',
     inviteRequestId: '',
     inviteMode: false,
+    operatorPreview: false,
+    needsInviteClaim: false,
+    claimBindType: 'profile',
+    claimDisplayName: '',
+    claimSubmitting: false,
   },
 
   onLoad(options = {}) {
+    const preview = this.consumeOperatorPreview();
     this.setData({
       inviteCode: options.invite_code || '',
-      inviteRequestId: options.request_id || '',
+      inviteRequestId: options.request_id || preview.requestId || '',
       inviteMode: Boolean(options.invite_code && options.request_id),
+      operatorPreview: Boolean(preview.requestId),
     });
     this.loadHome();
   },
@@ -32,19 +39,40 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
     }
+    const preview = this.consumeOperatorPreview();
+    if (preview.requestId && (preview.requestId !== this.data.inviteRequestId || !this.data.operatorPreview)) {
+      this.setData({
+        inviteCode: '',
+        inviteRequestId: preview.requestId,
+        inviteMode: false,
+        operatorPreview: true,
+        needsInviteClaim: false,
+      });
+      this.loadHome();
+    }
+  },
+
+  consumeOperatorPreview() {
+    const app = getApp();
+    const preview = app.globalData && app.globalData.customerHomePreview;
+    if (!preview || !preview.requestId) return {};
+    delete app.globalData.customerHomePreview;
+    return preview;
   },
 
   async loadHome() {
     this.setData({ loading: true });
     try {
-      if (this.data.inviteCode && this.data.inviteRequestId) {
+      if (this.data.operatorPreview && this.data.inviteRequestId) {
         const invitedTransfer = await this.loadInvitedTransferIfNeeded();
         this.setData({
           loading: false,
+          needsInviteClaim: false,
           profile: {
-            name: 'Farland Guest',
-            member_level: 'Farland Concierge',
+            name: '客户主页预览',
+            member_level: '运营预览',
             points_balance: 0,
+            subtitle: '当前为运营预览，客户不会看到返回运营中心入口',
           },
           benefits: [],
           topBenefits: [],
@@ -71,6 +99,18 @@ Page({
       if (!result || !result.success) {
         wx.showToast({ title: '加载失败', icon: 'none' });
         this.setData({ loading: false });
+        return;
+      }
+      if (this.data.inviteMode && result.access_status === 'empty') {
+        this.setData({
+          loading: false,
+          needsInviteClaim: true,
+          profile: {},
+          transferRequests: [],
+          transportOrders: [],
+          charterServices: [],
+          nextConfirmed: {},
+        });
         return;
       }
       const todayItinerary = result.today_itinerary || null;
@@ -124,6 +164,7 @@ Page({
           };
       this.setData({
         loading: false,
+        needsInviteClaim: false,
         profile: result.profile || {},
         benefits: result.benefits || [],
         topBenefits: (result.benefits || []).slice(0, 2),
@@ -144,9 +185,49 @@ Page({
     }
   },
 
+  selectClaimBindType(e) {
+    const bindType = e.currentTarget.dataset.bindType || 'profile';
+    this.setData({ claimBindType: bindType });
+  },
+
+  onClaimNameInput(e) {
+    this.setData({ claimDisplayName: e.detail.value || '' });
+  },
+
+  async submitInviteClaim() {
+    const { inviteCode, inviteRequestId, claimBindType, claimDisplayName } = this.data;
+    const safeName = String(claimDisplayName || '').trim();
+    if (!safeName) {
+      wx.showToast({ title: '请填写称呼', icon: 'none' });
+      return;
+    }
+    this.setData({ claimSubmitting: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'claimCustomerInvite',
+        data: {
+          request_id: inviteRequestId,
+          invite_code: inviteCode,
+          bind_type: claimBindType,
+          display_name: safeName,
+        },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '确认失败', icon: 'none' });
+        this.setData({ claimSubmitting: false });
+        return;
+      }
+      this.setData({ claimSubmitting: false, needsInviteClaim: false });
+      this.loadHome();
+    } catch (error) {
+      wx.showToast({ title: '确认失败', icon: 'none' });
+      this.setData({ claimSubmitting: false });
+    }
+  },
+
   async loadInvitedTransferIfNeeded() {
     const { inviteCode, inviteRequestId } = this.data;
-    if (!inviteCode || !inviteRequestId) return null;
+    if (!inviteRequestId) return null;
 
     const { result } = await wx.cloud.callFunction({
       name: 'getCustomerTransportQuotes',
@@ -202,6 +283,11 @@ Page({
     wx.navigateTo({ url: '/pages/customer/benefits/benefits' });
   },
 
+  backToOperatorCenter() {
+    this.setData({ operatorPreview: false });
+    wx.navigateTo({ url: '/pages/operator/dashboard/dashboard' });
+  },
+
   callDriver() {
     const phone = this.data.todayItinerary && this.data.todayItinerary.driver
       ? this.data.todayItinerary.driver.phone
@@ -225,7 +311,7 @@ Page({
   chooseQuote(e) {
     const quoteId = e.currentTarget.dataset.quoteId;
     if (!quoteId) return;
-    wx.showToast({ title: '请进入用车详情选择司机方案', icon: 'none' });
+    wx.showToast({ title: '请进入用车详情查看方案', icon: 'none' });
   },
 
   viewTransferDetail(e) {

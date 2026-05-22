@@ -9,6 +9,8 @@ For stable product context, read:
 - `docs/product/context.md`
 - `docs/product/p1-1-data-boundary-customer-quotes.md`
 - `docs/product/farland-student-transport-itinerary-spec.md`
+- `docs/product/p2-customer-system-and-trip-json.md`
+- `docs/product/admin-web-auth-plan.md`
 
 ## Current ICT Demo Priority
 
@@ -120,11 +122,25 @@ Avoid:
 - Do not modify the existing driver quick-quote token flow unless explicitly requested.
 - Do not modify quote submission, driver selection, or cancellation cloud functions unless explicitly requested.
 - Do not add frontend direct database access. Mini-program pages must not use `wx.cloud.database()`.
+- Frontend must not pass `openid`; Cloud Functions must read `cloud.getWXContext().OPENID`.
+- Role permissions are enforced in Cloud Functions. Frontend role checks are only UI hints.
 - Prefer mock data first before connecting backend logic.
 - Keep UI iOS-like, premium, restrained, and clean.
 - Use Farland primary color `#6672A8`.
 - Avoid OTA-style promotion layouts, heavy shadows, and large purple blocks.
 - After completing a feature, update `TODO.md` with date, feature completed, files changed, notes, and the next recommended task.
+
+## Customer System Guardrails
+
+- Customer binding is explicit, not fully silent:
+  `invite_code` -> choose `绑定 Farland 服务档案` or `仅查看本次行程` -> enter display name -> Cloud Function binds OPENID.
+- `display_name` is required for customer invite claim.
+- Future customer trip visibility must use `customer_trip_access`.
+- Trip-only access must use `visible_until`; expired trips are hidden from customer reads by Cloud Functions, while backend records and audit logs remain.
+- Future itinerary import must use validated standard JSON and must support `dry_run` before writing.
+- Operator customer management can look like a cloud table, but CloudBase collections remain the source of truth.
+- Do not build production `admin-web` screens until the Web auth strategy in `docs/product/admin-web-auth-plan.md` is chosen.
+- Do not implement subpackage refactors, image cloud compression triggers, payment, live map, notifications, full CRM, or external spreadsheet sync unless explicitly requested.
 
 ## Current Architecture Guardrails
 

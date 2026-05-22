@@ -210,6 +210,15 @@ Page({
     this.setData({ shareMode: 'driver' });
   },
 
+  previewCustomerHome() {
+    const app = getApp();
+    app.globalData.customerHomePreview = {
+      requestId: this.data.requestId,
+      from: 'operator',
+    };
+    wx.switchTab({ url: '/pages/customer/home/home' });
+  },
+
   onCustomerShareTap() {
     this.prepareCustomerShare();
   },

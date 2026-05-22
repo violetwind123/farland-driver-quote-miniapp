@@ -1,0 +1,63 @@
+<view class="page">
+  <view class="hero">
+    <view class="kicker">CUSTOMER TRIP IMPORT</view>
+    <view class="title">导入客户行程</view>
+    <view class="desc">粘贴标准 customer-trip-v1 JSON，先预览校验，再确认写入。</view>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">行程 JSON</view>
+    <textarea
+      class="json-input"
+      value="{{jsonText}}"
+      placeholder="{{sampleHint}}"
+      maxlength="-1"
+      bindinput="onJsonInput"
+    />
+    <button class="secondary-btn" bindtap="fillSample">填入最小样例</button>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">客户访问授权</view>
+    <view class="field-label">授权方式</view>
+    <picker range="{{['不授权，仅导入行程', '通过 customer_user_id 授权', '通过已绑定 request_id 授权']}}" bindchange="onAccessModeChange">
+      <view class="picker-value">{{accessMode === 'none' ? '不授权，仅导入行程' : (accessMode === 'customer_user_id' ? '通过 customer_user_id 授权' : '通过已绑定 request_id 授权')}}</view>
+    </picker>
+
+    <view wx:if="{{accessMode !== 'none'}}" class="access-fields">
+      <view class="field-label">{{accessMode === 'customer_user_id' ? 'customer_user_id' : 'request_id'}}</view>
+      <input class="text-input" value="{{accessId}}" bindinput="onAccessIdInput" placeholder="填写已有 ID" />
+
+      <view class="field-label">访问类型</view>
+      <picker range="{{['绑定 Farland 服务档案', '仅查看本次行程']}}" bindchange="onAccessTypeChange">
+        <view class="picker-value">{{accessType === 'trip_only' ? '仅查看本次行程' : '绑定 Farland 服务档案'}}</view>
+      </picker>
+
+      <view wx:if="{{accessType === 'trip_only'}}">
+        <view class="field-label">visible_until</view>
+        <input class="text-input" value="{{visibleUntil}}" bindinput="onVisibleUntilInput" placeholder="YYYY-MM-DD，可留空使用 date_end" />
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{errors.length}}" class="panel error-panel">
+    <view class="section-title">校验错误</view>
+    <view wx:for="{{errors}}" wx:key="*this" class="error-row">{{item}}</view>
+  </view>
+
+  <view wx:if="{{preview}}" class="panel">
+    <view class="section-title">预览结果</view>
+    <view class="result-line">trip_id：{{preview.trip_id}}</view>
+    <view class="result-line">模式：{{preview.dry_run ? 'dry_run 预览' : '已写入'}}</view>
+    <view wx:for="{{preview.operations}}" wx:key="key" class="operation-row">
+      <view class="operation-main">{{item.collection}} · {{item.type}}</view>
+      <view class="operation-sub">{{item.title || item.key}}</view>
+      <view wx:if="{{item.visible_until}}" class="operation-sub">visible_until：{{item.visible_until}}</view>
+    </view>
+  </view>
+
+  <view class="button-bar">
+    <button class="preview-btn" loading="{{dryRunLoading}}" disabled="{{dryRunLoading || applyLoading}}" bindtap="previewImport">预览导入</button>
+    <button class="apply-btn" loading="{{applyLoading}}" disabled="{{dryRunLoading || applyLoading || !preview || !preview.valid}}" bindtap="applyImport">确认写入</button>
+  </view>
+</view>

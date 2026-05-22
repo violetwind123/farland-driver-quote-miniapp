@@ -1,11 +1,50 @@
 <view class="trip-page">
+  <button wx:if="{{operatorPreview}}" class="operator-back-btn" bindtap="backToOperatorCenter">运营中心</button>
+
   <view wx:if="{{loading}}" class="empty-state">正在加载您的行程...</view>
+
+  <view wx:elif="{{needsInviteClaim}}" class="claim-panel card-surface">
+    <view class="claim-kicker">欢迎使用 Farland</view>
+    <view class="claim-title">请选择查看方式</view>
+
+    <view class="claim-options">
+      <view
+        class="claim-option {{claimBindType === 'profile' ? 'active' : ''}}"
+        data-bind-type="profile"
+        bindtap="selectClaimBindType"
+      >
+        <view class="claim-option-title">绑定 Farland 服务档案</view>
+        <view class="claim-option-copy">方便以后查看历史行程、当前司机信息、酒店安排和会员福利</view>
+      </view>
+      <view
+        class="claim-option {{claimBindType === 'trip_only' ? 'active' : ''}}"
+        data-bind-type="trip_only"
+        bindtap="selectClaimBindType"
+      >
+        <view class="claim-option-title">仅查看本次行程</view>
+        <view class="claim-option-copy">只查看本次行程和报价；行程结束后，本次记录将不再显示在“我的行程”中</view>
+      </view>
+    </view>
+
+    <view class="claim-field">
+      <view class="field-label">称呼</view>
+      <input
+        class="claim-input"
+        placeholder="例如：王女士"
+        value="{{claimDisplayName}}"
+        bindinput="onClaimNameInput"
+      />
+    </view>
+
+    <button class="claim-submit" loading="{{claimSubmitting}}" bindtap="submitInviteClaim">确认并查看行程</button>
+  </view>
 
   <block wx:else>
     <view class="trip-hero card-surface">
       <view class="section-kicker hero-kicker">我的行程</view>
-      <view class="trip-hero-title">我的行程</view>
-      <view class="trip-hero-meta">{{profile.member_level}} · {{profile.points_balance}} 积分</view>
+      <view class="trip-hero-title">{{profile.name || '我的行程'}}</view>
+      <view class="trip-hero-meta">{{profile.member_level}}{{profile.points_balance ? ' · ' + profile.points_balance + ' 积分' : ''}}</view>
+      <view wx:if="{{profile.subtitle}}" class="trip-hero-subtitle">{{profile.subtitle}}</view>
       <view class="trip-next-card">
         <view class="trip-next-label">下一项确认行程</view>
         <view class="trip-next-title">{{nextConfirmed.title}}</view>
