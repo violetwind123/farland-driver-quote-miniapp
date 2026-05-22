@@ -66,6 +66,55 @@ async function getAssignedTransport(requestId) {
   return toAssignedTransport(orderRes.data[0]);
 }
 
+function toTime(value) {
+  if (!value) return 0;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function isValidAccess(access, now) {
+  if (!access || access.status !== 'active') return false;
+  const visibleUntil = toTime(access.visible_until);
+  return !visibleUntil || visibleUntil >= now.getTime();
+}
+
+async function findCustomerTripAccess({ openid, user_id, request_id }) {
+  const queries = [
+    db.collection('customer_trip_access')
+      .where({ request_id, openid })
+      .limit(10)
+      .get()
+      .catch(() => ({ data: [] })),
+    db.collection('customer_trip_access')
+      .where({ request_id, customer_openid: openid })
+      .limit(10)
+      .get()
+      .catch(() => ({ data: [] })),
+  ];
+  if (user_id) {
+    queries.push(
+      db.collection('customer_trip_access')
+        .where({ request_id, user_id })
+        .limit(10)
+        .get()
+        .catch(() => ({ data: [] })),
+      db.collection('customer_trip_access')
+        .where({ request_id, customer_user_id: user_id })
+        .limit(10)
+        .get()
+        .catch(() => ({ data: [] })),
+    );
+  }
+  const results = await Promise.all(queries);
+  const seen = {};
+  return results.flatMap((res) => res.data || []).filter((access) => {
+    const key = access._id || `${access.openid || access.customer_openid}-${access.request_id}`;
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
 async function verifyInviteAccess({ requestId, inviteCode, caller, operatorPreview }) {
   if (!inviteCode) {
     return { ok: false, code: 403, error_code: 'FORBIDDEN', message: '无权限查看该用车方案' };
@@ -83,13 +132,57 @@ async function verifyInviteAccess({ requestId, inviteCode, caller, operatorPrevi
   if (operatorPreview) {
     return { ok: true, invite };
   }
-  if (invite.status !== 'claimed') {
+  if (invite.status === 'unused') {
     return { ok: false, code: 428, error_code: 'INVITE_NOT_CLAIMED', message: '请先确认查看方式' };
+  }
+  if (invite.status !== 'claimed') {
+    return { ok: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
   }
   if (invite.claimed_openid !== caller.openid) {
     return { ok: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
   }
   return { ok: true, invite };
+}
+
+async function verifyCustomerAccess({ requestId, inviteCode, caller, request, now }) {
+  const accessRows = await findCustomerTripAccess({
+    openid: caller.openid,
+    user_id: caller.user ? caller.user._id : '',
+    request_id: requestId,
+  });
+  const validAccess = accessRows.find((access) => isValidAccess(access, now));
+  if (validAccess) {
+    return { ok: true, source: 'customer_trip_access', access: validAccess };
+  }
+
+  const blockingAccess = accessRows.find((access) => {
+    if (!access || access.status !== 'active') return true;
+    const visibleUntil = toTime(access.visible_until);
+    return Boolean(visibleUntil && visibleUntil < now.getTime());
+  });
+  if (blockingAccess) {
+    return {
+      ok: false,
+      code: 403,
+      error_code: 'CUSTOMER_TRIP_ACCESS_EXPIRED',
+      message: '该行程访问已失效',
+    };
+  }
+
+  if (request.customer_openid === caller.openid) {
+    return { ok: true, source: 'migration_request_owner' };
+  }
+
+  const inviteAccess = await verifyInviteAccess({
+    requestId,
+    inviteCode,
+    caller,
+    operatorPreview: false,
+  });
+  if (!inviteAccess.ok) {
+    return inviteAccess;
+  }
+  return { ok: true, source: 'migration_invite', invite: inviteAccess.invite };
 }
 
 exports.main = async (event = {}) => {
@@ -110,21 +203,26 @@ exports.main = async (event = {}) => {
   }
 
   const operatorPreview = isOperator(caller.user);
-  if (!operatorPreview && request.customer_openid !== caller.openid) {
-    const inviteAccess = await verifyInviteAccess({
+  let accessSource = operatorPreview ? 'operator_preview' : '';
+  let customerTripAccessId = '';
+  if (!operatorPreview) {
+    const customerAccess = await verifyCustomerAccess({
       requestId: request_id,
       inviteCode: invite_code,
       caller,
-      operatorPreview,
+      request,
+      now: new Date(),
     });
-    if (!inviteAccess.ok) {
+    if (!customerAccess.ok) {
       return {
         success: false,
-        code: inviteAccess.code,
-        error_code: inviteAccess.error_code,
-        message: inviteAccess.message,
+        code: customerAccess.code,
+        error_code: customerAccess.error_code,
+        message: customerAccess.message,
       };
     }
+    accessSource = customerAccess.source || '';
+    customerTripAccessId = customerAccess.access ? customerAccess.access._id : '';
   }
 
   const quoteRes = await db.collection('customer_transport_quotes')
@@ -163,6 +261,8 @@ exports.main = async (event = {}) => {
     detail: {
       quote_count: quotes.length,
       operator_preview: operatorPreview,
+      access_source: accessSource,
+      customer_trip_access_id: customerTripAccessId,
     },
     created_at: now,
   }).catch(() => null);
