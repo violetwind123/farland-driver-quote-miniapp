@@ -8,11 +8,82 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-function isVisible(access, now) {
+function toTime(value) {
+  if (!value) return 0;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function normalizeBindMode(access) {
+  if (!access) return 'trip_only';
+  if (access.bind_mode === 'farland_profile' || access.access_type === 'profile') return 'farland_profile';
+  if (access.bind_mode === 'trip_only' || access.access_type === 'trip_only') return 'trip_only';
+  return 'trip_only';
+}
+
+function normalizeInviteBindMode(invite) {
+  if (!invite) return 'trip_only';
+  if (invite.claimed_bind_mode === 'farland_profile' || invite.bind_mode === 'farland_profile' || invite.bind_type === 'profile') {
+    return 'farland_profile';
+  }
+  if (invite.claimed_bind_mode === 'trip_only' || invite.bind_mode === 'trip_only' || invite.bind_type === 'trip_only') {
+    return 'trip_only';
+  }
+  return 'trip_only';
+}
+
+function isExpiredAccess(access, now) {
   if (!access || access.status !== 'active') return false;
-  if (!access.visible_until) return true;
-  const visibleUntil = access.visible_until instanceof Date ? access.visible_until : new Date(access.visible_until);
-  return Number.isNaN(visibleUntil.getTime()) || visibleUntil.getTime() >= now.getTime();
+  if (normalizeBindMode(access) !== 'trip_only') return false;
+  const visibleUntil = toTime(access.visible_until);
+  return Boolean(visibleUntil && visibleUntil < now.getTime());
+}
+
+function isVisibleAccess(access, now) {
+  if (!access || access.status !== 'active') return false;
+  const bindMode = normalizeBindMode(access);
+  if (bindMode === 'farland_profile') return true;
+  const visibleUntil = toTime(access.visible_until);
+  if (!visibleUntil) {
+    // TODO(P2 migration): trip_only should always have visible_until after claimCustomerInvite is fully deployed.
+    return true;
+  }
+  return visibleUntil >= now.getTime();
+}
+
+function hasData(value) {
+  if (!value) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
+  return true;
+}
+
+function sanitizeCustomerObject(value) {
+  const blockedKeys = new Set([
+    'driver_quotes',
+    'driver_cost',
+    'margin',
+    'internal_note',
+    'internal_notes',
+    'operator_internal_note',
+    'supplier_note',
+    'supplier_notes',
+    'supplier_private_note',
+    'supplier_private_notes',
+    'raw_quote_pool',
+  ]);
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeCustomerObject(item));
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+  return Object.keys(value).reduce((acc, key) => {
+    if (!blockedKeys.has(key)) {
+      acc[key] = sanitizeCustomerObject(value[key]);
+    }
+    return acc;
+  }, {});
 }
 
 function emptyHome(user) {
@@ -96,7 +167,7 @@ function toClientQuote(quote) {
 function normalizeTripOverview(trips) {
   return trips.map((trip, index) => ({
     day: index + 1,
-    date: trip.date_start || '',
+    date: trip.start_at || trip.date_start || '',
     city: trip.city || '',
     title: trip.title || 'Farland 行程',
     status: trip.status === 'active' ? 'confirmed' : (trip.status || 'pending'),
@@ -106,10 +177,18 @@ function normalizeTripOverview(trips) {
 
 function collectTripData(trips) {
   const firstTrip = trips[0] || null;
-  const daily = trips.reduce((acc, trip) => acc.concat(trip.daily_itinerary || []), []);
-  const hotelRequests = trips.reduce((acc, trip) => acc.concat(trip.hotel_requests || []), []);
-  const charterServices = trips.reduce((acc, trip) => acc.concat(trip.charter_services || []), []);
-  const benefits = trips.reduce((acc, trip) => acc.concat(trip.benefits || []), []);
+  const daily = trips.reduce((acc, trip) => acc.concat(sanitizeCustomerObject(trip.itinerary_days || trip.daily_itinerary || [])), []);
+  const hotelRequests = trips.reduce((acc, trip) => acc.concat(sanitizeCustomerObject(trip.hotels || trip.hotel_requests || [])), []);
+  const charterServices = trips.reduce((acc, trip) => {
+    if (Array.isArray(trip.charter_services) && trip.charter_services.length) {
+      return acc.concat(sanitizeCustomerObject(trip.charter_services));
+    }
+    if (hasData(trip.charter)) {
+      return acc.concat(sanitizeCustomerObject(Array.isArray(trip.charter) ? trip.charter : [trip.charter]));
+    }
+    return acc;
+  }, []);
+  const benefits = trips.reduce((acc, trip) => acc.concat(sanitizeCustomerObject(trip.benefits || [])), []);
   return {
     today_itinerary: daily[0] || null,
     trip_overview: normalizeTripOverview(trips),
@@ -120,25 +199,70 @@ function collectTripData(trips) {
   };
 }
 
+async function findCustomerTripAccess({ openid, userId }) {
+  const queries = [
+    db.collection('customer_trip_access').where({ openid }).limit(50).get().catch(() => ({ data: [] })),
+    db.collection('customer_trip_access').where({ customer_openid: openid }).limit(50).get().catch(() => ({ data: [] })),
+  ];
+  if (userId) {
+    queries.push(
+      db.collection('customer_trip_access').where({ user_id: userId }).limit(50).get().catch(() => ({ data: [] })),
+      db.collection('customer_trip_access').where({ customer_user_id: userId }).limit(50).get().catch(() => ({ data: [] })),
+    );
+  }
+  const results = await Promise.all(queries);
+  const seen = {};
+  return results.flatMap((res) => res.data || []).filter((access) => {
+    const key = access._id || `${access.openid || access.customer_openid}-${access.request_id}-${access.trip_id}`;
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
+async function getCustomerTripsByIds(tripIds) {
+  if (!tripIds.length) return [];
+  const [byIdRes, byTripIdRes] = await Promise.all([
+    db.collection('customer_trips')
+      .where({ _id: _.in(tripIds), status: _.in(['active', 'completed']) })
+      .limit(20)
+      .get()
+      .catch(() => ({ data: [] })),
+    db.collection('customer_trips')
+      .where({ trip_id: _.in(tripIds), status: _.in(['active', 'completed']) })
+      .limit(20)
+      .get()
+      .catch(() => ({ data: [] })),
+  ]);
+  const seen = {};
+  return [...(byIdRes.data || []), ...(byTripIdRes.data || [])].filter((trip) => {
+    const key = trip._id || trip.trip_id;
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
 exports.main = async () => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) {
     return { success: false, code: 401, error_code: 'UNAUTHENTICATED', message: '无法识别用户身份' };
   }
 
-  const [userRes, accessRes, inviteRes, directRequestRes] = await Promise.all([
-    db.collection('users').where({ openid: OPENID }).limit(1).get().catch(() => ({ data: [] })),
-    db.collection('customer_trip_access').where({ customer_openid: OPENID }).limit(50).get().catch(() => ({ data: [] })),
+  const userRes = await db.collection('users').where({ openid: OPENID }).limit(1).get().catch(() => ({ data: [] }));
+  const user = userRes.data[0] || null;
+
+  const [accessRes, inviteRes, directRequestRes] = await Promise.all([
+    findCustomerTripAccess({ openid: OPENID, userId: user ? user._id : '' }).then((data) => ({ data })),
     db.collection('customer_invites').where({ claimed_openid: OPENID, status: 'claimed' }).limit(20).get().catch(() => ({ data: [] })),
     db.collection('ride_requests').where({ customer_openid: OPENID }).limit(20).get().catch(() => ({ data: [] })),
   ]);
 
-  const user = userRes.data[0] || null;
   const now = new Date();
   const allAccess = accessRes.data || [];
   const allAccessRequestIds = new Set(allAccess.map((access) => access.request_id).filter(Boolean));
-  const activeAccess = allAccess.filter((access) => isVisible(access, now));
-  const expiredAccess = allAccess.filter((access) => access.status === 'active' && !isVisible(access, now));
+  const activeAccess = allAccess.filter((access) => isVisibleAccess(access, now));
+  const expiredAccess = allAccess.filter((access) => isExpiredAccess(access, now));
   await Promise.all(expiredAccess.map((access) => {
     return db.collection('customer_trip_access').doc(access._id).update({
       data: {
@@ -151,10 +275,10 @@ exports.main = async () => {
   const invites = inviteRes.data || [];
   const directRequests = directRequestRes.data || [];
   const hasProfile = Boolean(user && user.role === 'customer' && user.status === 'active')
-    || activeAccess.some((access) => access.access_type === 'profile')
-    || invites.some((invite) => invite.bind_type !== 'trip_only');
+    || activeAccess.some((access) => normalizeBindMode(access) === 'farland_profile')
+    || invites.some((invite) => normalizeInviteBindMode(invite) === 'farland_profile');
   const tripOnlyRequestIds = invites
-    .filter((invite) => invite.bind_type === 'trip_only' && !allAccessRequestIds.has(invite.request_id))
+    .filter((invite) => normalizeInviteBindMode(invite) === 'trip_only' && !allAccessRequestIds.has(invite.request_id))
     .map((invite) => invite.request_id);
   const accessRequestIds = activeAccess.map((access) => access.request_id);
   const profileRequestIds = hasProfile
@@ -169,12 +293,7 @@ exports.main = async () => {
 
   let customerTrips = [];
   if (visibleTripIds.length) {
-    const tripRes = await db.collection('customer_trips')
-      .where({ trip_id: _.in(visibleTripIds), status: _.in(['active', 'completed']) })
-      .limit(20)
-      .get()
-      .catch(() => ({ data: [] }));
-    customerTrips = tripRes.data || [];
+    customerTrips = await getCustomerTripsByIds(visibleTripIds);
   }
 
   const requestMap = new Map(directRequests.map((request) => [request._id, request]));
@@ -215,7 +334,7 @@ exports.main = async () => {
     || firstInvite.customer_name
     || (requests[0] && requests[0].customer_name)
     || 'Farland 客户';
-  const tripOnly = activeAccess.length ? !activeAccess.some((access) => access.access_type === 'profile') : !hasProfile;
+  const tripOnly = activeAccess.length ? !activeAccess.some((access) => normalizeBindMode(access) === 'farland_profile') : !hasProfile;
   const tripData = collectTripData(customerTrips);
 
   return {
