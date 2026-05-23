@@ -57,10 +57,10 @@
         <view class="section-kicker">FARLAND STATUS</view>
         <view class="section-title">运营状态</view>
         <view class="body-text">{{request.ops_status_text}}</view>
-        <view wx:if="{{request.status !== 'cancelled' && request.status !== 'assigned'}}" class="status-helper">报价阶段仅展示 Farland 发布的用车方案。</view>
+        <view wx:if="{{request.status !== 'cancelled' && !request.is_assigned_status}}" class="status-helper">报价阶段仅展示 Farland 发布的用车方案。</view>
       </view>
 
-      <view wx:if="{{request.status === 'assigned'}}" class="detail-card">
+      <view wx:if="{{request.is_assigned_status}}" class="detail-card">
         <view class="section-kicker">ASSIGNED DRIVER</view>
         <view class="section-title">已确认司机</view>
         <view class="body-text">司机：{{request.assigned_transport.driver_name || '待确认'}}</view>
@@ -69,7 +69,7 @@
         <view wx:if="{{request.assigned_transport.plate_number}}" class="body-text">车牌：{{request.assigned_transport.plate_number}}</view>
       </view>
 
-      <view wx:if="{{request.status !== 'cancelled' && request.status !== 'assigned'}}" class="detail-card">
+      <view wx:if="{{request.status !== 'cancelled' && !request.is_assigned_status}}" class="detail-card">
         <view class="section-kicker">QUOTE OPTIONS</view>
         <view class="section-title">优选用车方案</view>
         <view wx:if="{{hasPublishedQuotes}}" class="body-text">Farland 已为您筛选以下优选用车方案。价格包含司机报价、Farland 服务费 10% 与预计总价。</view>

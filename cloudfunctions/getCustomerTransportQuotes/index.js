@@ -61,6 +61,10 @@ function toAssignedTransport(order) {
   };
 }
 
+function isAssignedStatus(status) {
+  return status === 'assigned' || status === 'confirmed';
+}
+
 async function getAssignedTransport(requestId) {
   const orderRes = await db.collection('transport_orders')
     .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
@@ -250,7 +254,7 @@ exports.main = async (event = {}) => {
       },
     }).catch(() => null)));
 
-  const assignedTransport = request.status === 'assigned'
+  const assignedTransport = isAssignedStatus(request.status)
     ? await getAssignedTransport(request_id)
     : null;
 
@@ -294,10 +298,10 @@ exports.main = async (event = {}) => {
       luggage: request.luggage || request.luggage_count || '',
       status_text: request.status === 'cancelled'
         ? '用车需求已取消'
-        : (request.status === 'assigned' ? '接送已预约' : (quotes.length ? '已收到优选用车方案' : 'Farland 正在为您确认用车方案')),
+        : (isAssignedStatus(request.status) ? '接送已预约' : (quotes.length ? '已收到优选用车方案' : 'Farland 正在为您确认用车方案')),
       ops_status_text: request.status === 'cancelled'
         ? (request.cancel_reason_driver || '该用车需求已取消，如需重新安排请联系 Farland 顾问。')
-        : (request.status === 'assigned' ? 'Farland 已完成最终确认。' : (quotes.length ? 'Farland 已为您筛选以下优选用车方案。' : 'Farland 正在为您确认用车方案。')),
+        : (isAssignedStatus(request.status) ? 'Farland 已完成最终确认。' : (quotes.length ? 'Farland 已为您筛选以下优选用车方案。' : 'Farland 正在为您确认用车方案。')),
       created_by_text: request.customer_name ? `${request.customer_name} 的用车需求` : 'Farland 顾问已记录该用车需求',
     },
     assigned_transport: assignedTransport,

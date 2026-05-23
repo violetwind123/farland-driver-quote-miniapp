@@ -92,6 +92,7 @@ Page({
       }
       const summary = result.request_summary || {};
       const assignedTransport = result.assigned_transport || {};
+      const isAssignedStatus = summary.status === 'assigned' || summary.status === 'confirmed';
       const request = {
         request_id: result.request_id || requestId,
         pickup: summary.pickup || summary.driver_region || '待确认',
@@ -100,8 +101,9 @@ Page({
         passengers: summary.passengers || '-',
         luggage: summary.luggage || '-',
         status: summary.status || '',
+        is_assigned_status: isAssignedStatus,
         cancel_reason_driver: summary.cancel_reason_driver || '',
-        assigned_transport: summary.status === 'assigned' ? assignedTransport : null,
+        assigned_transport: isAssignedStatus ? assignedTransport : null,
         status_text: summary.status_text || 'Farland 正在为您确认用车方案',
         ops_status_text: summary.ops_status_text || (result.has_published_quotes
           ? 'Farland 已为您发布用车方案。'
@@ -123,7 +125,7 @@ Page({
         refreshingDetail: false,
         request,
         quotes,
-        hasPublishedQuotes: Boolean(result.has_published_quotes) && summary.status !== 'cancelled' && summary.status !== 'assigned',
+        hasPublishedQuotes: Boolean(result.has_published_quotes) && summary.status !== 'cancelled' && !isAssignedStatus,
         selectedQuoteId: selectedQuote ? selectedQuote.quote_id : '',
         selectedQuoteTitle: selectedQuote ? selectedQuote.public_title : '',
         customerNotice: selectedQuote ? '' : (result.customer_notice || ''),
@@ -131,7 +133,7 @@ Page({
         accessSource: result.access_source || '',
         showProfileSave: Boolean(inviteCode && result.access_source === 'temporary_invite'),
       });
-      if (summary.status === 'assigned' || summary.status === 'cancelled') {
+      if (isAssignedStatus || summary.status === 'cancelled') {
         this.stopStatusPolling();
       } else {
         this.startStatusPolling();

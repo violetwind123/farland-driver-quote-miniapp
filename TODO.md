@@ -44,6 +44,20 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: aligned customer transfer detail assigned-driver display for assigned and confirmed states.
+- Files changed:
+  - `cloudfunctions/getCustomerTransportQuotes`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.js`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.wxml`
+  - `TODO.md`
+- Notes:
+  - Customer transfer detail now reads and displays `transport_orders` when request status is `assigned` or `confirmed`.
+  - Quote options are hidden for both finalized statuses, so customer detail and My Trip use the same assigned-driver state boundary.
+- Next recommended task:
+  - Deploy `getCustomerTransportQuotes`, preview / upload the transfer detail page, then retest confirmed requests with existing `transport_orders` rows.
+
+### 2026-05-23
+
 - Feature completed: allowed temporary invite viewers to select a customer quote without saving to My Farland.
 - Files changed:
   - `cloudfunctions/selectCustomerQuote`
