@@ -71,7 +71,7 @@ async function findCustomerTripAccess({ openid, user_id, request_id }) {
 
 async function verifyInviteAccess({ requestId, inviteCode, openid }) {
   if (!inviteCode) {
-    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
+    return { ok: false, code: 403, error_code: 'FORBIDDEN', message: '无权限选择该方案' };
   }
 
   const inviteRes = await db.collection('customer_invites')
@@ -81,19 +81,12 @@ async function verifyInviteAccess({ requestId, inviteCode, openid }) {
     .catch(() => ({ data: [] }));
   const invite = inviteRes.data[0];
   if (!invite) {
-    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
+    return { ok: false, code: 403, error_code: 'INVALID_INVITE', message: '邀请链接无效' };
   }
   if (isInviteExpired(invite, new Date()) || ['expired', 'revoked', 'cancelled'].includes(invite.status)) {
     return { ok: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
   }
-  if (invite.status !== 'claimed') {
-    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
-  }
-  const claimedOpenid = String(invite.claimed_openid || '').trim();
-  if (claimedOpenid !== openid) {
-    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
-  }
-  return { ok: true, source: 'migration_invite', invite };
+  return { ok: true, source: 'temporary_invite', invite };
 }
 
 async function verifyCustomerAccess({ requestId, inviteCode, openid, userId, request, now }) {
@@ -122,6 +115,11 @@ async function verifyCustomerAccess({ requestId, inviteCode, openid, userId, req
   }
 
   return verifyInviteAccess({ requestId, inviteCode, openid });
+}
+
+function hasOtherSelector(value, openid) {
+  const selectedOpenid = String(value || '').trim();
+  return Boolean(selectedOpenid && selectedOpenid !== openid);
 }
 
 exports.main = async (event = {}) => {
@@ -172,10 +170,38 @@ exports.main = async (event = {}) => {
   }
 
   const now = nowDate.toISOString();
+  if (hasOtherSelector(request.customer_selected_openid, OPENID)) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'QUOTE_ALREADY_SELECTED',
+      message: '该方案已被选择，如需调整请联系 Farland 顾问',
+    };
+  }
+  if (quote.quote_status === 'selected' && hasOtherSelector(quote.selected_by_openid, OPENID)) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'QUOTE_ALREADY_SELECTED',
+      message: '该方案已被选择，如需调整请联系 Farland 顾问',
+    };
+  }
+
   const selectedQuoteRes = await db.collection('customer_transport_quotes')
     .where({ request_id, quote_status: 'selected' })
     .limit(100)
     .get();
+  const selectedQuotes = selectedQuoteRes.data || [];
+  const selectedByOther = selectedQuotes.find((item) => hasOtherSelector(item.selected_by_openid, OPENID));
+  if (selectedByOther) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'QUOTE_ALREADY_SELECTED',
+      message: '该方案已被选择，如需调整请联系 Farland 顾问',
+    };
+  }
+  const accessSource = customerAccess.source || '';
 
   await Promise.all([
     db.collection('customer_transport_quotes').doc(customer_quote_id).update({
@@ -183,19 +209,29 @@ exports.main = async (event = {}) => {
         quote_status: 'selected',
         selected_by_openid: OPENID,
         selected_at: now,
+        selected_access_source: accessSource,
         updated_at: now,
       },
     }),
-    ...(selectedQuoteRes.data || [])
+    ...selectedQuotes
       .filter((item) => item._id !== customer_quote_id)
       .map((item) => db.collection('customer_transport_quotes').doc(item._id).update({
         data: {
           quote_status: 'published',
           selected_by_openid: '',
           selected_at: '',
+          selected_access_source: '',
           updated_at: now,
         },
       })),
+    db.collection('ride_requests').doc(request_id).update({
+      data: {
+        customer_selected_quote_id: customer_quote_id,
+        customer_selected_openid: OPENID,
+        customer_selected_at: now,
+        updated_at: now,
+      },
+    }),
   ]);
 
   await writeAuditLog({
@@ -211,7 +247,7 @@ exports.main = async (event = {}) => {
     detail: {
       source_driver_quote_id: quote.source_driver_quote_id || '',
       client_total: quote.client_total,
-      access_source: customerAccess.source || '',
+      access_source: accessSource,
       customer_trip_access_id: customerAccess.access ? customerAccess.access._id : '',
     },
     created_at: now,

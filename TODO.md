@@ -44,6 +44,22 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: allowed temporary invite viewers to select a customer quote without saving to My Farland.
+- Files changed:
+  - `cloudfunctions/selectCustomerQuote`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.js`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.wxml`
+  - `miniprogram/pages/customer/transfer-detail/transfer-detail.wxss`
+  - `TODO.md`
+- Notes:
+  - Valid invite links can now select a quote using the current WeChat OPENID without claiming the invite or creating `users` / `customer_trip_access`.
+  - Selection records `selected_by_openid`, `selected_at`, `selected_access_source`, and non-binding request metadata.
+  - Saving to My Farland remains optional and still uses `claimCustomerInvite`.
+- Next recommended task:
+  - Deploy `selectCustomerQuote`, preview / upload the customer transfer detail page, then test temporary selection and cross-WeChat conflict behavior.
+
+### 2026-05-23
+
 - Feature completed: fixed customer-visible assigned driver details after operator confirmation.
 - Files changed:
   - `cloudfunctions/selectDriverQuote`

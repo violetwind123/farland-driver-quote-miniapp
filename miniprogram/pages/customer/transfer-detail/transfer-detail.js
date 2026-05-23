@@ -190,10 +190,6 @@ Page({
   async chooseQuote(e) {
     const quoteId = e.currentTarget.dataset.quoteId;
     if (!quoteId || this.data.choosingQuoteId) return;
-    if (this.data.accessSource === 'temporary_invite') {
-      wx.showToast({ title: '请先保存到我的 Farland 行程', icon: 'none' });
-      return;
-    }
     const quote = (this.data.quotes || []).find((item) => item.quote_id === quoteId || item._id === quoteId);
     const confirmed = await new Promise((resolve) => {
       wx.showModal({

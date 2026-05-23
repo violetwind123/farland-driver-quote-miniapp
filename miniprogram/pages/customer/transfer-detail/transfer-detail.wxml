@@ -8,9 +8,9 @@
       <view wx:if="{{showProfileSave}}" class="profile-save-card">
         <view>
           <view class="profile-save-title">保存到我的 Farland 行程</view>
-          <view class="profile-save-copy">保存后，本微信可继续查看后续服务安排，并可选择用车方案。</view>
+          <view class="profile-save-copy">方便之后继续查看行程、报价、司机信息和酒店安排。</view>
         </view>
-        <button wx:if="{{!showProfileSaveForm}}" class="profile-save-open" bindtap="openProfileSaveForm">注册并保存</button>
+        <button wx:if="{{!showProfileSaveForm}}" class="profile-save-open" bindtap="openProfileSaveForm">保存行程</button>
         <view wx:else class="profile-save-form">
           <input
             class="profile-save-input"
@@ -18,7 +18,7 @@
             value="{{profileSaveName}}"
             bindinput="onProfileSaveNameInput"
           />
-          <button class="profile-save-btn" loading="{{profileSaving}}" bindtap="saveToFarlandProfile">保存</button>
+          <button class="profile-save-btn" loading="{{profileSaving}}" bindtap="saveToFarlandProfile">保存行程</button>
         </view>
       </view>
 
@@ -75,7 +75,7 @@
         <view wx:if="{{hasPublishedQuotes}}" class="body-text">Farland 已为您筛选以下优选用车方案。价格包含司机报价、Farland 服务费 10% 与预计总价。</view>
         <view wx:else class="body-text">Farland 正在为您确认用车方案。方案发布后会在这里显示。</view>
         <view wx:if="{{selectedQuoteId}}" class="pending-confirm-card">
-          <view>已选择方案，等待最终确认。Farland 将确认后续安排。</view>
+          <view>已选择方案，等待 Farland 最终确认。</view>
           <button class="pending-refresh-btn" loading="{{refreshingDetail}}" bindtap="refreshStatus">刷新状态</button>
         </view>
         <view wx:if="{{customerNotice}}" class="driver-unavailable-card">
@@ -112,6 +112,9 @@
 
             <view class="quote-detail">包含：{{item.includesText}}</view>
             <view class="quote-detail muted">不含：{{item.excludesText}}</view>
+            <view wx:if="{{accessSource === 'temporary_invite' && !selectedQuoteId}}" class="quote-action-helper">
+              选择后，Farland 顾问将为您确认后续用车安排。如需之后继续查看，可保存到我的 Farland 行程。
+            </view>
 
             <view class="quote-footer">
               <view class="quote-expiry">{{item.valid_until_text}}</view>
@@ -120,10 +123,10 @@
                 wx:else
                 class="quote-select-btn"
                 loading="{{choosingQuoteId === item.quote_id}}"
-                disabled="{{accessSource === 'temporary_invite' || !!selectedQuoteId || choosingQuoteId === item.quote_id}}"
+                disabled="{{!!selectedQuoteId || choosingQuoteId === item.quote_id}}"
                 data-quote-id="{{item.quote_id}}"
                 bindtap="chooseQuote"
-              >{{accessSource === 'temporary_invite' ? '保存后可选择' : (selectedQuoteId ? '已选其他方案' : '选择方案')}}</button>
+              >{{selectedQuoteId ? '已选其他方案' : '选择方案'}}</button>
             </view>
           </view>
         </view>

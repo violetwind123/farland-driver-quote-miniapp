@@ -304,6 +304,16 @@
   color: #8A91A1;
 }
 
+.quote-action-helper {
+  margin-top: 16rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 18rpx;
+  background: rgba(102, 114, 168, 0.08);
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
 .quote-footer {
   display: flex;
   align-items: center;
