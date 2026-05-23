@@ -44,6 +44,18 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: surfaced operator driver confirmation diagnostics in the Mini Program UI.
+- Files changed:
+  - `miniprogram/pages/operator/request-detail/request-detail.js`
+  - `TODO.md`
+- Notes:
+  - Operator confirmation now shows a modal with `failed_step` / `error_code` when `selectDriverQuote` returns a structured failure.
+  - Cloud function invocation failures now show the actual `errMsg` / message and log the full error to console.
+- Next recommended task:
+  - Preview / upload the Mini Program, retry confirmation, and use the modal content to identify whether the cloud function is stale, failing, or returning a business-state rejection.
+
+### 2026-05-23
+
 - Feature completed: added step-level diagnostics for operator driver confirmation failures.
 - Files changed:
   - `cloudfunctions/selectDriverQuote`

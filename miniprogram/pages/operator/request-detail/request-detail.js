@@ -588,7 +588,14 @@ Page({
         },
       });
       if (!result || !result.success) {
-        wx.showToast({ title: (result && result.message) || '选择失败', icon: 'none' });
+        const message = result
+          ? `${result.message || '选择失败'}${result.failed_step ? `\n步骤：${result.failed_step}` : ''}${result.error_code ? `\n错误码：${result.error_code}` : ''}`
+          : '选择失败：云函数无返回';
+        wx.showModal({
+          title: '确认司机失败',
+          content: message,
+          showCancel: false,
+        });
         this.setData({ selectingQuoteId: '' });
         return;
       }
@@ -596,7 +603,12 @@ Page({
       this.setData({ selectingQuoteId: '' });
       this.loadDetail();
     } catch (error) {
-      wx.showToast({ title: '选择失败', icon: 'none' });
+      console.error('selectDriverQuote call failed', error);
+      wx.showModal({
+        title: '确认司机调用失败',
+        content: (error && (error.errMsg || error.message)) || '选择失败，请检查云函数部署和控制台日志',
+        showCancel: false,
+      });
       this.setData({ selectingQuoteId: '' });
     }
   },
