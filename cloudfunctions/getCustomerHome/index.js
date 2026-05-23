@@ -340,6 +340,7 @@ exports.main = async () => {
   return {
     success: true,
     access_status: tripOnly ? 'trip_only' : 'profile',
+    bind_mode: tripOnly ? 'trip_only' : 'farland_profile',
     profile: {
       name: displayName,
       member_level: tripOnly ? '本次行程查看' : 'Farland Signature',

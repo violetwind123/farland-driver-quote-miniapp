@@ -190,6 +190,77 @@
   font-weight: 600;
 }
 
+.profile-upgrade {
+  margin-bottom: 18rpx;
+  padding: 26rpx;
+  border-radius: 28rpx;
+  background: #FFFFFF;
+  border: 1rpx solid rgba(102, 114, 168, 0.14);
+  box-shadow:
+    0 1rpx 2rpx rgba(255, 255, 255, 0.90) inset,
+    0 10rpx 28rpx rgba(17, 24, 39, 0.055);
+}
+
+.profile-upgrade-title {
+  color: #1D2433;
+  font-size: 29rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.profile-upgrade-copy {
+  margin-top: 6rpx;
+  color: #667085;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.profile-upgrade-form {
+  display: grid;
+  grid-template-columns: 1fr 148rpx;
+  gap: 12rpx;
+  margin-top: 18rpx;
+  align-items: center;
+}
+
+.profile-upgrade-open {
+  margin: 18rpx 0 0;
+  height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 18rpx;
+  background: #6672A8;
+  color: #FFFFFF;
+  font-size: 26rpx;
+}
+
+.profile-upgrade-open::after {
+  border: none;
+}
+
+.profile-upgrade-input {
+  height: 76rpx;
+  padding: 0 20rpx;
+  border-radius: 18rpx;
+  background: #F7F8FC;
+  color: #1D2433;
+  font-size: 26rpx;
+  box-sizing: border-box;
+}
+
+.profile-upgrade-btn {
+  margin: 0;
+  height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 18rpx;
+  background: #6672A8;
+  color: #FFFFFF;
+  font-size: 26rpx;
+}
+
+.profile-upgrade-btn::after {
+  border: none;
+}
+
 .trip-next-card {
   position: relative;
   overflow: hidden;

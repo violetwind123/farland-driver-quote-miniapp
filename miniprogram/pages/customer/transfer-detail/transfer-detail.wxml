@@ -98,7 +98,15 @@
 
             <view class="quote-footer">
               <view class="quote-expiry">{{item.valid_until_text}}</view>
-              <view class="quote-readonly">{{selectedQuoteId === item.quote_id ? '已选择' : '顾问确认'}}</view>
+              <view wx:if="{{selectedQuoteId === item.quote_id}}" class="quote-readonly selected">已选择</view>
+              <button
+                wx:else
+                class="quote-select-btn"
+                loading="{{choosingQuoteId === item.quote_id}}"
+                disabled="{{accessSource === 'temporary_invite' || !!selectedQuoteId || choosingQuoteId === item.quote_id}}"
+                data-quote-id="{{item.quote_id}}"
+                bindtap="chooseQuote"
+              >{{accessSource === 'temporary_invite' ? '保存后可选择' : (selectedQuoteId ? '已选其他方案' : '选择方案')}}</button>
             </view>
           </view>
         </view>

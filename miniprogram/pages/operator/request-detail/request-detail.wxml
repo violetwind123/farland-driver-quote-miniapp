@@ -59,54 +59,29 @@
 
     <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">
       <view class="section-title">转发入口</view>
-      <view wx:if="{{creatingInvite}}" class="muted">正在准备报价邀请...</view>
       <view wx:if="{{inviteError}}" class="error-text">{{inviteError}}</view>
       <button wx:if="{{inviteError}}" class="submit-btn" bindtap="onRetryCreateInvite">重试生成报价邀请</button>
       <view wx:if="{{customerInviteError}}" class="error-text">{{customerInviteError}}</view>
-      <view class="customer-invite-box">
-        <view class="invite-box-head">
-          <view>
-            <view class="invite-title">邀请客户查看</view>
-            <view class="invite-subtitle">客户确认后，本微信可查看行程、报价和后续服务安排</view>
-          </view>
-          <button
-            class="invite-create-btn"
-            loading="{{creatingCustomerInvite}}"
-            disabled="{{creatingCustomerInvite}}"
-            bindtap="onCreateCustomerInviteTap"
-          >{{customerInvitePath ? '获取链接' : '生成链接'}}</button>
-        </view>
-        <view wx:if="{{customerInvitePath}}" class="invite-path-card">
-          <view class="invite-path">{{customerInvitePath}}</view>
-          <view class="invite-meta">邀请码：{{customerInviteCode || '-'}}</view>
-          <view class="invite-meta">有效期：{{customerInviteExpiresAt || '-'}}</view>
-          <view class="invite-actions">
-            <button class="copy-invite-btn" bindtap="copyCustomerInvitePath">复制路径</button>
-            <button class="share-invite-btn" open-type="share" bindtap="onCustomerShareTap">转发客户</button>
-          </view>
-        </view>
-      </view>
       <view class="share-grid">
         <button
-          wx:if="{{token && request.status !== 'cancelled' && request.status !== 'completed'}}"
+          wx:if="{{token}}"
           open-type="share"
           class="share-btn driver-share-btn"
           bindtap="onDriverShareTap"
-        >转发司机</button>
+        >转发司机报价</button>
         <button
           wx:else
           class="share-btn driver-share-btn disabled"
           disabled="true"
-        >司机邀请准备中</button>
+        >司机报价准备中</button>
         <button
-          class="customer-link-btn"
+          class="share-btn customer-share-primary"
           loading="{{creatingCustomerInvite}}"
           disabled="{{creatingCustomerInvite || !customerInvitePath}}"
           open-type="share"
           bindtap="onCustomerShareTap"
         >{{creatingCustomerInvite || !customerInvitePath ? '客户邀请准备中' : '转发客户'}}</button>
       </view>
-      <view class="share-status">{{token ? '司机邀请已准备' : '司机邀请准备中'}} · {{customerInvitePath ? '客户邀请已准备' : '客户邀请准备中'}}</view>
       <button class="customer-preview-btn" bindtap="previewCustomerHome">预览客户主页</button>
     </view>
 

@@ -6,30 +6,15 @@
 .content { color: #253554; line-height: 1.7; white-space: pre-wrap; }
 .submit-btn { background: #6672A8; color: #fff; border-radius: 44rpx; }
 .share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 16rpx; }
-.share-btn,
-.customer-link-btn { margin: 0; color: #fff; border-radius: 44rpx; font-size: 27rpx; }
+.share-grid.single { grid-template-columns: 1fr; }
+.share-btn { margin: 0; color: #fff; border-radius: 44rpx; font-size: 27rpx; }
 .driver-share-btn { background: #4B5565; }
 .driver-share-btn.disabled { background: #C9CED8; color: #fff; }
-.customer-link-btn { background: #6672A8; }
+.customer-share-primary { margin: 0; height: 82rpx; line-height: 82rpx; background: #6672A8; color: #fff; font-size: 28rpx; }
+.customer-share-primary::after { border: none; }
 .share-status { margin-top: 12rpx; color: #8A91A1; font-size: 22rpx; line-height: 1.4; text-align: center; }
 .customer-preview-btn { margin-top: 14rpx; height: 76rpx; line-height: 76rpx; border-radius: 38rpx; background: #F2F4F7; color: #6672A8; font-size: 26rpx; }
 .customer-preview-btn::after { border: none; }
-.customer-invite-box { margin-top: 16rpx; padding: 20rpx; border-radius: 20rpx; background: #F7F9FF; border: 1rpx solid #E2E7F5; }
-.invite-box-head { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
-.invite-title { color: #182235; font-size: 28rpx; font-weight: 600; }
-.invite-subtitle { margin-top: 6rpx; color: #7E889A; font-size: 22rpx; line-height: 1.4; }
-.invite-create-btn { flex: 0 0 168rpx; margin: 0; height: 68rpx; line-height: 68rpx; border-radius: 34rpx; background: #6672A8; color: #fff; font-size: 24rpx; }
-.invite-create-btn::after { border: none; }
-.invite-path-card { margin-top: 16rpx; padding: 16rpx; border-radius: 16rpx; background: #fff; }
-.invite-path { color: #253554; font-size: 23rpx; line-height: 1.5; word-break: break-all; }
-.invite-meta { margin-top: 8rpx; color: #8A91A1; font-size: 21rpx; }
-.invite-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; margin-top: 16rpx; }
-.copy-invite-btn,
-.share-invite-btn { margin: 0; height: 68rpx; line-height: 68rpx; border-radius: 34rpx; font-size: 24rpx; }
-.copy-invite-btn { background: #F2F4F7; color: #6672A8; }
-.share-invite-btn { background: #6672A8; color: #fff; }
-.copy-invite-btn::after,
-.share-invite-btn::after { border: none; }
 .cancelled-panel { background: #f7f9ff; }
 .cancel-btn { margin-top: 16rpx; background: #6672A8; color: #fff; border-radius: 44rpx; }
 .bottom-danger-panel { margin: 8rpx 0 22rpx; }
@@ -46,7 +31,7 @@ textarea { min-height: 130rpx; }
 .note { color: #253554; margin-top: 8rpx; line-height: 1.5; }
 .muted, .empty { color: #6E7788; font-size: 24rpx; margin-top: 6rpx; }
 .error-text { color: #6672A8; font-size: 24rpx; margin-top: 8rpx; }
-.select-btn { margin: 14rpx 0 0; background: #17995B; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
+.select-btn { margin: 14rpx 0 0; background: #16A34A; color: #fff; border-radius: 36rpx; font-size: 24rpx; box-shadow: 0 8rpx 18rpx rgba(22, 163, 74, 0.18); }
 .select-btn.inline { margin: 0; }
 .quote-action-row { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 10rpx; margin-top: 14rpx; align-items: center; }
 .quote-action-row.approved-actions { grid-template-columns: 1fr 1fr; }

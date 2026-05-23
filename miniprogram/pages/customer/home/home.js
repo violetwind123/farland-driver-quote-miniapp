@@ -19,7 +19,11 @@ Page({
     inviteMode: false,
     operatorPreview: false,
     needsInviteClaim: false,
-    claimBindType: 'farland_profile',
+    claimingTemporaryAccess: false,
+    currentBindMode: '',
+    profileUpgradeName: '',
+    showProfileUpgrade: false,
+    showProfileUpgradeForm: false,
     claimDisplayName: '',
     claimSubmitting: false,
   },
@@ -80,7 +84,7 @@ Page({
           transportationAppointments: [],
           todayItinerary: null,
           nextConfirmed: {
-            title: invitedTransfer ? invitedTransfer.title : '用车方案确认中',
+            title: invitedTransfer ? invitedTransfer.title : '用车方案准备中',
             date: invitedTransfer ? invitedTransfer.pickup_time_text : '',
             time: '',
             city: invitedTransfer ? invitedTransfer.pickup : '',
@@ -102,28 +106,49 @@ Page({
         return;
       }
       if (this.data.inviteMode && result.access_status === 'empty') {
+        const invitedTransfer = await this.loadInvitedTransferIfNeeded();
         this.setData({
           loading: false,
-          needsInviteClaim: true,
-          profile: {},
-          transferRequests: [],
+          needsInviteClaim: false,
+          profile: {
+            name: '临时客户',
+            member_level: '本次行程查看',
+            points_balance: 0,
+            subtitle: 'Farland 顾问已为您同步本次行程',
+          },
+          benefits: [],
+          topBenefits: [],
+          hotelRequests: [],
+          transportationAppointments: [],
+          todayItinerary: null,
+          nextConfirmed: {
+            title: invitedTransfer ? invitedTransfer.title : '暂无可查看行程',
+            date: invitedTransfer ? invitedTransfer.pickup_time_text : '',
+            time: '',
+            city: invitedTransfer ? invitedTransfer.pickup : '',
+          },
+          tripOverview: [],
+          hotelCards: [],
+          transferRequests: invitedTransfer ? [invitedTransfer] : [],
           transportOrders: [],
           charterServices: [],
-          nextConfirmed: {},
+          advisorPhone: '',
+          currentBindMode: 'temporary_invite',
+          showProfileUpgrade: Boolean(invitedTransfer),
         });
         return;
       }
       const todayItinerary = result.today_itinerary || null;
       const tripOverview = (result.trip_overview || []).map((item) => ({
         ...item,
-        statusText: item.status === 'pending' ? '顾问确认中' : '已确认',
+        statusText: item.status === 'pending' ? 'Farland 确认中' : '已确认',
         statusClass: item.status === 'pending' ? 'pending' : 'confirmed',
       }));
       const hotelCards = (result.hotel_requests || []).map((item, index) => ({
         ...item,
         id: item._id || `${item.city || 'hotel'}-${index}`,
         displayName: item.hotel_name || item.city || '酒店需求',
-        statusText: item.status === 'confirmed' ? '已确认' : '顾问确认中',
+        statusText: item.status === 'confirmed' ? '已确认' : 'Farland 确认中',
         statusClass: item.status === 'confirmed' ? 'confirmed' : 'pending',
         subline: item.hotel_name
           ? `${item.room_type || '房型待确认'}`
@@ -166,6 +191,9 @@ Page({
         loading: false,
         needsInviteClaim: false,
         profile: result.profile || {},
+        currentBindMode: result.bind_mode || '',
+        showProfileUpgrade: this.data.inviteMode && result.bind_mode !== 'farland_profile',
+        showProfileUpgradeForm: this.data.showProfileUpgradeForm && result.bind_mode !== 'farland_profile',
         benefits: result.benefits || [],
         topBenefits: (result.benefits || []).slice(0, 2),
         hotelRequests: result.hotel_requests || [],
@@ -186,16 +214,71 @@ Page({
   },
 
   selectClaimBindType(e) {
-    const bindType = e.currentTarget.dataset.bindType || 'farland_profile';
-    this.setData({ claimBindType: bindType });
+    const bindType = e.currentTarget.dataset.bindType || 'trip_only';
+    this.setData({ currentBindMode: bindType });
   },
 
   onClaimNameInput(e) {
     this.setData({ claimDisplayName: e.detail.value || '' });
   },
 
+  onProfileUpgradeNameInput(e) {
+    this.setData({ profileUpgradeName: e.detail.value || '' });
+  },
+
+  openProfileUpgradeForm() {
+    this.setData({ showProfileUpgradeForm: true });
+  },
+
+  async claimInvite(bindMode, displayName = '') {
+    const { inviteCode, inviteRequestId } = this.data;
+    const { result } = await wx.cloud.callFunction({
+      name: 'claimCustomerInvite',
+      data: {
+        request_id: inviteRequestId,
+        invite_code: inviteCode,
+        bind_mode: bindMode,
+        display_name: displayName,
+      },
+    });
+    return result;
+  },
+
+  claimTemporaryAccess() {
+    this.loadHome();
+  },
+
   async submitInviteClaim() {
-    const { inviteCode, inviteRequestId, claimDisplayName } = this.data;
+    const { profileUpgradeName } = this.data;
+    const safeName = String(profileUpgradeName || '').trim();
+    if (!safeName) {
+      wx.showToast({ title: '请填写称呼', icon: 'none' });
+      return;
+    }
+    this.setData({ claimSubmitting: true });
+    try {
+      const result = await this.claimInvite('farland_profile', safeName);
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '保存失败', icon: 'none' });
+        this.setData({ claimSubmitting: false });
+        return;
+      }
+      wx.showToast({ title: '已保存', icon: 'success' });
+      this.setData({
+        claimSubmitting: false,
+        showProfileUpgrade: false,
+        showProfileUpgradeForm: false,
+        currentBindMode: result.bind_mode || 'farland_profile',
+      });
+      this.loadHome();
+    } catch (error) {
+      wx.showToast({ title: '保存失败', icon: 'none' });
+      this.setData({ claimSubmitting: false });
+    }
+  },
+
+  async submitLegacyInviteClaim() {
+    const { claimDisplayName } = this.data;
     const safeName = String(claimDisplayName || '').trim();
     if (!safeName) {
       wx.showToast({ title: '请填写称呼', icon: 'none' });
@@ -203,15 +286,7 @@ Page({
     }
     this.setData({ claimSubmitting: true });
     try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'claimCustomerInvite',
-        data: {
-          request_id: inviteRequestId,
-          invite_code: inviteCode,
-          bind_mode: 'farland_profile',
-          display_name: safeName,
-        },
-      });
+      const result = await this.claimInvite('farland_profile', safeName);
       if (!result || !result.success) {
         wx.showToast({ title: (result && result.message) || '确认失败', icon: 'none' });
         this.setData({ claimSubmitting: false });
@@ -261,7 +336,7 @@ Page({
       passengers: summary.passengers || '-',
       luggage: summary.luggage || '-',
       status: summary.status || (result.has_published_quotes ? 'quoted' : 'sourcing'),
-      status_text: summary.status_text || (result.has_published_quotes ? '已收到优选用车方案' : '确认中'),
+      status_text: summary.status_text || (result.has_published_quotes ? '已收到优选用车方案' : 'Farland 确认中'),
       ops_status_text: summary.ops_status_text || (result.has_published_quotes
         ? 'Farland 已为您筛选以下优选用车方案。'
         : 'Farland 正在为您确认用车方案。'),

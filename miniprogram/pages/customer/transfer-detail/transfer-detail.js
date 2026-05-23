@@ -11,6 +11,8 @@ Page({
     selectedQuoteTitle: '',
     customerNotice: '',
     refreshingDetail: false,
+    choosingQuoteId: '',
+    accessSource: '',
   },
 
   onLoad(options) {
@@ -122,6 +124,7 @@ Page({
         selectedQuoteTitle: selectedQuote ? selectedQuote.public_title : '',
         customerNotice: selectedQuote ? '' : (result.customer_notice || ''),
         activityEvents: [],
+        accessSource: result.access_source || '',
       });
       if (summary.status === 'assigned' || summary.status === 'cancelled') {
         this.stopStatusPolling();
@@ -136,12 +139,48 @@ Page({
 
   async chooseQuote(e) {
     const quoteId = e.currentTarget.dataset.quoteId;
-    if (!quoteId) return;
+    if (!quoteId || this.data.choosingQuoteId) return;
+    if (this.data.accessSource === 'temporary_invite') {
+      wx.showToast({ title: '请先保存到我的 Farland 行程', icon: 'none' });
+      return;
+    }
     const quote = (this.data.quotes || []).find((item) => item.quote_id === quoteId || item._id === quoteId);
-    this.setData({
-      selectedQuoteId: quoteId,
-      selectedQuoteTitle: quote ? quote.public_title : '该方案',
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '选择用车方案',
+        content: `确认选择${quote ? `「${quote.public_title}」` : '该方案'}吗？Farland 顾问会继续为您确认后续安排。`,
+        confirmText: '选择',
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
     });
-    wx.showToast({ title: '请联系 Farland 顾问确认方案', icon: 'none' });
+    if (!confirmed) return;
+
+    this.setData({ choosingQuoteId: quoteId });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'selectCustomerQuote',
+        data: {
+          request_id: this.data.requestId,
+          customer_quote_id: quoteId,
+          invite_code: this.data.inviteCode,
+        },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '选择失败', icon: 'none' });
+        this.setData({ choosingQuoteId: '' });
+        return;
+      }
+      wx.showToast({ title: '已选择方案', icon: 'success' });
+      this.setData({
+        choosingQuoteId: '',
+        selectedQuoteId: quoteId,
+        selectedQuoteTitle: quote ? quote.public_title : '该方案',
+      });
+      this.loadTransferDetail(this.data.requestId, this.data.inviteCode, { silent: true });
+    } catch (error) {
+      wx.showToast({ title: '选择失败', icon: 'none' });
+      this.setData({ choosingQuoteId: '' });
+    }
   },
 });

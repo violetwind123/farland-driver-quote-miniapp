@@ -284,6 +284,34 @@
   font-weight: 600;
 }
 
+.quote-readonly.selected {
+  background: rgba(23, 153, 91, 0.10);
+  color: #17995B;
+}
+
+.quote-select-btn {
+  flex: 0 0 auto;
+  min-width: 154rpx;
+  height: 58rpx;
+  line-height: 58rpx;
+  margin: 0;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: #6672A8;
+  color: #FFFFFF;
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.quote-select-btn[disabled] {
+  background: #EEF1F8;
+  color: #6672A8;
+}
+
+.quote-select-btn::after {
+  border: none;
+}
+
 .pending-confirm-card {
   margin-top: 18rpx;
   padding: 18rpx 20rpx;

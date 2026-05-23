@@ -26,6 +26,11 @@ function isValidAccess(access, now) {
   return !visibleUntil || visibleUntil >= now.getTime();
 }
 
+function isInviteExpired(invite, now) {
+  const expiresAt = toTime(invite && invite.expires_at);
+  return Boolean(expiresAt && expiresAt < now.getTime());
+}
+
 async function findCustomerTripAccess({ openid, user_id, request_id }) {
   const queries = [
     db.collection('customer_trip_access')
@@ -78,14 +83,15 @@ async function verifyInviteAccess({ requestId, inviteCode, openid }) {
   if (!invite) {
     return { ok: false, code: 403, error_code: 'NO_CUSTOMER_ACCESS', message: '请先确认查看方式' };
   }
-  if (invite.status === 'unused') {
-    return { ok: false, code: 428, error_code: 'INVITE_NOT_CLAIMED', message: '请先确认查看方式' };
-  }
-  if (invite.status !== 'claimed') {
+  if (isInviteExpired(invite, new Date()) || ['expired', 'revoked', 'cancelled'].includes(invite.status)) {
     return { ok: false, code: 403, error_code: 'NO_CUSTOMER_ACCESS', message: '请先确认查看方式' };
   }
-  if (invite.claimed_openid !== openid) {
-    return { ok: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
+  if (invite.status !== 'claimed') {
+    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
+  }
+  const claimedOpenid = String(invite.claimed_openid || '').trim();
+  if (claimedOpenid !== openid) {
+    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
   }
   return { ok: true, source: 'migration_invite', invite };
 }

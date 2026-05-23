@@ -5,26 +5,33 @@
 
   <view wx:elif="{{needsInviteClaim}}" class="claim-panel card-surface">
     <view class="claim-kicker">欢迎使用 Farland</view>
-    <view class="claim-title">确认并查看行程</view>
+    <view class="claim-title">正在确认行程访问</view>
 
     <view class="claim-note">
-      请输入您的称呼，Farland 顾问已为您同步行程。系统将通过微信安全识别您的行程访问权限。
+      Farland 顾问已为您同步行程。系统将通过微信安全识别您的本次行程访问权限。
     </view>
 
-    <view class="claim-field">
-      <view class="field-label">称呼</view>
-      <input
-        class="claim-input"
-        placeholder="例如：王女士"
-        value="{{claimDisplayName}}"
-        bindinput="onClaimNameInput"
-      />
-    </view>
-
-    <button class="claim-submit" loading="{{claimSubmitting}}" bindtap="submitInviteClaim">确认并查看行程</button>
+    <button class="claim-submit" loading="{{claimingTemporaryAccess}}" bindtap="claimTemporaryAccess">查看本次行程</button>
   </view>
 
   <block wx:else>
+    <view wx:if="{{showProfileUpgrade}}" class="profile-upgrade card-surface">
+      <view>
+        <view class="profile-upgrade-title">保存到我的 Farland 行程</view>
+        <view class="profile-upgrade-copy">保存后，本微信可继续查看后续服务安排与历史行程。</view>
+      </view>
+      <button wx:if="{{!showProfileUpgradeForm}}" class="profile-upgrade-open" bindtap="openProfileUpgradeForm">注册并保存</button>
+      <view wx:else class="profile-upgrade-form">
+        <input
+          class="profile-upgrade-input"
+          placeholder="称呼，例如：王女士"
+          value="{{profileUpgradeName}}"
+          bindinput="onProfileUpgradeNameInput"
+        />
+        <button class="profile-upgrade-btn" loading="{{claimSubmitting}}" bindtap="submitInviteClaim">保存</button>
+      </view>
+    </view>
+
     <view class="trip-hero card-surface">
       <view class="section-kicker hero-kicker">我的行程</view>
       <view class="trip-hero-title">{{profile.name || '我的行程'}}</view>

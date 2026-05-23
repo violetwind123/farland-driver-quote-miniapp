@@ -72,6 +72,11 @@ function toTime(value) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+function isInviteExpired(invite, now) {
+  const expiresAt = toTime(invite && invite.expires_at);
+  return Boolean(expiresAt && expiresAt < now.getTime());
+}
+
 function isValidAccess(access, now) {
   if (!access || access.status !== 'active') return false;
   const visibleUntil = toTime(access.visible_until);
@@ -132,16 +137,10 @@ async function verifyInviteAccess({ requestId, inviteCode, caller, operatorPrevi
   if (operatorPreview) {
     return { ok: true, invite };
   }
-  if (invite.status === 'unused') {
-    return { ok: false, code: 428, error_code: 'INVITE_NOT_CLAIMED', message: '请先确认查看方式' };
-  }
-  if (invite.status !== 'claimed') {
+  if (isInviteExpired(invite, new Date()) || ['expired', 'revoked', 'cancelled'].includes(invite.status)) {
     return { ok: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
   }
-  if (invite.claimed_openid !== caller.openid) {
-    return { ok: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
-  }
-  return { ok: true, invite };
+  return { ok: true, source: 'temporary_invite', invite };
 }
 
 async function verifyCustomerAccess({ requestId, inviteCode, caller, request, now }) {
@@ -182,7 +181,7 @@ async function verifyCustomerAccess({ requestId, inviteCode, caller, request, no
   if (!inviteAccess.ok) {
     return inviteAccess;
   }
-  return { ok: true, source: 'migration_invite', invite: inviteAccess.invite };
+  return { ok: true, source: inviteAccess.source || 'temporary_invite', invite: inviteAccess.invite };
 }
 
 exports.main = async (event = {}) => {
@@ -236,7 +235,7 @@ exports.main = async (event = {}) => {
   const now = new Date().toISOString();
 
   await Promise.all(rawQuotes
-    .filter((quote) => quote.quote_status === 'published' && !operatorPreview)
+    .filter((quote) => quote.quote_status === 'published' && !operatorPreview && accessSource !== 'temporary_invite')
     .map((quote) => db.collection('customer_transport_quotes').doc(quote._id).update({
       data: {
         quote_status: 'viewed',
@@ -272,6 +271,8 @@ exports.main = async (event = {}) => {
     code: 0,
     request_id,
     has_published_quotes: quotes.length > 0,
+    access_source: accessSource,
+    customer_trip_access_id: customerTripAccessId,
     request_summary: {
       request_no: request.request_no || '',
       service_date: request.service_date || '',

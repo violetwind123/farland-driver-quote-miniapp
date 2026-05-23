@@ -137,6 +137,36 @@ async function ensureCustomerUser({ caller, existingUser, invite, request, bindM
   return existingUser._id;
 }
 
+async function hasClaimedAccess(invite, requestId, claimedOpenid) {
+  if (!claimedOpenid) return false;
+
+  if (invite.claimed_access_id) {
+    const accessById = await db.collection('customer_trip_access')
+      .doc(invite.claimed_access_id)
+      .get()
+      .catch(() => null);
+    const access = accessById && accessById.data;
+    if (access && access.status === 'active' && (access.openid === claimedOpenid || access.customer_openid === claimedOpenid)) {
+      return true;
+    }
+  }
+
+  const [canonicalRes, legacyRes] = await Promise.all([
+    db.collection('customer_trip_access')
+      .where({ request_id: requestId, invite_id: invite._id, openid: claimedOpenid, status: 'active' })
+      .limit(1)
+      .get()
+      .catch(() => ({ data: [] })),
+    db.collection('customer_trip_access')
+      .where({ request_id: requestId, source_invite_id: invite._id, customer_openid: claimedOpenid, status: 'active' })
+      .limit(1)
+      .get()
+      .catch(() => ({ data: [] })),
+  ]);
+
+  return Boolean((canonicalRes.data && canonicalRes.data.length) || (legacyRes.data && legacyRes.data.length));
+}
+
 exports.main = async (event = {}) => {
   const {
     request_id,
@@ -175,24 +205,33 @@ exports.main = async (event = {}) => {
     return { success: false, code: 403, error_code: 'INVITE_EXPIRED', message: '邀请链接已过期' };
   }
 
-  if (invite.status === 'claimed' && invite.claimed_openid !== caller.openid) {
-    return { success: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
+  const claimedOpenid = String(invite.claimed_openid || '').trim();
+  const claimedByCurrentOpenid = claimedOpenid && claimedOpenid === caller.openid;
+  const claimedByOtherOpenid = claimedOpenid && claimedOpenid !== caller.openid;
+
+  if (invite.status === 'claimed' && claimedByOtherOpenid) {
+    const backedByAccess = await hasClaimedAccess(invite, request_id, claimedOpenid);
+    if (backedByAccess) {
+      return { success: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
+    }
   }
   if (invite.status !== 'unused' && invite.status !== 'claimed') {
     return { success: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
   }
 
-  const isReopenBySameOpenid = invite.status === 'claimed' && invite.claimed_openid === caller.openid;
+  // Test data may be manually reset to status=claimed with an empty claimed_openid.
+  // Treat that as claimable dirty data, not as a real binding.
+  const isReopenBySameOpenid = invite.status === 'claimed' && claimedByCurrentOpenid;
   const requestedBindMode = bind_mode || bind_type || access_type;
   const existingBindMode = isReopenBySameOpenid
     ? invite.claimed_bind_mode || invite.bind_mode || invite.bind_type || invite.access_type
     : '';
   const safeBindMode = normalizeBindMode(requestedBindMode || existingBindMode);
   const rawDisplayName = String(display_name || '').trim();
-  if (!isReopenBySameOpenid && !rawDisplayName) {
+  if (!isReopenBySameOpenid && safeBindMode === 'farland_profile' && !rawDisplayName) {
     return { success: false, code: 422, error_code: 'DISPLAY_NAME_REQUIRED', message: '请填写称呼' };
   }
-  const safeName = String(rawDisplayName || invite.display_name || invite.customer_name || request.customer_name || 'Farland 客户').trim();
+  const safeName = String(rawDisplayName || invite.display_name || invite.customer_name || request.customer_name || '临时客户').trim();
   const userRes = await db.collection('users').where({ openid: caller.openid }).limit(1).get();
   const existingUser = userRes.data[0];
   const userId = await ensureCustomerUser({
