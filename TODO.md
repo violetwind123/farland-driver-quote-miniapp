@@ -44,6 +44,18 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: relaxed operator driver confirmation status gate to avoid false selection failures.
+- Files changed:
+  - `cloudfunctions/selectDriverQuote`
+  - `TODO.md`
+- Notes:
+  - `selectDriverQuote` now rejects only terminal / blocked request statuses for operator confirmation.
+  - This keeps duplicate confirmation protection for assigned / confirmed requests while avoiding false blocks from historical or unexpected non-terminal statuses.
+- Next recommended task:
+  - Deploy `selectDriverQuote`, retest operator driver confirmation, and verify the response includes `transport_order_id`.
+
+### 2026-05-23
+
 - Feature completed: added assigned-driver read-path observability for RC QA.
 - Files changed:
   - `cloudfunctions/getCustomerTransportQuotes`

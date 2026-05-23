@@ -3,7 +3,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
-const DIRECT_CONFIRM_STATUSES = ['quoting', 'quoted', 'customer_selected', 'published'];
+const BLOCKED_CONFIRM_STATUSES = ['cancelled', 'completed', 'assigned', 'confirmed'];
 
 async function getOperator() {
   const { OPENID } = cloud.getWXContext();
@@ -133,17 +133,15 @@ exports.main = async (event = {}) => {
   if (request.status === 'completed') {
     return { success: false, code: 410, message: '当前报价单状态不能选择司机' };
   }
+  if (BLOCKED_CONFIRM_STATUSES.includes(request.status)) {
+    return { success: false, code: 410, message: '当前报价单状态不能选择司机' };
+  }
 
   const now = new Date().toISOString();
   const [otherQuotesRes, customerQuote] = await Promise.all([
     db.collection('driver_quotes').where({ request_id }).get(),
     getRelatedCustomerQuote({ requestId: request_id, quoteId: quote_id }),
   ]);
-  const canConfirmByCustomerSelection = Boolean(customerQuote && customerQuote.quote_status === 'selected');
-  if (!DIRECT_CONFIRM_STATUSES.includes(request.status) && !canConfirmByCustomerSelection) {
-    return { success: false, code: 410, message: '当前报价单状态不能选择司机' };
-  }
-
   const resolved = await resolveDriverVehicle(quote);
   const transportOrderData = toTransportOrderData({ request, quote, customerQuote, resolved, operator, now });
 
