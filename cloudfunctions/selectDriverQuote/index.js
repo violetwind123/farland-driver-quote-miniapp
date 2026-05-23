@@ -10,6 +10,59 @@ async function getOperator() {
   return user && user.status === 'active' && ['operator', 'super_admin'].includes(user.role) ? user : null;
 }
 
+function toTransportOrderData({ request, quote, operator, now }) {
+  return {
+    request_id: request._id,
+    request_no: request.request_no || '',
+    customer_name: request.customer_name || '',
+    customer_openid: request.customer_openid || '',
+    customer_user_id: request.customer_user_id || '',
+    quote_id: quote._id,
+    driver_quote_id: quote._id,
+    customer_quote_id: request.customer_selected_quote_id || '',
+    driver_id: quote.driver_id || '',
+    vehicle_id: quote.vehicle_id || '',
+    order_status: 'assigned',
+    driver_name: quote.driver_name_snapshot || '',
+    driver_phone: quote.driver_phone_snapshot || '',
+    vehicle_type: quote.vehicle_type_snapshot || '',
+    vehicle_model: quote.vehicle_model_snapshot || '',
+    seats: quote.seats_snapshot || 0,
+    luggage_capacity: quote.luggage_capacity_snapshot || 0,
+    plate_number: quote.plate_number_snapshot || '',
+    pickup: request.pickup || request.pickup_location || '',
+    dropoff: request.dropoff || request.dropoff_location || '',
+    pickup_time_text: request.pickup_time_text || request.pickup_time || request.service_date || '',
+    service_date: request.service_date || '',
+    service_type: request.service_type || '',
+    assigned_at: now,
+    assigned_by: operator._id || '',
+    assigned_by_openid: operator.openid || '',
+    updated_at: now,
+  };
+}
+
+async function saveTransportOrder(data, now) {
+  const existingRes = await db.collection('transport_orders')
+    .where({ request_id: data.request_id })
+    .orderBy('updated_at', 'desc')
+    .limit(1)
+    .get()
+    .catch(() => ({ data: [] }));
+  const existing = existingRes.data && existingRes.data[0];
+  if (existing) {
+    return db.collection('transport_orders').doc(existing._id).update({
+      data,
+    });
+  }
+  return db.collection('transport_orders').add({
+    data: {
+      ...data,
+      created_at: now,
+    },
+  });
+}
+
 exports.main = async (event = {}) => {
   const operator = await getOperator();
   if (!operator) return { success: false, code: 403, message: '无权限访问' };
@@ -33,6 +86,7 @@ exports.main = async (event = {}) => {
 
   const now = new Date().toISOString();
   const otherQuotesRes = await db.collection('driver_quotes').where({ request_id }).get();
+  const transportOrderData = toTransportOrderData({ request, quote, operator, now });
 
   await Promise.all([
     db.collection('driver_quotes').doc(quote_id).update({
@@ -57,6 +111,7 @@ exports.main = async (event = {}) => {
         updated_at: now,
       },
     }),
+    saveTransportOrder(transportOrderData, now),
   ]);
 
   return { success: true, code: 0, message: '已选择司机' };

@@ -126,7 +126,22 @@ function statusText(status, hasQuotes) {
   return 'Farland 正在为您确认用车方案';
 }
 
-function toTransferRequest(request, quotes) {
+function toAssignedTransport(order) {
+  if (!order) return null;
+  const driver = order.driver || {};
+  return {
+    driver_name: order.driver_name || driver.display_name || driver.name || '',
+    driver_phone: order.driver_phone || driver.phone || '',
+    vehicle_type: order.vehicle_type || order.vehicle_class || driver.vehicle_type || '',
+    vehicle_model: order.vehicle_model || driver.vehicle_model || '',
+    seats: order.seats || driver.seats || 0,
+    luggage_capacity: order.luggage_capacity || driver.luggage_capacity || 0,
+    plate_number: order.plate_number || driver.plate_number || '',
+    meeting_point: order.meeting_point || driver.meeting_point || '',
+  };
+}
+
+function toTransferRequest(request, quotes, assignedTransport = null) {
   const hasQuotes = quotes.length > 0;
   return {
     request_id: request._id,
@@ -143,7 +158,7 @@ function toTransferRequest(request, quotes) {
     quoteCount: quotes.length,
     statusClass: statusClass(request.status, hasQuotes),
     quotes,
-    assigned_transport: null,
+    assigned_transport: assignedTransport,
     cancel_reason_driver: request.cancel_reason_driver || '',
   };
 }
@@ -327,10 +342,25 @@ exports.main = async () => {
     if (acc[quote.request_id].length < 3) acc[quote.request_id].push(toClientQuote(quote));
     return acc;
   }, {});
+  const assignedRequestIds = requests
+    .filter((request) => request.status === 'assigned' || request.status === 'confirmed')
+    .map((request) => request._id);
+  const orderRes = assignedRequestIds.length
+    ? await db.collection('transport_orders')
+      .where({ request_id: _.in(assignedRequestIds), order_status: _.in(['assigned', 'confirmed']) })
+      .orderBy('updated_at', 'desc')
+      .limit(50)
+      .get()
+      .catch(() => ({ data: [] }))
+    : { data: [] };
+  const assignedTransportByRequest = (orderRes.data || []).reduce((acc, order) => {
+    if (!acc[order.request_id]) acc[order.request_id] = toAssignedTransport(order);
+    return acc;
+  }, {});
 
   const transferRequests = requests
     .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')))
-    .map((request) => toTransferRequest(request, quotesByRequest[request._id] || []));
+    .map((request) => toTransferRequest(request, quotesByRequest[request._id] || [], assignedTransportByRequest[request._id] || null));
   const firstInvite = invites[0] || {};
   const firstTrip = customerTrips[0] || {};
   const displayName = (user && user.name)

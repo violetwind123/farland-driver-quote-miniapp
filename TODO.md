@@ -42,6 +42,20 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ## Recent Update
 
+### 2026-05-23
+
+- Feature completed: fixed customer-visible assigned driver details after operator confirmation.
+- Files changed:
+  - `cloudfunctions/selectDriverQuote`
+  - `cloudfunctions/getCustomerHome`
+  - `TODO.md`
+- Notes:
+  - `selectDriverQuote` now writes a customer-safe `transport_orders` assignment snapshot when an operator confirms a driver.
+  - `getCustomerHome` now reads assigned / confirmed `transport_orders` and returns `assigned_transport` for saved trip cards.
+  - Customer pages still read assigned driver details from `transport_orders`, not directly from `driver_quotes`.
+- Next recommended task:
+  - Deploy `selectDriverQuote` and `getCustomerHome`, then create a fresh assigned request or backfill `transport_orders` for any already-assigned QA request before retesting customer pages.
+
 ### 2026-05-21
 
 - Feature completed: added Mini Program operator customer trip import UI.
