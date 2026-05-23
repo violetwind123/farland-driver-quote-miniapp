@@ -141,6 +141,24 @@ function toAssignedTransport(order) {
   };
 }
 
+function errorDetail(error) {
+  if (!error) return {};
+  return {
+    message: error.message || '',
+    errMsg: error.errMsg || '',
+    code: error.code || '',
+  };
+}
+
+async function writeAuditLog(data) {
+  return db.collection('audit_logs').add({
+    data: {
+      ...data,
+      created_at: data.created_at || new Date().toISOString(),
+    },
+  }).catch(() => null);
+}
+
 function toTransferRequest(request, quotes, assignedTransport = null) {
   const hasQuotes = quotes.length > 0;
   return {
@@ -345,18 +363,49 @@ exports.main = async () => {
   const assignedRequestIds = requests
     .filter((request) => request.status === 'assigned' || request.status === 'confirmed')
     .map((request) => request._id);
-  const orderRes = assignedRequestIds.length
-    ? await db.collection('transport_orders')
-      .where({ request_id: _.in(assignedRequestIds), order_status: _.in(['assigned', 'confirmed']) })
-      .orderBy('updated_at', 'desc')
-      .limit(50)
-      .get()
-      .catch(() => ({ data: [] }))
-    : { data: [] };
+  let orderRes = { data: [] };
+  if (assignedRequestIds.length) {
+    try {
+      orderRes = await db.collection('transport_orders')
+        .where({ request_id: _.in(assignedRequestIds), order_status: _.in(['assigned', 'confirmed']) })
+        .orderBy('updated_at', 'desc')
+        .limit(50)
+        .get();
+    } catch (error) {
+      await writeAuditLog({
+        actor_openid: OPENID,
+        actor_user_id: user ? user._id : '',
+        actor_role: user ? user.role : 'customer',
+        action: 'transport_orders_read_failed',
+        target_type: 'customer_home',
+        target_id: OPENID,
+        detail: {
+          request_ids: assignedRequestIds,
+          error: errorDetail(error),
+        },
+        created_at: now.toISOString(),
+      });
+    }
+  }
   const assignedTransportByRequest = (orderRes.data || []).reduce((acc, order) => {
     if (!acc[order.request_id]) acc[order.request_id] = toAssignedTransport(order);
     return acc;
   }, {});
+  const missingAssignedRequestIds = assignedRequestIds.filter((requestId) => !assignedTransportByRequest[requestId]);
+  if (missingAssignedRequestIds.length && assignedRequestIds.length) {
+    await writeAuditLog({
+      actor_openid: OPENID,
+      actor_user_id: user ? user._id : '',
+      actor_role: user ? user.role : 'customer',
+      action: 'transport_orders_missing_for_assigned_request',
+      target_type: 'customer_home',
+      target_id: OPENID,
+      detail: {
+        request_ids: missingAssignedRequestIds,
+      },
+      created_at: now.toISOString(),
+    });
+  }
 
   const transferRequests = requests
     .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')))

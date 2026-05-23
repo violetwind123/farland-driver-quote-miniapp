@@ -44,6 +44,20 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: added assigned-driver read-path observability for RC QA.
+- Files changed:
+  - `cloudfunctions/getCustomerTransportQuotes`
+  - `cloudfunctions/getCustomerHome`
+  - `TODO.md`
+- Notes:
+  - Customer read paths now write audit logs when `transport_orders` reads fail.
+  - Assigned / confirmed requests that have no readable assigned snapshot now write `transport_orders_missing_for_assigned_request`.
+  - Customer-facing responses stay safe; diagnostics are recorded in `audit_logs` for operator / developer QA.
+- Next recommended task:
+  - Deploy `getCustomerTransportQuotes` and `getCustomerHome`, retest assigned-driver display, then inspect `audit_logs` if customer pages still show `待确认`.
+
+### 2026-05-23
+
 - Feature completed: aligned customer transfer detail assigned-driver display for assigned and confirmed states.
 - Files changed:
   - `cloudfunctions/getCustomerTransportQuotes`

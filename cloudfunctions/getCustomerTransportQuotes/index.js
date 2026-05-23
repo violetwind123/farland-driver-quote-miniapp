@@ -65,14 +65,53 @@ function isAssignedStatus(status) {
   return status === 'assigned' || status === 'confirmed';
 }
 
-async function getAssignedTransport(requestId) {
-  const orderRes = await db.collection('transport_orders')
-    .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
-    .orderBy('updated_at', 'desc')
-    .limit(1)
-    .get()
-    .catch(() => ({ data: [] }));
-  return toAssignedTransport(orderRes.data[0]);
+function errorDetail(error) {
+  if (!error) return {};
+  return {
+    message: error.message || '',
+    errMsg: error.errMsg || '',
+    code: error.code || '',
+  };
+}
+
+async function getAssignedTransport(requestId, auditContext = {}) {
+  let orderRes = { data: [] };
+  let readError = null;
+  try {
+    orderRes = await db.collection('transport_orders')
+      .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
+      .orderBy('updated_at', 'desc')
+      .limit(1)
+      .get();
+  } catch (error) {
+    readError = error;
+    await writeAuditLog(db, {
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'transport_orders_read_failed',
+      target_type: 'ride_request',
+      target_id: requestId,
+      related_request_id: requestId,
+      detail: errorDetail(error),
+      created_at: auditContext.now || new Date().toISOString(),
+    }).catch(() => null);
+  }
+  const transport = toAssignedTransport(orderRes.data[0]);
+  if (!readError && !transport) {
+    await writeAuditLog(db, {
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'transport_orders_missing_for_assigned_request',
+      target_type: 'ride_request',
+      target_id: requestId,
+      related_request_id: requestId,
+      detail: { request_status: auditContext.request_status || '' },
+      created_at: auditContext.now || new Date().toISOString(),
+    }).catch(() => null);
+  }
+  return transport;
 }
 
 function toTime(value) {
@@ -255,7 +294,13 @@ exports.main = async (event = {}) => {
     }).catch(() => null)));
 
   const assignedTransport = isAssignedStatus(request.status)
-    ? await getAssignedTransport(request_id)
+    ? await getAssignedTransport(request_id, {
+      openid: caller.openid,
+      user_id: caller.user ? caller.user._id : '',
+      role: caller.user ? caller.user.role : 'customer',
+      request_status: request.status || '',
+      now,
+    })
     : null;
 
   await writeAuditLog(db, {
