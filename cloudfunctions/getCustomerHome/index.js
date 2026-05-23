@@ -8,6 +8,11 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function formatMoney(value) {
+  const amount = Number(value || 0);
+  return Number.isFinite(amount) ? amount.toFixed(2) : '0.00';
+}
+
 function toTime(value) {
   if (!value) return 0;
   const date = value instanceof Date ? value : new Date(value);
@@ -154,10 +159,10 @@ function toClientQuote(quote) {
     includes: quote.included_items || [],
     excludes: quote.excluded_items || [],
     valid_until_text: quote.valid_until || '',
-    driver_quote_amount: quote.driver_quote_amount,
+    driver_quote_amount: formatMoney(quote.driver_quote_amount),
     farland_service_fee_rate: quote.farland_service_fee_rate || 0.1,
-    farland_service_fee_amount: quote.farland_service_fee_amount,
-    client_visible_total: quote.client_total,
+    farland_service_fee_amount: formatMoney(quote.farland_service_fee_amount),
+    client_visible_total: formatMoney(quote.client_total),
     currency: quote.currency || 'USD',
     is_recommended: Boolean(quote.is_recommended),
     status: quote.quote_status,

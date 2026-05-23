@@ -31,7 +31,15 @@ textarea { min-height: 130rpx; }
 .note { color: #253554; margin-top: 8rpx; line-height: 1.5; }
 .muted, .empty { color: #6E7788; font-size: 24rpx; margin-top: 6rpx; }
 .error-text { color: #6672A8; font-size: 24rpx; margin-top: 8rpx; }
-.select-btn { margin: 14rpx 0 0; background: #16A34A; color: #fff; border-radius: 36rpx; font-size: 24rpx; box-shadow: 0 8rpx 18rpx rgba(22, 163, 74, 0.18); }
+.select-btn {
+  margin: 14rpx 0 0;
+  background: #0F9F4A;
+  color: #fff;
+  border-radius: 36rpx;
+  font-size: 25rpx;
+  font-weight: 700;
+  box-shadow: 0 10rpx 22rpx rgba(15, 159, 74, 0.28);
+}
 .select-btn.inline { margin: 0; }
 .quote-action-row { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 10rpx; margin-top: 14rpx; align-items: center; }
 .quote-action-row.approved-actions { grid-template-columns: 1fr 1fr; }
@@ -42,7 +50,7 @@ textarea { min-height: 130rpx; }
 .driver-decline-btn { margin: 0; background: #D94A4A; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
 .publish-btn { margin: 0; background: #6672A8; color: #fff; border-radius: 36rpx; font-size: 24rpx; }
 .action-hint { margin-top: 2rpx; color: #8A91A1; font-size: 18rpx; line-height: 1.2; font-weight: 400; }
-.action-hint.light { color: rgba(255, 255, 255, 0.74); }
+.action-hint.light { color: rgba(255, 255, 255, 0.80); }
 .action-hint.danger { color: rgba(255, 255, 255, 0.78); }
 .action-placeholder { min-height: 64rpx; border-radius: 36rpx; display: flex; align-items: center; justify-content: center; background: rgba(23, 153, 91, 0.10); color: #17995B; font-size: 24rpx; font-weight: 500; }
 .review-row { margin-top: 12rpx; }

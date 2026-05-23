@@ -8,6 +8,11 @@ const _ = db.command;
 
 const CUSTOMER_VISIBLE_STATUSES = ['published', 'viewed', 'selected', 'confirmed'];
 
+function formatMoney(value) {
+  const amount = Number(value || 0);
+  return Number.isFinite(amount) ? amount.toFixed(2) : '0.00';
+}
+
 function toClientQuote(quote) {
   return {
     _id: quote._id,
@@ -23,11 +28,11 @@ function toClientQuote(quote) {
     valid_until_text: quote.valid_until || '',
     is_recommended: Boolean(quote.is_recommended),
     currency: quote.currency || 'USD',
-    driver_quote_amount: quote.driver_quote_amount,
+    driver_quote_amount: formatMoney(quote.driver_quote_amount),
     farland_service_fee_rate: quote.farland_service_fee_rate || 0.1,
-    farland_service_fee_amount: quote.farland_service_fee_amount,
-    client_total: quote.client_total,
-    client_visible_total: quote.client_total,
+    farland_service_fee_amount: formatMoney(quote.farland_service_fee_amount),
+    client_total: formatMoney(quote.client_total),
+    client_visible_total: formatMoney(quote.client_total),
     vehicle_type_snapshot: quote.vehicle_type_snapshot || '',
     vehicle_model_snapshot: quote.vehicle_model_snapshot || '',
     vehicle_class: quote.vehicle_type_snapshot || '',
