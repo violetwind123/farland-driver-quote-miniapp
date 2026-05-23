@@ -71,7 +71,7 @@ async function findCustomerTripAccess({ openid, user_id, request_id }) {
 
 async function verifyInviteAccess({ requestId, inviteCode, openid }) {
   if (!inviteCode) {
-    return { ok: false, code: 403, error_code: 'NO_CUSTOMER_ACCESS', message: '请先确认查看方式' };
+    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
   }
 
   const inviteRes = await db.collection('customer_invites')
@@ -81,10 +81,10 @@ async function verifyInviteAccess({ requestId, inviteCode, openid }) {
     .catch(() => ({ data: [] }));
   const invite = inviteRes.data[0];
   if (!invite) {
-    return { ok: false, code: 403, error_code: 'NO_CUSTOMER_ACCESS', message: '请先确认查看方式' };
+    return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };
   }
   if (isInviteExpired(invite, new Date()) || ['expired', 'revoked', 'cancelled'].includes(invite.status)) {
-    return { ok: false, code: 403, error_code: 'NO_CUSTOMER_ACCESS', message: '请先确认查看方式' };
+    return { ok: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
   }
   if (invite.status !== 'claimed') {
     return { ok: false, code: 428, error_code: 'SAVE_REQUIRED', message: '如需选择方案，请先保存到我的 Farland 行程' };

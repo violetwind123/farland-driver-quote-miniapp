@@ -5,6 +5,23 @@
     <view wx:if="{{!request}}" class="empty-state">暂无接送需求。</view>
 
     <block wx:else>
+      <view wx:if="{{showProfileSave}}" class="profile-save-card">
+        <view>
+          <view class="profile-save-title">保存到我的 Farland 行程</view>
+          <view class="profile-save-copy">保存后，本微信可继续查看后续服务安排，并可选择用车方案。</view>
+        </view>
+        <button wx:if="{{!showProfileSaveForm}}" class="profile-save-open" bindtap="openProfileSaveForm">注册并保存</button>
+        <view wx:else class="profile-save-form">
+          <input
+            class="profile-save-input"
+            placeholder="称呼，例如：王女士"
+            value="{{profileSaveName}}"
+            bindinput="onProfileSaveNameInput"
+          />
+          <button class="profile-save-btn" loading="{{profileSaving}}" bindtap="saveToFarlandProfile">保存</button>
+        </view>
+      </view>
+
       <view class="detail-hero">
         <view class="hero-kicker">TRANSFER REQUEST</view>
         <view class="hero-title">接送需求</view>

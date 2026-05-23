@@ -13,6 +13,10 @@ Page({
     refreshingDetail: false,
     choosingQuoteId: '',
     accessSource: '',
+    showProfileSave: false,
+    showProfileSaveForm: false,
+    profileSaveName: '',
+    profileSaving: false,
   },
 
   onLoad(options) {
@@ -125,6 +129,7 @@ Page({
         customerNotice: selectedQuote ? '' : (result.customer_notice || ''),
         activityEvents: [],
         accessSource: result.access_source || '',
+        showProfileSave: Boolean(inviteCode && result.access_source === 'temporary_invite'),
       });
       if (summary.status === 'assigned' || summary.status === 'cancelled') {
         this.stopStatusPolling();
@@ -134,6 +139,51 @@ Page({
     } catch (error) {
       if (!silent) wx.showToast({ title: '加载失败', icon: 'none' });
       this.setData({ loading: false, refreshingDetail: false });
+    }
+  },
+
+  openProfileSaveForm() {
+    this.setData({ showProfileSaveForm: true });
+  },
+
+  onProfileSaveNameInput(e) {
+    this.setData({ profileSaveName: e.detail.value || '' });
+  },
+
+  async saveToFarlandProfile() {
+    const safeName = String(this.data.profileSaveName || '').trim();
+    if (!safeName) {
+      wx.showToast({ title: '请填写称呼', icon: 'none' });
+      return;
+    }
+    if (!this.data.requestId || !this.data.inviteCode || this.data.profileSaving) return;
+
+    this.setData({ profileSaving: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'claimCustomerInvite',
+        data: {
+          request_id: this.data.requestId,
+          invite_code: this.data.inviteCode,
+          bind_mode: 'farland_profile',
+          display_name: safeName,
+        },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '保存失败', icon: 'none' });
+        this.setData({ profileSaving: false });
+        return;
+      }
+      wx.showToast({ title: '已保存', icon: 'success' });
+      this.setData({
+        profileSaving: false,
+        showProfileSave: false,
+        showProfileSaveForm: false,
+      });
+      this.loadTransferDetail(this.data.requestId, this.data.inviteCode, { silent: true });
+    } catch (error) {
+      wx.showToast({ title: '保存失败', icon: 'none' });
+      this.setData({ profileSaving: false });
     }
   },
 
