@@ -44,6 +44,18 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: added step-level diagnostics for operator driver confirmation failures.
+- Files changed:
+  - `cloudfunctions/selectDriverQuote`
+  - `TODO.md`
+- Notes:
+  - `selectDriverQuote` now returns `failed_step` and writes `select_driver_quote_failed` audit logs when an unexpected exception occurs.
+  - This distinguishes auth, quote loading, request loading, related quote loading, driver / vehicle resolution, `transport_orders` write, and final selection record update failures.
+- Next recommended task:
+  - Deploy `selectDriverQuote`, retry confirmation, and inspect the returned `failed_step` plus `audit_logs.select_driver_quote_failed` if it still fails.
+
+### 2026-05-23
+
 - Feature completed: relaxed operator driver confirmation status gate to avoid false selection failures.
 - Files changed:
   - `cloudfunctions/selectDriverQuote`
