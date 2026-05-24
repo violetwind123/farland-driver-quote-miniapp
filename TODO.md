@@ -44,6 +44,18 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: removed indexed sort dependency from assigned transport order upsert.
+- Files changed:
+  - `cloudfunctions/selectDriverQuote`
+  - `TODO.md`
+- Notes:
+  - `saveTransportOrder` no longer uses `orderBy('updated_at', 'desc')` when checking for an existing `transport_orders` row by `request_id`.
+  - This avoids CloudBase index-related failures during operator driver confirmation.
+- Next recommended task:
+  - Deploy `selectDriverQuote`, retry confirmation, and verify `transport_order_id` is returned.
+
+### 2026-05-23
+
 - Feature completed: surfaced operator driver confirmation diagnostics in the Mini Program UI.
 - Files changed:
   - `miniprogram/pages/operator/request-detail/request-detail.js`

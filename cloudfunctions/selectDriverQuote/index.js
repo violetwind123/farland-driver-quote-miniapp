@@ -108,7 +108,6 @@ function toTransportOrderData({ request, quote, customerQuote, resolved, operato
 async function saveTransportOrder(data, now) {
   const existingRes = await db.collection('transport_orders')
     .where({ request_id: data.request_id })
-    .orderBy('updated_at', 'desc')
     .limit(1)
     .get()
     .catch(() => ({ data: [] }));
