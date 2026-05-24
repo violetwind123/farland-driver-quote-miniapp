@@ -44,6 +44,18 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: switched assigned transport order writes to deterministic request-id documents.
+- Files changed:
+  - `cloudfunctions/selectDriverQuote`
+  - `TODO.md`
+- Notes:
+  - `saveTransportOrder` now writes `transport_orders/{request_id}` directly with `set`.
+  - This removes the remaining query/add branch from operator confirmation and makes repeated confirmation attempts idempotent by request.
+- Next recommended task:
+  - Deploy `selectDriverQuote`, retry confirmation, and check `transport_orders` document id equals the request id.
+
+### 2026-05-23
+
 - Feature completed: removed indexed sort dependency from assigned transport order upsert.
 - Files changed:
   - `cloudfunctions/selectDriverQuote`

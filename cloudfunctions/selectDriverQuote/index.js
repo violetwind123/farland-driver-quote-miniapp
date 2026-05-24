@@ -106,25 +106,14 @@ function toTransportOrderData({ request, quote, customerQuote, resolved, operato
 }
 
 async function saveTransportOrder(data, now) {
-  const existingRes = await db.collection('transport_orders')
-    .where({ request_id: data.request_id })
-    .limit(1)
-    .get()
-    .catch(() => ({ data: [] }));
-  const existing = existingRes.data && existingRes.data[0];
-  if (existing) {
-    await db.collection('transport_orders').doc(existing._id).update({
-      data,
-    });
-    return existing._id;
-  }
-  const created = await db.collection('transport_orders').add({
+  const orderId = data.request_id;
+  await db.collection('transport_orders').doc(orderId).set({
     data: {
       ...data,
       created_at: now,
     },
   });
-  return created._id;
+  return orderId;
 }
 
 exports.main = async (event = {}) => {
