@@ -44,6 +44,19 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: restored operator driver confirmation success when assigned snapshot write fails.
+- Files changed:
+  - `cloudfunctions/selectDriverQuote`
+  - `TODO.md`
+- Notes:
+  - `selectDriverQuote` now updates `driver_quotes` and `ride_requests` before attempting the `transport_orders` customer-visible snapshot.
+  - If snapshot write fails, operator confirmation still succeeds and writes `transport_order_snapshot_write_failed` to `audit_logs`.
+  - The response includes `transport_order_saved` so QA can distinguish assignment success from customer snapshot failure.
+- Next recommended task:
+  - Deploy `selectDriverQuote`, retry confirmation, then inspect `transport_order_saved` and `audit_logs.transport_order_snapshot_write_failed`.
+
+### 2026-05-23
+
 - Feature completed: switched assigned transport order writes to deterministic request-id documents.
 - Files changed:
   - `cloudfunctions/selectDriverQuote`

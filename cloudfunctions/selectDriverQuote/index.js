@@ -105,15 +105,33 @@ function toTransportOrderData({ request, quote, customerQuote, resolved, operato
   };
 }
 
-async function saveTransportOrder(data, now) {
+async function saveTransportOrder(data, now, context = {}) {
   const orderId = data.request_id;
-  await db.collection('transport_orders').doc(orderId).set({
-    data: {
-      ...data,
+  try {
+    await db.collection('transport_orders').doc(orderId).set({
+      data: {
+        ...data,
+        created_at: now,
+      },
+    });
+    return { ok: true, transportOrderId: orderId };
+  } catch (error) {
+    await writeAuditLog({
+      actor_openid: context.operator ? context.operator.openid : '',
+      actor_user_id: context.operator ? context.operator._id : '',
+      actor_role: context.operator ? context.operator.role : 'operator',
+      action: 'transport_order_snapshot_write_failed',
+      target_type: 'ride_request',
+      target_id: data.request_id || '',
+      related_request_id: data.request_id || '',
+      related_driver_quote_id: data.driver_quote_id || '',
+      detail: {
+        error: errorDetail(error),
+      },
       created_at: now,
-    },
-  });
-  return orderId;
+    });
+    return { ok: false, transportOrderId: '', error };
+  }
 }
 
 exports.main = async (event = {}) => {
@@ -162,9 +180,6 @@ exports.main = async (event = {}) => {
     const resolved = await resolveDriverVehicle(quote);
     const transportOrderData = toTransportOrderData({ request, quote, customerQuote, resolved, operator, now });
 
-    step = 'save_transport_order';
-    const transportOrderId = await saveTransportOrder(transportOrderData, now);
-
     step = 'update_selection_records';
     await Promise.all([
       db.collection('driver_quotes').doc(quote_id).update({
@@ -194,13 +209,17 @@ exports.main = async (event = {}) => {
       }),
     ]);
 
+    step = 'save_transport_order';
+    const transportOrderResult = await saveTransportOrder(transportOrderData, now, { operator });
+
     return {
       success: true,
       code: 0,
-      message: '已选择司机',
+      message: transportOrderResult.ok ? '已选择司机' : '已选择司机，司机信息快照保存失败，请检查日志',
       request_id,
       quote_id,
-      transport_order_id: transportOrderId,
+      transport_order_id: transportOrderResult.transportOrderId,
+      transport_order_saved: transportOrderResult.ok,
       driver_name: resolved.driverName,
       vehicle_model: resolved.vehicleModel,
     };
