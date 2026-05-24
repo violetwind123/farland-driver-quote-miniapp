@@ -141,6 +141,20 @@ function toAssignedTransport(order) {
   };
 }
 
+function toAssignedTransportFromDriverVehicle(driver, vehicle) {
+  if (!driver && !vehicle) return null;
+  return {
+    driver_name: driver ? (driver.display_name || driver.name || '') : '',
+    driver_phone: driver ? (driver.phone || '') : '',
+    vehicle_type: vehicle ? (vehicle.vehicle_type || vehicle.vehicle_class || '') : '',
+    vehicle_model: vehicle ? (vehicle.vehicle_model || '') : '',
+    seats: vehicle ? (vehicle.seats || 0) : 0,
+    luggage_capacity: vehicle ? (vehicle.luggage_capacity || 0) : 0,
+    plate_number: vehicle ? (vehicle.plate_number || '') : '',
+    meeting_point: vehicle ? (vehicle.meeting_point || '') : '',
+  };
+}
+
 function errorDetail(error) {
   if (!error) return {};
   return {
@@ -157,6 +171,45 @@ async function writeAuditLog(data) {
       created_at: data.created_at || new Date().toISOString(),
     },
   }).catch(() => null);
+}
+
+async function getAssignedTransportFallback(request, auditContext = {}) {
+  if (!request || !request.selected_driver_id) return null;
+  const driverRes = await db.collection('drivers').doc(request.selected_driver_id).get().catch((error) => {
+    writeAuditLog({
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'assigned_driver_fallback_read_failed',
+      target_type: 'ride_request',
+      target_id: request._id || '',
+      related_request_id: request._id || '',
+      detail: { collection: 'drivers', error: errorDetail(error) },
+      created_at: auditContext.now || new Date().toISOString(),
+    });
+    return null;
+  });
+  const driver = driverRes && driverRes.data ? driverRes.data : null;
+  const vehicleId = request.selected_vehicle_id || (driver && driver.default_vehicle_id) || '';
+  let vehicle = null;
+  if (vehicleId) {
+    const vehicleRes = await db.collection('vehicles').doc(vehicleId).get().catch((error) => {
+      writeAuditLog({
+        actor_openid: auditContext.openid || '',
+        actor_user_id: auditContext.user_id || '',
+        actor_role: auditContext.role || 'customer',
+        action: 'assigned_driver_fallback_read_failed',
+        target_type: 'ride_request',
+        target_id: request._id || '',
+        related_request_id: request._id || '',
+        detail: { collection: 'vehicles', error: errorDetail(error) },
+        created_at: auditContext.now || new Date().toISOString(),
+      });
+      return null;
+    });
+    vehicle = vehicleRes && vehicleRes.data ? vehicleRes.data : null;
+  }
+  return toAssignedTransportFromDriverVehicle(driver, vehicle);
 }
 
 function toTransferRequest(request, quotes, assignedTransport = null) {
@@ -391,6 +444,20 @@ exports.main = async () => {
     if (!acc[order.request_id]) acc[order.request_id] = toAssignedTransport(order);
     return acc;
   }, {});
+  const requestById = requests.reduce((acc, request) => {
+    acc[request._id] = request;
+    return acc;
+  }, {});
+  await Promise.all(assignedRequestIds.map(async (requestId) => {
+    if (assignedTransportByRequest[requestId]) return;
+    const fallback = await getAssignedTransportFallback(requestById[requestId], {
+      openid: OPENID,
+      user_id: user ? user._id : '',
+      role: user ? user.role : 'customer',
+      now: now.toISOString(),
+    });
+    if (fallback) assignedTransportByRequest[requestId] = fallback;
+  }));
   const missingAssignedRequestIds = assignedRequestIds.filter((requestId) => !assignedTransportByRequest[requestId]);
   if (missingAssignedRequestIds.length && assignedRequestIds.length) {
     await writeAuditLog({

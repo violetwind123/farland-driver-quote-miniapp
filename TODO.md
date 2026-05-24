@@ -44,6 +44,20 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-23
 
+- Feature completed: added assigned driver fallback from selected driver and vehicle records.
+- Files changed:
+  - `cloudfunctions/getCustomerTransportQuotes`
+  - `cloudfunctions/getCustomerHome`
+  - `TODO.md`
+- Notes:
+  - Customer read paths still prefer `transport_orders`, but now fall back to `ride_requests.selected_driver_id` / `selected_vehicle_id` when the assigned snapshot is missing.
+  - The fallback is only used for assigned / confirmed requests and returns customer-safe driver / vehicle fields.
+  - Customer frontend still does not read `drivers`, `vehicles`, or `driver_quotes` directly.
+- Next recommended task:
+  - Deploy `getCustomerTransportQuotes` and `getCustomerHome`, then retest assigned driver display for the request that already has `selected_driver_id`.
+
+### 2026-05-23
+
 - Feature completed: restored operator driver confirmation success when assigned snapshot write fails.
 - Files changed:
   - `cloudfunctions/selectDriverQuote`

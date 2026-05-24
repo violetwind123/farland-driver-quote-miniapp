@@ -61,6 +61,20 @@ function toAssignedTransport(order) {
   };
 }
 
+function toAssignedTransportFromDriverVehicle(driver, vehicle) {
+  if (!driver && !vehicle) return null;
+  return {
+    driver_name: driver ? (driver.display_name || driver.name || '') : '',
+    driver_phone: driver ? (driver.phone || '') : '',
+    vehicle_type: vehicle ? (vehicle.vehicle_type || vehicle.vehicle_class || '') : '',
+    vehicle_model: vehicle ? (vehicle.vehicle_model || '') : '',
+    seats: vehicle ? (vehicle.seats || 0) : 0,
+    luggage_capacity: vehicle ? (vehicle.luggage_capacity || 0) : 0,
+    plate_number: vehicle ? (vehicle.plate_number || '') : '',
+    meeting_point: vehicle ? (vehicle.meeting_point || '') : '',
+  };
+}
+
 function isAssignedStatus(status) {
   return status === 'assigned' || status === 'confirmed';
 }
@@ -112,6 +126,45 @@ async function getAssignedTransport(requestId, auditContext = {}) {
     }).catch(() => null);
   }
   return transport;
+}
+
+async function getAssignedTransportFallback(request, auditContext = {}) {
+  if (!request || !request.selected_driver_id) return null;
+  const driverRes = await db.collection('drivers').doc(request.selected_driver_id).get().catch((error) => {
+    writeAuditLog(db, {
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'assigned_driver_fallback_read_failed',
+      target_type: 'ride_request',
+      target_id: request._id || '',
+      related_request_id: request._id || '',
+      detail: { collection: 'drivers', error: errorDetail(error) },
+      created_at: auditContext.now || new Date().toISOString(),
+    }).catch(() => null);
+    return null;
+  });
+  const driver = driverRes && driverRes.data ? driverRes.data : null;
+  const vehicleId = request.selected_vehicle_id || (driver && driver.default_vehicle_id) || '';
+  let vehicle = null;
+  if (vehicleId) {
+    const vehicleRes = await db.collection('vehicles').doc(vehicleId).get().catch((error) => {
+      writeAuditLog(db, {
+        actor_openid: auditContext.openid || '',
+        actor_user_id: auditContext.user_id || '',
+        actor_role: auditContext.role || 'customer',
+        action: 'assigned_driver_fallback_read_failed',
+        target_type: 'ride_request',
+        target_id: request._id || '',
+        related_request_id: request._id || '',
+        detail: { collection: 'vehicles', error: errorDetail(error) },
+        created_at: auditContext.now || new Date().toISOString(),
+      }).catch(() => null);
+      return null;
+    });
+    vehicle = vehicleRes && vehicleRes.data ? vehicleRes.data : null;
+  }
+  return toAssignedTransportFromDriverVehicle(driver, vehicle);
 }
 
 function toTime(value) {
@@ -293,14 +346,15 @@ exports.main = async (event = {}) => {
       },
     }).catch(() => null)));
 
-  const assignedTransport = isAssignedStatus(request.status)
-    ? await getAssignedTransport(request_id, {
+  const auditContext = {
       openid: caller.openid,
       user_id: caller.user ? caller.user._id : '',
       role: caller.user ? caller.user.role : 'customer',
       request_status: request.status || '',
       now,
-    })
+    };
+  const assignedTransport = isAssignedStatus(request.status)
+    ? (await getAssignedTransport(request_id, auditContext)) || await getAssignedTransportFallback(request, auditContext)
     : null;
 
   await writeAuditLog(db, {
