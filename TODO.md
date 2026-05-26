@@ -44,6 +44,19 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-26
 
+- Feature completed: made driver quick quote repeat submissions update the original quote.
+- Files changed:
+  - `cloudfunctions/submitQuickQuote`
+  - `TODO.md`
+- Notes:
+  - Existing `driver_quotes` for the same `request_id` and `driver_id` are now updated instead of returning 409.
+  - Repeat submissions reset the quote status to `submitted` and write `resubmitted_at` for operator review.
+  - The response now includes `quote_id` for both create and update paths.
+- Next recommended task:
+  - Deploy `submitQuickQuote`, then test a driver opening the same quote card and updating the amount / note.
+
+### 2026-05-26
+
 - Feature completed: defaulted customer invite claims to trip-only access.
 - Files changed:
   - `cloudfunctions/claimCustomerInvite`

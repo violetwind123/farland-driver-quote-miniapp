@@ -192,10 +192,21 @@ exports.main = async (event = {}) => {
   };
 
   if (existingRes.data.length) {
-    return { success: false, code: 409, message: '您已提交过报价，如需修改请联系 Farland 运营', msg: '您已提交过报价，如需修改请联系 Farland 运营' };
+    const existingQuote = existingRes.data[0];
+    await db.collection('driver_quotes').doc(existingQuote._id).update({
+      data: {
+        ...quoteData,
+        quote_status: 'submitted',
+        resubmitted_at: now,
+      },
+    });
+    await db.collection('quote_invites').doc(invite._id).update({
+      data: { status: 'submitted', updated_at: now },
+    });
+    return { success: true, code: 0, quote_id: existingQuote._id, message: '报价已更新，Farland 运营会再与您确认。', msg: '报价已更新，Farland 运营会再与您确认。' };
   }
 
-  await db.collection('driver_quotes').add({
+  const createdQuote = await db.collection('driver_quotes').add({
     data: {
       ...quoteData,
       quote_status: 'submitted',
@@ -205,5 +216,5 @@ exports.main = async (event = {}) => {
   await db.collection('quote_invites').doc(invite._id).update({
     data: { status: 'submitted', updated_at: now },
   });
-  return { success: true, code: 0, message: '报价已提交，Farland 运营会再与您确认。', msg: '报价已提交，Farland 运营会再与您确认。' };
+  return { success: true, code: 0, quote_id: createdQuote._id, message: '报价已提交，Farland 运营会再与您确认。', msg: '报价已提交，Farland 运营会再与您确认。' };
 };
