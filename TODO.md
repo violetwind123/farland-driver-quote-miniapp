@@ -42,6 +42,19 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ## Recent Update
 
+### 2026-05-26
+
+- Feature completed: defaulted customer invite claims to trip-only access.
+- Files changed:
+  - `cloudfunctions/claimCustomerInvite`
+  - `TODO.md`
+- Notes:
+  - Missing or unknown bind mode now resolves to `trip_only` instead of `farland_profile`.
+  - Explicit `farland_profile` claims still require a display name and keep the persistent save behavior.
+  - This aligns invite entry with the product direction that viewing a shared trip should not imply saving to My Farland.
+- Next recommended task:
+  - Deploy `claimCustomerInvite`, then test opening an invite without an explicit bind mode and saving explicitly to My Farland.
+
 ### 2026-05-23
 
 - Feature completed: added assigned driver fallback from selected driver and vehicle records.

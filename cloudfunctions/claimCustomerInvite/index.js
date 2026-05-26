@@ -8,7 +8,7 @@ const db = cloud.database();
 function normalizeBindMode(value) {
   if (value === 'farland_profile' || value === 'profile') return 'farland_profile';
   if (value === 'trip_only') return 'trip_only';
-  return 'farland_profile';
+  return 'trip_only';
 }
 
 function legacyAccessType(bindMode) {
