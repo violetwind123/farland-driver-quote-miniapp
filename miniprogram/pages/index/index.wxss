@@ -2,9 +2,9 @@
   min-height: 100vh;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   box-sizing: border-box;
-  padding: 30vh 56rpx 56rpx;
+  padding: 56rpx;
   background:
     radial-gradient(circle at 50% 28%, rgba(102, 114, 168, 0.16), transparent 34%),
     linear-gradient(180deg, #F7F8FC 0%, #EEF1F8 100%);
@@ -13,6 +13,7 @@
 .splash-card {
   width: 100%;
   text-align: center;
+  transform: translateY(-88rpx);
 }
 
 .splash-logo {
