@@ -101,6 +101,7 @@ function emptyHome(user) {
       points_balance: 0,
       subtitle: '请通过 Farland 顾问发送的行程卡片查看您的专属安排',
     },
+    today_card: null,
     today_itinerary: null,
     trip_overview: [],
     transportation_appointments: [],
@@ -109,6 +110,72 @@ function emptyHome(user) {
     transport_orders: [],
     hotel_requests: [],
     benefits: [],
+  };
+}
+
+function buildMockTodayCard() {
+  return {
+    trip_id: '2026XBC091',
+    trip_no: '2026XBC091',
+    day_no: 1,
+    date: '2026-06-05',
+    weekday: 'Fri',
+    city_summary: 'Boston → Amherst → Providence',
+    title: 'Day 1: Boston, Amherst, Providence',
+    status: 'vehicle_confirmed',
+    status_text: 'Advisor confirmed',
+    last_updated_at: '2026-06-04T20:42:00.000Z',
+    change_summary: '',
+    service_window: '8:10 AM departure',
+    depart_time: '8:10 AM',
+    vehicle_summary: 'Toyota Sienna or similar',
+    party_summary: '6 guests · 3 bags',
+    advisor: {
+      name: 'Farland Advisor',
+      contact_label: 'Contact advisor',
+    },
+    driver_visibility: 'pending',
+    driver: null,
+    timeline_items: [
+      {
+        time: '8:10 AM',
+        title: 'Depart Boston',
+        location: 'Boston',
+        route: 'Boston → Amherst',
+        drive_time: '',
+        traffic_level: 'Good',
+        note: '',
+      },
+      {
+        time: '10:00 AM',
+        title: 'Amherst College',
+        location: 'Amherst College',
+        route: '',
+        drive_time: '',
+        traffic_level: '',
+        note: '',
+      },
+      {
+        time: '1:40 PM',
+        title: 'Arrive at hotel',
+        location: 'Renaissance Providence Downtown Hotel',
+        route: 'Amherst → Providence',
+        drive_time: '',
+        traffic_level: '',
+        note: '',
+      },
+    ],
+    hotel: {
+      name: 'Renaissance Providence Downtown Hotel',
+      arrival_time: '1:40 PM',
+      address: '',
+    },
+    next_day_teaser: 'Tomorrow: Brown University + Yale University',
+    documents: [],
+    actions: [
+      { type: 'contact_advisor', label: 'Contact advisor' },
+      { type: 'view_full_trip', label: 'View full trip' },
+    ],
   };
 }
 
@@ -498,6 +565,7 @@ exports.main = async () => {
       points_balance: tripOnly ? 0 : 3280,
       subtitle: tripOnly ? 'Farland 顾问已为您同步本次行程与报价' : '您的行程与报价已由 Farland 顾问同步',
     },
+    today_card: buildMockTodayCard(),
     today_itinerary: tripData.today_itinerary,
     trip_overview: tripData.trip_overview,
     transportation_appointments: [],

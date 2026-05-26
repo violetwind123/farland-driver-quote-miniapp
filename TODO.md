@@ -44,6 +44,22 @@ Settle admin import tooling around safe auth before building Web admin screens.
 
 ### 2026-05-26
 
+- Feature completed: added P4 Daily Itinerary Today Card mock and customer home rendering.
+- Files changed:
+  - `cloudfunctions/getCustomerHome`
+  - `miniprogram/pages/customer/home/home.js`
+  - `miniprogram/pages/customer/home/home.wxml`
+  - `miniprogram/pages/customer/home/home.wxss`
+  - `TODO.md`
+- Notes:
+  - `getCustomerHome` now returns a mock `today_card` for trip `2026XBC091` Day 1.
+  - Customer home renders the Today Card above the legacy `今日行程` section while keeping existing sections intact.
+  - Driver details remain hidden while `driver_visibility` is `pending`.
+- Next recommended task:
+  - Preview customer home in WeChat DevTools, review visual density, then decide whether to connect `today_card` to imported trip data.
+
+### 2026-05-26
+
 - Feature completed: made driver quick quote repeat submissions update the original quote.
 - Files changed:
   - `cloudfunctions/submitQuickQuote`

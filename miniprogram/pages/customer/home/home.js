@@ -5,6 +5,7 @@ Page({
     benefits: [],
     hotelRequests: [],
     transportationAppointments: [],
+    todayCard: null,
     todayItinerary: null,
     nextConfirmed: {},
     tripOverview: [],
@@ -82,6 +83,7 @@ Page({
           topBenefits: [],
           hotelRequests: [],
           transportationAppointments: [],
+          todayCard: null,
           todayItinerary: null,
           nextConfirmed: {
             title: invitedTransfer ? invitedTransfer.title : '用车方案准备中',
@@ -120,6 +122,7 @@ Page({
           topBenefits: [],
           hotelRequests: [],
           transportationAppointments: [],
+          todayCard: null,
           todayItinerary: null,
           nextConfirmed: {
             title: invitedTransfer ? invitedTransfer.title : '暂无可查看行程',
@@ -138,6 +141,7 @@ Page({
         });
         return;
       }
+      const todayCard = this.normalizeTodayCard(result.today_card || null);
       const todayItinerary = result.today_itinerary || null;
       const tripOverview = (result.trip_overview || []).map((item) => ({
         ...item,
@@ -198,6 +202,7 @@ Page({
         topBenefits: (result.benefits || []).slice(0, 2),
         hotelRequests: result.hotel_requests || [],
         transportationAppointments: result.transportation_appointments || [],
+        todayCard,
         todayItinerary,
         nextConfirmed,
         tripOverview,
@@ -205,12 +210,33 @@ Page({
         transferRequests: mergedTransferRequests,
         transportOrders,
         charterServices: result.charter_services || [],
-        advisorPhone: todayItinerary && todayItinerary.farland_contact ? todayItinerary.farland_contact.phone : '',
+        advisorPhone: (todayCard && todayCard.advisor && todayCard.advisor.phone)
+          || (todayItinerary && todayItinerary.farland_contact ? todayItinerary.farland_contact.phone : ''),
       });
     } catch (error) {
       wx.showToast({ title: '加载失败', icon: 'none' });
       this.setData({ loading: false });
     }
+  },
+
+  normalizeTodayCard(card) {
+    if (!card) return null;
+    const driverAssigned = card.driver_visibility === 'assigned' && card.driver;
+    return {
+      ...card,
+      dayLabel: `Trip ${card.trip_no || card.trip_id || ''} · Day ${card.day_no || ''}`,
+      dateRouteText: `${card.weekday || ''}${card.date ? ` · ${card.date}` : ''}${card.city_summary ? ` · ${card.city_summary}` : ''}`,
+      timeline_items: (card.timeline_items || []).map((item, index) => ({
+        ...item,
+        id: item.id || `${item.time || 'time'}-${index}`,
+        meta: [item.location, item.route, item.drive_time].filter(Boolean).join(' · '),
+        noteText: [item.traffic_level ? `Traffic: ${item.traffic_level}` : '', item.note].filter(Boolean).join(' · '),
+      })),
+      hotel: card.hotel || null,
+      advisor: card.advisor || {},
+      driver: driverAssigned ? card.driver : null,
+      driverPendingText: driverAssigned ? '' : 'Driver details will be shared after Farland confirms the assignment.',
+    };
   },
 
   selectClaimBindType(e) {
@@ -381,6 +407,10 @@ Page({
       return;
     }
     wx.makePhoneCall({ phoneNumber: phone.replace(/[^\d+]/g, '') });
+  },
+
+  viewFullTripPlaceholder() {
+    wx.showToast({ title: '完整行程即将开放', icon: 'none' });
   },
 
   chooseQuote(e) {
