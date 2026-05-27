@@ -92,12 +92,14 @@ function sanitizeCustomerObject(value) {
 }
 
 function emptyHome(user) {
+  const hasCustomerProfile = Boolean(user && user.role === 'customer' && user.status === 'active');
   return {
     success: true,
     access_status: 'empty',
+    bind_mode: hasCustomerProfile ? 'farland_profile' : '',
     profile: {
       name: user && user.name ? user.name : '欢迎使用 Farland',
-      member_level: '',
+      member_level: hasCustomerProfile ? 'Farland Signature' : '',
       points_balance: 0,
       subtitle: '请通过 Farland 顾问发送的行程卡片查看您的专属安排',
     },

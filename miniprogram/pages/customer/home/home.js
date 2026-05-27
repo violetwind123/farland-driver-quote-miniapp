@@ -32,6 +32,7 @@ Page({
     showProfileUpgradeForm: false,
     claimDisplayName: '',
     claimSubmitting: false,
+    registeringProfile: false,
   },
 
   onLoad(options = {}) {
@@ -293,6 +294,36 @@ Page({
 
   openProfileUpgradeForm() {
     this.setData({ showProfileUpgradeForm: true });
+  },
+
+  async registerCustomerProfile() {
+    if (this.data.currentBindMode === 'farland_profile' && !this.data.inviteMode) {
+      wx.showToast({ title: '已绑定当前微信', icon: 'none' });
+      return;
+    }
+    if (this.data.inviteMode && this.data.inviteCode && this.data.inviteRequestId) {
+      this.setData({
+        showProfileUpgrade: true,
+        showProfileUpgradeForm: true,
+      });
+      return;
+    }
+    if (this.data.registeringProfile) return;
+    this.setData({ registeringProfile: true });
+    try {
+      const { result } = await wx.cloud.callFunction({ name: 'registerCustomerProfile' });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '注册失败', icon: 'none' });
+        this.setData({ registeringProfile: false });
+        return;
+      }
+      wx.showToast({ title: '已注册', icon: 'success' });
+      this.setData({ registeringProfile: false });
+      this.loadHome();
+    } catch (error) {
+      wx.showToast({ title: '注册失败', icon: 'none' });
+      this.setData({ registeringProfile: false });
+    }
   },
 
   async claimInvite(bindMode, displayName = '') {
