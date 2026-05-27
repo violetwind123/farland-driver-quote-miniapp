@@ -18,6 +18,8 @@ Page({
     charterServices: [],
     topBenefits: [],
     advisorPhone: '',
+    advisorQrPath: '/assets/images/advisor-wechat-qr.jpg',
+    showAdvisorQr: false,
     inviteCode: '',
     inviteRequestId: '',
     inviteMode: false,
@@ -438,13 +440,21 @@ Page({
   },
 
   contactAdvisor() {
-    const phone = this.data.advisorPhone;
-    if (!phone) {
-      wx.showToast({ title: '暂无顾问电话', icon: 'none' });
-      return;
-    }
-    wx.makePhoneCall({ phoneNumber: phone.replace(/[^\d+]/g, '') });
+    this.setData({ showAdvisorQr: true });
   },
+
+  closeAdvisorQr() {
+    this.setData({ showAdvisorQr: false });
+  },
+
+  previewAdvisorQr() {
+    wx.previewImage({
+      urls: [this.data.advisorQrPath],
+      current: this.data.advisorQrPath,
+    });
+  },
+
+  noop() {},
 
   openTodayDetail() {
     const todayCard = this.data.todayCard;

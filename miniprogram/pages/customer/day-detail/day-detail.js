@@ -3,6 +3,8 @@ Page({
     todayCard: null,
     cards: [],
     currentIndex: 0,
+    advisorQrPath: '/assets/images/advisor-wechat-qr.jpg',
+    showAdvisorQr: false,
   },
 
   onLoad() {
@@ -73,14 +75,21 @@ Page({
   },
 
   contactAdvisor() {
-    const advisor = this.data.todayCard && this.data.todayCard.advisor;
-    const phone = advisor && advisor.phone;
-    if (!phone) {
-      wx.showToast({ title: '请联系 Farland 顾问', icon: 'none' });
-      return;
-    }
-    wx.makePhoneCall({ phoneNumber: phone.replace(/[^\d+]/g, '') });
+    this.setData({ showAdvisorQr: true });
   },
+
+  closeAdvisorQr() {
+    this.setData({ showAdvisorQr: false });
+  },
+
+  previewAdvisorQr() {
+    wx.previewImage({
+      urls: [this.data.advisorQrPath],
+      current: this.data.advisorQrPath,
+    });
+  },
+
+  noop() {},
 
   viewFullTrip() {
     wx.showToast({ title: '完整行程即将开放', icon: 'none' });

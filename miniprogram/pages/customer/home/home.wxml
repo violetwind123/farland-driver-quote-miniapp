@@ -261,4 +261,19 @@
       如需酒店预订、美国用车或访校服务，请联系 Farland 顾问为您安排。
     </view>
   </block>
+
+  <view wx:if="{{showAdvisorQr}}" class="advisor-qr-mask" catchtap="closeAdvisorQr">
+    <view class="advisor-qr-modal" catchtap="noop">
+      <view class="advisor-qr-title">添加 Farland 顾问微信</view>
+      <view class="advisor-qr-copy">长按识别二维码，或点击二维码放大查看。</view>
+      <image
+        class="advisor-qr-image"
+        src="{{advisorQrPath}}"
+        mode="aspectFit"
+        show-menu-by-longpress="{{true}}"
+        bindtap="previewAdvisorQr"
+      />
+      <button class="advisor-qr-close" bindtap="closeAdvisorQr">关闭</button>
+    </view>
+  </view>
 </view>
