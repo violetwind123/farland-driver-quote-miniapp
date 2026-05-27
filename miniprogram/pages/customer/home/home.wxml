@@ -47,14 +47,10 @@
       <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell today-card-shell">
+    <view wx:if="{{!inviteMode && todayCard && !showHomeEmpty}}" class="section-shell today-card-shell">
       <view class="section-kicker">TODAY</view>
       <view class="section-title">今日行程</view>
-      <view wx:if="{{!todayCard}}" class="today-card-empty card-surface">
-        <view class="empty-title">暂无今日行程</view>
-        <view class="empty-copy">Farland 顾问正在为您确认今日安排</view>
-      </view>
-      <view wx:else class="p4-today-card compact card-surface">
+      <view class="p4-today-card compact card-surface">
         <view class="p4-today-head">
           <view class="p4-today-labels">
             <view class="p4-trip-label">{{todayCard.dayLabel}}</view>
@@ -79,11 +75,10 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !todayCard && !showHomeEmpty}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !todayCard && todayItinerary && !showHomeEmpty}}" class="section-shell">
       <view class="section-kicker">今日</view>
       <view class="section-title">今日行程</view>
-      <view wx:if="{{!todayItinerary}}" class="empty-state">暂无今日行程</view>
-      <view wx:else class="today-card card-surface">
+      <view class="today-card card-surface">
         <view class="today-header">
           <view>
             <view class="today-topline">{{todayItinerary.date}} · {{todayItinerary.city}}</view>
@@ -107,7 +102,7 @@
           </view>
         </view>
 
-        <view wx:if="{{todayItinerary.driver}}" class="transport-card">
+        <view wx:if="{{todayItinerary.driver && todayItinerary.driver_visibility === 'assigned'}}" class="transport-card">
           <view class="transport-kicker">用车安排</view>
           <view class="transport-main">{{todayItinerary.driver.name}} · {{todayItinerary.driver.vehicle}}</view>
           <view class="transport-sub">{{todayItinerary.driver.phone}}</view>
@@ -120,22 +115,20 @@
         </view>
 
         <view class="cta-row">
-          <button class="cta-secondary" bindtap="callDriver">联系司机</button>
           <button class="cta-primary" bindtap="contactAdvisor">联系顾问</button>
         </view>
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && (todayCard || transferRequests.length || transportOrders.length || charterServices.length)}}" class="section-shell">
       <view class="section-kicker">用车</view>
       <view class="section-title">今日用车安排</view>
-      <view wx:if="{{!todayCard && !transferRequests.length && !transportOrders.length && !charterServices.length}}" class="empty-state">暂无用车安排。</view>
-      <view wx:else class="home-arrangement-card card-surface">
+      <view class="home-arrangement-card card-surface">
         <view wx:if="{{todayCard}}">
           <view class="arrangement-title">{{todayCard.transportTitle}}</view>
           <view class="arrangement-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
           <view class="arrangement-sub">{{todayCard.party_summary}} · {{todayCard.transportStatusText}}</view>
-          <view class="arrangement-helper">{{todayCard.driverPendingText}}</view>
+          <view wx:if="{{todayCard.driverPendingText}}" class="arrangement-helper">{{todayCard.driverPendingText}}</view>
           <button class="arrangement-btn" bindtap="openTodayDetail">查看用车安排</button>
         </view>
         <view wx:elif="{{primaryTransfer}}">
@@ -147,7 +140,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && ((todayCard && todayCard.hotel) || hotelCards.length)}}" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">今晚住宿</view>
       <view wx:if="{{todayCard && todayCard.hotel}}" class="home-arrangement-card card-surface">
@@ -156,14 +149,12 @@
         <view class="arrangement-sub">完整酒店信息将由 Farland 顾问同步。</view>
         <button class="arrangement-btn secondary" bindtap="viewFullTripPlaceholder">查看酒店信息</button>
       </view>
-      <view wx:elif="{{!hotelCards.length}}" class="empty-state">暂无酒店安排。</view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && tripOverview.length}}" class="section-shell">
       <view class="section-kicker">后续</view>
       <view class="section-title">整体行程</view>
-      <view wx:if="{{!tripOverview.length}}" class="empty-state">暂无完整行程安排，请联系 Farland 顾问。</view>
-      <view wx:else class="stack-list">
+      <view class="stack-list">
         <view wx:for="{{tripOverview}}" wx:key="day" class="day-card card-surface">
           <view class="day-row">
             <view class="day-pill">Day {{item.day}}</view>

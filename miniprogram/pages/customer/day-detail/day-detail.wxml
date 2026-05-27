@@ -13,58 +13,66 @@
       <view>
         <view class="service-title">{{todayCard.serviceTitle}}</view>
         <view class="service-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
-        <view class="service-sub">{{todayCard.party_summary}} · {{todayCard.driverPendingText || '司机与车辆信息已就绪'}}</view>
+        <view class="service-sub">{{todayCard.serviceSubText}}</view>
       </view>
     </view>
 
-    <swiper
-      class="destination-swiper"
-      current="{{currentIndex}}"
-      previous-margin="24rpx"
-      next-margin="34rpx"
-      bindchange="onSwiperChange"
-    >
-      <swiper-item wx:for="{{cards}}" wx:key="card_id">
-        <view class="destination-card">
-          <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
-          <view class="card-type">{{item.typeText}}</view>
-          <view class="card-time">{{item.time}}</view>
-          <view class="card-title">{{item.title}}</view>
+    <view wx:if="{{!cards.length}}" class="day-detail-empty card-surface">
+      <view class="empty-title">今日行程详情正在同步</view>
+      <view class="empty-copy">如需即时更新，请联系 Farland 顾问。</view>
+      <button class="card-action" bindtap="contactAdvisor">联系顾问</button>
+    </view>
 
-          <view wx:if="{{item.route}}" class="detail-block">
-            <view class="detail-label">路线</view>
-            <view class="detail-value">{{item.route}}</view>
-          </view>
-
-          <view wx:if="{{item.arrival_estimate}}" class="detail-block">
-            <view class="detail-label">预计到达</view>
-            <view class="detail-value">{{item.arrival_estimate}}</view>
-          </view>
-
-          <view wx:if="{{item.detailLine}}" class="detail-block">
-            <view class="detail-label">车程</view>
-            <view class="detail-value">{{item.detailLine}}</view>
-          </view>
-
-          <view wx:if="{{item.note}}" class="detail-note">{{item.note}}</view>
-          <view wx:if="{{item.next_stop}}" class="detail-next">下一站：{{item.next_stop}}</view>
-
-          <button class="card-action" bindtap="contactAdvisor">{{item.primaryAction}}</button>
-        </view>
-      </swiper-item>
-    </swiper>
-
-    <view class="time-chip-row">
-      <view
-        wx:for="{{cards}}"
-        wx:key="card_id"
-        class="time-chip {{currentIndex === index ? 'active' : ''}}"
-        data-index="{{index}}"
-        bindtap="jumpToCard"
+    <block wx:else>
+      <swiper
+        class="destination-swiper"
+        current="{{currentIndex}}"
+        previous-margin="24rpx"
+        next-margin="34rpx"
+        bindchange="onSwiperChange"
       >
-        {{item.chipText}}
+        <swiper-item wx:for="{{cards}}" wx:key="card_id">
+          <view class="destination-card">
+            <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
+            <view class="card-type">{{item.typeText}}</view>
+            <view class="card-time">{{item.time}}</view>
+            <view class="card-title">{{item.title}}</view>
+
+            <view wx:if="{{item.route}}" class="detail-block">
+              <view class="detail-label">路线</view>
+              <view class="detail-value">{{item.route}}</view>
+            </view>
+
+            <view wx:if="{{item.arrival_estimate}}" class="detail-block">
+              <view class="detail-label">预计到达</view>
+              <view class="detail-value">{{item.arrival_estimate}}</view>
+            </view>
+
+            <view wx:if="{{item.detailLine}}" class="detail-block">
+              <view class="detail-label">车程</view>
+              <view class="detail-value">{{item.detailLine}}</view>
+            </view>
+
+            <view wx:if="{{item.note}}" class="detail-note">{{item.note}}</view>
+            <view wx:if="{{item.next_stop}}" class="detail-next">下一站：{{item.next_stop}}</view>
+
+            <button class="card-action" bindtap="contactAdvisor">{{item.primaryAction}}</button>
+          </view>
+        </swiper-item>
+      </swiper>
+
+      <view class="time-chip-row">
+        <view
+          wx:for="{{cards}}"
+          wx:key="card_id"
+          class="time-chip {{currentIndex === index ? 'active' : ''}}"
+          data-index="{{index}}"
+          bindtap="jumpToCard"
+        >
+          {{item.chipText}}
+        </view>
       </view>
-    </view>
+    </block>
 
     <view class="bottom-actions">
       <button class="bottom-btn secondary" bindtap="contactAdvisor">联系顾问</button>

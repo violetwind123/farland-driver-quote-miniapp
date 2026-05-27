@@ -137,6 +137,81 @@ async function ensureCustomerUser({ caller, existingUser, invite, request, bindM
   return existingUser._id;
 }
 
+async function registerCustomerProfileOnly({ caller, displayName, nowIso }) {
+  const safeName = String(displayName || '').trim() || 'Farland 客户';
+  const userRes = await db.collection('users').where({ openid: caller.openid }).limit(1).get();
+  const existingUser = userRes.data[0] || null;
+
+  if (existingUser && existingUser.role && !['guest', 'customer'].includes(existingUser.role)) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'ROLE_CONFLICT',
+      message: '当前微信已绑定其他 Farland 身份',
+    };
+  }
+
+  if (existingUser) {
+    await db.collection('users').doc(existingUser._id).update({
+      data: {
+        role: 'customer',
+        status: 'active',
+        name: existingUser.name || safeName,
+        display_name: existingUser.display_name || existingUser.name || safeName,
+        customer_binding_mode: 'farland_profile',
+        customer_status: 'active',
+        updated_at: nowIso,
+        last_login_at: nowIso,
+      },
+    });
+    return {
+      success: true,
+      code: 0,
+      bind_mode: 'farland_profile',
+      bind_type: 'profile',
+      user_id: existingUser._id,
+      display_name: existingUser.display_name || existingUser.name || safeName,
+    };
+  }
+
+  const created = await db.collection('users').add({
+    data: {
+      openid: caller.openid,
+      role: 'customer',
+      status: 'active',
+      name: safeName,
+      display_name: safeName,
+      customer_binding_mode: 'farland_profile',
+      customer_status: 'active',
+      created_at: nowIso,
+      updated_at: nowIso,
+      last_login_at: nowIso,
+    },
+  });
+
+  await writeAuditLog(db, {
+    actor_openid: caller.openid,
+    actor_user_id: created._id,
+    actor_role: 'customer',
+    action: 'customer_profile_registered',
+    target_type: 'user',
+    target_id: created._id,
+    detail: {
+      source: 'customer_home',
+    },
+    created_at: nowIso,
+  }).catch(() => null);
+
+  return {
+    success: true,
+    code: 0,
+    bind_mode: 'farland_profile',
+    bind_type: 'profile',
+    user_id: created._id,
+    display_name: safeName,
+  };
+}
+
 async function hasClaimedAccess(invite, requestId, claimedOpenid) {
   if (!claimedOpenid) return false;
 
@@ -177,13 +252,22 @@ exports.main = async (event = {}) => {
     display_name = '',
   } = event;
 
-  if (!request_id || !invite_code) {
-    return { success: false, code: 422, error_code: 'VALIDATION_ERROR', message: '邀请参数不完整' };
-  }
-
   const caller = await getCaller(cloud, db);
   if (!caller.openid) {
     return { success: false, code: 401, error_code: 'UNAUTHENTICATED', message: '无法识别用户身份' };
+  }
+
+  const requestedBindMode = bind_mode || bind_type || access_type;
+  if (!request_id && !invite_code && normalizeBindMode(requestedBindMode) === 'farland_profile') {
+    return registerCustomerProfileOnly({
+      caller,
+      displayName: display_name,
+      nowIso: new Date().toISOString(),
+    });
+  }
+
+  if (!request_id || !invite_code) {
+    return { success: false, code: 422, error_code: 'VALIDATION_ERROR', message: '邀请参数不完整' };
   }
 
   const [inviteRes, requestRes] = await Promise.all([
@@ -222,7 +306,6 @@ exports.main = async (event = {}) => {
   // Test data may be manually reset to status=claimed with an empty claimed_openid.
   // Treat that as claimable dirty data, not as a real binding.
   const isReopenBySameOpenid = invite.status === 'claimed' && claimedByCurrentOpenid;
-  const requestedBindMode = bind_mode || bind_type || access_type;
   const existingBindMode = isReopenBySameOpenid
     ? invite.claimed_bind_mode || invite.bind_mode || invite.bind_type || invite.access_type
     : '';

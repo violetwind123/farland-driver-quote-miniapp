@@ -24,14 +24,17 @@ Page({
 
   normalizeTodayCard(card) {
     const driverAssigned = card.driver_visibility === 'assigned' && card.driver;
-    const cards = (card.destination_cards || []).map((item, index) => ({
+    const sourceCards = Array.isArray(card.destination_cards) && card.destination_cards.length
+      ? card.destination_cards
+      : this.buildCardsFromTimeline(card.timeline_items || []);
+    const cards = sourceCards.map((item, index) => ({
       ...item,
       card_id: item.card_id || `${item.time || 'node'}-${index}`,
       sequence: item.sequence || index + 1,
       typeText: this.typeText(item.type),
       chipText: `${item.time || ''} ${this.shortTitle(item.title || '')}`.trim(),
       detailLine: [item.drive_time, item.distance, item.traffic_level].filter(Boolean).join(' · '),
-      primaryAction: item.type === 'hotel_arrival' ? '查看酒店信息' : '联系顾问',
+      primaryAction: '联系顾问',
     }));
     return {
       ...card,
@@ -40,7 +43,26 @@ Page({
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
       serviceTitle: card.service_type === 'transfer' ? '今日接送安排' : '今日包车服务',
       serviceWindowText: (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
+      serviceSubText: [card.party_summary, driverAssigned ? '司机与车辆信息已就绪' : '司机信息待同步'].filter(Boolean).join(' · '),
     };
+  },
+
+  buildCardsFromTimeline(items) {
+    if (!Array.isArray(items)) return [];
+    return items.map((item, index) => ({
+      card_id: item.id || `timeline-${index}`,
+      type: index === 0 ? 'departure' : 'custom',
+      sequence: index + 1,
+      time: item.time || '',
+      title: item.title || '行程节点',
+      location: item.location || '',
+      route: item.route || '',
+      drive_time: item.drive_time || '',
+      distance: item.distance || '',
+      traffic_level: item.traffic_level || '',
+      note: item.note || item.description || '',
+      next_stop: '',
+    }));
   },
 
   shortTitle(title) {
@@ -71,6 +93,7 @@ Page({
 
   jumpToCard(e) {
     const index = Number(e.currentTarget.dataset.index || 0);
+    if (index < 0 || index >= this.data.cards.length) return;
     this.setData({ currentIndex: index });
   },
 

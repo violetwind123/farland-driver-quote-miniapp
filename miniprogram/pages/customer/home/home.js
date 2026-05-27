@@ -189,12 +189,15 @@ Page({
       const mergedTransferRequests = invitedTransfer
         ? [invitedTransfer, ...transferRequests.filter((item) => item.request_id !== invitedTransfer.request_id)]
         : transferRequests;
+      const hasTransport = Boolean(
+        mergedTransferRequests.length
+        || transportOrders.length
+        || (result.charter_services || []).length,
+      );
       const showHomeEmpty = !todayCard
         && !todayItinerary
         && !tripOverview.length
-        && !mergedTransferRequests.length
-        && !transportOrders.length
-        && !(result.charter_services || []).length
+        && !hasTransport
         && !hotelCards.length;
       const nextConfirmed = todayItinerary
         ? {
@@ -223,7 +226,7 @@ Page({
         todayCard,
         todayItinerary,
         showHomeEmpty,
-        showLegacyTransport: !todayCard && !showHomeEmpty,
+        showLegacyTransport: !todayCard && !showHomeEmpty && hasTransport,
         nextConfirmed,
         tripOverview,
         hotelCards,
@@ -307,7 +310,19 @@ Page({
       });
       return;
     }
-    wx.showToast({ title: '请通过顾问分享的行程卡片注册', icon: 'none' });
+    try {
+      const profileName = this.data.profile && this.data.profile.name;
+      const displayName = profileName && profileName !== '欢迎使用 Farland' ? profileName : 'Farland 客户';
+      const result = await this.claimInvite('farland_profile', displayName);
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '注册失败', icon: 'none' });
+        return;
+      }
+      wx.showToast({ title: '已绑定当前微信', icon: 'success' });
+      this.loadHome();
+    } catch (error) {
+      wx.showToast({ title: '注册失败', icon: 'none' });
+    }
   },
 
   async claimInvite(bindMode, displayName = '') {
