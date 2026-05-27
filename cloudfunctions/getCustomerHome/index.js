@@ -143,7 +143,7 @@ function buildMockTodayCard() {
       phone: '',
       contact_label: '联系顾问',
     },
-    driver_visibility: 'advisor_only',
+    driver_visibility: 'pending',
     driver: null,
     timeline_items: [
       {

@@ -44,7 +44,13 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="section-shell today-card-shell">
+    <view wx:if="{{showHomeEmpty}}" class="home-empty-card card-surface">
+      <view class="empty-title">暂无行程安排</view>
+      <view class="empty-copy">Farland 顾问正在为您确认行程、用车和酒店安排。</view>
+      <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
+    </view>
+
+    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell today-card-shell">
       <view class="section-kicker">TODAY</view>
       <view class="section-title">今日行程</view>
       <view wx:if="{{!todayCard}}" class="today-card-empty card-surface">
@@ -76,7 +82,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !todayCard}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !todayCard && !showHomeEmpty}}" class="section-shell">
       <view class="section-kicker">今日</view>
       <view class="section-title">今日行程</view>
       <view wx:if="{{!todayItinerary}}" class="empty-state">暂无今日行程</view>
@@ -123,7 +129,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell">
       <view class="section-kicker">用车</view>
       <view class="section-title">今日用车安排</view>
       <view wx:if="{{!todayCard && !transferRequests.length && !transportOrders.length && !charterServices.length}}" class="empty-state">暂无用车安排。</view>
@@ -144,7 +150,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">今晚住宿</view>
       <view wx:if="{{todayCard && todayCard.hotel}}" class="home-arrangement-card card-surface">
@@ -156,7 +162,7 @@
       <view wx:elif="{{!hotelCards.length}}" class="empty-state">暂无酒店安排。</view>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="section-shell">
       <view class="section-kicker">后续</view>
       <view class="section-title">整体行程</view>
       <view wx:if="{{!tripOverview.length}}" class="empty-state">暂无完整行程安排，请联系 Farland 顾问。</view>
@@ -173,7 +179,7 @@
       </view>
     </view>
 
-    <view class="section-shell">
+    <view wx:if="{{showLegacyTransport}}" class="section-shell">
       <view class="section-kicker">用车</view>
       <view class="section-title">我的用车</view>
       <view wx:if="{{!transferRequests.length && !transportOrders.length && !charterServices.length}}" class="empty-state">暂无用车安排。</view>
@@ -224,7 +230,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !todayCard}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !todayCard && !showHomeEmpty}}" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">我的酒店</view>
       <view wx:if="{{!hotelCards.length}}" class="empty-state">暂无酒店需求。</view>
@@ -240,7 +246,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="benefit-panel card-surface">
+    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="benefit-panel card-surface">
       <view class="section-kicker">权益</view>
       <view class="section-title">积分福利</view>
       <view class="benefit-meta">{{profile.points_balance}} 积分 · {{profile.member_level}}</view>
@@ -251,7 +257,7 @@
       <button class="benefit-btn" bindtap="goBenefits">查看全部福利</button>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="advisor-panel">
+    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="advisor-panel">
       如需酒店预订、美国用车或访校服务，请联系 Farland 顾问为您安排。
     </view>
   </block>

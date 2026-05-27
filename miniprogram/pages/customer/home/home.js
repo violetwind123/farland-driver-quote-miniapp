@@ -7,6 +7,8 @@ Page({
     transportationAppointments: [],
     todayCard: null,
     todayItinerary: null,
+    showHomeEmpty: false,
+    showLegacyTransport: false,
     nextConfirmed: {},
     tripOverview: [],
     hotelCards: [],
@@ -86,6 +88,8 @@ Page({
           transportationAppointments: [],
           todayCard: null,
           todayItinerary: null,
+          showHomeEmpty: false,
+          showLegacyTransport: Boolean(invitedTransfer),
           nextConfirmed: {
             title: invitedTransfer ? invitedTransfer.title : '用车方案准备中',
             date: invitedTransfer ? invitedTransfer.pickup_time_text : '',
@@ -126,6 +130,8 @@ Page({
           transportationAppointments: [],
           todayCard: null,
           todayItinerary: null,
+          showHomeEmpty: false,
+          showLegacyTransport: Boolean(invitedTransfer),
           nextConfirmed: {
             title: invitedTransfer ? invitedTransfer.title : '暂无可查看行程',
             date: invitedTransfer ? invitedTransfer.pickup_time_text : '',
@@ -181,6 +187,13 @@ Page({
       const mergedTransferRequests = invitedTransfer
         ? [invitedTransfer, ...transferRequests.filter((item) => item.request_id !== invitedTransfer.request_id)]
         : transferRequests;
+      const showHomeEmpty = !todayCard
+        && !todayItinerary
+        && !tripOverview.length
+        && !mergedTransferRequests.length
+        && !transportOrders.length
+        && !(result.charter_services || []).length
+        && !hotelCards.length;
       const nextConfirmed = todayItinerary
         ? {
             title: todayItinerary.title,
@@ -207,6 +220,8 @@ Page({
         transportationAppointments: result.transportation_appointments || [],
         todayCard,
         todayItinerary,
+        showHomeEmpty,
+        showLegacyTransport: !todayCard && !showHomeEmpty,
         nextConfirmed,
         tripOverview,
         hotelCards,
@@ -225,7 +240,8 @@ Page({
 
   normalizeTodayCard(card) {
     if (!card) return null;
-    const driverAssigned = card.driver_visibility === 'assigned' && card.driver;
+    const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
+    const driverAssigned = driverVisibility === 'assigned' && card.driver;
     const timelineItems = (card.timeline_items || []).map((item, index) => ({
       ...item,
       id: item.id || `${item.time || 'time'}-${index}`,
@@ -240,6 +256,7 @@ Page({
     }));
     return {
       ...card,
+      driver_visibility: driverVisibility,
       dayLabel: `Trip ${card.trip_no || card.trip_id || ''} · Day ${card.day_no || ''}`,
       dateRouteText: `${card.weekday || ''}${card.date ? ` · ${card.date}` : ''}${card.city_summary ? ` · ${card.city_summary}` : ''}`,
       timeline_items: timelineItems,
