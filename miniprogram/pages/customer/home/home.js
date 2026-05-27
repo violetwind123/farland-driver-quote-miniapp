@@ -295,6 +295,21 @@ Page({
     this.setData({ showProfileUpgradeForm: true });
   },
 
+  async registerCustomerProfile() {
+    if (this.data.currentBindMode === 'farland_profile') {
+      wx.showToast({ title: '已绑定当前微信', icon: 'none' });
+      return;
+    }
+    if (this.data.inviteMode && this.data.inviteCode && this.data.inviteRequestId) {
+      this.setData({
+        showProfileUpgrade: true,
+        showProfileUpgradeForm: true,
+      });
+      return;
+    }
+    wx.showToast({ title: '请通过顾问分享的行程卡片注册', icon: 'none' });
+  },
+
   async claimInvite(bindMode, displayName = '') {
     const { inviteCode, inviteRequestId } = this.data;
     const { result } = await wx.cloud.callFunction({

@@ -37,16 +37,13 @@
       <view class="trip-hero-title">{{profile.name || '我的行程'}}</view>
       <view class="trip-hero-meta">{{profile.member_level}}{{profile.points_balance ? ' · ' + profile.points_balance + ' 积分' : ''}}</view>
       <view wx:if="{{profile.subtitle}}" class="trip-hero-subtitle">{{profile.subtitle}}</view>
-      <view class="trip-next-card">
-        <view class="trip-next-label">下一项确认行程</view>
-        <view class="trip-next-title">{{nextConfirmed.title}}</view>
-        <view class="trip-next-meta">{{nextConfirmed.date}} {{nextConfirmed.time}} · {{nextConfirmed.city}}</view>
-      </view>
+      <button class="trip-register-btn" bindtap="registerCustomerProfile">
+        {{currentBindMode === 'farland_profile' ? '已绑定当前微信' : (inviteMode ? '注册并保存' : '注册 Farland 行程')}}
+      </button>
     </view>
 
     <view wx:if="{{showHomeEmpty}}" class="home-empty-card card-surface">
       <view class="empty-title">暂无行程安排</view>
-      <view class="empty-copy">Farland 顾问正在为您确认行程、用车和酒店安排。</view>
       <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
     </view>
 
