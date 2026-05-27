@@ -349,6 +349,10 @@
     0 2rpx 8rpx rgba(17, 24, 39, 0.035);
 }
 
+.p4-today-card.compact {
+  padding: 28rpx;
+}
+
 .p4-today-card::before {
   content: '';
   position: absolute;
@@ -390,6 +394,44 @@
 
 .p4-today-route {
   margin-top: 8rpx;
+}
+
+.p4-summary-route {
+  margin-top: 22rpx;
+  padding: 20rpx 22rpx;
+  border-radius: 22rpx;
+  background: #F7F8FC;
+  color: #1D2433;
+  font-size: 28rpx;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.p4-summary-times {
+  display: grid;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.p4-summary-time {
+  display: grid;
+  grid-template-columns: 112rpx 1fr;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.p4-summary-clock {
+  color: #5B6596;
+  font-size: 24rpx;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.p4-summary-stop {
+  color: #1D2433;
+  font-size: 25rpx;
+  line-height: 1.35;
+  font-weight: 600;
 }
 
 .p4-service-grid {
@@ -535,8 +577,72 @@
   color: #FFFFFF;
 }
 
+.p4-action-primary.single {
+  grid-column: 1 / -1;
+}
+
 .p4-action-secondary::after,
 .p4-action-primary::after {
+  border: none;
+}
+
+.home-arrangement-card {
+  margin-top: 18rpx;
+  padding: 28rpx;
+  border-radius: 30rpx;
+  background:
+    linear-gradient(180deg, #FFFFFF 0%, #FBFCFF 100%);
+  border: 1rpx solid rgba(31, 36, 51, 0.055);
+  box-shadow:
+    0 1rpx 2rpx rgba(255, 255, 255, 0.90) inset,
+    0 10rpx 30rpx rgba(17, 24, 39, 0.055);
+}
+
+.arrangement-title {
+  color: #1D2433;
+  font-size: 31rpx;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.arrangement-main {
+  margin-top: 12rpx;
+  color: #2F394C;
+  font-size: 26rpx;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.arrangement-sub,
+.arrangement-helper {
+  margin-top: 8rpx;
+  color: #667085;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.arrangement-helper {
+  color: #8A91A1;
+}
+
+.arrangement-btn {
+  margin: 22rpx 0 0;
+  height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 999rpx;
+  background: #5B6596;
+  color: #FFFFFF;
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.arrangement-btn.secondary {
+  background: #FFFFFF;
+  color: #5B6596;
+  border: 1rpx solid #DDE4F3;
+}
+
+.arrangement-btn::after {
   border: none;
 }
 

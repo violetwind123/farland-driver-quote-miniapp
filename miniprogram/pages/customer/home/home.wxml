@@ -46,70 +46,37 @@
 
     <view wx:if="{{!inviteMode}}" class="section-shell today-card-shell">
       <view class="section-kicker">TODAY</view>
-      <view class="section-title">今日行程卡片</view>
-      <view wx:if="{{!todayCard}}" class="today-card-empty card-surface">Today’s details are being finalized by Farland.</view>
-      <view wx:else class="p4-today-card card-surface">
+      <view class="section-title">今日行程</view>
+      <view wx:if="{{!todayCard}}" class="today-card-empty card-surface">
+        <view class="empty-title">暂无今日行程</view>
+        <view class="empty-copy">Farland 顾问正在为您确认今日安排</view>
+      </view>
+      <view wx:else class="p4-today-card compact card-surface">
         <view class="p4-today-head">
           <view class="p4-today-labels">
             <view class="p4-trip-label">{{todayCard.dayLabel}}</view>
-            <view class="p4-today-title">{{todayCard.title}}</view>
+            <view class="p4-today-title">{{todayCard.weekday}} {{todayCard.date}}</view>
             <view class="p4-today-route">{{todayCard.dateRouteText}}</view>
           </view>
           <view class="status-pill confirmed">{{todayCard.status_text}}</view>
         </view>
 
-        <view class="p4-service-grid">
-          <view class="p4-service-item">
-            <view class="p4-service-label">Departure</view>
-            <view class="p4-service-value">{{todayCard.depart_time}}</view>
-          </view>
-          <view class="p4-service-item">
-            <view class="p4-service-label">Vehicle</view>
-            <view class="p4-service-value">{{todayCard.vehicle_summary}}</view>
-          </view>
-          <view class="p4-service-item">
-            <view class="p4-service-label">Party</view>
-            <view class="p4-service-value">{{todayCard.party_summary}}</view>
+        <view class="p4-summary-route">{{todayCard.city_summary}}</view>
+
+        <view class="p4-summary-times">
+          <view wx:for="{{todayCard.routeStops}}" wx:key="id" class="p4-summary-time">
+            <view class="p4-summary-clock">{{item.time}}</view>
+            <view class="p4-summary-stop">{{item.title}}</view>
           </view>
         </view>
-
-        <view class="p4-timeline">
-          <view wx:for="{{todayCard.timeline_items}}" wx:key="id" class="p4-timeline-row">
-            <view class="p4-timeline-time">{{item.time}}</view>
-            <view class="p4-timeline-mark"></view>
-            <view class="p4-timeline-main">
-              <view class="p4-timeline-title">{{item.title}}</view>
-              <view wx:if="{{item.meta}}" class="p4-timeline-meta">{{item.meta}}</view>
-              <view wx:if="{{item.noteText}}" class="p4-timeline-note">{{item.noteText}}</view>
-            </view>
-          </view>
-        </view>
-
-        <view wx:if="{{todayCard.hotel}}" class="p4-endpoint">
-          <view class="p4-endpoint-label">End point</view>
-          <view class="p4-endpoint-main">{{todayCard.hotel.name}}</view>
-          <view class="p4-endpoint-sub">Arrive around {{todayCard.hotel.arrival_time}}</view>
-        </view>
-
-        <view class="p4-driver-note">
-          <view wx:if="{{todayCard.driver}}">
-            Driver assigned: {{todayCard.driver.name}} · {{todayCard.driver.vehicle_model}}
-          </view>
-          <view wx:else>{{todayCard.driverPendingText}}</view>
-        </view>
-
-        <view wx:if="{{todayCard.next_day_teaser}}" class="p4-next-day">{{todayCard.next_day_teaser}}</view>
-
-        <view wx:if="{{todayCard.advisor.name}}" class="p4-advisor-line">Advisor: {{todayCard.advisor.name}}</view>
 
         <view class="p4-action-row">
-          <button class="p4-action-secondary" bindtap="contactAdvisor">{{todayCard.advisor.contact_label || 'Contact advisor'}}</button>
-          <button class="p4-action-primary" bindtap="viewFullTripPlaceholder">View full trip</button>
+          <button class="p4-action-primary single" bindtap="openTodayDetail">查看今日行程</button>
         </view>
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !todayCard}}" class="section-shell">
       <view class="section-kicker">今日</view>
       <view class="section-title">今日行程</view>
       <view wx:if="{{!todayItinerary}}" class="empty-state">暂无今日行程</view>
@@ -154,6 +121,39 @@
           <button class="cta-primary" bindtap="contactAdvisor">联系顾问</button>
         </view>
       </view>
+    </view>
+
+    <view wx:if="{{!inviteMode}}" class="section-shell">
+      <view class="section-kicker">用车</view>
+      <view class="section-title">今日用车安排</view>
+      <view wx:if="{{!todayCard && !transferRequests.length && !transportOrders.length && !charterServices.length}}" class="empty-state">暂无用车安排。</view>
+      <view wx:else class="home-arrangement-card card-surface">
+        <view wx:if="{{todayCard}}">
+          <view class="arrangement-title">{{todayCard.transportTitle}}</view>
+          <view class="arrangement-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
+          <view class="arrangement-sub">{{todayCard.party_summary}} · {{todayCard.transportStatusText}}</view>
+          <view class="arrangement-helper">{{todayCard.driverPendingText}}</view>
+          <button class="arrangement-btn" bindtap="openTodayDetail">查看用车安排</button>
+        </view>
+        <view wx:elif="{{primaryTransfer}}">
+          <view class="arrangement-title">今日接送安排</view>
+          <view class="arrangement-main">{{primaryTransfer.pickup}} → {{primaryTransfer.dropoff}}</view>
+          <view class="arrangement-sub">{{primaryTransfer.status_text}}</view>
+          <button class="arrangement-btn" data-request-id="{{primaryTransfer.request_id}}" bindtap="viewTransferDetail">查看接送详情</button>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{!inviteMode}}" class="section-shell">
+      <view class="section-kicker">酒店</view>
+      <view class="section-title">今晚住宿</view>
+      <view wx:if="{{todayCard && todayCard.hotel}}" class="home-arrangement-card card-surface">
+        <view class="arrangement-title">{{todayCard.hotel.name}}</view>
+        <view class="arrangement-main">预计 {{todayCard.hotel.arrival_time}} 抵达</view>
+        <view class="arrangement-sub">完整酒店信息将由 Farland 顾问同步。</view>
+        <button class="arrangement-btn secondary" bindtap="viewFullTripPlaceholder">查看酒店信息</button>
+      </view>
+      <view wx:elif="{{!hotelCards.length}}" class="empty-state">暂无酒店安排。</view>
     </view>
 
     <view wx:if="{{!inviteMode}}" class="section-shell">
@@ -224,7 +224,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !todayCard}}" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">我的酒店</view>
       <view wx:if="{{!hotelCards.length}}" class="empty-state">暂无酒店需求。</view>

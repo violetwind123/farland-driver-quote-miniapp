@@ -11,6 +11,7 @@ Page({
     tripOverview: [],
     hotelCards: [],
     transferRequests: [],
+    primaryTransfer: null,
     transportOrders: [],
     charterServices: [],
     topBenefits: [],
@@ -94,6 +95,7 @@ Page({
           tripOverview: [],
           hotelCards: [],
           transferRequests: invitedTransfer ? [invitedTransfer] : [],
+          primaryTransfer: invitedTransfer || null,
           transportOrders: [],
           charterServices: [],
           advisorPhone: '',
@@ -133,6 +135,7 @@ Page({
           tripOverview: [],
           hotelCards: [],
           transferRequests: invitedTransfer ? [invitedTransfer] : [],
+          primaryTransfer: invitedTransfer || null,
           transportOrders: [],
           charterServices: [],
           advisorPhone: '',
@@ -208,6 +211,7 @@ Page({
         tripOverview,
         hotelCards,
         transferRequests: mergedTransferRequests,
+        primaryTransfer: mergedTransferRequests[0] || null,
         transportOrders,
         charterServices: result.charter_services || [],
         advisorPhone: (todayCard && todayCard.advisor && todayCard.advisor.phone)
@@ -222,20 +226,36 @@ Page({
   normalizeTodayCard(card) {
     if (!card) return null;
     const driverAssigned = card.driver_visibility === 'assigned' && card.driver;
+    const timelineItems = (card.timeline_items || []).map((item, index) => ({
+      ...item,
+      id: item.id || `${item.time || 'time'}-${index}`,
+      meta: [item.location, item.route, item.drive_time].filter(Boolean).join(' · '),
+      noteText: [item.traffic_level ? `Traffic: ${item.traffic_level}` : '', item.note].filter(Boolean).join(' · '),
+    }));
+    const destinationCards = (card.destination_cards && card.destination_cards.length ? card.destination_cards : timelineItems).map((item, index) => ({
+      ...item,
+      card_id: item.card_id || item.id || `${item.time || 'node'}-${index}`,
+      sequence: item.sequence || index + 1,
+      chipLabel: `${item.time || ''} ${item.title || ''}`.trim(),
+    }));
     return {
       ...card,
       dayLabel: `Trip ${card.trip_no || card.trip_id || ''} · Day ${card.day_no || ''}`,
       dateRouteText: `${card.weekday || ''}${card.date ? ` · ${card.date}` : ''}${card.city_summary ? ` · ${card.city_summary}` : ''}`,
-      timeline_items: (card.timeline_items || []).map((item, index) => ({
-        ...item,
-        id: item.id || `${item.time || 'time'}-${index}`,
-        meta: [item.location, item.route, item.drive_time].filter(Boolean).join(' · '),
-        noteText: [item.traffic_level ? `Traffic: ${item.traffic_level}` : '', item.note].filter(Boolean).join(' · '),
+      timeline_items: timelineItems,
+      destination_cards: destinationCards,
+      serviceWindowText: (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
+      transportTitle: (card.transport_summary && card.transport_summary.title) || (card.service_type === 'charter' ? '今日包车服务' : '今日接送安排'),
+      transportStatusText: (card.transport_summary && card.transport_summary.status_text) || (driverAssigned ? '司机与车辆信息已就绪' : '车辆已确认，司机信息待同步'),
+      routeStops: destinationCards.map((item) => ({
+        id: item.card_id,
+        time: item.time,
+        title: item.title,
       })),
       hotel: card.hotel || null,
       advisor: card.advisor || {},
       driver: driverAssigned ? card.driver : null,
-      driverPendingText: driverAssigned ? '' : 'Driver details will be shared after Farland confirms the assignment.',
+      driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
     };
   },
 
@@ -407,6 +427,18 @@ Page({
       return;
     }
     wx.makePhoneCall({ phoneNumber: phone.replace(/[^\d+]/g, '') });
+  },
+
+  openTodayDetail() {
+    const todayCard = this.data.todayCard;
+    if (!todayCard) {
+      wx.showToast({ title: '暂无今日行程', icon: 'none' });
+      return;
+    }
+    const app = getApp();
+    app.globalData.todayCardDetail = todayCard;
+    wx.setStorageSync('todayCardDetail', todayCard);
+    wx.navigateTo({ url: '/pages/customer/day-detail/day-detail' });
   },
 
   viewFullTripPlaceholder() {

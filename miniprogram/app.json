@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/hotel/request/request",
     "pages/customer/home/home",
+    "pages/customer/day-detail/day-detail",
     "pages/customer/transfer-detail/transfer-detail",
     "pages/customer/benefits/benefits",
     "pages/auth/login/login",
