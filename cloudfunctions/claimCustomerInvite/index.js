@@ -16,9 +16,13 @@ function legacyAccessType(bindMode) {
 }
 
 function isExistingFarlandProfile(user) {
-  if (!user || user.role !== 'customer') return false;
+  if (!user) return false;
+  if (['operator', 'super_admin', 'driver'].includes(user.role)) return false;
   if (user.status && user.status !== 'active') return false;
-  return user.customer_binding_mode === 'farland_profile'
+  return user.role === 'customer'
+    || user.customer_status === 'active'
+    || Boolean(user.customer_profile_id)
+    || user.customer_binding_mode === 'farland_profile'
     || user.bind_mode === 'farland_profile'
     || user.bind_type === 'profile'
     || user.access_type === 'profile';
@@ -62,7 +66,7 @@ function getVisibleUntil({ bindMode, request, now }) {
   return getServiceDateVisibleUntil(request, now);
 }
 
-async function upsertTripAccess({ caller, userId, requestId, request, invite, bindMode, nowIso, now }) {
+async function upsertTripAccess({ caller, userId, requestId, request, invite, bindMode, grantedSource, nowIso, now }) {
   const tripId = request.customer_trip_id || request.trip_id || requestId;
   const visibleUntil = getVisibleUntil({ bindMode, request, now });
   const accessData = {
@@ -77,9 +81,11 @@ async function upsertTripAccess({ caller, userId, requestId, request, invite, bi
     visible_from: nowIso,
     visible_until: visibleUntil,
     status: 'active',
+    granted_source: grantedSource || 'invite',
     invite_id: invite._id,
     invite_code_snapshot: invite.invite_code || '',
     source_invite_id: invite._id,
+    last_viewed_at: nowIso,
     updated_at: nowIso,
   };
 
@@ -97,7 +103,12 @@ async function upsertTripAccess({ caller, userId, requestId, request, invite, bi
   ]);
   const existing = (canonicalRes.data && canonicalRes.data[0]) || (legacyRes.data && legacyRes.data[0]);
   if (existing) {
-    await db.collection('customer_trip_access').doc(existing._id).update({ data: accessData });
+    await db.collection('customer_trip_access').doc(existing._id).update({
+      data: {
+        ...accessData,
+        first_claimed_at: existing.first_claimed_at || existing.created_at || nowIso,
+      },
+    });
     return existing._id;
   }
 
@@ -106,6 +117,7 @@ async function upsertTripAccess({ caller, userId, requestId, request, invite, bi
       ...accessData,
       created_by: invite.created_by || '',
       created_by_openid: invite.created_by_openid || '',
+      first_claimed_at: nowIso,
       created_at: nowIso,
     },
   });
@@ -264,6 +276,7 @@ exports.main = async (event = {}) => {
     bind_type,
     access_type,
     display_name = '',
+    auto_claim = false,
   } = event;
 
   const caller = await getCaller(cloud, db);
@@ -305,14 +318,7 @@ exports.main = async (event = {}) => {
 
   const claimedOpenid = String(invite.claimed_openid || '').trim();
   const claimedByCurrentOpenid = claimedOpenid && claimedOpenid === caller.openid;
-  const claimedByOtherOpenid = claimedOpenid && claimedOpenid !== caller.openid;
 
-  if (invite.status === 'claimed' && claimedByOtherOpenid) {
-    const backedByAccess = await hasClaimedAccess(invite, request_id, claimedOpenid);
-    if (backedByAccess) {
-      return { success: false, code: 403, error_code: 'INVITE_ALREADY_CLAIMED', message: '该邀请已绑定其他微信' };
-    }
-  }
   if (invite.status !== 'unused' && invite.status !== 'claimed') {
     return { success: false, code: 403, error_code: 'INVITE_UNAVAILABLE', message: '邀请链接已失效' };
   }
@@ -327,6 +333,14 @@ exports.main = async (event = {}) => {
   const rawDisplayName = String(display_name || '').trim();
   const userRes = await db.collection('users').where({ openid: caller.openid }).limit(1).get();
   const existingUser = userRes.data[0];
+  if (existingUser && existingUser.role && !['guest', 'customer'].includes(existingUser.role)) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'ROLE_CONFLICT',
+      message: '当前微信已绑定其他 Farland 身份',
+    };
+  }
   const autoClaimWithExistingProfile = !rawDisplayName
     && safeBindMode === 'farland_profile'
     && isExistingFarlandProfile(existingUser);
@@ -360,6 +374,7 @@ exports.main = async (event = {}) => {
     request,
     invite,
     bindMode: safeBindMode,
+    grantedSource: autoClaimWithExistingProfile || auto_claim ? 'invite_auto' : 'invite',
     nowIso,
     now,
   }).catch((error) => {
@@ -375,30 +390,49 @@ exports.main = async (event = {}) => {
     };
   }
 
+  const firstClaimByCurrentOpenid = !claimedOpenid || claimedByCurrentOpenid;
+  const inviteUpdate = {
+    status: 'claimed',
+    bind_mode: safeBindMode,
+    bind_type: legacyAccessType(safeBindMode),
+    display_name: safeName,
+    last_claimed_openid: caller.openid,
+    last_claimed_user_id: userId,
+    last_claimed_bind_mode: safeBindMode,
+    last_claimed_access_id: accessId,
+    last_claimed_at: nowIso,
+    updated_at: nowIso,
+  };
+  if (firstClaimByCurrentOpenid) {
+    Object.assign(inviteUpdate, {
+      claimed_openid: caller.openid,
+      claimed_user_id: userId,
+      claimed_bind_mode: safeBindMode,
+      claimed_access_id: accessId,
+      claimed_at: invite.claimed_at || nowIso,
+    });
+  }
+
+  const requestUpdate = {
+    updated_at: nowIso,
+  };
+  if (!request.customer_openid || request.customer_openid === caller.openid) {
+    Object.assign(requestUpdate, {
+      customer_openid: caller.openid,
+      customer_user_id: userId,
+      customer_name: safeName,
+      customer_phone: request.customer_phone || invite.customer_phone || '',
+      customer_bind_mode: safeBindMode,
+      customer_bind_type: legacyAccessType(safeBindMode),
+    });
+  }
+
   await Promise.all([
     db.collection('customer_invites').doc(invite._id).update({
-      data: {
-        status: 'claimed',
-        bind_mode: safeBindMode,
-        bind_type: legacyAccessType(safeBindMode),
-        display_name: safeName,
-        claimed_openid: caller.openid,
-        claimed_user_id: userId,
-        claimed_bind_mode: safeBindMode,
-        claimed_access_id: accessId,
-        claimed_at: invite.claimed_at || nowIso,
-        updated_at: nowIso,
-      },
+      data: inviteUpdate,
     }),
     db.collection('ride_requests').doc(request_id).update({
-      data: {
-        customer_openid: caller.openid,
-        customer_name: safeName,
-        customer_phone: request.customer_phone || invite.customer_phone || '',
-        customer_bind_mode: safeBindMode,
-        customer_bind_type: legacyAccessType(safeBindMode),
-        updated_at: nowIso,
-      },
+      data: requestUpdate,
     }).catch(() => null),
   ]);
 
@@ -429,5 +463,7 @@ exports.main = async (event = {}) => {
     display_name: safeName,
     customer_trip_access_id: accessId,
     auto_claimed_profile: autoClaimWithExistingProfile,
+    auto_saved: autoClaimWithExistingProfile || Boolean(auto_claim),
+    access_source: 'customer_trip_access',
   };
 };

@@ -57,6 +57,70 @@
       <view class="content">{{request.internal_note || '无'}}</view>
     </view>
 
+    <view class="panel customer-owner-panel">
+      <view class="section-title">客户归属</view>
+      <view wx:if="{{assignedCustomer}}" class="customer-owner-card">
+        <view>
+          <view class="customer-owner-name">当前客户：{{assignedCustomer.display_name || assignedCustomer.name}}</view>
+          <view class="customer-owner-meta">已同步到客户的 Farland 行程</view>
+          <view wx:if="{{assignedCustomer.phone || assignedCustomer.wechat_id}}" class="customer-owner-meta">
+            {{assignedCustomer.phone}}{{assignedCustomer.phone && assignedCustomer.wechat_id ? ' / ' : ''}}{{assignedCustomer.wechat_id}}
+          </view>
+        </view>
+        <view class="customer-owner-actions">
+          <button class="customer-secondary-btn" bindtap="openCustomerAssignPanel">更换客户</button>
+          <button class="customer-secondary-btn" bindtap="viewAssignedCustomerTrip">查看客户行程</button>
+        </view>
+      </view>
+      <view wx:else class="customer-owner-empty">
+        <view>
+          <view class="customer-owner-name">尚未分配客户</view>
+          <view class="customer-owner-meta">可将此用车单主动同步到已有客户的我的行程。</view>
+        </view>
+        <button class="customer-assign-open" bindtap="openCustomerAssignPanel">分配已有客户</button>
+      </view>
+
+      <view wx:if="{{showCustomerAssignPanel}}" class="customer-assign-panel">
+        <view class="customer-search-row">
+          <input
+            class="customer-search-input"
+            placeholder="搜索客户称呼 / 手机号 / 微信号"
+            value="{{customerSearchKeyword}}"
+            bindinput="onCustomerSearchInput"
+            confirm-type="search"
+            bindconfirm="searchCustomersForAssignment"
+          />
+          <button class="customer-search-btn" loading="{{customerSearching}}" bindtap="searchCustomersForAssignment">搜索</button>
+        </view>
+        <view wx:if="{{customerSearchResults.length}}" class="customer-result-list">
+          <view
+            wx:for="{{customerSearchResults}}"
+            wx:key="user_id"
+            data-user-id="{{item.user_id}}"
+            bindtap="selectCustomerForAssignment"
+            class="customer-result-item {{selectedCustomer && selectedCustomer.user_id === item.user_id ? 'selected' : ''}}"
+          >
+            <view>
+              <view class="customer-result-name">{{item.display_name || item.name}}</view>
+              <view class="customer-result-meta">{{item.phone || '无手机号'}}{{item.wechat_id ? ' / ' + item.wechat_id : ''}}</view>
+            </view>
+            <view wx:if="{{selectedCustomer && selectedCustomer.user_id === item.user_id}}" class="customer-selected-mark">已选</view>
+          </view>
+        </view>
+        <view wx:elif="{{!customerSearching}}" class="customer-result-empty">输入关键词后搜索已有客户。</view>
+        <textarea
+          class="customer-assignment-note"
+          placeholder="分配备注，可选"
+          value="{{assignmentNote}}"
+          bindinput="onAssignmentNoteInput"
+        />
+        <view class="customer-assign-actions">
+          <button class="customer-secondary-btn" bindtap="closeCustomerAssignPanel">取消</button>
+          <button class="customer-confirm-btn" loading="{{assigningCustomer}}" bindtap="confirmAssignCustomer">确认分配</button>
+        </view>
+      </view>
+    </view>
+
     <view wx:if="{{request.status !== 'cancelled' && request.status !== 'completed'}}" class="panel">
       <view class="section-title">转发入口</view>
       <view wx:if="{{inviteError}}" class="error-text">{{inviteError}}</view>

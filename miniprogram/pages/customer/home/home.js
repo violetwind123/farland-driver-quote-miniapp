@@ -395,7 +395,7 @@ Page({
     });
 
     try {
-      const result = await this.claimInvite('farland_profile');
+      const result = await this.claimInvite('farland_profile', '', { auto_claim: true });
       this.setData({ autoClaimingInvite: false });
       if (!result || !result.success) {
         if (result && result.error_code && result.error_code !== 'DISPLAY_NAME_REQUIRED') {
@@ -440,7 +440,7 @@ Page({
     }
   },
 
-  async claimInvite(bindMode, displayName = '') {
+  async claimInvite(bindMode, displayName = '', extraData = {}) {
     const { inviteCode, inviteRequestId } = this.data;
     const { result } = await wx.cloud.callFunction({
       name: 'claimCustomerInvite',
@@ -449,6 +449,7 @@ Page({
         invite_code: inviteCode,
         bind_mode: bindMode,
         display_name: displayName,
+        ...extraData,
       },
     });
     return result;

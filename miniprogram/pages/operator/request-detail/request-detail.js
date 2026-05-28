@@ -15,6 +15,14 @@ Page({
     customerInviteExpiresAt: '',
     creatingCustomerInvite: false,
     customerInviteError: '',
+    assignedCustomer: null,
+    showCustomerAssignPanel: false,
+    customerSearchKeyword: '',
+    customerSearchResults: [],
+    customerSearching: false,
+    selectedCustomer: null,
+    assignmentNote: '',
+    assigningCustomer: false,
     selectingQuoteId: '',
     reviewingQuoteId: '',
     publishingCustomerQuotes: false,
@@ -105,6 +113,7 @@ Page({
     this.setData({
       loading: false,
       request,
+      assignedCustomer: result.assigned_customer || null,
       invites: result.invites || [],
       quotes,
       token: invite ? invite.token : '',
@@ -223,6 +232,121 @@ Page({
         wx.showToast({ title: '复制失败', icon: 'none' });
       },
     });
+  },
+
+  openCustomerAssignPanel() {
+    this.setData({
+      showCustomerAssignPanel: true,
+      customerSearchKeyword: '',
+      customerSearchResults: [],
+      selectedCustomer: null,
+      assignmentNote: '',
+    });
+  },
+
+  closeCustomerAssignPanel() {
+    if (this.data.assigningCustomer) return;
+    this.setData({
+      showCustomerAssignPanel: false,
+      customerSearchKeyword: '',
+      customerSearchResults: [],
+      selectedCustomer: null,
+      assignmentNote: '',
+    });
+  },
+
+  onCustomerSearchInput(e) {
+    this.setData({ customerSearchKeyword: e.detail.value || '' });
+  },
+
+  onAssignmentNoteInput(e) {
+    this.setData({ assignmentNote: e.detail.value || '' });
+  },
+
+  async searchCustomersForAssignment() {
+    if (this.data.customerSearching) return;
+    this.setData({ customerSearching: true, selectedCustomer: null });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'searchCustomersForOperator',
+        data: {
+          keyword: this.data.customerSearchKeyword,
+          limit: 20,
+        },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '搜索失败', icon: 'none' });
+        this.setData({ customerSearching: false });
+        return;
+      }
+      this.setData({
+        customerSearching: false,
+        customerSearchResults: result.customers || [],
+      });
+    } catch (error) {
+      wx.showToast({ title: '搜索失败', icon: 'none' });
+      this.setData({ customerSearching: false });
+    }
+  },
+
+  selectCustomerForAssignment(e) {
+    const userId = e.currentTarget.dataset.userId;
+    const selectedCustomer = (this.data.customerSearchResults || []).find((customer) => customer.user_id === userId);
+    if (!selectedCustomer) return;
+    this.setData({ selectedCustomer });
+  },
+
+  async confirmAssignCustomer() {
+    const { selectedCustomer, assignedCustomer } = this.data;
+    if (!selectedCustomer || !selectedCustomer.user_id || this.data.assigningCustomer) {
+      wx.showToast({ title: '请选择客户', icon: 'none' });
+      return;
+    }
+    const isReplacing = assignedCustomer && assignedCustomer.user_id && assignedCustomer.user_id !== selectedCustomer.user_id;
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: isReplacing ? '更换客户' : '分配客户',
+        content: `确认将该用车单同步到「${selectedCustomer.display_name || selectedCustomer.name}」的 Farland 行程吗？`,
+        confirmText: '确认分配',
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+
+    this.setData({ assigningCustomer: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'assignCustomerToRideRequest',
+        data: {
+          request_id: this.data.requestId,
+          customer_user_id: selectedCustomer.user_id,
+          assignment_note: this.data.assignmentNote,
+        },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '分配失败', icon: 'none' });
+        this.setData({ assigningCustomer: false });
+        return;
+      }
+      wx.showToast({ title: '已分配客户', icon: 'success' });
+      this.setData({
+        assigningCustomer: false,
+        showCustomerAssignPanel: false,
+        selectedCustomer: null,
+        customerSearchResults: [],
+        customerSearchKeyword: '',
+        assignmentNote: '',
+      });
+      this.loadDetail();
+    } catch (error) {
+      wx.showToast({ title: '分配失败', icon: 'none' });
+      this.setData({ assigningCustomer: false });
+    }
+  },
+
+  viewAssignedCustomerTrip() {
+    wx.showToast({ title: '客户行程已同步，可在客户端查看', icon: 'none' });
   },
 
   async prepareCustomerShare() {

@@ -17,6 +17,8 @@ Page({
     showProfileSaveForm: false,
     profileSaveName: '',
     profileSaving: false,
+    autoSavingInvite: false,
+    autoSavedInviteKey: '',
   },
 
   onLoad(options) {
@@ -90,6 +92,10 @@ Page({
         this.setData({ loading: false, refreshingDetail: false });
         return;
       }
+      if (inviteCode && result.access_source === 'temporary_invite') {
+        const autoSaved = await this.tryAutoSaveForRegisteredCustomer(requestId, inviteCode);
+        if (autoSaved) return;
+      }
       const summary = result.request_summary || {};
       const assignedTransport = result.assigned_transport || {};
       const isAssignedStatus = summary.status === 'assigned' || summary.status === 'confirmed';
@@ -146,6 +152,41 @@ Page({
 
   openProfileSaveForm() {
     this.setData({ showProfileSaveForm: true });
+  },
+
+  async tryAutoSaveForRegisteredCustomer(requestId, inviteCode) {
+    const { autoSavingInvite, autoSavedInviteKey } = this.data;
+    if (!requestId || !inviteCode || autoSavingInvite) return false;
+    const inviteKey = `${requestId}:${inviteCode}`;
+    if (autoSavedInviteKey === inviteKey) return false;
+
+    this.setData({
+      autoSavingInvite: true,
+      autoSavedInviteKey: inviteKey,
+    });
+
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'claimCustomerInvite',
+        data: {
+          request_id: requestId,
+          invite_code: inviteCode,
+          bind_mode: 'farland_profile',
+          auto_claim: true,
+        },
+      });
+      this.setData({ autoSavingInvite: false });
+      if (!result || !result.success) {
+        return false;
+      }
+
+      wx.showToast({ title: '已同步行程', icon: 'success' });
+      this.loadTransferDetail(requestId, inviteCode, { silent: true });
+      return true;
+    } catch (error) {
+      this.setData({ autoSavingInvite: false });
+      return false;
+    }
   },
 
   formatDisplayTime(value) {
