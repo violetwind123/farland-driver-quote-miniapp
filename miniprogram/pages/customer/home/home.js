@@ -153,7 +153,7 @@ Page({
         return;
       }
       const todayCard = this.normalizeTodayCard(result.today_card || null);
-      const todayItinerary = result.today_itinerary || null;
+      const todayItinerary = this.normalizeTodayItinerary(result.today_itinerary || null);
       const tripOverview = (result.trip_overview || []).map((item) => ({
         ...item,
         statusText: item.status === 'pending' ? 'Farland 确认中' : '已确认',
@@ -171,6 +171,7 @@ Page({
       }));
       const transferRequests = (result.transfer_requests || []).map((request) => ({
         ...request,
+        pickup_time_text: this.formatDisplayTime(request.pickup_time_text || request.service_date || ''),
         quoteCount: (request.quotes || []).length,
         statusClass: request.status === 'quoted' ? 'quoted' : 'pending',
         quotes: (request.quotes || []).map((quote) => ({
@@ -183,6 +184,7 @@ Page({
       }));
       const transportOrders = (result.transport_orders || []).map((order) => ({
         ...order,
+        pickup_time_text: this.formatDisplayTime(order.pickup_time_text || order.pickup_time || ''),
         statusClass: order.order_status === 'assigned' ? 'confirmed' : 'pending',
       }));
       const invitedTransfer = await this.loadInvitedTransferIfNeeded();
@@ -247,18 +249,37 @@ Page({
     if (!card) return null;
     const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
     const driverAssigned = driverVisibility === 'assigned' && card.driver;
-    const timelineItems = (card.timeline_items || []).map((item, index) => ({
-      ...item,
-      id: item.id || `${item.time || 'time'}-${index}`,
-      meta: [item.location, item.route, item.drive_time].filter(Boolean).join(' · '),
-      noteText: [item.traffic_level ? `Traffic: ${item.traffic_level}` : '', item.note].filter(Boolean).join(' · '),
-    }));
-    const destinationCards = (card.destination_cards && card.destination_cards.length ? card.destination_cards : timelineItems).map((item, index) => ({
-      ...item,
-      card_id: item.card_id || item.id || `${item.time || 'node'}-${index}`,
-      sequence: item.sequence || index + 1,
-      chipLabel: `${item.time || ''} ${item.title || ''}`.trim(),
-    }));
+    const timelineItems = (card.timeline_items || []).map((item, index) => {
+      const time = this.formatDisplayTime(item.time || '');
+      return {
+        ...item,
+        time,
+        id: item.id || `${item.time || 'time'}-${index}`,
+        meta: [item.location, item.route, item.drive_time].filter(Boolean).join(' · '),
+        noteText: [item.traffic_level ? `Traffic: ${item.traffic_level}` : '', item.note].filter(Boolean).join(' · '),
+      };
+    });
+    const destinationCards = (card.destination_cards && card.destination_cards.length ? card.destination_cards : timelineItems).map((item, index) => {
+      const time = this.formatDisplayTime(item.time || '');
+      const arrivalEstimate = this.formatDisplayTime(item.arrival_estimate || '');
+      return {
+        ...item,
+        time,
+        arrival_estimate: arrivalEstimate,
+        card_id: item.card_id || item.id || `${item.time || 'node'}-${index}`,
+        sequence: item.sequence || index + 1,
+        chipLabel: `${time || ''} ${item.title || ''}`.trim(),
+      };
+    });
+    const serviceWindowText = this.formatDisplayTime(
+      (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
+    );
+    const hotel = card.hotel
+      ? {
+          ...card.hotel,
+          arrival_time: this.formatDisplayTime(card.hotel.arrival_time || ''),
+        }
+      : null;
     return {
       ...card,
       driver_visibility: driverVisibility,
@@ -266,7 +287,7 @@ Page({
       dateRouteText: `${card.weekday || ''}${card.date ? ` · ${card.date}` : ''}${card.city_summary ? ` · ${card.city_summary}` : ''}`,
       timeline_items: timelineItems,
       destination_cards: destinationCards,
-      serviceWindowText: (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
+      serviceWindowText,
       transportTitle: (card.transport_summary && card.transport_summary.title) || (card.service_type === 'charter' ? '今日包车服务' : '今日接送安排'),
       transportStatusText: (card.transport_summary && card.transport_summary.status_text) || (driverAssigned ? '司机与车辆信息已就绪' : '车辆已确认，司机信息待同步'),
       routeStops: destinationCards.map((item) => ({
@@ -274,11 +295,40 @@ Page({
         time: item.time,
         title: item.title,
       })),
-      hotel: card.hotel || null,
+      hotel,
       advisor: card.advisor || {},
       driver: driverAssigned ? card.driver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
     };
+  },
+
+  normalizeTodayItinerary(itinerary) {
+    if (!itinerary) return null;
+    return {
+      ...itinerary,
+      items: (itinerary.items || []).map((item) => ({
+        ...item,
+        time: this.formatDisplayTime(item.time || ''),
+      })),
+    };
+  },
+
+  formatDisplayTime(value) {
+    if (!value && value !== 0) return '';
+    return String(value)
+      .replace(/\b(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM)\b/gi, (match, hour, minute, period) => {
+        let hour24 = Number(hour);
+        const normalizedPeriod = String(period).toUpperCase();
+        if (normalizedPeriod === 'PM' && hour24 !== 12) hour24 += 12;
+        if (normalizedPeriod === 'AM' && hour24 === 12) hour24 = 0;
+        return `${String(hour24).padStart(2, '0')}:${minute}`;
+      })
+      .replace(/(上午|下午)\s*(1[0-2]|0?[1-9]):([0-5]\d)/g, (match, period, hour, minute) => {
+        let hour24 = Number(hour);
+        if (period === '下午' && hour24 !== 12) hour24 += 12;
+        if (period === '上午' && hour24 === 12) hour24 = 0;
+        return `${String(hour24).padStart(2, '0')}:${minute}`;
+      });
   },
 
   selectClaimBindType(e) {
@@ -427,7 +477,7 @@ Page({
       created_by_text: summary.created_by_text || '由 Farland 顾问为您安排',
       pickup: summary.pickup || summary.driver_region || '待确认',
       dropoff: summary.dropoff || '待确认',
-      pickup_time_text: summary.pickup_time_text || summary.service_date || '待确认',
+      pickup_time_text: this.formatDisplayTime(summary.pickup_time_text || summary.service_date || '待确认'),
       passengers: summary.passengers || '-',
       luggage: summary.luggage || '-',
       status: summary.status || (result.has_published_quotes ? 'quoted' : 'sourcing'),

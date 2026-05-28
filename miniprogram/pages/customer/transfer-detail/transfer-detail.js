@@ -97,7 +97,7 @@ Page({
         request_id: result.request_id || requestId,
         pickup: summary.pickup || summary.driver_region || '待确认',
         dropoff: summary.dropoff || '待确认',
-        pickup_time_text: summary.pickup_time_text || summary.service_date || '待确认',
+        pickup_time_text: this.formatDisplayTime(summary.pickup_time_text || summary.service_date || '待确认'),
         passengers: summary.passengers || '-',
         luggage: summary.luggage || '-',
         status: summary.status || '',
@@ -146,6 +146,24 @@ Page({
 
   openProfileSaveForm() {
     this.setData({ showProfileSaveForm: true });
+  },
+
+  formatDisplayTime(value) {
+    if (!value && value !== 0) return '';
+    return String(value)
+      .replace(/\b(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM)\b/gi, (match, hour, minute, period) => {
+        let hour24 = Number(hour);
+        const normalizedPeriod = String(period).toUpperCase();
+        if (normalizedPeriod === 'PM' && hour24 !== 12) hour24 += 12;
+        if (normalizedPeriod === 'AM' && hour24 === 12) hour24 = 0;
+        return `${String(hour24).padStart(2, '0')}:${minute}`;
+      })
+      .replace(/(上午|下午)\s*(1[0-2]|0?[1-9]):([0-5]\d)/g, (match, period, hour, minute) => {
+        let hour24 = Number(hour);
+        if (period === '下午' && hour24 !== 12) hour24 += 12;
+        if (period === '上午' && hour24 === 12) hour24 = 0;
+        return `${String(hour24).padStart(2, '0')}:${minute}`;
+      });
   },
 
   onProfileSaveNameInput(e) {

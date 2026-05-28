@@ -29,20 +29,25 @@ Page({
       : this.buildCardsFromTimeline(card.timeline_items || []);
     const cards = sourceCards.map((item, index) => ({
       ...item,
+      time: this.formatDisplayTime(item.time || ''),
+      arrival_estimate: this.formatDisplayTime(item.arrival_estimate || ''),
       card_id: item.card_id || `${item.time || 'node'}-${index}`,
       sequence: item.sequence || index + 1,
       typeText: this.typeText(item.type),
-      chipText: `${item.time || ''} ${this.shortTitle(item.title || '')}`.trim(),
+      chipText: `${this.formatDisplayTime(item.time || '')} ${this.shortTitle(item.title || '')}`.trim(),
       detailLine: [item.drive_time, item.distance, item.traffic_level].filter(Boolean).join(' · '),
       primaryAction: '联系顾问',
     }));
+    const serviceWindowText = this.formatDisplayTime(
+      (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
+    );
     return {
       ...card,
       destination_cards: cards,
       driver: driverAssigned ? card.driver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
       serviceTitle: card.service_type === 'transfer' ? '今日接送安排' : '今日包车服务',
-      serviceWindowText: (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
+      serviceWindowText,
       serviceSubText: [card.party_summary, driverAssigned ? '司机与车辆信息已就绪' : '司机信息待同步'].filter(Boolean).join(' · '),
     };
   },
@@ -53,7 +58,7 @@ Page({
       card_id: item.id || `timeline-${index}`,
       type: index === 0 ? 'departure' : 'custom',
       sequence: index + 1,
-      time: item.time || '',
+      time: this.formatDisplayTime(item.time || ''),
       title: item.title || '行程节点',
       location: item.location || '',
       route: item.route || '',
@@ -63,6 +68,24 @@ Page({
       note: item.note || item.description || '',
       next_stop: '',
     }));
+  },
+
+  formatDisplayTime(value) {
+    if (!value && value !== 0) return '';
+    return String(value)
+      .replace(/\b(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM)\b/gi, (match, hour, minute, period) => {
+        let hour24 = Number(hour);
+        const normalizedPeriod = String(period).toUpperCase();
+        if (normalizedPeriod === 'PM' && hour24 !== 12) hour24 += 12;
+        if (normalizedPeriod === 'AM' && hour24 === 12) hour24 = 0;
+        return `${String(hour24).padStart(2, '0')}:${minute}`;
+      })
+      .replace(/(上午|下午)\s*(1[0-2]|0?[1-9]):([0-5]\d)/g, (match, period, hour, minute) => {
+        let hour24 = Number(hour);
+        if (period === '下午' && hour24 !== 12) hour24 += 12;
+        if (period === '上午' && hour24 === 12) hour24 = 0;
+        return `${String(hour24).padStart(2, '0')}:${minute}`;
+      });
   },
 
   shortTitle(title) {
