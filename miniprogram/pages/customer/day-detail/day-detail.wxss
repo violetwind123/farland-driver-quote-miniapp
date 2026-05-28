@@ -96,6 +96,16 @@
   line-height: 1.5;
 }
 
+.service-driver {
+  margin-top: 16rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(91, 101, 150, 0.08);
+  color: #2F394C;
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
 .day-detail-empty {
   margin: 28rpx 24rpx 0;
   padding: 32rpx;

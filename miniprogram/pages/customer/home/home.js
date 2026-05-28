@@ -173,7 +173,9 @@ Page({
         ...request,
         pickup_time_text: this.formatDisplayTime(request.pickup_time_text || request.service_date || ''),
         quoteCount: (request.quotes || []).length,
-        statusClass: request.status === 'quoted' ? 'quoted' : 'pending',
+        statusClass: request.status === 'assigned' || request.status === 'confirmed'
+          ? 'confirmed'
+          : (request.status === 'quoted' ? 'quoted' : 'pending'),
         quotes: (request.quotes || []).map((quote) => ({
           ...quote,
           feeRateText: `${Math.round((quote.farland_service_fee_rate || 0.1) * 100)}%`,
@@ -245,10 +247,35 @@ Page({
     }
   },
 
+  normalizeAssignedDriver(source) {
+    if (!source) return null;
+    const driverName = source.name || source.driver_name || source.display_name || '';
+    const phone = source.phone || source.driver_phone || '';
+    const vehicleModel = source.vehicle_model || '';
+    const vehicleType = source.vehicle_type || source.vehicle_class || '';
+    const plateNumber = source.plate_number || '';
+    if (!driverName && !phone && !vehicleModel && !vehicleType && !plateNumber) return null;
+    return {
+      name: driverName,
+      phone,
+      vehicle_model: vehicleModel,
+      vehicle_type: vehicleType,
+      plate_number: plateNumber,
+      meeting_point: source.meeting_point || '',
+      vehicleText: vehicleModel || vehicleType || '车辆待确认',
+      detailLine: [
+        driverName ? `司机：${driverName}` : '',
+        vehicleModel || vehicleType ? `车辆：${vehicleModel || vehicleType}` : '',
+        phone ? `电话：${phone}` : '',
+      ].filter(Boolean).join(' · '),
+    };
+  },
+
   normalizeTodayCard(card) {
     if (!card) return null;
     const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
-    const driverAssigned = driverVisibility === 'assigned' && card.driver;
+    const normalizedDriver = this.normalizeAssignedDriver(card.driver || card.assigned_transport || null);
+    const driverAssigned = driverVisibility === 'assigned' && normalizedDriver;
     const timelineItems = (card.timeline_items || []).map((item, index) => {
       const time = this.formatDisplayTime(item.time || '');
       return {
@@ -289,7 +316,9 @@ Page({
       destination_cards: destinationCards,
       serviceWindowText,
       transportTitle: (card.transport_summary && card.transport_summary.title) || (card.service_type === 'charter' ? '今日包车服务' : '今日接送安排'),
-      transportStatusText: (card.transport_summary && card.transport_summary.status_text) || (driverAssigned ? '司机与车辆信息已就绪' : '车辆已确认，司机信息待同步'),
+      transportStatusText: driverAssigned
+        ? '已分配司机'
+        : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
       routeStops: destinationCards.map((item) => ({
         id: item.card_id,
         time: item.time,
@@ -297,7 +326,7 @@ Page({
       })),
       hotel,
       advisor: card.advisor || {},
-      driver: driverAssigned ? card.driver : null,
+      driver: driverAssigned ? normalizedDriver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
     };
   },
@@ -488,7 +517,7 @@ Page({
       quoteCount: quotes.length,
       statusClass: summary.status === 'cancelled'
         ? 'cancelled'
-        : (summary.status === 'assigned' ? 'confirmed' : (result.has_published_quotes ? 'quoted' : 'pending')),
+        : (summary.status === 'assigned' || summary.status === 'confirmed' ? 'confirmed' : (result.has_published_quotes ? 'quoted' : 'pending')),
       quotes,
       assigned_transport: result.assigned_transport || null,
       cancel_reason_driver: summary.cancel_reason_driver || '',

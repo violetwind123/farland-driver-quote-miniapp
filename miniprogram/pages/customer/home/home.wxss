@@ -636,6 +636,16 @@
   color: #8A91A1;
 }
 
+.arrangement-driver {
+  margin-top: 16rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(102, 114, 168, 0.08);
+  color: #2F394C;
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
 .arrangement-btn {
   margin: 22rpx 0 0;
   height: 76rpx;

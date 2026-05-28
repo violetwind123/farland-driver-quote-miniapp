@@ -75,6 +75,41 @@ function toAssignedTransportFromDriverVehicle(driver, vehicle) {
   };
 }
 
+function hasAssignedTransportDetails(transport) {
+  if (!transport) return false;
+  return Boolean(
+    transport.driver_name
+    || transport.driver_phone
+    || transport.vehicle_type
+    || transport.vehicle_model
+    || transport.plate_number,
+  );
+}
+
+function hasCompleteAssignedTransport(transport) {
+  if (!transport) return false;
+  return Boolean(
+    (transport.driver_name || transport.driver_phone)
+    && (transport.vehicle_model || transport.vehicle_type),
+  );
+}
+
+function mergeAssignedTransport(primary, fallback) {
+  if (!primary && !fallback) return null;
+  const base = primary || {};
+  const fill = fallback || {};
+  return {
+    driver_name: base.driver_name || fill.driver_name || '',
+    driver_phone: base.driver_phone || fill.driver_phone || '',
+    vehicle_type: base.vehicle_type || fill.vehicle_type || '',
+    vehicle_model: base.vehicle_model || fill.vehicle_model || '',
+    seats: base.seats || fill.seats || 0,
+    luggage_capacity: base.luggage_capacity || fill.luggage_capacity || 0,
+    plate_number: base.plate_number || fill.plate_number || '',
+    meeting_point: base.meeting_point || fill.meeting_point || '',
+  };
+}
+
 function isAssignedStatus(status) {
   return status === 'assigned' || status === 'confirmed';
 }
@@ -112,7 +147,7 @@ async function getAssignedTransport(requestId, auditContext = {}) {
     }).catch(() => null);
   }
   const transport = toAssignedTransport(orderRes.data[0]);
-  if (!readError && !transport) {
+  if (!readError && !hasAssignedTransportDetails(transport)) {
     await writeAuditLog(db, {
       actor_openid: auditContext.openid || '',
       actor_user_id: auditContext.user_id || '',
@@ -125,7 +160,7 @@ async function getAssignedTransport(requestId, auditContext = {}) {
       created_at: auditContext.now || new Date().toISOString(),
     }).catch(() => null);
   }
-  return transport;
+  return hasAssignedTransportDetails(transport) ? transport : null;
 }
 
 async function getAssignedTransportFallback(request, auditContext = {}) {
@@ -353,9 +388,14 @@ exports.main = async (event = {}) => {
       request_status: request.status || '',
       now,
     };
-  const assignedTransport = isAssignedStatus(request.status)
-    ? (await getAssignedTransport(request_id, auditContext)) || await getAssignedTransportFallback(request, auditContext)
-    : null;
+  let assignedTransport = null;
+  if (isAssignedStatus(request.status)) {
+    const orderTransport = await getAssignedTransport(request_id, auditContext);
+    const fallbackTransport = hasCompleteAssignedTransport(orderTransport)
+      ? null
+      : await getAssignedTransportFallback(request, auditContext);
+    assignedTransport = mergeAssignedTransport(orderTransport, fallbackTransport);
+  }
 
   await writeAuditLog(db, {
     actor_openid: caller.openid,

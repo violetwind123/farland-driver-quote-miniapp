@@ -14,6 +14,11 @@
         <view class="service-title">{{todayCard.serviceTitle}}</view>
         <view class="service-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
         <view class="service-sub">{{todayCard.serviceSubText}}</view>
+        <view wx:if="{{todayCard.driver}}" class="service-driver">
+          <view>{{todayCard.driver.detailLine}}</view>
+          <view wx:if="{{todayCard.driver.plate_number}}">车牌：{{todayCard.driver.plate_number}}</view>
+        </view>
+        <view wx:elif="{{todayCard.driverPendingText}}" class="service-sub">{{todayCard.driverPendingText}}</view>
       </view>
     </view>
 

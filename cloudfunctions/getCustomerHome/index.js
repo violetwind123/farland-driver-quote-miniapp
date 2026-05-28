@@ -287,6 +287,41 @@ function toAssignedTransportFromDriverVehicle(driver, vehicle) {
   };
 }
 
+function hasAssignedTransportDetails(transport) {
+  if (!transport) return false;
+  return Boolean(
+    transport.driver_name
+    || transport.driver_phone
+    || transport.vehicle_type
+    || transport.vehicle_model
+    || transport.plate_number,
+  );
+}
+
+function hasCompleteAssignedTransport(transport) {
+  if (!transport) return false;
+  return Boolean(
+    (transport.driver_name || transport.driver_phone)
+    && (transport.vehicle_model || transport.vehicle_type),
+  );
+}
+
+function mergeAssignedTransport(primary, fallback) {
+  if (!primary && !fallback) return null;
+  const base = primary || {};
+  const fill = fallback || {};
+  return {
+    driver_name: base.driver_name || fill.driver_name || '',
+    driver_phone: base.driver_phone || fill.driver_phone || '',
+    vehicle_type: base.vehicle_type || fill.vehicle_type || '',
+    vehicle_model: base.vehicle_model || fill.vehicle_model || '',
+    seats: base.seats || fill.seats || 0,
+    luggage_capacity: base.luggage_capacity || fill.luggage_capacity || 0,
+    plate_number: base.plate_number || fill.plate_number || '',
+    meeting_point: base.meeting_point || fill.meeting_point || '',
+  };
+}
+
 function errorDetail(error) {
   if (!error) return {};
   return {
@@ -348,6 +383,7 @@ function toTransferRequest(request, quotes, assignedTransport = null) {
   const hasQuotes = quotes.length > 0;
   return {
     request_id: request._id,
+    service_type: request.service_type || 'transfer',
     title: request.request_no ? `用车方案 ${request.request_no}` : 'Farland 用车方案',
     created_by_text: request.customer_name ? `${request.customer_name} 的用车需求` : '由 Farland 顾问为您安排',
     pickup: request.pickup || request.pickup_location || request.driver_region || '待确认',
@@ -363,6 +399,80 @@ function toTransferRequest(request, quotes, assignedTransport = null) {
     quotes,
     assigned_transport: assignedTransport,
     cancel_reason_driver: request.cancel_reason_driver || '',
+  };
+}
+
+function toDriverDisplay(assignedTransport) {
+  if (!hasAssignedTransportDetails(assignedTransport)) return null;
+  return {
+    name: assignedTransport.driver_name || '',
+    phone: assignedTransport.driver_phone || '',
+    vehicle_type: assignedTransport.vehicle_type || '',
+    vehicle_model: assignedTransport.vehicle_model || assignedTransport.vehicle_type || '',
+    seats: assignedTransport.seats || 0,
+    luggage_capacity: assignedTransport.luggage_capacity || 0,
+    plate_number: assignedTransport.plate_number || '',
+    meeting_point: assignedTransport.meeting_point || '',
+  };
+}
+
+function partySummaryFromTransfer(transfer) {
+  const passengers = transfer.passengers && transfer.passengers !== '-' ? `${transfer.passengers}人` : '';
+  const luggage = transfer.luggage && transfer.luggage !== '-' ? `${transfer.luggage}件行李` : '';
+  return [passengers, luggage].filter(Boolean).join(' · ');
+}
+
+function applyAssignedTransportToTodayCard(card, transfer) {
+  if (!transfer || !hasAssignedTransportDetails(transfer.assigned_transport)) return card;
+  const driver = toDriverDisplay(transfer.assigned_transport);
+  const isCharter = transfer.service_type === 'charter';
+  const serviceTitle = isCharter ? '今日包车服务' : '今日接送安排';
+  const vehicleSummary = driver.vehicle_model || driver.vehicle_type || card.vehicle_summary;
+  const serviceWindowLabel = transfer.pickup_time_text && transfer.pickup_time_text !== '待确认'
+    ? `${transfer.pickup_time_text} 出发`
+    : ((card.service_window && card.service_window.label) || card.depart_time || '');
+  return {
+    ...card,
+    status: 'driver_assigned',
+    status_text: '已分配司机',
+    service_type: isCharter ? 'charter' : 'transfer',
+    service_summary: serviceTitle,
+    service_window: {
+      ...(card.service_window || {}),
+      start_time: transfer.pickup_time_text || (card.service_window && card.service_window.start_time) || '',
+      label: serviceWindowLabel,
+    },
+    depart_time: transfer.pickup_time_text || card.depart_time,
+    vehicle_summary: vehicleSummary,
+    party_summary: partySummaryFromTransfer(transfer) || card.party_summary,
+    driver_visibility: 'assigned',
+    driver,
+    assigned_request_id: transfer.request_id,
+    assigned_transport: transfer.assigned_transport,
+    transport_summary: {
+      ...(card.transport_summary || {}),
+      type: isCharter ? 'charter' : 'transfer',
+      title: serviceTitle,
+      status_text: '已分配司机',
+      action_label: isCharter ? '查看用车安排' : '查看接送详情',
+    },
+  };
+}
+
+function toTransportOrderSummary(transfer) {
+  if (!transfer || !hasAssignedTransportDetails(transfer.assigned_transport)) return null;
+  const driver = toDriverDisplay(transfer.assigned_transport);
+  return {
+    order_id: `${transfer.request_id}-assigned`,
+    request_id: transfer.request_id,
+    title: transfer.service_type === 'charter' ? '今日包车服务' : '今日接送安排',
+    status_text: '已分配司机',
+    order_status: 'assigned',
+    pickup: transfer.pickup || '',
+    dropoff: transfer.dropoff || '',
+    pickup_time_text: transfer.pickup_time_text || '',
+    vehicle_class: driver.vehicle_model || driver.vehicle_type || '',
+    driver,
   };
 }
 
@@ -581,16 +691,18 @@ exports.main = async () => {
     return acc;
   }, {});
   await Promise.all(assignedRequestIds.map(async (requestId) => {
-    if (assignedTransportByRequest[requestId]) return;
+    if (hasCompleteAssignedTransport(assignedTransportByRequest[requestId])) return;
     const fallback = await getAssignedTransportFallback(requestById[requestId], {
       openid: OPENID,
       user_id: user ? user._id : '',
       role: user ? user.role : 'customer',
       now: now.toISOString(),
     });
-    if (fallback) assignedTransportByRequest[requestId] = fallback;
+    const merged = mergeAssignedTransport(assignedTransportByRequest[requestId], fallback);
+    if (hasAssignedTransportDetails(merged)) assignedTransportByRequest[requestId] = merged;
+    else delete assignedTransportByRequest[requestId];
   }));
-  const missingAssignedRequestIds = assignedRequestIds.filter((requestId) => !assignedTransportByRequest[requestId]);
+  const missingAssignedRequestIds = assignedRequestIds.filter((requestId) => !hasAssignedTransportDetails(assignedTransportByRequest[requestId]));
   if (missingAssignedRequestIds.length && assignedRequestIds.length) {
     await writeAuditLog({
       actor_openid: OPENID,
@@ -609,6 +721,13 @@ exports.main = async () => {
   const transferRequests = requests
     .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')))
     .map((request) => toTransferRequest(request, quotesByRequest[request._id] || [], assignedTransportByRequest[request._id] || null));
+  const primaryAssignedTransfer = transferRequests.find((request) => {
+    return (request.status === 'assigned' || request.status === 'confirmed')
+      && hasAssignedTransportDetails(request.assigned_transport);
+  });
+  const transportOrderSummaries = transferRequests
+    .map(toTransportOrderSummary)
+    .filter(Boolean);
   const firstInvite = invites[0] || {};
   const firstTrip = customerTrips[0] || {};
   const displayName = (user && user.name)
@@ -630,13 +749,13 @@ exports.main = async () => {
       points_balance: tripOnly ? 0 : 3280,
       subtitle: tripOnly ? 'Farland 顾问已为您同步本次行程与报价' : '您的行程与报价已由 Farland 顾问同步',
     },
-    today_card: buildMockTodayCard(),
+    today_card: applyAssignedTransportToTodayCard(buildMockTodayCard(), primaryAssignedTransfer),
     today_itinerary: tripData.today_itinerary,
     trip_overview: tripData.trip_overview,
     transportation_appointments: [],
     charter_services: tripData.charter_services,
     transfer_requests: transferRequests,
-    transport_orders: [],
+    transport_orders: transportOrderSummaries,
     hotel_requests: tripData.hotel_requests,
     benefits: tripData.benefits.length ? tripData.benefits : (tripOnly ? [] : [
       {

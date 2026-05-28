@@ -128,8 +128,18 @@
           <view class="arrangement-title">{{todayCard.transportTitle}}</view>
           <view class="arrangement-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
           <view class="arrangement-sub">{{todayCard.party_summary}} · {{todayCard.transportStatusText}}</view>
+          <view wx:if="{{todayCard.driver}}" class="arrangement-driver">
+            <view>{{todayCard.driver.detailLine}}</view>
+            <view wx:if="{{todayCard.driver.plate_number}}">车牌：{{todayCard.driver.plate_number}}</view>
+          </view>
           <view wx:if="{{todayCard.driverPendingText}}" class="arrangement-helper">{{todayCard.driverPendingText}}</view>
-          <button class="arrangement-btn" bindtap="openTodayDetail">查看用车安排</button>
+          <button
+            wx:if="{{todayCard.assigned_request_id && todayCard.service_type !== 'charter'}}"
+            class="arrangement-btn"
+            data-request-id="{{todayCard.assigned_request_id}}"
+            bindtap="viewTransferDetail"
+          >查看接送详情</button>
+          <button wx:else class="arrangement-btn" bindtap="openTodayDetail">查看用车安排</button>
         </view>
         <view wx:elif="{{primaryTransfer}}">
           <view class="arrangement-title">今日接送安排</view>

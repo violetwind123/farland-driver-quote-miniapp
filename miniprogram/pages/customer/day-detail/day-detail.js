@@ -22,8 +22,32 @@ Page({
     });
   },
 
+  normalizeAssignedDriver(source) {
+    if (!source) return null;
+    const driverName = source.name || source.driver_name || source.display_name || '';
+    const phone = source.phone || source.driver_phone || '';
+    const vehicleModel = source.vehicle_model || '';
+    const vehicleType = source.vehicle_type || source.vehicle_class || '';
+    const plateNumber = source.plate_number || '';
+    if (!driverName && !phone && !vehicleModel && !vehicleType && !plateNumber) return null;
+    return {
+      name: driverName,
+      phone,
+      vehicle_model: vehicleModel,
+      vehicle_type: vehicleType,
+      plate_number: plateNumber,
+      vehicleText: vehicleModel || vehicleType || '车辆待确认',
+      detailLine: [
+        driverName ? `司机：${driverName}` : '',
+        vehicleModel || vehicleType ? `车辆：${vehicleModel || vehicleType}` : '',
+        phone ? `电话：${phone}` : '',
+      ].filter(Boolean).join(' · '),
+    };
+  },
+
   normalizeTodayCard(card) {
-    const driverAssigned = card.driver_visibility === 'assigned' && card.driver;
+    const normalizedDriver = this.normalizeAssignedDriver(card.driver || card.assigned_transport || null);
+    const driverAssigned = card.driver_visibility === 'assigned' && normalizedDriver;
     const sourceCards = Array.isArray(card.destination_cards) && card.destination_cards.length
       ? card.destination_cards
       : this.buildCardsFromTimeline(card.timeline_items || []);
@@ -44,11 +68,11 @@ Page({
     return {
       ...card,
       destination_cards: cards,
-      driver: driverAssigned ? card.driver : null,
+      driver: driverAssigned ? normalizedDriver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
       serviceTitle: card.service_type === 'transfer' ? '今日接送安排' : '今日包车服务',
       serviceWindowText,
-      serviceSubText: [card.party_summary, driverAssigned ? '司机与车辆信息已就绪' : '司机信息待同步'].filter(Boolean).join(' · '),
+      serviceSubText: [card.party_summary, driverAssigned ? '已分配司机' : '司机信息待同步'].filter(Boolean).join(' · '),
     };
   },
 
