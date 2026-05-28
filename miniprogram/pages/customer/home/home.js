@@ -32,6 +32,8 @@ Page({
     showProfileUpgradeForm: false,
     claimDisplayName: '',
     claimSubmitting: false,
+    autoClaimingInvite: false,
+    autoClaimedInviteKey: '',
   },
 
   onLoad(options = {}) {
@@ -116,6 +118,8 @@ Page({
         return;
       }
       if (this.data.inviteMode && result.access_status === 'empty') {
+        const autoClaimed = await this.tryAutoClaimInviteForProfile(result);
+        if (autoClaimed) return;
         const invitedTransfer = await this.loadInvitedTransferIfNeeded();
         this.setData({
           loading: false,
@@ -375,6 +379,38 @@ Page({
 
   openProfileUpgradeForm() {
     this.setData({ showProfileUpgradeForm: true });
+  },
+
+  async tryAutoClaimInviteForProfile(homeResult) {
+    if (!homeResult || homeResult.bind_mode !== 'farland_profile') return false;
+    const { inviteCode, inviteRequestId, autoClaimingInvite, autoClaimedInviteKey } = this.data;
+    if (!inviteCode || !inviteRequestId || autoClaimingInvite) return false;
+
+    const inviteKey = `${inviteRequestId}:${inviteCode}`;
+    if (autoClaimedInviteKey === inviteKey) return false;
+
+    this.setData({
+      autoClaimingInvite: true,
+      autoClaimedInviteKey: inviteKey,
+    });
+
+    try {
+      const result = await this.claimInvite('farland_profile');
+      this.setData({ autoClaimingInvite: false });
+      if (!result || !result.success) {
+        if (result && result.error_code && result.error_code !== 'DISPLAY_NAME_REQUIRED') {
+          wx.showToast({ title: result.message || '行程同步失败', icon: 'none' });
+        }
+        return false;
+      }
+
+      wx.showToast({ title: '已同步行程', icon: 'success' });
+      this.loadHome();
+      return true;
+    } catch (error) {
+      this.setData({ autoClaimingInvite: false });
+      return false;
+    }
   },
 
   async registerCustomerProfile() {

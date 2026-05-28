@@ -15,6 +15,20 @@ function legacyAccessType(bindMode) {
   return bindMode === 'farland_profile' ? 'profile' : 'trip_only';
 }
 
+function isExistingFarlandProfile(user) {
+  if (!user || user.role !== 'customer') return false;
+  if (user.status && user.status !== 'active') return false;
+  return user.customer_binding_mode === 'farland_profile'
+    || user.bind_mode === 'farland_profile'
+    || user.bind_type === 'profile'
+    || user.access_type === 'profile';
+}
+
+function existingProfileName(user) {
+  if (!user) return '';
+  return String(user.display_name || user.name || user.customer_name || '').trim();
+}
+
 function isExpired(invite, now) {
   const expiresAt = invite.expires_at instanceof Date ? invite.expires_at : new Date(invite.expires_at);
   return expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < now.getTime();
@@ -311,12 +325,23 @@ exports.main = async (event = {}) => {
     : '';
   const safeBindMode = normalizeBindMode(requestedBindMode || existingBindMode);
   const rawDisplayName = String(display_name || '').trim();
-  if (!isReopenBySameOpenid && safeBindMode === 'farland_profile' && !rawDisplayName) {
-    return { success: false, code: 422, error_code: 'DISPLAY_NAME_REQUIRED', message: '请填写称呼' };
-  }
-  const safeName = String(rawDisplayName || invite.display_name || invite.customer_name || request.customer_name || '临时客户').trim();
   const userRes = await db.collection('users').where({ openid: caller.openid }).limit(1).get();
   const existingUser = userRes.data[0];
+  const autoClaimWithExistingProfile = !rawDisplayName
+    && safeBindMode === 'farland_profile'
+    && isExistingFarlandProfile(existingUser);
+
+  if (!isReopenBySameOpenid && safeBindMode === 'farland_profile' && !rawDisplayName && !autoClaimWithExistingProfile) {
+    return { success: false, code: 422, error_code: 'DISPLAY_NAME_REQUIRED', message: '请填写称呼' };
+  }
+  const safeName = String(
+    rawDisplayName
+    || existingProfileName(existingUser)
+    || invite.display_name
+    || invite.customer_name
+    || request.customer_name
+    || '临时客户',
+  ).trim();
   const userId = await ensureCustomerUser({
     caller,
     existingUser,
@@ -390,6 +415,7 @@ exports.main = async (event = {}) => {
       bind_mode: safeBindMode,
       bind_type: legacyAccessType(safeBindMode),
       customer_trip_access_id: accessId,
+      auto_claimed_profile: autoClaimWithExistingProfile,
     },
     created_at: nowIso,
   }).catch(() => null);
@@ -402,5 +428,6 @@ exports.main = async (event = {}) => {
     bind_type: legacyAccessType(safeBindMode),
     display_name: safeName,
     customer_trip_access_id: accessId,
+    auto_claimed_profile: autoClaimWithExistingProfile,
   };
 };
