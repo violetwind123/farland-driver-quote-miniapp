@@ -340,6 +340,84 @@ async function writeAuditLog(data) {
   }).catch(() => null);
 }
 
+async function getAssignedTransportSnapshot(requestId, auditContext = {}) {
+  let primaryTransport = null;
+  let readError = null;
+
+  try {
+    const orderDoc = await db.collection('transport_orders').doc(requestId).get();
+    const order = orderDoc && orderDoc.data;
+    primaryTransport = toAssignedTransport(order && ['assigned', 'confirmed'].includes(order.order_status) ? order : null);
+    if (hasCompleteAssignedTransport(primaryTransport)) {
+      return { transport: primaryTransport, source: 'transport_orders' };
+    }
+  } catch (error) {
+    readError = error;
+    await writeAuditLog({
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'transport_orders_read_failed',
+      target_type: 'ride_request',
+      target_id: requestId,
+      related_request_id: requestId,
+      detail: {
+        read_mode: 'doc',
+        error: errorDetail(error),
+      },
+      created_at: auditContext.now || new Date().toISOString(),
+    });
+  }
+
+  try {
+    const orderRes = await db.collection('transport_orders')
+      .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
+      .orderBy('updated_at', 'desc')
+      .limit(1)
+      .get();
+    const legacyTransport = toAssignedTransport(orderRes.data[0]);
+    if (hasCompleteAssignedTransport(legacyTransport)) {
+      return { transport: legacyTransport, source: 'transport_orders' };
+    }
+    primaryTransport = mergeAssignedTransport(primaryTransport, legacyTransport);
+  } catch (error) {
+    readError = error;
+    await writeAuditLog({
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'transport_orders_read_failed',
+      target_type: 'ride_request',
+      target_id: requestId,
+      related_request_id: requestId,
+      detail: {
+        read_mode: 'legacy_query',
+        error: errorDetail(error),
+      },
+      created_at: auditContext.now || new Date().toISOString(),
+    });
+  }
+
+  if (!readError && !hasAssignedTransportDetails(primaryTransport)) {
+    await writeAuditLog({
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'transport_orders_missing_for_assigned_request',
+      target_type: 'ride_request',
+      target_id: requestId,
+      related_request_id: requestId,
+      detail: { request_status: auditContext.request_status || '' },
+      created_at: auditContext.now || new Date().toISOString(),
+    });
+  }
+
+  return {
+    transport: hasAssignedTransportDetails(primaryTransport) ? primaryTransport : null,
+    source: hasAssignedTransportDetails(primaryTransport) ? 'transport_orders' : 'none',
+  };
+}
+
 async function getAssignedTransportFallback(request, auditContext = {}) {
   if (!request || !request.selected_driver_id) return null;
   const driverRes = await db.collection('drivers').doc(request.selected_driver_id).get().catch((error) => {
@@ -379,7 +457,7 @@ async function getAssignedTransportFallback(request, auditContext = {}) {
   return toAssignedTransportFromDriverVehicle(driver, vehicle);
 }
 
-function toTransferRequest(request, quotes, assignedTransport = null) {
+function toTransferRequest(request, quotes, assignedTransport = null, assignedTransportSource = 'none') {
   const hasQuotes = quotes.length > 0;
   return {
     request_id: request._id,
@@ -398,6 +476,7 @@ function toTransferRequest(request, quotes, assignedTransport = null) {
     statusClass: statusClass(request.status, hasQuotes),
     quotes,
     assigned_transport: assignedTransport,
+    assigned_transport_source: assignedTransportSource,
     cancel_reason_driver: request.cancel_reason_driver || '',
   };
 }
@@ -449,6 +528,7 @@ function applyAssignedTransportToTodayCard(card, transfer) {
     driver,
     assigned_request_id: transfer.request_id,
     assigned_transport: transfer.assigned_transport,
+    assigned_transport_source: transfer.assigned_transport_source || 'none',
     transport_summary: {
       ...(card.transport_summary || {}),
       type: isCharter ? 'charter' : 'transfer',
@@ -472,6 +552,7 @@ function toTransportOrderSummary(transfer) {
     dropoff: transfer.dropoff || '',
     pickup_time_text: transfer.pickup_time_text || '',
     vehicle_class: driver.vehicle_model || driver.vehicle_type || '',
+    assigned_transport_source: transfer.assigned_transport_source || 'none',
     driver,
   };
 }
@@ -658,49 +739,46 @@ exports.main = async () => {
   const assignedRequestIds = requests
     .filter((request) => request.status === 'assigned' || request.status === 'confirmed')
     .map((request) => request._id);
-  let orderRes = { data: [] };
-  if (assignedRequestIds.length) {
-    try {
-      orderRes = await db.collection('transport_orders')
-        .where({ request_id: _.in(assignedRequestIds), order_status: _.in(['assigned', 'confirmed']) })
-        .orderBy('updated_at', 'desc')
-        .limit(50)
-        .get();
-    } catch (error) {
-      await writeAuditLog({
-        actor_openid: OPENID,
-        actor_user_id: user ? user._id : '',
-        actor_role: user ? user.role : 'customer',
-        action: 'transport_orders_read_failed',
-        target_type: 'customer_home',
-        target_id: OPENID,
-        detail: {
-          request_ids: assignedRequestIds,
-          error: errorDetail(error),
-        },
-        created_at: now.toISOString(),
-      });
-    }
-  }
-  const assignedTransportByRequest = (orderRes.data || []).reduce((acc, order) => {
-    if (!acc[order.request_id]) acc[order.request_id] = toAssignedTransport(order);
-    return acc;
-  }, {});
   const requestById = requests.reduce((acc, request) => {
     acc[request._id] = request;
     return acc;
   }, {});
+  const assignedTransportByRequest = {};
+  const assignedTransportSourceByRequest = {};
   await Promise.all(assignedRequestIds.map(async (requestId) => {
-    if (hasCompleteAssignedTransport(assignedTransportByRequest[requestId])) return;
-    const fallback = await getAssignedTransportFallback(requestById[requestId], {
+    const request = requestById[requestId];
+    const snapshotResult = await getAssignedTransportSnapshot(requestId, {
       openid: OPENID,
       user_id: user ? user._id : '',
       role: user ? user.role : 'customer',
+      request_status: request ? request.status : '',
       now: now.toISOString(),
     });
-    const merged = mergeAssignedTransport(assignedTransportByRequest[requestId], fallback);
-    if (hasAssignedTransportDetails(merged)) assignedTransportByRequest[requestId] = merged;
-    else delete assignedTransportByRequest[requestId];
+    let assignedTransport = snapshotResult.transport;
+    let assignedTransportSource = hasCompleteAssignedTransport(assignedTransport)
+      ? snapshotResult.source
+      : 'none';
+    const fallback = hasCompleteAssignedTransport(assignedTransport)
+      ? null
+      : await getAssignedTransportFallback(requestById[requestId], {
+        openid: OPENID,
+        user_id: user ? user._id : '',
+        role: user ? user.role : 'customer',
+        now: now.toISOString(),
+      });
+    const merged = mergeAssignedTransport(assignedTransport, fallback);
+    if (hasAssignedTransportDetails(merged)) {
+      assignedTransportByRequest[requestId] = merged;
+      if (hasCompleteAssignedTransport(assignedTransport)) {
+        assignedTransportSourceByRequest[requestId] = assignedTransportSource;
+      } else if (hasAssignedTransportDetails(fallback)) {
+        assignedTransportSourceByRequest[requestId] = 'fallback_driver_vehicle';
+      } else {
+        assignedTransportSourceByRequest[requestId] = snapshotResult.source;
+      }
+    } else {
+      assignedTransportSourceByRequest[requestId] = 'none';
+    }
   }));
   const missingAssignedRequestIds = assignedRequestIds.filter((requestId) => !hasAssignedTransportDetails(assignedTransportByRequest[requestId]));
   if (missingAssignedRequestIds.length && assignedRequestIds.length) {
@@ -720,7 +798,12 @@ exports.main = async () => {
 
   const transferRequests = requests
     .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')))
-    .map((request) => toTransferRequest(request, quotesByRequest[request._id] || [], assignedTransportByRequest[request._id] || null));
+    .map((request) => toTransferRequest(
+      request,
+      quotesByRequest[request._id] || [],
+      assignedTransportByRequest[request._id] || null,
+      assignedTransportSourceByRequest[request._id] || 'none',
+    ));
   const primaryAssignedTransfer = transferRequests.find((request) => {
     return (request.status === 'assigned' || request.status === 'confirmed')
       && hasAssignedTransportDetails(request.assigned_transport);

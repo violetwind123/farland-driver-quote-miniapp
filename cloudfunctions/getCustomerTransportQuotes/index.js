@@ -124,14 +124,16 @@ function errorDetail(error) {
 }
 
 async function getAssignedTransport(requestId, auditContext = {}) {
-  let orderRes = { data: [] };
+  let primaryTransport = null;
   let readError = null;
+
   try {
-    orderRes = await db.collection('transport_orders')
-      .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
-      .orderBy('updated_at', 'desc')
-      .limit(1)
-      .get();
+    const orderDoc = await db.collection('transport_orders').doc(requestId).get();
+    const order = orderDoc && orderDoc.data;
+    primaryTransport = toAssignedTransport(order && ['assigned', 'confirmed'].includes(order.order_status) ? order : null);
+    if (hasCompleteAssignedTransport(primaryTransport)) {
+      return { transport: primaryTransport, source: 'transport_orders' };
+    }
   } catch (error) {
     readError = error;
     await writeAuditLog(db, {
@@ -142,12 +144,43 @@ async function getAssignedTransport(requestId, auditContext = {}) {
       target_type: 'ride_request',
       target_id: requestId,
       related_request_id: requestId,
-      detail: errorDetail(error),
+      detail: {
+        read_mode: 'doc',
+        error: errorDetail(error),
+      },
       created_at: auditContext.now || new Date().toISOString(),
     }).catch(() => null);
   }
-  const transport = toAssignedTransport(orderRes.data[0]);
-  if (!readError && !hasAssignedTransportDetails(transport)) {
+
+  try {
+    const orderRes = await db.collection('transport_orders')
+      .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
+      .orderBy('updated_at', 'desc')
+      .limit(1)
+      .get();
+    const legacyTransport = toAssignedTransport(orderRes.data[0]);
+    if (hasCompleteAssignedTransport(legacyTransport)) {
+      return { transport: legacyTransport, source: 'transport_orders' };
+    }
+    primaryTransport = mergeAssignedTransport(primaryTransport, legacyTransport);
+  } catch (error) {
+    readError = error;
+    await writeAuditLog(db, {
+      actor_openid: auditContext.openid || '',
+      actor_user_id: auditContext.user_id || '',
+      actor_role: auditContext.role || 'customer',
+      action: 'transport_orders_read_failed',
+      target_type: 'ride_request',
+      target_id: requestId,
+      related_request_id: requestId,
+      detail: {
+        read_mode: 'legacy_query',
+        error: errorDetail(error),
+      },
+      created_at: auditContext.now || new Date().toISOString(),
+    }).catch(() => null);
+  }
+  if (!readError && !hasAssignedTransportDetails(primaryTransport)) {
     await writeAuditLog(db, {
       actor_openid: auditContext.openid || '',
       actor_user_id: auditContext.user_id || '',
@@ -160,7 +193,10 @@ async function getAssignedTransport(requestId, auditContext = {}) {
       created_at: auditContext.now || new Date().toISOString(),
     }).catch(() => null);
   }
-  return hasAssignedTransportDetails(transport) ? transport : null;
+  return {
+    transport: hasAssignedTransportDetails(primaryTransport) ? primaryTransport : null,
+    source: hasAssignedTransportDetails(primaryTransport) ? 'transport_orders' : 'none',
+  };
 }
 
 async function getAssignedTransportFallback(request, auditContext = {}) {
@@ -389,12 +425,21 @@ exports.main = async (event = {}) => {
       now,
     };
   let assignedTransport = null;
+  let assignedTransportSource = 'none';
   if (isAssignedStatus(request.status)) {
-    const orderTransport = await getAssignedTransport(request_id, auditContext);
+    const orderTransportResult = await getAssignedTransport(request_id, auditContext);
+    const orderTransport = orderTransportResult.transport;
     const fallbackTransport = hasCompleteAssignedTransport(orderTransport)
       ? null
       : await getAssignedTransportFallback(request, auditContext);
     assignedTransport = mergeAssignedTransport(orderTransport, fallbackTransport);
+    if (hasCompleteAssignedTransport(orderTransport)) {
+      assignedTransportSource = orderTransportResult.source;
+    } else if (hasAssignedTransportDetails(fallbackTransport)) {
+      assignedTransportSource = 'fallback_driver_vehicle';
+    } else if (hasAssignedTransportDetails(orderTransport)) {
+      assignedTransportSource = orderTransportResult.source;
+    }
   }
 
   await writeAuditLog(db, {
@@ -410,6 +455,7 @@ exports.main = async (event = {}) => {
       operator_preview: operatorPreview,
       access_source: accessSource,
       customer_trip_access_id: customerTripAccessId,
+      assigned_transport_source: assignedTransportSource,
     },
     created_at: now,
   }).catch(() => null);
@@ -421,6 +467,7 @@ exports.main = async (event = {}) => {
     has_published_quotes: quotes.length > 0,
     access_source: accessSource,
     customer_trip_access_id: customerTripAccessId,
+    assigned_transport_source: assignedTransportSource,
     request_summary: {
       request_no: request.request_no || '',
       service_date: request.service_date || '',
