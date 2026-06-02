@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="kicker">CUSTOMER TRIP IMPORT</view>
     <view class="title">导入客户行程</view>
-    <view class="desc">粘贴标准 customer-trip-v1 JSON，先预览校验，再确认写入。</view>
+    <view class="desc">粘贴标准 1.0.0 行程 JSON，先预览校验并生成内部草稿，再确认写入。客户可见发布需要后续审核。</view>
   </view>
 
   <view class="panel">
@@ -47,17 +47,30 @@
 
   <view wx:if="{{preview}}" class="panel">
     <view class="section-title">预览结果</view>
-    <view class="result-line">trip_id：{{preview.trip_id}}</view>
+    <view class="result-line">trip_id：{{preview.display_trip_id}}</view>
+    <view wx:if="{{preview.display_external_trip_id}}" class="result-line">external_trip_id：{{preview.display_external_trip_id}}</view>
+    <view wx:if="{{preview.display_title}}" class="result-line">标题：{{preview.display_title}}</view>
+    <view class="result-line">动作：{{preview.display_action || 'preview'}}</view>
     <view class="result-line">模式：{{preview.dry_run ? 'dry_run 预览' : '已写入'}}</view>
-    <view wx:for="{{preview.operations}}" wx:key="key" class="operation-row">
+    <view class="review-state">
+      <view class="review-pill">review：{{preview.display_review_status || 'pending_review'}}</view>
+      <view class="review-pill">visibility：{{preview.display_visibility_status || 'hidden'}}</view>
+      <view class="review-pill">version：{{preview.display_published_version}}</view>
+    </view>
+    <view wx:if="{{preview.warningList.length}}" class="warning-box">
+      <view class="warning-title">需要运营复核</view>
+      <view wx:for="{{preview.warningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+    </view>
+    <view wx:if="{{preview.operationList.length}}" wx:for="{{preview.operationList}}" wx:key="key" class="operation-row">
       <view class="operation-main">{{item.collection}} · {{item.type}}</view>
       <view class="operation-sub">{{item.title || item.key}}</view>
       <view wx:if="{{item.visible_until}}" class="operation-sub">visible_until：{{item.visible_until}}</view>
     </view>
+    <view wx:if="{{preview.dry_run && !preview.display_can_apply}}" class="operation-sub">当前预览不可写入，请检查校验结果。</view>
   </view>
 
   <view class="button-bar">
     <button class="preview-btn" loading="{{dryRunLoading}}" disabled="{{dryRunLoading || applyLoading}}" bindtap="previewImport">预览导入</button>
-    <button class="apply-btn" loading="{{applyLoading}}" disabled="{{dryRunLoading || applyLoading || !preview || !preview.valid}}" bindtap="applyImport">确认写入</button>
+    <button class="apply-btn" loading="{{applyLoading}}" disabled="{{dryRunLoading || applyLoading || !canApplyPreview}}" bindtap="applyImport">确认写入</button>
   </view>
 </view>

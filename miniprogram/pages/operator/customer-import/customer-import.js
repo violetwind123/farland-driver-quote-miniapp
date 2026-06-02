@@ -1,14 +1,20 @@
 const sampleHint = `{
-  "schema_version": "customer-trip-v1",
-  "trip_id": "trip_boston_transfer_001",
-  "trip_type": "transfer",
-  "title": "Boston Airport Pickup",
-  "city": "Boston",
-  "date_start": "2026-06-03",
-  "date_end": "2026-06-03",
+  "schema_version": "1.0.0",
+  "external_trip_id": "2026XBC091",
+  "trip_type": "mixed",
+  "title": "Farland School Visit Itinerary",
   "status": "active",
+  "city": "Boston / Amherst / Providence",
+  "country": "US",
+  "timezone": "America/New_York",
+  "start_at": "2026-06-05T00:00:00-04:00",
+  "end_at": "2026-06-12T23:59:59-05:00",
   "customer": { "display_name": "王女士" },
-  "advisor": { "name": "Farland Advisor" }
+  "source": { "source_type": "manual_json" },
+  "advisor": { "name": "Farland Advisor" },
+  "itinerary_days": [],
+  "hotels": [],
+  "documents": []
 }`;
 
 Page({
@@ -21,34 +27,35 @@ Page({
     dryRunLoading: false,
     applyLoading: false,
     preview: null,
+    canApplyPreview: false,
     errors: [],
     sampleHint,
   },
 
   onJsonInput(e) {
-    this.setData({ jsonText: e.detail.value || '', preview: null, errors: [] });
+    this.setData({ jsonText: e.detail.value || '', preview: null, canApplyPreview: false, errors: [] });
   },
 
   onAccessModeChange(e) {
     const modes = ['none', 'customer_user_id', 'request_id'];
-    this.setData({ accessMode: modes[Number(e.detail.value)] || 'none', preview: null });
+    this.setData({ accessMode: modes[Number(e.detail.value)] || 'none', preview: null, canApplyPreview: false });
   },
 
   onAccessIdInput(e) {
-    this.setData({ accessId: e.detail.value || '', preview: null });
+    this.setData({ accessId: e.detail.value || '', preview: null, canApplyPreview: false });
   },
 
   onAccessTypeChange(e) {
     const types = ['profile', 'trip_only'];
-    this.setData({ accessType: types[Number(e.detail.value)] || 'profile', preview: null });
+    this.setData({ accessType: types[Number(e.detail.value)] || 'profile', preview: null, canApplyPreview: false });
   },
 
   onVisibleUntilInput(e) {
-    this.setData({ visibleUntil: e.detail.value || '', preview: null });
+    this.setData({ visibleUntil: e.detail.value || '', preview: null, canApplyPreview: false });
   },
 
   fillSample() {
-    this.setData({ jsonText: sampleHint, preview: null, errors: [] });
+    this.setData({ jsonText: sampleHint, preview: null, canApplyPreview: false, errors: [] });
   },
 
   parseTripText() {
@@ -60,7 +67,7 @@ Page({
     try {
       return JSON.parse(text);
     } catch (error) {
-      this.setData({ errors: ['JSON 格式无效，请检查逗号、引号和括号。'], preview: null });
+      this.setData({ errors: ['JSON 格式无效，请检查逗号、引号和括号。'], preview: null, canApplyPreview: false });
       wx.showToast({ title: 'JSON 格式无效', icon: 'none' });
       return null;
     }
@@ -107,6 +114,7 @@ Page({
         this.setData({
           errors: (result && result.errors) || [(result && result.message) || '导入失败'],
           preview: null,
+          canApplyPreview: false,
           dryRunLoading: false,
           applyLoading: false,
         });
@@ -114,7 +122,8 @@ Page({
         return;
       }
       this.setData({
-        preview: result,
+        preview: this.normalizePreviewResult(result),
+        canApplyPreview: this.canApplyResult(result),
         errors: [],
         dryRunLoading: false,
         applyLoading: false,
@@ -123,6 +132,7 @@ Page({
     } catch (error) {
       this.setData({
         errors: ['云函数调用失败，请确认 importCustomerTripJSON 已部署。'],
+        canApplyPreview: false,
         dryRunLoading: false,
         applyLoading: false,
       });
@@ -134,8 +144,34 @@ Page({
     this.callImport(true);
   },
 
+  canApplyResult(result) {
+    if (!result || result.dry_run === false) return false;
+    return Boolean(result.can_apply || result.preview_valid || result.valid);
+  },
+
+  normalizePreviewResult(result) {
+    if (!result) return null;
+    const normalized = result.normalized_preview || {};
+    const preview = result.preview || {};
+    return {
+      ...result,
+      display_trip_id: result.trip_id || normalized.trip_id || normalized.external_trip_id || result.external_trip_id || '',
+      display_external_trip_id: result.external_trip_id || normalized.external_trip_id || '',
+      display_title: normalized.title || preview.title || '',
+      display_action: result.action || '',
+      display_review_status: result.review_status || (result.review_seed && result.review_seed.review_status) || '',
+      display_visibility_status: result.visibility_status || (result.review_seed && result.review_seed.visibility_status) || '',
+      display_published_version: result.published_version !== undefined
+        ? result.published_version
+        : ((result.review_seed && result.review_seed.published_version) || 0),
+      display_can_apply: this.canApplyResult(result),
+      warningList: result.warning_codes || result.warnings || [],
+      operationList: result.operations || [],
+    };
+  },
+
   async applyImport() {
-    if (!this.data.preview || !this.data.preview.valid) {
+    if (!this.data.preview || !this.data.canApplyPreview) {
       wx.showToast({ title: '请先预览导入', icon: 'none' });
       return;
     }

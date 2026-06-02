@@ -28,6 +28,13 @@
       "type": "string",
       "minLength": 1
     },
+    "trip_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trip_no": {
+      "type": "string"
+    },
     "trip_type": {
       "type": "string",
       "enum": ["transfer", "charter", "mixed", "hotel_only"]
@@ -81,6 +88,24 @@
         "$ref": "#/$defs/hotel"
       }
     },
+    "flights": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flight"
+      }
+    },
+    "transfers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transfer"
+      }
+    },
+    "charter_services": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/charter"
+      }
+    },
     "itinerary_days": {
       "type": "array",
       "items": {
@@ -95,6 +120,14 @@
     },
     "advisor": {
       "$ref": "#/$defs/advisor"
+    },
+    "warning_codes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/warning_code" }
+    },
+    "critical_warning_codes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/warning_code" }
     }
   },
   "allOf": [
@@ -133,10 +166,11 @@
       "properties": {
         "source_type": {
           "type": "string",
-          "enum": ["ride_request", "import_json", "manual"]
+          "enum": ["ride_request", "import_json", "manual", "manual_json", "pdf_import"]
         },
         "source_id": { "type": "string" },
-        "request_id": { "type": "string" }
+        "request_id": { "type": "string" },
+        "source_filename": { "type": "string" }
       }
     },
     "transfer": {
@@ -197,32 +231,148 @@
         "customer_visible_note": { "type": "string" }
       }
     },
+    "day_hotel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hotel_name": { "type": "string" },
+        "name": { "type": "string" },
+        "city": { "type": "string" },
+        "planned_arrival_time": { "type": "string" },
+        "arrival_time": { "type": "string" },
+        "address": { "type": "string" },
+        "customer_note": { "type": "string" }
+      }
+    },
+    "flight": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "flight_no": { "type": "string" },
+        "flight_number": { "type": "string" },
+        "airline": { "type": "string" },
+        "origin": { "type": "string" },
+        "destination": { "type": "string" },
+        "departure_time": { "type": "string" },
+        "arrival_time": { "type": "string" },
+        "route": { "type": "string" },
+        "customer_note": { "type": "string" }
+      }
+    },
+    "transport_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "service_type": {
+          "type": "string",
+          "enum": ["transfer", "charter", "none"]
+        },
+        "departure_time": { "type": "string" },
+        "vehicle_summary": { "type": "string" },
+        "party_summary": { "type": "string" },
+        "status_text": { "type": "string" },
+        "driver_visibility": {
+          "type": "string",
+          "enum": ["pending", "assigned", "released"]
+        }
+      }
+    },
     "itinerary_day": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["date", "title", "items"],
+      "required": ["date", "title"],
+      "anyOf": [
+        { "required": ["items"] },
+        { "required": ["timeline_items"] }
+      ],
       "properties": {
+        "day_no": { "type": "integer", "minimum": 1 },
         "date": { "type": "string", "format": "date" },
+        "weekday": { "type": "string" },
         "title": { "type": "string", "minLength": 1 },
+        "city": { "type": "string" },
         "summary": { "type": "string" },
+        "displayed_start_time_raw": { "type": "string" },
+        "estimated_departure_time_raw": { "type": "string" },
+        "displayed_start_time": { "type": "string" },
+        "estimated_departure_time": { "type": "string" },
+        "warning_codes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/warning_code" }
+        },
         "items": {
           "type": "array",
           "items": { "$ref": "#/$defs/itinerary_item" }
+        },
+        "timeline_items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/itinerary_item" }
+        },
+        "hotel": {
+          "$ref": "#/$defs/day_hotel"
+        },
+        "transport_summary": {
+          "$ref": "#/$defs/transport_summary"
         }
       }
     },
     "itinerary_item": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["time", "type", "title"],
+      "required": ["title"],
       "properties": {
+        "item_id": { "type": "string" },
         "time": { "type": "string", "minLength": 1 },
         "type": {
           "type": "string",
-          "enum": ["hotel", "departure", "transfer", "charter", "campus", "meal", "activity", "arrival"]
+          "enum": [
+            "hotel",
+            "departure",
+            "arrival",
+            "transfer",
+            "charter",
+            "campus",
+            "school_visit",
+            "sightseeing",
+            "flight",
+            "meal",
+            "meeting",
+            "free_time",
+            "activity",
+            "other"
+          ]
+        },
+        "item_type": {
+          "type": "string",
+          "enum": [
+            "hotel",
+            "departure",
+            "arrival",
+            "transfer",
+            "charter",
+            "campus",
+            "school_visit",
+            "sightseeing",
+            "flight",
+            "meal",
+            "meeting",
+            "free_time",
+            "activity",
+            "other"
+          ]
         },
         "title": { "type": "string", "minLength": 1 },
         "description": { "type": "string" },
+        "planned_arrival_time": { "type": "string" },
+        "planned_start_time": { "type": "string" },
+        "planned_end_time": { "type": "string" },
+        "drive_time_text": { "type": "string" },
+        "distance_text": { "type": "string" },
+        "traffic_text": { "type": "string" },
+        "location_name": { "type": "string" },
+        "address": { "type": "string" },
+        "customer_note": { "type": "string" },
+        "operator_note": { "type": "string" },
         "linked_entity_type": {
           "type": "string",
           "enum": ["hotel", "transfer", "charter", "document", "none"]
@@ -230,6 +380,19 @@
         "linked_entity_id": { "type": "string" },
         "client_status": { "type": "string" }
       }
+    },
+    "warning_code": {
+      "type": "string",
+      "enum": [
+        "departure_time_mismatch",
+        "arrival_after_start_time",
+        "missing_drive_time",
+        "missing_distance",
+        "missing_hotel",
+        "missing_date",
+        "flight_segment_detected",
+        "manual_review_required"
+      ]
     },
     "document": {
       "type": "object",

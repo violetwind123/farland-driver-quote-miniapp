@@ -46,6 +46,18 @@ const SENSITIVE_KEYS = [
 
 const LEGACY_WARNING = '当前导入使用旧版 customer-trip-v1 字段，建议迁移到 schema_version=1.0.0';
 
+function initialReviewFields() {
+  return {
+    review_status: 'pending_review',
+    visibility_status: 'hidden',
+    warning_codes: [],
+    critical_warning_codes: [],
+    draft_snapshot: {},
+    published_snapshot: {},
+    published_version: 0,
+  };
+}
+
 function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -115,6 +127,37 @@ function hasData(value) {
 
 function stableHash(value) {
   return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+function collectTripWarningCodes(trip) {
+  const warningCodes = new Set();
+  const days = Array.isArray(trip.itinerary_days)
+    ? trip.itinerary_days
+    : (Array.isArray(trip.daily_itinerary) ? trip.daily_itinerary : []);
+
+  days.forEach((day) => {
+    const displayed = day.displayed_start_time || day.displayed_start_time_raw || day.start_time || '';
+    const estimated = day.estimated_departure_time || day.estimated_departure_time_raw || day.depart_time || '';
+    if (displayed && estimated && displayed !== estimated) {
+      warningCodes.add('departure_time_mismatch');
+    }
+
+    const items = Array.isArray(day.timeline_items)
+      ? day.timeline_items
+      : (Array.isArray(day.items) ? day.items : []);
+    items.forEach((item) => {
+      const itemType = item.item_type || item.type || '';
+      if (itemType === 'flight' || item.flight_no || item.flight_number) {
+        warningCodes.add('flight_segment_detected');
+      }
+    });
+  });
+
+  if (Array.isArray(trip.flights) && trip.flights.length) {
+    warningCodes.add('flight_segment_detected');
+  }
+
+  return Array.from(warningCodes);
 }
 
 function validateTrip(trip) {
@@ -307,6 +350,7 @@ function normalizeCanonicalTrip(trip, auth, now) {
   const normalizedPayload = {
     schema_version: '1.0.0',
     external_trip_id: trip.external_trip_id,
+    trip_id: trip.trip_id || trip.external_trip_id,
     trip_no: trip.trip_no || trip.external_trip_id,
     trip_type: trip.trip_type,
     customer_profile_id: trip.customer_profile_id || '',
@@ -330,6 +374,7 @@ function normalizeCanonicalTrip(trip, auth, now) {
     hotels,
     itinerary_days: itineraryDays,
     documents,
+    flights: Array.isArray(trip.flights) ? trip.flights : [],
     advisor: trip.advisor || {},
     hotel_requests: hotels,
     daily_itinerary: itineraryDays,
@@ -350,6 +395,7 @@ function normalizeCanonicalTrip(trip, auth, now) {
 
 function buildCanonicalPreview(normalizedTrip) {
   return {
+    trip_id: normalizedTrip.trip_id || normalizedTrip.external_trip_id,
     external_trip_id: normalizedTrip.external_trip_id,
     trip_type: normalizedTrip.trip_type,
     title: normalizedTrip.title,
@@ -361,6 +407,36 @@ function buildCanonicalPreview(normalizedTrip) {
     transfer_count: hasData(normalizedTrip.transfer) ? 1 : 0,
     charter_count: hasData(normalizedTrip.charter) ? 1 : 0,
     document_count: normalizedTrip.documents.length,
+  };
+}
+
+function reviewSeed(warningCodes = [], criticalWarningCodes = []) {
+  return {
+    review_status: 'pending_review',
+    visibility_status: 'hidden',
+    warning_codes: warningCodes,
+    critical_warning_codes: criticalWarningCodes,
+    published_version: 0,
+  };
+}
+
+function lifecycleDataForCreate(warningCodes = [], criticalWarningCodes = []) {
+  return {
+    ...initialReviewFields(),
+    warning_codes: warningCodes,
+    critical_warning_codes: criticalWarningCodes,
+  };
+}
+
+function lifecycleDataForUpdate(existingTrip, warningCodes = [], criticalWarningCodes = []) {
+  return {
+    review_status: existingTrip && existingTrip.published_version > 0 ? 'needs_review' : 'pending_review',
+    visibility_status: (existingTrip && existingTrip.visibility_status) || 'hidden',
+    warning_codes: warningCodes,
+    critical_warning_codes: criticalWarningCodes,
+    draft_snapshot: (existingTrip && existingTrip.draft_snapshot) || {},
+    published_snapshot: (existingTrip && existingTrip.published_snapshot) || {},
+    published_version: (existingTrip && existingTrip.published_version) || 0,
   };
 }
 
@@ -469,6 +545,8 @@ exports.main = async (event = {}) => {
 
     const now = new Date().toISOString();
     const normalizedTrip = normalizeCanonicalTrip(trip, auth, now);
+    const warningCodes = collectTripWarningCodes(trip);
+    const criticalWarningCodes = [];
     const existingTripRes = await db.collection('customer_trips')
       .where({ external_trip_id: normalizedTrip.external_trip_id })
       .limit(1)
@@ -497,10 +575,18 @@ exports.main = async (event = {}) => {
         success: true,
         code: 0,
         dry_run: true,
+        valid: true,
+        preview_valid: true,
+        can_apply: true,
         action,
+        trip_id: normalizedTrip.trip_id,
+        external_trip_id: normalizedTrip.external_trip_id,
         warnings,
+        warning_codes: warningCodes,
+        critical_warning_codes: criticalWarningCodes,
         preview: buildCanonicalPreview(normalizedTrip),
         normalized_preview: {
+          trip_id: normalizedTrip.trip_id,
           external_trip_id: normalizedTrip.external_trip_id,
           trip_type: normalizedTrip.trip_type,
           title: normalizedTrip.title,
@@ -510,6 +596,7 @@ exports.main = async (event = {}) => {
           customer_display_name: normalizedTrip.customer.display_name || '',
           source_hash: normalizedTrip.source_hash,
         },
+        review_seed: reviewSeed(warningCodes, criticalWarningCodes),
         message: action === 'no_change' ? '行程内容未变化' : '',
       };
     }
@@ -520,10 +607,16 @@ exports.main = async (event = {}) => {
         code: 0,
         dry_run: false,
         action: 'no_change',
-        trip_id: existingTrip._id,
+        trip_id: normalizedTrip.trip_id,
+        customer_trip_id: existingTrip._id,
         external_trip_id: normalizedTrip.external_trip_id,
         source_hash: normalizedTrip.source_hash,
         warnings,
+        warning_codes: warningCodes,
+        critical_warning_codes: criticalWarningCodes,
+        review_status: existingTrip.review_status || 'pending_review',
+        visibility_status: existingTrip.visibility_status || 'hidden',
+        published_version: existingTrip.published_version || 0,
         message: '行程内容未变化',
       };
     }
@@ -531,11 +624,17 @@ exports.main = async (event = {}) => {
     let tripDocId = existingTrip && existingTrip._id;
     if (existingTrip) {
       const { created_at, created_by, created_by_openid, ...updateData } = normalizedTrip;
-      await db.collection('customer_trips').doc(existingTrip._id).update({ data: updateData });
+      await db.collection('customer_trips').doc(existingTrip._id).update({
+        data: {
+          ...updateData,
+          ...lifecycleDataForUpdate(existingTrip, warningCodes, criticalWarningCodes),
+        },
+      });
     } else {
       const addRes = await db.collection('customer_trips').add({
         data: {
           ...normalizedTrip,
+          ...lifecycleDataForCreate(warningCodes, criticalWarningCodes),
           created_by: auth.user._id,
           created_by_openid: auth.openid,
           created_at: now,
@@ -579,6 +678,8 @@ exports.main = async (event = {}) => {
         trip_type: normalizedTrip.trip_type,
         source_hash: normalizedTrip.source_hash,
         access_id: accessId,
+        warning_codes: warningCodes,
+        critical_warning_codes: criticalWarningCodes,
       },
       created_at: now,
     }).catch(() => null);
@@ -588,10 +689,16 @@ exports.main = async (event = {}) => {
       code: 0,
       dry_run: false,
       action,
-      trip_id: tripDocId,
+      trip_id: normalizedTrip.trip_id,
+      customer_trip_id: tripDocId,
       external_trip_id: normalizedTrip.external_trip_id,
       source_hash: normalizedTrip.source_hash,
       warnings,
+      warning_codes: warningCodes,
+      critical_warning_codes: criticalWarningCodes,
+      review_status: existingTrip && existingTrip.published_version > 0 ? 'needs_review' : 'pending_review',
+      visibility_status: (existingTrip && existingTrip.visibility_status) || 'hidden',
+      published_version: (existingTrip && existingTrip.published_version) || 0,
       customer_trip_access_id: accessId,
     };
   }
@@ -648,6 +755,7 @@ exports.main = async (event = {}) => {
       visible_until: accessData.visible_until,
     });
   }
+  const legacyWarningCodes = ['manual_review_required'];
 
   if (dryRun) {
     return {
@@ -655,26 +763,39 @@ exports.main = async (event = {}) => {
       code: 0,
       dry_run: true,
       valid: true,
+      preview_valid: true,
+      can_apply: true,
       trip_id: trip.trip_id,
       action: existingTrip ? 'update' : 'create',
       warnings,
+      warning_codes: legacyWarningCodes,
+      critical_warning_codes: [],
       operations,
+      review_seed: reviewSeed(legacyWarningCodes, []),
     };
   }
 
   const tripData = {
     ...trip,
+    external_trip_id: trip.external_trip_id || trip.trip_id,
+    trip_no: trip.trip_no || trip.trip_id,
     updated_by: auth.user._id,
     updated_by_openid: auth.openid,
     updated_at: now,
   };
   let tripDocId = existingTrip && existingTrip._id;
   if (existingTrip) {
-    await db.collection('customer_trips').doc(existingTrip._id).update({ data: tripData });
+    await db.collection('customer_trips').doc(existingTrip._id).update({
+      data: {
+        ...tripData,
+        ...lifecycleDataForUpdate(existingTrip, legacyWarningCodes, []),
+      },
+    });
   } else {
     const addRes = await db.collection('customer_trips').add({
       data: {
         ...tripData,
+        ...lifecycleDataForCreate(legacyWarningCodes, []),
         created_by: auth.user._id,
         created_by_openid: auth.openid,
         created_at: now,
@@ -717,6 +838,7 @@ exports.main = async (event = {}) => {
       access_id: accessId,
       operations,
       warnings,
+      warning_codes: legacyWarningCodes,
     },
     created_at: now,
   }).catch(() => null);
@@ -729,6 +851,11 @@ exports.main = async (event = {}) => {
     customer_trip_id: tripDocId,
     customer_trip_access_id: accessId,
     warnings,
+    warning_codes: legacyWarningCodes,
+    critical_warning_codes: [],
+    review_status: existingTrip && existingTrip.published_version > 0 ? 'needs_review' : 'pending_review',
+    visibility_status: (existingTrip && existingTrip.visibility_status) || 'hidden',
+    published_version: (existingTrip && existingTrip.published_version) || 0,
     operations,
   };
 };

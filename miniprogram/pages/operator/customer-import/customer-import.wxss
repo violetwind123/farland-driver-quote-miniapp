@@ -115,6 +115,44 @@
   margin-bottom: 10rpx;
 }
 
+.review-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.review-pill {
+  padding: 9rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(102, 114, 168, 0.10);
+  color: #6672A8;
+  font-size: 22rpx;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.warning-box {
+  margin-top: 18rpx;
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: rgba(194, 122, 0, 0.10);
+}
+
+.warning-title {
+  color: #996300;
+  font-size: 24rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.warning-row {
+  margin-top: 8rpx;
+  color: #875800;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
 .operation-row {
   margin-top: 14rpx;
   padding: 18rpx;
