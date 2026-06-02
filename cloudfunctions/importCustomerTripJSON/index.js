@@ -502,7 +502,7 @@ async function resolveAccess(access = {}) {
   return { user: null, request };
 }
 
-exports.main = async (event = {}) => {
+async function handleImportCustomerTripJSON(event = {}) {
   const auth = await requireRole(cloud, db, ['operator', 'super_admin']);
   if (!auth.ok) {
     return { success: false, code: auth.code, error_code: 'FORBIDDEN', message: auth.message };
@@ -868,4 +868,20 @@ exports.main = async (event = {}) => {
     published_version: (existingTrip && existingTrip.published_version) || 0,
     operations,
   };
+}
+
+exports.main = async (event = {}) => {
+  try {
+    return await handleImportCustomerTripJSON(event);
+  } catch (error) {
+    console.error('[importCustomerTripJSON] failed', error);
+    return {
+      success: false,
+      code: 500,
+      error_code: 'IMPORT_CUSTOMER_TRIP_JSON_FAILED',
+      message: '导入行程失败',
+      error_message: error && error.message ? error.message : '',
+      err_msg: error && error.errMsg ? error.errMsg : '',
+    };
+  }
 };

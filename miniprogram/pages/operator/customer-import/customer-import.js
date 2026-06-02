@@ -184,6 +184,17 @@ Page({
     return access;
   },
 
+  formatImportErrors(result) {
+    if (!result) return ['导入失败：云函数无返回结果'];
+    const errors = Array.isArray(result.errors) && result.errors.length ? result.errors : [];
+    const detail = result.error_message || result.err_msg || result.error_code || '';
+    if (errors.length) {
+      return detail ? errors.concat([`错误信息：${detail}`]) : errors;
+    }
+    const message = result.message || '导入失败';
+    return detail ? [`${message}：${detail}`] : [message];
+  },
+
   async callImport(dryRun) {
     const trip = this.parseTripText();
     if (!trip) return;
@@ -206,7 +217,7 @@ Page({
       });
       if (!result || !result.success) {
         this.setData({
-          errors: (result && result.errors) || [(result && result.message) || '导入失败'],
+          errors: this.formatImportErrors(result),
           preview: null,
           canApplyPreview: false,
           dryRunLoading: false,
@@ -224,8 +235,13 @@ Page({
       });
       wx.showToast({ title: dryRun ? '预览完成' : '写入完成', icon: 'success' });
     } catch (error) {
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      console.error('[customer-import] importCustomerTripJSON call failed', error);
       this.setData({
-        errors: ['云函数调用失败，请确认 importCustomerTripJSON 已部署。'],
+        errors: [
+          `云函数调用失败：${errMsg}`,
+          '请确认 importCustomerTripJSON 已部署到当前云环境，并查看云函数日志。',
+        ],
         canApplyPreview: false,
         dryRunLoading: false,
         applyLoading: false,
