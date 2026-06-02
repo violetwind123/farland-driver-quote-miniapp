@@ -278,6 +278,9 @@ function validateCanonicalTrip(trip) {
   }
 
   validateArray(trip.hotels, '$.hotels', errors);
+  validateArray(trip.flights, '$.flights', errors);
+  validateArray(trip.transfers, '$.transfers', errors);
+  validateArray(trip.charter_services, '$.charter_services', errors);
   validateArray(trip.itinerary_days, '$.itinerary_days', errors);
   validateDocuments(trip.documents, errors);
 
@@ -307,7 +310,10 @@ function validateCanonicalTrip(trip) {
   if (trip.trip_type === 'mixed') {
     const hasMeaningfulSection = hasData(trip.transfer)
       || hasData(trip.charter)
+      || hasData(trip.transfers)
+      || hasData(trip.charter_services)
       || hasData(trip.hotels)
+      || hasData(trip.flights)
       || hasData(trip.itinerary_days)
       || hasData(trip.documents);
     if (!hasMeaningfulSection) {
@@ -345,6 +351,9 @@ function normalizeCanonicalTrip(trip, auth, now) {
   const transfer = isPlainObject(trip.transfer) ? trip.transfer : {};
   const charter = isPlainObject(trip.charter) ? trip.charter : {};
   const hotels = Array.isArray(trip.hotels) ? trip.hotels : [];
+  const flights = Array.isArray(trip.flights) ? trip.flights : [];
+  const transfers = Array.isArray(trip.transfers) ? trip.transfers : [];
+  const charterServices = Array.isArray(trip.charter_services) ? trip.charter_services : [];
   const itineraryDays = Array.isArray(trip.itinerary_days) ? trip.itinerary_days : [];
   const documents = Array.isArray(trip.documents) ? trip.documents : [];
   const normalizedPayload = {
@@ -370,15 +379,16 @@ function normalizeCanonicalTrip(trip, auth, now) {
     customer: trip.customer || {},
     source: trip.source || { source_type: 'import_json' },
     transfer,
+    transfers,
     charter,
     hotels,
     itinerary_days: itineraryDays,
     documents,
-    flights: Array.isArray(trip.flights) ? trip.flights : [],
+    flights,
     advisor: trip.advisor || {},
     hotel_requests: hotels,
     daily_itinerary: itineraryDays,
-    charter_services: hasData(charter) ? [charter] : [],
+    charter_services: charterServices.length ? charterServices : (hasData(charter) ? [charter] : []),
   };
   const sourceHash = stableHash(normalizedPayload);
   return {

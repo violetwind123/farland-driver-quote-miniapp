@@ -20,13 +20,32 @@
   <view class="panel">
     <view class="section-title">客户访问授权</view>
     <view class="field-label">授权方式</view>
-    <picker range="{{['不授权，仅导入行程', '通过 customer_user_id 授权', '通过已绑定 request_id 授权']}}" bindchange="onAccessModeChange">
-      <view class="picker-value">{{accessMode === 'none' ? '不授权，仅导入行程' : (accessMode === 'customer_user_id' ? '通过 customer_user_id 授权' : '通过已绑定 request_id 授权')}}</view>
+    <picker range="{{['不授权，仅导入行程', '绑定已有客户', '通过已绑定 request_id 授权']}}" bindchange="onAccessModeChange">
+      <view class="picker-value">{{accessMode === 'none' ? '不授权，仅导入行程' : (accessMode === 'customer_user_id' ? '绑定已有客户' : '通过已绑定 request_id 授权')}}</view>
     </picker>
 
     <view wx:if="{{accessMode !== 'none'}}" class="access-fields">
-      <view class="field-label">{{accessMode === 'customer_user_id' ? 'customer_user_id' : 'request_id'}}</view>
-      <input class="text-input" value="{{accessId}}" bindinput="onAccessIdInput" placeholder="填写已有 ID" />
+      <block wx:if="{{accessMode === 'customer_user_id'}}">
+        <view class="field-label">搜索客户</view>
+        <view class="customer-search-row">
+          <input class="text-input" value="{{customerSearchKeyword}}" bindinput="onCustomerSearchInput" placeholder="客户称呼 / 手机 / 微信号" />
+          <button class="mini-btn" loading="{{customersLoading}}" bindtap="searchCustomers">搜索</button>
+        </view>
+
+        <view class="field-label">选择客户</view>
+        <picker range="{{customerPickerRange}}" value="{{selectedCustomerIndex}}" bindchange="onCustomerPickerChange">
+          <view class="picker-value">{{selectedCustomer ? (selectedCustomer.display_name || selectedCustomer.name) : (customersLoading ? '客户加载中...' : '请选择已有客户')}}</view>
+        </picker>
+        <view wx:if="{{selectedCustomer}}" class="selected-customer">
+          <view class="selected-main">{{selectedCustomer.display_name || selectedCustomer.name}}</view>
+          <view class="selected-sub">{{selectedCustomer.phone || '手机号未填写'}}{{selectedCustomer.wechat_id ? ' · ' + selectedCustomer.wechat_id : ''}}</view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="field-label">request_id</view>
+        <input class="text-input" value="{{accessId}}" bindinput="onAccessIdInput" placeholder="填写已有 request_id" />
+      </block>
 
       <view class="field-label">访问类型</view>
       <picker range="{{['绑定 Farland 服务档案', '仅查看本次行程']}}" bindchange="onAccessTypeChange">

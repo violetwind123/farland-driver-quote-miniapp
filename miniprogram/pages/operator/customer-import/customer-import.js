@@ -12,7 +12,25 @@ const sampleHint = `{
   "customer": { "display_name": "王女士" },
   "source": { "source_type": "manual_json" },
   "advisor": { "name": "Farland Advisor" },
-  "itinerary_days": [],
+  "itinerary_days": [
+    {
+      "day_no": 1,
+      "date": "2026-06-05",
+      "weekday": "Fri",
+      "title": "Boston / Amherst / Providence",
+      "city": "Boston / Amherst / Providence",
+      "estimated_departure_time": "08:10",
+      "timeline_items": [
+        {
+          "item_id": "day1_depart_boston",
+          "item_type": "departure",
+          "title": "Depart Boston",
+          "planned_start_time": "08:10",
+          "location_name": "Boston"
+        }
+      ]
+    }
+  ],
   "hotels": [],
   "documents": []
 }`;
@@ -24,6 +42,12 @@ Page({
     accessId: '',
     accessType: 'profile',
     visibleUntil: '',
+    customerSearchKeyword: '',
+    customersLoading: false,
+    customerOptions: [],
+    customerPickerRange: [],
+    selectedCustomerIndex: -1,
+    selectedCustomer: null,
     dryRunLoading: false,
     applyLoading: false,
     preview: null,
@@ -32,13 +56,26 @@ Page({
     sampleHint,
   },
 
+  onLoad() {
+    this.loadCustomerOptions();
+  },
+
   onJsonInput(e) {
     this.setData({ jsonText: e.detail.value || '', preview: null, canApplyPreview: false, errors: [] });
   },
 
   onAccessModeChange(e) {
     const modes = ['none', 'customer_user_id', 'request_id'];
-    this.setData({ accessMode: modes[Number(e.detail.value)] || 'none', preview: null, canApplyPreview: false });
+    const accessMode = modes[Number(e.detail.value)] || 'none';
+    this.setData({
+      accessMode,
+      accessId: accessMode === 'customer_user_id' && this.data.selectedCustomer ? this.data.selectedCustomer.user_id : '',
+      preview: null,
+      canApplyPreview: false,
+    });
+    if (accessMode === 'customer_user_id' && !this.data.customerOptions.length) {
+      this.loadCustomerOptions();
+    }
   },
 
   onAccessIdInput(e) {
@@ -52,6 +89,61 @@ Page({
 
   onVisibleUntilInput(e) {
     this.setData({ visibleUntil: e.detail.value || '', preview: null, canApplyPreview: false });
+  },
+
+  onCustomerSearchInput(e) {
+    this.setData({ customerSearchKeyword: e.detail.value || '' });
+  },
+
+  async loadCustomerOptions(keyword = this.data.customerSearchKeyword) {
+    this.setData({ customersLoading: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'searchCustomersForOperator',
+        data: {
+          keyword: String(keyword || '').trim(),
+          limit: 50,
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({ customersLoading: false });
+        wx.showToast({ title: (result && result.message) || '客户加载失败', icon: 'none' });
+        return;
+      }
+      const customers = result.customers || [];
+      this.setData({
+        customersLoading: false,
+        customerOptions: customers,
+        customerPickerRange: customers.map((customer) => {
+          const contact = [customer.phone, customer.wechat_id].filter(Boolean).join(' / ');
+          return contact ? `${customer.display_name || customer.name} · ${contact}` : (customer.display_name || customer.name || 'Farland 客户');
+        }),
+        selectedCustomerIndex: -1,
+        selectedCustomer: null,
+        accessId: this.data.accessMode === 'customer_user_id' ? '' : this.data.accessId,
+        preview: null,
+        canApplyPreview: false,
+      });
+    } catch (error) {
+      this.setData({ customersLoading: false });
+      wx.showToast({ title: '客户加载失败', icon: 'none' });
+    }
+  },
+
+  searchCustomers() {
+    this.loadCustomerOptions();
+  },
+
+  onCustomerPickerChange(e) {
+    const index = Number(e.detail.value);
+    const selectedCustomer = this.data.customerOptions[index] || null;
+    this.setData({
+      selectedCustomerIndex: selectedCustomer ? index : -1,
+      selectedCustomer,
+      accessId: selectedCustomer ? selectedCustomer.user_id : '',
+      preview: null,
+      canApplyPreview: false,
+    });
   },
 
   fillSample() {
@@ -76,9 +168,11 @@ Page({
   buildAccessPayload() {
     const { accessMode, accessId, accessType, visibleUntil } = this.data;
     if (accessMode === 'none') return {};
-    const safeId = String(accessId || '').trim();
+    const safeId = accessMode === 'customer_user_id'
+      ? String((this.data.selectedCustomer && this.data.selectedCustomer.user_id) || accessId || '').trim()
+      : String(accessId || '').trim();
     if (!safeId) {
-      wx.showToast({ title: '请填写授权 ID', icon: 'none' });
+      wx.showToast({ title: accessMode === 'customer_user_id' ? '请选择客户' : '请填写授权 ID', icon: 'none' });
       return null;
     }
     const access = {
