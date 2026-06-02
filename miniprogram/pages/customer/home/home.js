@@ -5,7 +5,10 @@ Page({
     benefits: [],
     hotelRequests: [],
     transportationAppointments: [],
+    progressStrip: null,
     todayCard: null,
+    todayDriverCard: null,
+    todayHotelCard: null,
     todayItinerary: null,
     showHomeEmpty: false,
     showLegacyTransport: false,
@@ -90,7 +93,10 @@ Page({
           topBenefits: [],
           hotelRequests: [],
           transportationAppointments: [],
+          progressStrip: null,
           todayCard: null,
+          todayDriverCard: null,
+          todayHotelCard: null,
           todayItinerary: null,
           showHomeEmpty: false,
           showLegacyTransport: Boolean(invitedTransfer),
@@ -134,7 +140,10 @@ Page({
           topBenefits: [],
           hotelRequests: [],
           transportationAppointments: [],
+          progressStrip: null,
           todayCard: null,
+          todayDriverCard: null,
+          todayHotelCard: null,
           todayItinerary: null,
           showHomeEmpty: false,
           showLegacyTransport: Boolean(invitedTransfer),
@@ -156,7 +165,10 @@ Page({
         });
         return;
       }
+      const progressStrip = this.normalizeProgressStrip(result.progress_strip || null);
       const todayCard = this.normalizeTodayCard(result.today_card || null);
+      const todayDriverCard = this.buildTodayDriverCard(todayCard);
+      const todayHotelCard = this.buildTodayHotelCard(todayCard);
       const todayItinerary = this.normalizeTodayItinerary(result.today_itinerary || null);
       const tripOverview = (result.trip_overview || []).map((item) => ({
         ...item,
@@ -231,7 +243,10 @@ Page({
         topBenefits: (result.benefits || []).slice(0, 2),
         hotelRequests: result.hotel_requests || [],
         transportationAppointments: result.transportation_appointments || [],
+        progressStrip,
         todayCard,
+        todayDriverCard,
+        todayHotelCard,
         todayItinerary,
         showHomeEmpty,
         showLegacyTransport: !todayCard && !showHomeEmpty && hasTransport,
@@ -272,6 +287,22 @@ Page({
         vehicleModel || vehicleType ? `车辆：${vehicleModel || vehicleType}` : '',
         phone ? `电话：${phone}` : '',
       ].filter(Boolean).join(' · '),
+    };
+  },
+
+  normalizeProgressStrip(strip) {
+    if (!strip || !Array.isArray(strip.nodes) || !strip.nodes.length) return null;
+    const nodes = strip.nodes.map((node, index) => ({
+      ...node,
+      node_id: node.node_id || `${node.label || 'node'}-${index}`,
+      label: node.label || '',
+      status: ['completed', 'current', 'upcoming'].includes(node.status) ? node.status : 'upcoming',
+      statusText: node.status === 'current' ? '当前' : (node.status === 'completed' ? '已完成' : '待前往'),
+    })).filter((node) => node.label);
+    if (!nodes.length) return null;
+    return {
+      ...strip,
+      nodes,
     };
   },
 
@@ -332,6 +363,35 @@ Page({
       advisor: card.advisor || {},
       driver: driverAssigned ? normalizedDriver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
+    };
+  },
+
+  buildTodayDriverCard(todayCard) {
+    if (!todayCard) return null;
+    const driver = todayCard.driver || null;
+    const isAssigned = Boolean(driver);
+    const shouldOpenTransfer = Boolean(todayCard.assigned_request_id && todayCard.service_type !== 'charter');
+    return {
+      title: todayCard.service_type === 'transfer' ? '今日接送安排' : '今日司机与车辆',
+      statusText: isAssigned ? '已分配司机' : (todayCard.transportStatusText || '司机信息待同步'),
+      statusClass: isAssigned ? 'confirmed' : 'pending',
+      departureTime: todayCard.serviceWindowText || todayCard.depart_time || '待确认',
+      vehicleSummary: todayCard.vehicle_summary || '车辆待确认',
+      partySummary: todayCard.party_summary || '',
+      driver,
+      helperText: isAssigned ? '' : (todayCard.driverPendingText || '司机信息将在 Farland 完成确认后同步。'),
+      requestId: todayCard.assigned_request_id || '',
+      actionLabel: isAssigned ? (shouldOpenTransfer ? '查看接送详情' : '查看用车安排') : '联系顾问',
+      actionType: isAssigned ? (shouldOpenTransfer ? 'transfer' : 'detail') : 'advisor',
+    };
+  },
+
+  buildTodayHotelCard(todayCard) {
+    if (!todayCard || !todayCard.hotel) return null;
+    return {
+      name: todayCard.hotel.name || '今晚住宿',
+      arrivalText: todayCard.hotel.arrival_time ? `预计 ${todayCard.hotel.arrival_time} 抵达` : '抵达时间待同步',
+      address: todayCard.hotel.address || '',
     };
   },
 

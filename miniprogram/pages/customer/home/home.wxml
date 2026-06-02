@@ -47,6 +47,51 @@
       <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
     </view>
 
+    <view wx:if="{{!inviteMode && progressStrip && !showHomeEmpty}}" class="section-shell progress-shell">
+      <view class="section-kicker">TRIP</view>
+      <view class="section-title">行程进度</view>
+      <scroll-view class="progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+        <view class="progress-track">
+          <view wx:for="{{progressStrip.nodes}}" wx:key="node_id" class="progress-node {{item.status}}">
+            <view class="progress-dot"></view>
+            <view class="progress-label">{{item.label}}</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view wx:if="{{!inviteMode && todayDriverCard && !showHomeEmpty}}" class="section-shell driver-shell">
+      <view class="section-kicker">SERVICE</view>
+      <view class="section-title">{{todayDriverCard.title}}</view>
+      <view class="today-driver-card card-surface">
+        <view class="driver-card-head">
+          <view>
+            <view class="driver-card-label">出发时间</view>
+            <view class="driver-card-time">{{todayDriverCard.departureTime}}</view>
+          </view>
+          <view class="status-chip {{todayDriverCard.statusClass}}">{{todayDriverCard.statusText}}</view>
+        </view>
+
+        <view wx:if="{{todayDriverCard.driver}}" class="driver-card-person">
+          <view class="driver-name">{{todayDriverCard.driver.name || '司机待同步'}}</view>
+          <view class="driver-phone">{{todayDriverCard.driver.phone || '电话待同步'}}</view>
+        </view>
+
+        <view class="driver-card-meta">{{todayDriverCard.vehicleSummary}}</view>
+        <view wx:if="{{todayDriverCard.partySummary}}" class="driver-card-sub">{{todayDriverCard.partySummary}}</view>
+        <view wx:if="{{todayDriverCard.helperText}}" class="driver-card-helper">{{todayDriverCard.helperText}}</view>
+
+        <button wx:if="{{todayDriverCard.actionType === 'advisor'}}" class="arrangement-btn" bindtap="contactAdvisor">{{todayDriverCard.actionLabel}}</button>
+        <button
+          wx:elif="{{todayDriverCard.actionType === 'transfer'}}"
+          class="arrangement-btn"
+          data-request-id="{{todayDriverCard.requestId}}"
+          bindtap="viewTransferDetail"
+        >{{todayDriverCard.actionLabel}}</button>
+        <button wx:else class="arrangement-btn" bindtap="openTodayDetail">{{todayDriverCard.actionLabel}}</button>
+      </view>
+    </view>
+
     <view wx:if="{{!inviteMode && todayCard && !showHomeEmpty}}" class="section-shell today-card-shell">
       <view class="section-kicker">TODAY</view>
       <view class="section-title">今日行程</view>
@@ -120,43 +165,13 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty && (todayCard || transferRequests.length || transportOrders.length || charterServices.length)}}" class="section-shell">
-      <view class="section-kicker">用车</view>
-      <view class="section-title">今日用车安排</view>
-      <view class="home-arrangement-card card-surface">
-        <view wx:if="{{todayCard}}">
-          <view class="arrangement-title">{{todayCard.transportTitle}}</view>
-          <view class="arrangement-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
-          <view class="arrangement-sub">{{todayCard.party_summary}} · {{todayCard.transportStatusText}}</view>
-          <view wx:if="{{todayCard.driver}}" class="arrangement-driver">
-            <view>{{todayCard.driver.detailLine}}</view>
-            <view wx:if="{{todayCard.driver.plate_number}}">车牌：{{todayCard.driver.plate_number}}</view>
-          </view>
-          <view wx:if="{{todayCard.driverPendingText}}" class="arrangement-helper">{{todayCard.driverPendingText}}</view>
-          <button
-            wx:if="{{todayCard.assigned_request_id && todayCard.service_type !== 'charter'}}"
-            class="arrangement-btn"
-            data-request-id="{{todayCard.assigned_request_id}}"
-            bindtap="viewTransferDetail"
-          >查看接送详情</button>
-          <button wx:else class="arrangement-btn" bindtap="openTodayDetail">查看用车安排</button>
-        </view>
-        <view wx:elif="{{primaryTransfer}}">
-          <view class="arrangement-title">今日接送安排</view>
-          <view class="arrangement-main">{{primaryTransfer.pickup}} → {{primaryTransfer.dropoff}}</view>
-          <view class="arrangement-sub">{{primaryTransfer.status_text}}</view>
-          <button class="arrangement-btn" data-request-id="{{primaryTransfer.request_id}}" bindtap="viewTransferDetail">查看接送详情</button>
-        </view>
-      </view>
-    </view>
-
-    <view wx:if="{{!inviteMode && !showHomeEmpty && ((todayCard && todayCard.hotel) || hotelCards.length)}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && (todayHotelCard || hotelCards.length)}}" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">今晚住宿</view>
-      <view wx:if="{{todayCard && todayCard.hotel}}" class="home-arrangement-card card-surface">
-        <view class="arrangement-title">{{todayCard.hotel.name}}</view>
-        <view class="arrangement-main">预计 {{todayCard.hotel.arrival_time}} 抵达</view>
-        <view class="arrangement-sub">完整酒店信息将由 Farland 顾问同步。</view>
+      <view wx:if="{{todayHotelCard}}" class="home-arrangement-card card-surface">
+        <view class="arrangement-title">{{todayHotelCard.name}}</view>
+        <view class="arrangement-main">{{todayHotelCard.arrivalText}}</view>
+        <view class="arrangement-sub">{{todayHotelCard.address || '完整酒店信息将由 Farland 顾问同步。'}}</view>
         <button class="arrangement-btn secondary" bindtap="viewFullTripPlaceholder">查看酒店信息</button>
       </view>
     </view>

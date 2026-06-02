@@ -77,6 +77,13 @@
           {{item.chipText}}
         </view>
       </view>
+
+      <view wx:if="{{todayCard.hotel}}" class="endpoint-summary card-surface">
+        <view class="endpoint-label">今日终点 / 酒店</view>
+        <view class="endpoint-title">{{todayCard.hotel.name}}</view>
+        <view wx:if="{{todayCard.hotel.arrival_time}}" class="endpoint-meta">预计 {{todayCard.hotel.arrival_time}} 抵达</view>
+        <view wx:if="{{todayCard.hotel.address}}" class="endpoint-meta">{{todayCard.hotel.address}}</view>
+      </view>
     </block>
 
     <view class="bottom-actions">

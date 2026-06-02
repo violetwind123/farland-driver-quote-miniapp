@@ -244,6 +244,23 @@ function buildMockTodayCard() {
   };
 }
 
+function buildMockProgressStrip() {
+  return {
+    current_node_id: 'amherst',
+    nodes: [
+      { node_id: 'arrival', type: 'flight_arrival', label: 'Arrival', status: 'completed' },
+      { node_id: 'boston', type: 'center_city', label: 'Boston', status: 'completed' },
+      { node_id: 'amherst', type: 'center_city', label: 'Amherst', status: 'current' },
+      { node_id: 'providence', type: 'center_city', label: 'Providence', status: 'upcoming' },
+      { node_id: 'new_haven', type: 'center_city', label: 'New Haven', status: 'upcoming' },
+      { node_id: 'new_york', type: 'center_city', label: 'New York', status: 'upcoming' },
+      { node_id: 'philadelphia', type: 'center_city', label: 'Philadelphia', status: 'upcoming' },
+      { node_id: 'dc', type: 'center_city', label: 'DC', status: 'upcoming' },
+      { node_id: 'return', type: 'flight_departure', label: 'Return', status: 'upcoming' },
+    ],
+  };
+}
+
 function statusClass(status, hasQuotes) {
   if (status === 'cancelled') return 'cancelled';
   if (status === 'assigned' || status === 'confirmed') return 'confirmed';
@@ -832,6 +849,7 @@ exports.main = async () => {
       points_balance: tripOnly ? 0 : 3280,
       subtitle: tripOnly ? 'Farland 顾问已为您同步本次行程与报价' : '您的行程与报价已由 Farland 顾问同步',
     },
+    progress_strip: buildMockProgressStrip(),
     today_card: applyAssignedTransportToTodayCard(buildMockTodayCard(), primaryAssignedTransfer),
     today_itinerary: tripData.today_itinerary,
     trip_overview: tripData.trip_overview,

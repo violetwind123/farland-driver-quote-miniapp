@@ -65,9 +65,16 @@ Page({
     const serviceWindowText = this.formatDisplayTime(
       (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
     );
+    const hotel = card.hotel
+      ? {
+          ...card.hotel,
+          arrival_time: this.formatDisplayTime(card.hotel.arrival_time || card.hotel.eta || ''),
+        }
+      : null;
     return {
       ...card,
       destination_cards: cards,
+      hotel,
       driver: driverAssigned ? normalizedDriver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
       serviceTitle: card.service_type === 'transfer' ? '今日接送安排' : '今日包车服务',
