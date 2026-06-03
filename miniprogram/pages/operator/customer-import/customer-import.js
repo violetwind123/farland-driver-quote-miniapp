@@ -259,8 +259,27 @@ Page({
     setTimeout(() => {
       wx.navigateTo({
         url: `/pages/operator/customer-trip-detail/customer-trip-detail?trip_id=${encodeURIComponent(tripId)}`,
+        fail: (error) => {
+          const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+          console.error('[customer-import] navigate to customer trip detail failed', error);
+          this.setData({
+            errors: [
+              `行程已写入，但打开详情页失败：${errMsg}`,
+              '请重新编译小程序，或手动打开运营行程详情页。',
+            ],
+          });
+          wx.showToast({ title: '请手动查看详情', icon: 'none' });
+        },
       });
     }, 450);
+  },
+
+  openPreviewTripDetail() {
+    if (!this.data.preview || this.data.preview.dry_run) {
+      wx.showToast({ title: '请先确认写入', icon: 'none' });
+      return;
+    }
+    this.openTripDetail(this.data.preview);
   },
 
   previewImport() {
@@ -288,6 +307,7 @@ Page({
         ? result.published_version
         : ((result.review_seed && result.review_seed.published_version) || 0),
       display_can_apply: this.canApplyResult(result),
+      can_open_detail: result.dry_run === false && Boolean(result.trip_id || normalized.trip_id || normalized.external_trip_id || result.external_trip_id || result.customer_trip_id),
       warningList: result.warning_codes || result.warnings || [],
       operationList: result.operations || [],
     };
