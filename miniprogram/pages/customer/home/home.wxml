@@ -81,6 +81,10 @@
             </view>
             <view wx:if="{{item.city || item.summary}}" class="trip-invite-day-copy">{{item.city}}{{item.city && item.summary ? ' · ' : ''}}{{item.summary}}</view>
             <view wx:if="{{item.startTime}}" class="trip-invite-day-start">预计出发：{{item.startTime}}</view>
+            <view wx:if="{{item.hotelBadge || item.transportBadge}}" class="trip-invite-badges">
+              <view wx:if="{{item.hotelBadge}}" class="trip-invite-badge">酒店：{{item.hotelBadge}}</view>
+              <view wx:if="{{item.transportBadge}}" class="trip-invite-badge">用车：{{item.transportBadge}}</view>
+            </view>
 
             <view wx:if="{{item.timelineItems.length}}" class="trip-invite-timeline">
               <view wx:for="{{item.timelineItems}}" wx:for-item="node" wx:key="id" class="trip-invite-node">
@@ -315,6 +319,10 @@
           </view>
           <view wx:if="{{item.city || item.summary}}" class="trip-invite-day-copy">{{item.city}}{{item.city && item.summary ? ' · ' : ''}}{{item.summary}}</view>
           <view wx:if="{{item.startTime}}" class="trip-invite-day-start">预计出发：{{item.startTime}}</view>
+          <view wx:if="{{item.hotelBadge || item.transportBadge}}" class="trip-invite-badges">
+            <view wx:if="{{item.hotelBadge}}" class="trip-invite-badge">酒店：{{item.hotelBadge}}</view>
+            <view wx:if="{{item.transportBadge}}" class="trip-invite-badge">用车：{{item.transportBadge}}</view>
+          </view>
 
           <view wx:if="{{item.timelineItems.length}}" class="trip-invite-timeline">
             <view wx:for="{{item.timelineItems}}" wx:for-item="node" wx:key="id" class="trip-invite-node">

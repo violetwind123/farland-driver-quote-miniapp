@@ -1710,6 +1710,25 @@
   font-weight: 650;
 }
 
+.trip-invite-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.trip-invite-badge {
+  max-width: 100%;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(102, 114, 168, 0.10);
+  color: #4F598B;
+  font-size: 21rpx;
+  line-height: 1.25;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
 .trip-invite-timeline {
   display: grid;
   gap: 2rpx;
