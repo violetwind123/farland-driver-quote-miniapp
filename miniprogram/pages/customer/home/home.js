@@ -80,6 +80,11 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
     }
+    const operatorCustomerPreview = this.consumeOperatorCustomerHomePreview();
+    if (operatorCustomerPreview) {
+      this.applyOperatorCustomerHomePreview(operatorCustomerPreview);
+      return;
+    }
     const preview = this.consumeOperatorPreview();
     if (!this.data.tripInviteMode && preview.requestId && (preview.requestId !== this.data.inviteRequestId || !this.data.operatorPreview)) {
       this.setData({

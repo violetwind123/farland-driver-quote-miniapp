@@ -211,8 +211,8 @@ Page({
       preview_customer: result.preview_customer || {},
       preview_access_mode: result.preview_access_mode || this.data.previewMode,
     };
-    wx.navigateTo({
-      url: '/pages/customer/home/home?operator_customer_preview=1',
+    wx.switchTab({
+      url: '/pages/customer/home/home',
       fail: (error) => {
         console.error('[customer-home-preview] open customer page failed', error);
         wx.showToast({ title: '客户页面打开失败', icon: 'none' });
