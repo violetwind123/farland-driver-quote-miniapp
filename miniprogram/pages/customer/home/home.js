@@ -52,6 +52,8 @@ Page({
     tripInviteSaving: false,
     operatorCustomerPreviewMode: false,
     operatorCustomerPreviewMeta: null,
+    operatorPreviewDays: [],
+    operatorPreviewFlights: [],
   },
 
   onLoad(options = {}) {
@@ -154,6 +156,10 @@ Page({
           todayItinerary: null,
           showHomeEmpty: false,
           showLegacyTransport: Boolean(invitedTransfer),
+          operatorCustomerPreviewMode: false,
+          operatorCustomerPreviewMeta: null,
+          operatorPreviewDays: [],
+          operatorPreviewFlights: [],
           nextConfirmed: {
             title: invitedTransfer ? invitedTransfer.title : '用车方案准备中',
             date: invitedTransfer ? invitedTransfer.pickup_time_text : '',
@@ -201,6 +207,10 @@ Page({
           todayItinerary: null,
           showHomeEmpty: false,
           showLegacyTransport: Boolean(invitedTransfer),
+          operatorCustomerPreviewMode: false,
+          operatorCustomerPreviewMeta: null,
+          operatorPreviewDays: [],
+          operatorPreviewFlights: [],
           nextConfirmed: {
             title: invitedTransfer ? invitedTransfer.title : '暂无可查看行程',
             date: invitedTransfer ? invitedTransfer.pickup_time_text : '',
@@ -304,6 +314,10 @@ Page({
         todayItinerary,
         showHomeEmpty,
         showLegacyTransport: !todayCard && !showHomeEmpty && hasTransport,
+        operatorCustomerPreviewMode: false,
+        operatorCustomerPreviewMeta: null,
+        operatorPreviewDays: [],
+        operatorPreviewFlights: [],
         nextConfirmed,
         tripOverview,
         hotelCards,
@@ -484,6 +498,10 @@ Page({
       tripInviteError: '',
       tripInviteWaiting: false,
       tripInviteMessage: '',
+      operatorCustomerPreviewMode: false,
+      operatorCustomerPreviewMeta: null,
+      operatorPreviewDays: [],
+      operatorPreviewFlights: [],
     });
     try {
       const { result } = await wx.cloud.callFunction({
@@ -613,41 +631,12 @@ Page({
     const home = previewPayload.customer_home || {};
     const meta = previewPayload.preview_meta || {};
     const previewCustomer = previewPayload.preview_customer || {};
-    const hasPreviewContent = Boolean(
-      (Array.isArray(home.itinerary_days) && home.itinerary_days.length)
-      || (Array.isArray(home.hotel_requests) && home.hotel_requests.length)
-      || (Array.isArray(home.flight_cards) && home.flight_cards.length)
-      || (Array.isArray(home.transfer_requests) && home.transfer_requests.length)
-      || (Array.isArray(home.charter_services) && home.charter_services.length)
-      || (Array.isArray(home.transport_orders) && home.transport_orders.length)
-      || (Array.isArray(home.transportation_appointments) && home.transportation_appointments.length)
-      || (Array.isArray(home.trip_overview) && home.trip_overview.length && (home.trip_overview[0].status_text !== '待发布' || home.trip_overview[0].title))
-    );
-    if (!hasPreviewContent && meta.customer_would_see === 'waiting') {
-      this.setData({
-        loading: false,
-        tripInviteMode: true,
-        tripInviteId: meta.trip_id || '',
-        tripInviteTrip: null,
-        tripInviteWaiting: true,
-        tripInviteMessage: 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
-        tripInviteError: '',
-        tripInviteCanSave: false,
-        tripInviteAutoSaved: false,
-        tripInviteAlreadySaved: Boolean(previewCustomer.is_registered),
-        operatorCustomerPreviewMode: true,
-        operatorCustomerPreviewMeta: meta,
-        needsInviteClaim: false,
-      });
-      return;
-    }
-
-    const trip = this.normalizeCustomerHomePreviewTrip(home, meta, previewCustomer);
+    const previewHome = this.normalizeOperatorCustomerHomePreview(home, meta, previewCustomer);
     this.setData({
       loading: false,
-      tripInviteMode: true,
+      tripInviteMode: false,
       tripInviteId: meta.trip_id || '',
-      tripInviteTrip: trip,
+      tripInviteTrip: null,
       tripInviteWaiting: false,
       tripInviteMessage: '',
       tripInviteError: '',
@@ -657,14 +646,184 @@ Page({
       operatorCustomerPreviewMode: true,
       operatorCustomerPreviewMeta: meta,
       needsInviteClaim: false,
-      profile: {
-        name: previewCustomer.display_name || (home.profile && home.profile.display_name) || 'Farland 客户',
-        member_level: '运营预览',
-        points_balance: 0,
-        subtitle: '当前为运营预览，不会创建客户绑定或访问记录。',
-      },
-      advisorPhone: trip.advisorPhone || '',
+      inviteMode: false,
+      operatorPreview: false,
+      showProfileUpgrade: false,
+      showProfileUpgradeForm: false,
+      currentBindMode: 'farland_profile',
+      profile: previewHome.profile,
+      benefits: previewHome.benefits,
+      topBenefits: previewHome.topBenefits,
+      hotelRequests: previewHome.hotelRequests,
+      transportationAppointments: previewHome.transportationAppointments,
+      progressStrip: previewHome.progressStrip,
+      todayCard: null,
+      todayDriverCard: null,
+      todayHotelCard: null,
+      todayItinerary: previewHome.todayItinerary,
+      showHomeEmpty: !previewHome.hasContent,
+      showLegacyTransport: previewHome.hasTransport,
+      nextConfirmed: previewHome.nextConfirmed,
+      tripOverview: previewHome.tripOverview,
+      hotelCards: previewHome.hotelCards,
+      transferRequests: previewHome.transferRequests,
+      primaryTransfer: previewHome.transferRequests[0] || null,
+      transportOrders: previewHome.transportOrders,
+      charterServices: previewHome.charterServices,
+      operatorPreviewDays: previewHome.operatorPreviewDays,
+      operatorPreviewFlights: previewHome.operatorPreviewFlights,
+      advisorPhone: previewHome.advisorPhone || '',
     });
+  },
+
+  normalizeOperatorCustomerHomePreview(home, meta, previewCustomer) {
+    const profileSource = home.profile || {};
+    const overview = (home.trip_overview || [])[0] || {};
+    const operatorPreviewDays = (Array.isArray(home.itinerary_days) ? home.itinerary_days : [])
+      .map((day, index) => this.normalizePublishedTripDay(day, index));
+    const operatorPreviewFlights = (Array.isArray(home.flight_cards) ? home.flight_cards : [])
+      .map((flight, index) => ({
+        id: flight.flight_id || flight.id || `${flight.flight_no || flight.flight_number || 'flight'}-${index}`,
+        title: flight.flight_no || flight.flight_number || flight.title || '航班安排',
+        route: flight.route || [flight.departure_airport || flight.from || '', flight.arrival_airport || flight.to || ''].filter(Boolean).join(' → '),
+        timeText: [
+          this.formatDisplayTime(flight.departure_time || flight.depart_at || ''),
+          this.formatDisplayTime(flight.arrival_time || flight.arrive_at || ''),
+        ].filter(Boolean).join(' - '),
+        note: flight.customer_note || flight.note || '',
+      }));
+    const hotelCards = (Array.isArray(home.hotel_requests) ? home.hotel_requests : []).map((hotel, index) => ({
+      ...hotel,
+      id: hotel.hotel_id || hotel.id || `${hotel.hotel_name || hotel.name || 'hotel'}-${index}`,
+      displayName: hotel.hotel_name || hotel.name || hotel.title || '酒店安排',
+      statusText: hotel.status_text || '已同步',
+      statusClass: 'confirmed',
+      check_in_date: hotel.check_in_date || hotel.date || '',
+      check_out_date: hotel.check_out_date || '',
+      subline: hotel.address || hotel.customer_note || hotel.note || hotel.room_type || '酒店详情由 Farland 顾问确认。',
+    }));
+    const transferRequests = [
+      ...(Array.isArray(home.transportation_appointments) ? home.transportation_appointments : []),
+      ...(Array.isArray(home.transfer_requests) ? home.transfer_requests : []),
+    ].map((request, index) => ({
+      ...request,
+      request_id: request.request_id || request.transfer_id || `preview-transfer-${index}`,
+      title: request.title || (request.service_type === 'charter' ? '包车安排' : '接送安排'),
+      pickup_time_text: this.formatDisplayTime(request.pickup_time_text || request.pickup_time || request.service_date || ''),
+      created_by_text: request.created_by_text || 'Farland 顾问',
+      status_text: request.status_text || '运营预览',
+      status: request.status || 'pending',
+      statusClass: request.status === 'assigned' || request.status === 'confirmed' ? 'confirmed' : 'pending',
+      pickup: request.pickup || request.pickup_location || '',
+      dropoff: request.dropoff || request.dropoff_location || '',
+      quoteCount: 0,
+      quotes: [],
+    }));
+    const transportOrders = (Array.isArray(home.transport_orders) ? home.transport_orders : []).map((order, index) => ({
+      ...order,
+      order_id: order.transport_order_id || order.order_id || order.request_id || `preview-order-${index}`,
+      title: order.title || '已确认用车',
+      pickup_time_text: this.formatDisplayTime(order.pickup_time_text || order.pickup_time || ''),
+      status_text: order.status_text || (order.order_status === 'assigned' ? '已分配司机' : '用车待确认'),
+      statusClass: order.order_status === 'assigned' ? 'confirmed' : 'pending',
+      vehicle_class: order.vehicle_class || order.vehicle_model || order.vehicle_type || '',
+      driver: order.driver || this.normalizeAssignedDriver(order),
+    }));
+    const charterServices = (Array.isArray(home.charter_services) ? home.charter_services : []).map((charter, index) => ({
+      ...charter,
+      charter_id: charter.charter_id || charter.id || `preview-charter-${index}`,
+      title: charter.title || '包车服务',
+      date_range_text: charter.date_range_text || charter.date || '',
+      vehicle_class: charter.vehicle_class || charter.vehicle_summary || '',
+      status_text: charter.status_text || '运营预览',
+      service_area: charter.service_area || charter.route || charter.city || '',
+      continuity_text: charter.continuity_text || charter.customer_note || charter.note || '',
+    }));
+    const today = operatorPreviewDays[0] || null;
+    const advisorName = profileSource.advisor_name || 'Farland 顾问';
+    const profileName = previewCustomer.display_name
+      || profileSource.display_name
+      || overview.title
+      || 'Farland 客户';
+    const todayItinerary = today ? {
+      date: [today.weekday, today.date].filter(Boolean).join(' · '),
+      city: today.city || overview.city_summary || '',
+      title: today.title,
+      summary: today.summary || (today.startTime ? `预计出发：${today.startTime}` : ''),
+      items: today.timelineItems.map((item) => ({
+        time: item.time,
+        title: item.title,
+        description: [item.location, item.driveText, item.trafficText, item.note].filter(Boolean).join(' · '),
+      })),
+      farland_contact: {
+        name: advisorName,
+        phone: profileSource.advisor_phone || '',
+      },
+      driver_visibility: 'pending',
+    } : null;
+    const tripOverview = operatorPreviewDays.map((day) => ({
+      day: day.dayNo,
+      title: day.title,
+      date: [day.weekday, day.date].filter(Boolean).join(' · '),
+      city: day.city || '',
+      summary: day.summary || (day.startTime ? `预计出发：${day.startTime}` : ''),
+      statusText: meta.customer_would_see === 'published' ? '已发布' : '运营预览',
+      statusClass: meta.customer_would_see === 'published' ? 'confirmed' : 'pending',
+    }));
+    const progressNodes = operatorPreviewDays.slice(0, 8).map((day, index) => ({
+      node_id: `preview-day-${day.dayNo || index + 1}`,
+      label: `Day ${day.dayNo || index + 1}`,
+      status: index === 0 ? 'current' : 'upcoming',
+      statusText: index === 0 ? '当前' : '待前往',
+    }));
+    const hasTransport = Boolean(transferRequests.length || transportOrders.length || charterServices.length);
+    const hasContent = Boolean(
+      operatorPreviewDays.length
+      || operatorPreviewFlights.length
+      || hotelCards.length
+      || hasTransport
+      || tripOverview.length
+    );
+    const firstNode = today && today.timelineItems[0] ? today.timelineItems[0] : null;
+    const benefits = Array.isArray(home.benefits) ? home.benefits : [];
+
+    return {
+      profile: {
+        name: profileName,
+        member_level: meta.customer_would_see === 'published' ? '客户视图预览' : '未发布预览',
+        points_balance: 0,
+        subtitle: meta.customer_would_see === 'published'
+          ? '当前为已发布客户版本预览，不会写入客户档案。'
+          : '当前为未发布草稿预览，客户真实打开时仍会看到等待页。',
+      },
+      benefits,
+      topBenefits: benefits.slice(0, 2),
+      hotelRequests: home.hotel_requests || [],
+      transportationAppointments: home.transportation_appointments || [],
+      progressStrip: progressNodes.length ? { nodes: progressNodes } : null,
+      todayItinerary,
+      nextConfirmed: today ? {
+        title: firstNode ? firstNode.title : today.title,
+        date: [today.weekday, today.date].filter(Boolean).join(' · '),
+        time: firstNode ? firstNode.time : today.startTime,
+        city: firstNode ? firstNode.location : today.city,
+      } : {
+        title: overview.title || 'Farland 行程预览',
+        date: overview.date_range_text || '',
+        time: '',
+        city: overview.city_summary || '',
+      },
+      tripOverview,
+      hotelCards,
+      transferRequests,
+      transportOrders,
+      charterServices,
+      operatorPreviewDays,
+      operatorPreviewFlights,
+      hasTransport,
+      hasContent,
+      advisorPhone: profileSource.advisor_phone || '',
+    };
   },
 
   normalizeCustomerHomePreviewTrip(home, meta, previewCustomer) {

@@ -144,6 +144,13 @@
   </view>
 
   <block wx:else>
+    <view wx:if="{{operatorCustomerPreviewMode}}" class="operator-preview-banner card-surface">
+      <view class="operator-preview-title">运营预览</view>
+      <view class="operator-preview-copy">
+        {{operatorCustomerPreviewMeta.customer_would_see === 'published' ? '当前为已发布客户版本预览。' : '当前为未发布草稿预览，客户真实打开时仍会看到等待页。'}}
+      </view>
+    </view>
+
     <view wx:if="{{showProfileUpgrade}}" class="profile-upgrade card-surface">
       <view>
         <view class="profile-upgrade-title">保存到我的 Farland 行程</view>
@@ -166,7 +173,7 @@
       <view class="trip-hero-title">{{profile.name || '我的行程'}}</view>
       <view class="trip-hero-meta">{{profile.member_level}}{{profile.points_balance ? ' · ' + profile.points_balance + ' 积分' : ''}}</view>
       <view wx:if="{{profile.subtitle}}" class="trip-hero-subtitle">{{profile.subtitle}}</view>
-      <button class="trip-register-btn" bindtap="registerCustomerProfile">
+      <button wx:if="{{!operatorCustomerPreviewMode}}" class="trip-register-btn" bindtap="registerCustomerProfile">
         {{currentBindMode === 'farland_profile' ? '已绑定当前微信' : (inviteMode ? '注册并保存' : '注册 Farland 行程')}}
       </button>
     </view>
@@ -294,7 +301,38 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty && (todayHotelCard || hotelCards.length)}}" class="section-shell">
+    <view wx:if="{{operatorCustomerPreviewMode && operatorPreviewDays.length}}" class="section-shell">
+      <view class="section-kicker">ITINERARY</view>
+      <view class="section-title">完整每日行程</view>
+      <view class="trip-invite-day-list">
+        <view wx:for="{{operatorPreviewDays}}" wx:key="id" class="trip-invite-day card-surface">
+          <view class="trip-invite-day-head">
+            <view>
+              <view class="trip-invite-day-kicker">Day {{item.dayNo}}</view>
+              <view class="trip-invite-day-title">{{item.title}}</view>
+            </view>
+            <view class="trip-invite-day-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
+          </view>
+          <view wx:if="{{item.city || item.summary}}" class="trip-invite-day-copy">{{item.city}}{{item.city && item.summary ? ' · ' : ''}}{{item.summary}}</view>
+          <view wx:if="{{item.startTime}}" class="trip-invite-day-start">预计出发：{{item.startTime}}</view>
+
+          <view wx:if="{{item.timelineItems.length}}" class="trip-invite-timeline">
+            <view wx:for="{{item.timelineItems}}" wx:for-item="node" wx:key="id" class="trip-invite-node">
+              <view class="trip-invite-node-time">{{node.time || '待定'}}</view>
+              <view class="trip-invite-node-dot"></view>
+              <view class="trip-invite-node-copy">
+                <view class="trip-invite-node-title">{{node.title}}</view>
+                <view wx:if="{{node.location}}" class="trip-invite-node-sub">{{node.location}}</view>
+                <view wx:if="{{node.driveText || node.trafficText}}" class="trip-invite-node-sub">{{node.driveText}}{{node.driveText && node.trafficText ? ' · ' : ''}}{{node.trafficText}}</view>
+                <view wx:if="{{node.note}}" class="trip-invite-node-note">{{node.note}}</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{!inviteMode && !showHomeEmpty && todayHotelCard}}" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">今晚住宿</view>
       <view wx:if="{{todayHotelCard}}" class="home-arrangement-card card-surface">
@@ -317,6 +355,19 @@
           <view class="day-title">{{item.title}}</view>
           <view class="day-meta">{{item.date}} · {{item.city}}</view>
           <view class="body-text">{{item.summary}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{operatorCustomerPreviewMode && operatorPreviewFlights.length}}" class="section-shell">
+      <view class="section-kicker">FLIGHT</view>
+      <view class="section-title">航班安排</view>
+      <view class="stack-list">
+        <view wx:for="{{operatorPreviewFlights}}" wx:key="id" class="trip-invite-info-card card-surface">
+          <view class="trip-invite-info-title">{{item.title}}</view>
+          <view wx:if="{{item.route}}" class="trip-invite-info-meta">{{item.route}}</view>
+          <view wx:if="{{item.timeText}}" class="trip-invite-info-copy">{{item.timeText}}</view>
+          <view wx:if="{{item.note}}" class="trip-invite-info-note">{{item.note}}</view>
         </view>
       </view>
     </view>
