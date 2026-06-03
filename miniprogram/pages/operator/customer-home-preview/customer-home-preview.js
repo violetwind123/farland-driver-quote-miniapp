@@ -127,12 +127,13 @@ Page({
       },
       invitePath: '',
     });
-    if (this.data.tripId || this.data.requestId) this.loadPreview();
+    this.loadPreview();
   },
 
   async loadPreview() {
-    if (!this.data.tripId && !this.data.requestId) {
-      wx.showToast({ title: '请输入 trip_id', icon: 'none' });
+    const hasSelectedCustomer = this.data.previewMode === 'existing_customer' && this.data.selectedCustomer;
+    if (!this.data.tripId && !this.data.requestId && !hasSelectedCustomer) {
+      wx.showToast({ title: '请选择客户或输入 trip_id', icon: 'none' });
       return;
     }
     this.setData({ loading: true, error: '' });

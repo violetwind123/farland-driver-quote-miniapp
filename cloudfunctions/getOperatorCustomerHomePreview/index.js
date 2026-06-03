@@ -19,6 +19,12 @@ function maskOpenid(openid) {
   return `${value.slice(0, 5)}...${value.slice(-4)}`;
 }
 
+function toTime(value) {
+  if (!value) return 0;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
 async function findTrip(tripId) {
   if (!tripId) return null;
   const queries = [
@@ -49,6 +55,74 @@ async function loadRequest(requestId) {
   if (!requestId) return null;
   const res = await db.collection('ride_requests').doc(requestId).get().catch(() => null);
   return res && res.data ? res.data : null;
+}
+
+function isActiveAccess(access) {
+  if (!access || access.status !== 'active') return false;
+  const visibleUntil = toTime(access.visible_until);
+  return !visibleUntil || visibleUntil >= Date.now();
+}
+
+async function findCustomerAccessRows(customer) {
+  if (!customer) return [];
+  const queries = [
+    db.collection('customer_trip_access')
+      .where({ customer_user_id: customer._id, status: 'active' })
+      .limit(20)
+      .get()
+      .catch(() => ({ data: [] })),
+    db.collection('customer_trip_access')
+      .where({ user_id: customer._id, status: 'active' })
+      .limit(20)
+      .get()
+      .catch(() => ({ data: [] })),
+  ];
+  if (customer.openid) {
+    queries.push(
+      db.collection('customer_trip_access')
+        .where({ customer_openid: customer.openid, status: 'active' })
+        .limit(20)
+        .get()
+        .catch(() => ({ data: [] })),
+      db.collection('customer_trip_access')
+        .where({ openid: customer.openid, status: 'active' })
+        .limit(20)
+        .get()
+        .catch(() => ({ data: [] })),
+    );
+  }
+  const results = await Promise.all(queries);
+  const seen = {};
+  return results.flatMap((res) => res.data || []).filter((access) => {
+    const key = access._id || `${access.trip_id}:${access.customer_user_id || access.user_id || access.customer_openid || access.openid}`;
+    if (seen[key] || !isActiveAccess(access)) return false;
+    seen[key] = true;
+    return Boolean(access.trip_id);
+  });
+}
+
+async function findCustomerDefaultTrip(customer) {
+  const accessRows = await findCustomerAccessRows(customer);
+  const tripIds = Array.from(new Set(accessRows.map((access) => access.trip_id).filter(Boolean)));
+  const trips = [];
+  for (const tripId of tripIds) {
+    const trip = await findTrip(tripId);
+    if (trip) trips.push(trip);
+  }
+  trips.sort((a, b) => {
+    const aPublished = a.visibility_status === 'published' ? 1 : 0;
+    const bPublished = b.visibility_status === 'published' ? 1 : 0;
+    if (aPublished !== bPublished) return bPublished - aPublished;
+    const aEnd = toTime(a.end_at || a.date_end || '');
+    const bEnd = toTime(b.end_at || b.date_end || '');
+    const aActive = !aEnd || aEnd >= Date.now() ? 1 : 0;
+    const bActive = !bEnd || bEnd >= Date.now() ? 1 : 0;
+    if (aActive !== bActive) return bActive - aActive;
+    const aUpdated = toTime(a.last_operator_previewed_at || a.updated_at || a.imported_at || a.created_at || a.start_at || '');
+    const bUpdated = toTime(b.last_operator_previewed_at || b.updated_at || b.imported_at || b.created_at || b.start_at || '');
+    return bUpdated - aUpdated;
+  });
+  return trips[0] || null;
 }
 
 async function loadAssignedTransport(requestId) {
@@ -217,9 +291,12 @@ exports.main = async (event = {}) => {
     }
   }
 
-  const trip = await findTrip(tripId);
+  let trip = await findTrip(tripId);
   if (tripId && !trip) {
     return { success: false, code: 404, error_code: 'TRIP_NOT_FOUND', message: '行程不存在' };
+  }
+  if (!trip && customer) {
+    trip = await findCustomerDefaultTrip(customer);
   }
   const request = await loadRequest(requestId);
   const { assigned_transport: assignedTransport, transport_order_health: transportOrderHealth } = await loadAssignedTransport(requestId);

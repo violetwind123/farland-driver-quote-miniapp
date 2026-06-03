@@ -94,6 +94,13 @@
   font-size: 24rpx;
 }
 
+.selector-hint {
+  margin: -2rpx 0 12rpx;
+  color: #8A91A1;
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
 .trip-row,
 .search-row,
 .action-row {

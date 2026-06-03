@@ -28,6 +28,7 @@
     </view>
 
     <view class="field-label">选择已有客户</view>
+    <view class="selector-hint">点选客户后会预览该客户最近的 Farland 行程；如需指定刚导入的行程，可先输入 trip_id。</view>
     <view class="search-row">
       <input class="text-input" value="{{keyword}}" placeholder="客户称呼 / 手机 / 微信号" bindinput="onKeywordInput" />
       <button class="mini-btn" loading="{{customerLoading}}" bindtap="searchCustomers">搜索</button>
