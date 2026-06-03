@@ -76,6 +76,33 @@ function buildDateText(start, end) {
   return [start || '', end || ''].filter(Boolean).join(' - ');
 }
 
+function toMinutes(value) {
+  const text = safeString(value).trim();
+  if (!text) return null;
+  const match = text.match(/\b(1[0-2]|0?[0-9]):([0-5]\d)\s*(AM|PM)?\b/i);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const period = safeString(match[3]).toUpperCase();
+  if (period === 'PM' && hour !== 12) hour += 12;
+  if (period === 'AM' && hour === 12) hour = 0;
+  return hour * 60 + minute;
+}
+
+function hasTopLevelHotelForDay(trip, day) {
+  const hotels = [
+    ...(Array.isArray(trip.hotels) ? trip.hotels : []),
+    ...(Array.isArray(trip.hotel_requests) ? trip.hotel_requests : []),
+  ];
+  const dayNo = Number(day.day_no || 0);
+  const date = safeString(day.date).slice(0, 10);
+  return hotels.some((hotel) => {
+    const linkedDayNo = Number(hotel.linked_day_no || hotel.day_no || 0);
+    const checkInDate = safeString(hotel.check_in_date || hotel.date).slice(0, 10);
+    return (dayNo && linkedDayNo === dayNo) || (date && checkInDate === date);
+  });
+}
+
 function normalizeHotelStatus(status) {
   const value = safeString(status).trim();
   if (value === 'confirmed') return '已确认';
@@ -89,6 +116,11 @@ function findWarningCodes(trip) {
   const days = Array.isArray(trip.itinerary_days)
     ? trip.itinerary_days
     : (Array.isArray(trip.daily_itinerary) ? trip.daily_itinerary : []);
+  const tripHasHotels = Boolean(
+    (Array.isArray(trip.hotels) && trip.hotels.length)
+    || (Array.isArray(trip.hotel_requests) && trip.hotel_requests.length)
+    || days.some((day) => day.hotel),
+  );
 
   days.forEach((day) => {
     if (!day.date) codes.add('missing_date');
@@ -100,16 +132,29 @@ function findWarningCodes(trip) {
       ? day.timeline_items
       : (Array.isArray(day.items) ? day.items : []);
     const hasHotelItem = items.some((item) => item.item_type === 'hotel' || item.type === 'hotel');
-    if (day.hotel_required && !day.hotel && !hasHotelItem) codes.add('missing_hotel');
+    const hotelExpected = day.hotel_required || trip.hotel_required || tripHasHotels;
+    if (hotelExpected && !day.hotel && !hasTopLevelHotelForDay(trip, day) && !hasHotelItem) codes.add('missing_hotel');
     items.forEach((item) => {
       const itemType = item.item_type || item.type || '';
-      if (itemType === 'flight' || item.flight_no || item.flight_number) codes.add('flight_segment_detected');
+      const title = safeString(item.title);
+      const route = safeString(item.route);
+      if (itemType === 'flight' || item.flight_no || item.flight_number || /\b[A-Z]{2}\d{2,4}\b/.test(title) || /\b[A-Z]{3}\s*(->|→|-)\s*[A-Z]{3}\b/.test(route || title)) {
+        codes.add('flight_segment_detected');
+      }
+      const arrivalMinutes = toMinutes(item.planned_arrival_time);
+      const startMinutes = toMinutes(item.planned_start_time);
+      if (arrivalMinutes !== null && startMinutes !== null && arrivalMinutes > startMinutes) {
+        codes.add('arrival_after_start_time');
+      }
       if ((item.route || item.location_name) && !item.drive_time_text && !item.drive_time) codes.add('missing_drive_time');
       if ((item.route || item.location_name) && !item.distance_text && !item.distance) codes.add('missing_distance');
     });
   });
 
   if (Array.isArray(trip.flights) && trip.flights.length) codes.add('flight_segment_detected');
+  if (codes.has('departure_time_mismatch') || codes.has('missing_hotel') || codes.has('arrival_after_start_time')) {
+    codes.add('manual_review_required');
+  }
   return Array.from(codes);
 }
 
@@ -132,6 +177,13 @@ function normalizeTimelineItem(item, index) {
     customer_note: item.customer_note || item.customer_visible_note || item.note || item.description || '',
     linked_entity_type: item.linked_entity_type || '',
     linked_entity_id: item.linked_entity_id || '',
+    flight_no: item.flight_no || item.flight_number || '',
+    flight_number: item.flight_number || item.flight_no || '',
+    from: item.from || item.origin || item.departure_airport || '',
+    to: item.to || item.destination || item.arrival_airport || '',
+    departure_time: item.departure_time || item.depart_at || item.planned_start_time || '',
+    arrival_time: item.arrival_time || item.arrive_at || item.planned_arrival_time || '',
+    aircraft: item.aircraft || '',
   });
 }
 
@@ -257,9 +309,10 @@ function deriveHotelCards(trip, normalizedDays) {
       linked_day_no: hotel.linked_day_no || day.day_no || index + 1,
     }));
   });
-  const topLevelHotels = Array.isArray(trip.hotels)
-    ? trip.hotels
-    : (Array.isArray(trip.hotel_requests) ? trip.hotel_requests : []);
+  const topLevelHotels = [
+    ...(Array.isArray(trip.hotels) ? trip.hotels : []),
+    ...(Array.isArray(trip.hotel_requests) ? trip.hotel_requests : []),
+  ];
   topLevelHotels.forEach((hotel, index) => {
     upsertHotelCard(cards, normalizeTopLevelHotel(hotel, index));
   });
@@ -267,6 +320,63 @@ function deriveHotelCards(trip, normalizedDays) {
     const dayDiff = Number(a.linked_day_no || 0) - Number(b.linked_day_no || 0);
     if (dayDiff) return dayDiff;
     return safeString(a.check_in_date).localeCompare(safeString(b.check_in_date));
+  });
+}
+
+function parseFlightRoute(value) {
+  const text = safeString(value);
+  const match = text.match(/\b([A-Z]{3})\s*(?:->|→|-)\s*([A-Z]{3})\b/);
+  return match ? { from: match[1], to: match[2] } : {};
+}
+
+function normalizeFlightCard(flight, index, dayNo = 0) {
+  if (!flight) return null;
+  const route = parseFlightRoute(flight.route || flight.title || '');
+  const flightNo = firstText([flight.flight_no, flight.flight_number, flight.title && safeString(flight.title).match(/\b[A-Z]{2}\d{2,4}\b/)]);
+  const from = firstText([flight.from, flight.origin, flight.departure_airport, route.from]);
+  const to = firstText([flight.to, flight.destination, flight.arrival_airport, route.to]);
+  if (!flightNo && !from && !to) return null;
+  return sanitizeCustomerObject({
+    id: flight.flight_id || flight.id || makeId('flight', `${flightNo}-${from}-${to}`, index),
+    flight_id: flight.flight_id || flight.id || makeId('flight', `${flightNo}-${from}-${to}`, index),
+    day_no: flight.day_no || dayNo || 0,
+    flight_no: flightNo || '航班',
+    from,
+    to,
+    departure_time: flight.departure_time || flight.depart_at || flight.planned_start_time || flight.time || '',
+    arrival_time: flight.arrival_time || flight.arrive_at || flight.planned_arrival_time || '',
+    aircraft: flight.aircraft || '',
+    note: flight.customer_note || flight.customer_visible_note || flight.note || '',
+  });
+}
+
+function deriveFlightCards(trip, normalizedDays) {
+  const cards = [];
+  const topLevelFlights = Array.isArray(trip.flights) ? trip.flights : [];
+  topLevelFlights.forEach((flight) => {
+    const card = normalizeFlightCard(flight, cards.length, flight.day_no || 0);
+    if (card) cards.push(card);
+  });
+  normalizedDays.forEach((day) => {
+    (day.timeline_items || []).forEach((item) => {
+      const itemType = item.item_type || item.type || '';
+      const title = safeString(item.title);
+      const route = safeString(item.route || `${item.from || ''} → ${item.to || ''}`);
+      if (itemType !== 'flight' && !item.flight_no && !item.flight_number && !/\b[A-Z]{2}\d{2,4}\b/.test(title) && !/\b[A-Z]{3}\s*(?:->|→|-)\s*[A-Z]{3}\b/.test(route || title)) return;
+      const card = normalizeFlightCard({
+        ...item,
+        route: item.route || title,
+        note: item.customer_note || item.note,
+      }, cards.length, day.day_no);
+      if (card) cards.push(card);
+    });
+  });
+  const seen = new Set();
+  return cards.filter((card) => {
+    const key = [card.flight_no, card.day_no, card.from, card.to, card.departure_time].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -282,7 +392,7 @@ function buildTransportBadge(transportSummary) {
   ]);
 }
 
-function buildDailySummaryCards(normalizedDays, hotelCards) {
+function deriveDailySummaryCards(normalizedDays, hotelCards) {
   return normalizedDays.map((day, index) => {
     const dayNo = day.day_no || index + 1;
     const hotelCard = hotelCards.find((hotel) => Number(hotel.linked_day_no || 0) === Number(dayNo));
@@ -301,11 +411,13 @@ function buildDailySummaryCards(normalizedDays, hotelCards) {
       hotel_badge: hotelCard ? (hotelCard.name || hotelCard.hotel_name || '') : '',
       transport_badge: buildTransportBadge(day.transport_summary),
       highlight_items: highlights,
+      item_count: (day.timeline_items || []).length,
+      clickable: true,
     });
   });
 }
 
-function buildTripSummary({ trip, normalizedDays, hotelCards, flights, transfers, charterServices }) {
+function deriveTripSummary({ trip, normalizedDays, hotelCards, flightCards, transfers, charterServices }) {
   const title = trip.title || 'Farland 行程';
   const cityRoute = unique(normalizedDays.map((day) => day.city)).join(' → ') || trip.city || '';
   const firstDay = normalizedDays[0] || null;
@@ -313,20 +425,21 @@ function buildTripSummary({ trip, normalizedDays, hotelCards, flights, transfers
   const lastHotel = hotelCards[hotelCards.length - 1] || null;
   return sanitizeCustomerObject({
     trip_id: trip.trip_id || trip.external_trip_id || '',
+    external_trip_id: trip.external_trip_id || trip.trip_id || '',
     trip_no: trip.trip_no || trip.external_trip_id || trip.trip_id || '',
     title,
     date_range_text: buildDateText(trip.start_at || trip.date_start || '', trip.end_at || trip.date_end || ''),
     city_route_text: cityRoute,
     days_count: normalizedDays.length,
     hotels_count: hotelCards.length,
-    flights_count: flights.length,
+    flights_count: flightCards.length,
     transport_count: transfers.length + charterServices.length,
     next_day_label: nextDayLabel,
     last_hotel_name: lastHotel ? (lastHotel.name || lastHotel.hotel_name || '') : '',
   });
 }
 
-function buildDraftSnapshot(trip) {
+function normalizeSnapshotV2(trip) {
   const days = Array.isArray(trip.itinerary_days)
     ? trip.itinerary_days
     : (Array.isArray(trip.daily_itinerary) ? trip.daily_itinerary : []);
@@ -335,12 +448,13 @@ function buildDraftSnapshot(trip) {
   const transfers = sanitizeCustomerObject(trip.transfers || (trip.transfer ? [trip.transfer] : []));
   const charterServices = sanitizeCustomerObject(trip.charter_services || (trip.charter ? [trip.charter] : []));
   const hotelCards = deriveHotelCards(trip, normalizedDays);
-  const dailySummaryCards = buildDailySummaryCards(normalizedDays, hotelCards);
-  const tripSummary = buildTripSummary({
+  const flightCards = deriveFlightCards(trip, normalizedDays);
+  const dailySummaryCards = deriveDailySummaryCards(normalizedDays, hotelCards);
+  const tripSummary = deriveTripSummary({
     trip,
     normalizedDays,
     hotelCards,
-    flights,
+    flightCards,
     transfers,
     charterServices,
   });
@@ -369,6 +483,7 @@ function buildDraftSnapshot(trip) {
     trip_summary: tripSummary,
     daily_summary_cards: dailySummaryCards,
     hotel_cards: hotelCards,
+    flight_cards: flightCards,
     itinerary_days: normalizedDays,
     hotels: hotelCards,
     flights,
@@ -414,7 +529,7 @@ exports.main = async (event = {}) => {
   const now = new Date().toISOString();
   const warningCodes = unique(findWarningCodes(trip));
   const criticalWarningCodes = Array.isArray(trip.critical_warning_codes) ? trip.critical_warning_codes : [];
-  const draftSnapshot = buildDraftSnapshot(trip);
+  const draftSnapshot = normalizeSnapshotV2(trip);
   const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
   const nextReviewStatus = trip.published_version > 0 ? 'needs_review' : 'pending_review';
 

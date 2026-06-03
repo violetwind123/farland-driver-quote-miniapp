@@ -116,21 +116,37 @@ Page({
     const customer = snapshot.customer || {};
     const advisor = snapshot.advisor || {};
     const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+    const hotelCards = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
+      ? snapshot.hotel_cards
+      : (Array.isArray(snapshot.hotels) ? snapshot.hotels : []);
+    const flightCards = Array.isArray(snapshot.flight_cards) && snapshot.flight_cards.length
+      ? snapshot.flight_cards
+      : (Array.isArray(snapshot.flights) ? snapshot.flights : []);
     return {
       ...snapshot,
+      snapshot_model_version: snapshot.snapshot_model_version || 1,
       display_title: hero.title || snapshot.title || 'Farland 行程',
       display_trip_no: hero.trip_no || snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '',
       display_date_range: hero.date_range || [snapshot.start_at || '', snapshot.end_at || ''].filter(Boolean).join(' - '),
       display_city: hero.city_summary || snapshot.city || '',
       display_customer: customer.display_name || customer.name || '',
       display_advisor: advisor.name || 'Farland Advisor',
+      trip_summary: snapshot.trip_summary || null,
+      daily_summary_cards: Array.isArray(snapshot.daily_summary_cards)
+        ? snapshot.daily_summary_cards.map((card) => ({
+          ...card,
+          highlight_items: Array.isArray(card.highlight_items) ? card.highlight_items : [],
+        }))
+        : [],
       itinerary_days: days.map((day, index) => ({
         ...day,
         display_day_label: `Day ${day.day_no || index + 1}`,
         timeline_items: Array.isArray(day.timeline_items) ? day.timeline_items : [],
       })),
-      hotels: Array.isArray(snapshot.hotels) ? snapshot.hotels : [],
-      flights: Array.isArray(snapshot.flights) ? snapshot.flights : [],
+      hotel_cards: hotelCards,
+      hotels: hotelCards,
+      flight_cards: flightCards,
+      flights: flightCards,
       transfers: Array.isArray(snapshot.transfers) ? snapshot.transfers : [],
       charter_services: Array.isArray(snapshot.charter_services) ? snapshot.charter_services : [],
       documents: Array.isArray(snapshot.documents) ? snapshot.documents : [],

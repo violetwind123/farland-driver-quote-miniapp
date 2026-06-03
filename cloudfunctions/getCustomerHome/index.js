@@ -76,6 +76,23 @@ function sanitizeCustomerObject(value) {
     'supplier_private_note',
     'supplier_private_notes',
     'raw_quote_pool',
+    'draft_snapshot',
+    'raw_imported_json',
+    'raw_json',
+    'raw_parse_note',
+    'raw_parse_notes',
+    'source_raw_text',
+    'source_pdf_text',
+    'ai_warnings',
+    'warning_codes',
+    'critical_warning_codes',
+    'operator_note',
+    'operator_notes',
+    'cost',
+    'openid',
+    'customer_openid',
+    'customer_user_id',
+    'user_id',
   ]);
   if (Array.isArray(value)) {
     return value.map((item) => sanitizeCustomerObject(item));
@@ -106,6 +123,9 @@ function emptyHome(user) {
     today_card: null,
     today_itinerary: null,
     trip_overview: [],
+    daily_summary_cards: [],
+    itinerary_days: [],
+    flight_cards: [],
     transportation_appointments: [],
     charter_services: [],
     transfer_requests: [],
@@ -606,27 +626,355 @@ function normalizeTripOverview(trips) {
   }));
 }
 
+function safeString(value) {
+  return value === undefined || value === null ? '' : String(value);
+}
+
+function firstText(values) {
+  for (const value of values) {
+    const text = safeString(value).trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function makeId(prefix, value, index) {
+  return firstText([value]).replace(/[^a-zA-Z0-9_-]/g, '_') || `${prefix}_${index + 1}`;
+}
+
+function buildDateText(start, end) {
+  return [start || '', end || ''].filter(Boolean).join(' - ');
+}
+
+function normalizeHotelStatus(status) {
+  const value = safeString(status).trim();
+  if (value === 'confirmed') return '已确认';
+  if (value === 'cancelled') return '已取消';
+  if (value === 'pending') return 'Farland 确认中';
+  return value || 'Planned stay';
+}
+
+function parseFlightRoute(value) {
+  const text = safeString(value);
+  const match = text.match(/\b([A-Z]{3})\s*(?:->|→|-)\s*([A-Z]{3})\b/);
+  return match ? { from: match[1], to: match[2] } : {};
+}
+
+function normalizeSnapshotTimelineItem(item, index) {
+  const itemType = item.item_type || item.type || 'other';
+  return sanitizeCustomerObject({
+    item_id: item.item_id || item.id || `${itemType}_${index + 1}`,
+    item_type: itemType,
+    type: itemType,
+    title: item.title || '行程节点',
+    time: item.time || item.planned_start_time || item.planned_arrival_time || '',
+    planned_arrival_time: item.planned_arrival_time || '',
+    planned_start_time: item.planned_start_time || item.time || '',
+    planned_end_time: item.planned_end_time || '',
+    drive_time_text: item.drive_time_text || item.drive_time || '',
+    distance_text: item.distance_text || item.distance || '',
+    traffic_text: item.traffic_text || item.traffic_level || '',
+    location_name: item.location_name || item.location || '',
+    address: item.address || '',
+    customer_note: item.customer_note || item.customer_visible_note || item.note || item.description || '',
+    route: item.route || '',
+    flight_no: item.flight_no || item.flight_number || '',
+    flight_number: item.flight_number || item.flight_no || '',
+    from: item.from || item.origin || item.departure_airport || '',
+    to: item.to || item.destination || item.arrival_airport || '',
+    departure_time: item.departure_time || item.depart_at || item.planned_start_time || '',
+    arrival_time: item.arrival_time || item.arrive_at || item.planned_arrival_time || '',
+    aircraft: item.aircraft || '',
+  });
+}
+
+function normalizeSnapshotDayHotel(hotel, day, index) {
+  if (!hotel) return null;
+  const name = firstText([hotel.name, hotel.hotel_name, hotel.title, hotel.location_name]);
+  const address = firstText([hotel.address]);
+  if (!name && !address) return null;
+  const dayNo = day.day_no || index + 1;
+  return sanitizeCustomerObject({
+    hotel_id: hotel.hotel_id || hotel.id || `day_${dayNo}_hotel`,
+    name: name || '酒店安排',
+    hotel_name: name || '酒店安排',
+    city: hotel.city || day.city || '',
+    date: hotel.date || day.date || '',
+    check_in_date: hotel.check_in_date || day.date || '',
+    check_out_date: hotel.check_out_date || '',
+    arrival_time: hotel.arrival_time || hotel.planned_arrival_time || hotel.time || '',
+    address,
+    room_type: hotel.room_type || '',
+    status_text: hotel.status_text || normalizeHotelStatus(hotel.status),
+    customer_note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '',
+    linked_day_no: dayNo,
+  });
+}
+
+function normalizeSnapshotDay(day, index) {
+  const timelineSource = Array.isArray(day.timeline_items)
+    ? day.timeline_items
+    : (Array.isArray(day.items) ? day.items : []);
+  const timelineItems = timelineSource.map(normalizeSnapshotTimelineItem);
+  const hotelItem = timelineItems.find((item) => {
+    const type = item.item_type || item.type || '';
+    return type === 'hotel' || /酒店|hotel/i.test(item.title || '');
+  });
+  const hotel = normalizeSnapshotDayHotel(day.hotel, day, index)
+    || (hotelItem ? normalizeSnapshotDayHotel({
+      hotel_id: hotelItem.linked_entity_id || hotelItem.item_id,
+      name: hotelItem.title,
+      address: hotelItem.address || hotelItem.location_name,
+      arrival_time: hotelItem.time || hotelItem.planned_arrival_time,
+      customer_note: hotelItem.customer_note,
+    }, day, index) : null);
+  const displayedRaw = firstText([day.displayed_start_time_raw, day.displayed_start_time, day.start_time]);
+  const estimatedRaw = firstText([day.estimated_departure_time_raw, day.estimated_departure_time, day.depart_time]);
+  const startTimeText = firstText([day.start_time_text, day.estimated_departure_time, day.estimated_departure_time_raw, day.displayed_start_time, day.displayed_start_time_raw, day.start_time]);
+  return sanitizeCustomerObject({
+    ...day,
+    day_no: day.day_no || index + 1,
+    title: day.title || `Day ${day.day_no || index + 1}`,
+    displayed_start_time_raw: displayedRaw,
+    estimated_departure_time_raw: estimatedRaw,
+    start_time_text: startTimeText,
+    has_time_conflict: Boolean(displayedRaw && estimatedRaw && displayedRaw !== estimatedRaw),
+    timeline_items: timelineItems,
+    hotel,
+  });
+}
+
+function normalizeSnapshotHotel(hotel, index) {
+  const name = firstText([hotel.name, hotel.hotel_name, hotel.title]);
+  const address = firstText([hotel.address]);
+  if (!name && !address) return null;
+  return sanitizeCustomerObject({
+    id: hotel.hotel_id || hotel.id || makeId('hotel', name || address, index),
+    hotel_id: hotel.hotel_id || hotel.id || makeId('hotel', name || address, index),
+    name: name || '酒店安排',
+    hotel_name: name || '酒店安排',
+    city: hotel.city || '',
+    check_in_date: hotel.check_in_date || hotel.date || '',
+    check_out_date: hotel.check_out_date || '',
+    date_text: hotel.date_text || buildDateText(hotel.check_in_date || hotel.date || '', hotel.check_out_date || ''),
+    arrival_time: hotel.arrival_time || '',
+    address,
+    room_type: hotel.room_type || '',
+    status_text: hotel.status_text || normalizeHotelStatus(hotel.status),
+    note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '',
+    linked_day_no: hotel.linked_day_no || hotel.day_no || 0,
+  });
+}
+
+function upsertSnapshotHotelCard(map, card) {
+  if (!card || (!card.name && !card.address)) return;
+  const key = [
+    card.name || card.hotel_name || '',
+    card.check_in_date || card.date || '',
+    card.linked_day_no || '',
+  ].join('|');
+  map.set(key, {
+    ...(map.get(key) || {}),
+    ...card,
+    id: card.id || card.hotel_id || makeId('hotel', key, map.size),
+  });
+}
+
+function deriveSnapshotHotelCards(snapshot) {
+  const cards = new Map();
+  const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+  days.forEach((day, index) => {
+    if (!day.hotel) return;
+    upsertSnapshotHotelCard(cards, normalizeSnapshotHotel({
+      ...day.hotel,
+      linked_day_no: day.hotel.linked_day_no || day.day_no || index + 1,
+      check_in_date: day.hotel.check_in_date || day.hotel.date || day.date || '',
+    }, cards.size));
+  });
+  [
+    ...(Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : []),
+    ...(Array.isArray(snapshot.hotels) ? snapshot.hotels : []),
+    ...(Array.isArray(snapshot.hotel_requests) ? snapshot.hotel_requests : []),
+  ].forEach((hotel) => upsertSnapshotHotelCard(cards, normalizeSnapshotHotel(hotel, cards.size)));
+  return Array.from(cards.values()).sort((a, b) => Number(a.linked_day_no || 0) - Number(b.linked_day_no || 0));
+}
+
+function normalizeSnapshotFlight(flight, index, dayNo = 0) {
+  if (!flight) return null;
+  const route = parseFlightRoute(flight.route || flight.title || '');
+  const flightMatch = safeString(flight.title).match(/\b[A-Z]{2}\d{2,4}\b/);
+  const flightNo = firstText([flight.flight_no, flight.flight_number, flightMatch ? flightMatch[0] : '']);
+  const from = firstText([flight.from, flight.origin, flight.departure_airport, route.from]);
+  const to = firstText([flight.to, flight.destination, flight.arrival_airport, route.to]);
+  if (!flightNo && !from && !to) return null;
+  return sanitizeCustomerObject({
+    id: flight.flight_id || flight.id || makeId('flight', `${flightNo}-${from}-${to}`, index),
+    flight_id: flight.flight_id || flight.id || makeId('flight', `${flightNo}-${from}-${to}`, index),
+    day_no: flight.day_no || dayNo || 0,
+    flight_no: flightNo || '航班',
+    from,
+    to,
+    departure_time: flight.departure_time || flight.depart_at || flight.planned_start_time || flight.time || '',
+    arrival_time: flight.arrival_time || flight.arrive_at || flight.planned_arrival_time || '',
+    aircraft: flight.aircraft || '',
+    note: flight.customer_note || flight.customer_visible_note || flight.note || '',
+  });
+}
+
+function deriveSnapshotFlightCards(snapshot) {
+  const cards = [];
+  [
+    ...(Array.isArray(snapshot.flight_cards) ? snapshot.flight_cards : []),
+    ...(Array.isArray(snapshot.flights) ? snapshot.flights : []),
+  ].forEach((flight) => {
+    const card = normalizeSnapshotFlight(flight, cards.length, flight.day_no || 0);
+    if (card) cards.push(card);
+  });
+  (Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : []).forEach((day) => {
+    (day.timeline_items || []).forEach((item) => {
+      const itemType = item.item_type || item.type || '';
+      const title = safeString(item.title);
+      const route = safeString(item.route || `${item.from || ''} → ${item.to || ''}`);
+      if (itemType !== 'flight' && !item.flight_no && !item.flight_number && !/\b[A-Z]{2}\d{2,4}\b/.test(title) && !/\b[A-Z]{3}\s*(?:->|→|-)\s*[A-Z]{3}\b/.test(route || title)) return;
+      const card = normalizeSnapshotFlight({ ...item, route: item.route || title }, cards.length, day.day_no);
+      if (card) cards.push(card);
+    });
+  });
+  const seen = new Set();
+  return cards.filter((card) => {
+    const key = [card.flight_no, card.day_no, card.from, card.to, card.departure_time].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function snapshotTransportBadge(transportSummary) {
+  if (!transportSummary) return '';
+  if (typeof transportSummary === 'string') return transportSummary;
+  return firstText([
+    transportSummary.title,
+    transportSummary.service_type === 'charter' ? '包车服务' : '',
+    transportSummary.service_type === 'transfer' ? '接送安排' : '',
+    transportSummary.vehicle_summary,
+    transportSummary.vehicle_class,
+  ]);
+}
+
+function deriveSnapshotDailyCards(snapshot, hotelCards) {
+  const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+  return days.map((day, index) => {
+    const dayNo = day.day_no || index + 1;
+    const hotelCard = hotelCards.find((hotel) => Number(hotel.linked_day_no || 0) === Number(dayNo));
+    const highlights = (day.timeline_items || []).map((item) => item.title).filter(Boolean).slice(0, 2);
+    return sanitizeCustomerObject({
+      id: `day_${dayNo}`,
+      day_no: dayNo,
+      date: day.date || '',
+      weekday: day.weekday || '',
+      title: day.title || `Day ${dayNo}`,
+      city: day.city || '',
+      start_time_text: day.start_time_text || day.estimated_departure_time || day.displayed_start_time || '',
+      displayed_start_time_raw: day.displayed_start_time_raw || '',
+      estimated_departure_time_raw: day.estimated_departure_time_raw || '',
+      has_time_conflict: Boolean(day.has_time_conflict),
+      hotel_badge: hotelCard ? (hotelCard.name || hotelCard.hotel_name || '') : '',
+      transport_badge: snapshotTransportBadge(day.transport_summary),
+      highlight_items: highlights,
+      item_count: (day.timeline_items || []).length,
+      clickable: true,
+    });
+  });
+}
+
+function buildSnapshotTripSummary(snapshot, hotelCards, flightCards) {
+  const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+  const transfers = Array.isArray(snapshot.transfers) ? snapshot.transfers : [];
+  const charterServices = Array.isArray(snapshot.charter_services) ? snapshot.charter_services : [];
+  const firstDay = days[0] || null;
+  const lastHotel = hotelCards[hotelCards.length - 1] || null;
+  return sanitizeCustomerObject({
+    trip_id: snapshot.trip_id || snapshot.external_trip_id || '',
+    external_trip_id: snapshot.external_trip_id || snapshot.trip_id || '',
+    trip_no: snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '',
+    title: snapshot.title || 'Farland 行程',
+    date_range_text: buildDateText(snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''),
+    city_route_text: unique(days.map((day) => day.city)).join(' → ') || snapshot.city || '',
+    days_count: days.length,
+    hotels_count: hotelCards.length,
+    flights_count: flightCards.length,
+    transport_count: transfers.length + charterServices.length,
+    next_day_label: firstDay ? `Day ${firstDay.day_no || 1}: ${firstDay.title || firstDay.city || ''}` : '',
+    last_hotel_name: lastHotel ? (lastHotel.name || lastHotel.hotel_name || '') : '',
+  });
+}
+
+function normalizePublishedTripSnapshot(trip) {
+  if (!trip || trip.visibility_status !== 'published' || !trip.published_snapshot || !Object.keys(trip.published_snapshot).length) return null;
+  const snapshot = sanitizeCustomerObject(trip.published_snapshot || {});
+  const days = Array.isArray(snapshot.itinerary_days)
+    ? snapshot.itinerary_days.map(normalizeSnapshotDay)
+    : [];
+  const normalized = {
+    ...snapshot,
+    itinerary_days: days,
+  };
+  const hotelCards = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
+    ? snapshot.hotel_cards.map((hotel, index) => normalizeSnapshotHotel(hotel, index)).filter(Boolean)
+    : deriveSnapshotHotelCards(normalized);
+  const flightCards = Array.isArray(snapshot.flight_cards) && snapshot.flight_cards.length
+    ? snapshot.flight_cards.map((flight, index) => normalizeSnapshotFlight(flight, index)).filter(Boolean)
+    : deriveSnapshotFlightCards(normalized);
+  const dailyCards = Array.isArray(snapshot.daily_summary_cards) && snapshot.daily_summary_cards.length
+    ? snapshot.daily_summary_cards
+    : deriveSnapshotDailyCards(normalized, hotelCards);
+  const tripSummary = snapshot.trip_summary || buildSnapshotTripSummary(normalized, hotelCards, flightCards);
+  return sanitizeCustomerObject({
+    ...normalized,
+    snapshot_model_version: 2,
+    trip_summary: tripSummary,
+    daily_summary_cards: dailyCards,
+    hotel_cards: hotelCards,
+    flight_cards: flightCards,
+    hotels: hotelCards,
+  });
+}
+
+function buildWaitingTripOverview(trips) {
+  return trips.map((trip) => ({
+    trip_id: trip.trip_id || trip.external_trip_id || trip._id || '',
+    trip_no: trip.trip_no || trip.external_trip_id || trip.trip_id || '',
+    title: trip.title || 'Farland 行程',
+    status_text: '待发布',
+    waiting_message: 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
+  }));
+}
+
 function collectTripData(trips) {
+  const snapshots = trips.map(normalizePublishedTripSnapshot).filter(Boolean);
+  const firstSnapshot = snapshots[0] || null;
   const firstTrip = trips[0] || null;
-  const daily = trips.reduce((acc, trip) => acc.concat(sanitizeCustomerObject(trip.itinerary_days || trip.daily_itinerary || [])), []);
-  const hotelRequests = trips.reduce((acc, trip) => acc.concat(sanitizeCustomerObject(trip.hotels || trip.hotel_requests || [])), []);
-  const charterServices = trips.reduce((acc, trip) => {
-    if (Array.isArray(trip.charter_services) && trip.charter_services.length) {
-      return acc.concat(sanitizeCustomerObject(trip.charter_services));
-    }
-    if (hasData(trip.charter)) {
-      return acc.concat(sanitizeCustomerObject(Array.isArray(trip.charter) ? trip.charter : [trip.charter]));
-    }
-    return acc;
-  }, []);
-  const benefits = trips.reduce((acc, trip) => acc.concat(sanitizeCustomerObject(trip.benefits || [])), []);
+  const daily = snapshots.reduce((acc, snapshot) => acc.concat(snapshot.itinerary_days || []), []);
+  const dailySummaryCards = snapshots.reduce((acc, snapshot) => acc.concat(snapshot.daily_summary_cards || []), []);
+  const hotelRequests = snapshots.reduce((acc, snapshot) => acc.concat(snapshot.hotel_cards || []), []);
+  const flightCards = snapshots.reduce((acc, snapshot) => acc.concat(snapshot.flight_cards || []), []);
+  const transferRequests = snapshots.reduce((acc, snapshot) => acc.concat(snapshot.transfers || []), []);
+  const charterServices = snapshots.reduce((acc, snapshot) => acc.concat(snapshot.charter_services || []), []);
+  const benefits = snapshots.reduce((acc, snapshot) => acc.concat(snapshot.benefits || []), []);
   return {
     today_itinerary: daily[0] || null,
-    trip_overview: normalizeTripOverview(trips),
+    itinerary_days: daily,
+    daily_summary_cards: dailySummaryCards,
+    trip_overview: snapshots.length
+      ? snapshots.map((snapshot) => snapshot.trip_summary || buildSnapshotTripSummary(snapshot, snapshot.hotel_cards || [], snapshot.flight_cards || []))
+      : buildWaitingTripOverview(trips),
     hotel_requests: hotelRequests,
+    flight_cards: flightCards,
+    transfer_requests: transferRequests,
     charter_services: charterServices,
     benefits,
-    advisor: firstTrip && firstTrip.advisor ? firstTrip.advisor : null,
+    advisor: firstSnapshot && firstSnapshot.advisor ? firstSnapshot.advisor : (firstTrip && firstTrip.advisor ? firstTrip.advisor : null),
+    has_published_trip: Boolean(snapshots.length),
   };
 }
 
@@ -821,6 +1169,22 @@ exports.main = async () => {
       assignedTransportByRequest[request._id] || null,
       assignedTransportSourceByRequest[request._id] || 'none',
     ));
+  const snapshotTransferRequests = (tripData.transfer_requests || []).map((request, index) => ({
+    ...request,
+    request_id: request.request_id || request.transfer_id || request.id || `trip-transfer-${index}`,
+    title: request.title || '接送安排',
+    created_by_text: request.created_by_text || 'Farland 顾问',
+    status_text: request.status_text || '已同步',
+    status: request.status || 'confirmed',
+    statusClass: request.statusClass || 'confirmed',
+    quotes: [],
+  }));
+  const visibleTransferRequests = [
+    ...snapshotTransferRequests,
+    ...transferRequests.filter((request) => {
+      return !snapshotTransferRequests.some((item) => item.request_id === request.request_id);
+    }),
+  ];
   const primaryAssignedTransfer = transferRequests.find((request) => {
     return (request.status === 'assigned' || request.status === 'confirmed')
       && hasAssignedTransportDetails(request.assigned_transport);
@@ -853,11 +1217,14 @@ exports.main = async () => {
     today_card: applyAssignedTransportToTodayCard(buildMockTodayCard(), primaryAssignedTransfer),
     today_itinerary: tripData.today_itinerary,
     trip_overview: tripData.trip_overview,
+    daily_summary_cards: tripData.daily_summary_cards,
+    itinerary_days: tripData.itinerary_days,
     transportation_appointments: [],
     charter_services: tripData.charter_services,
-    transfer_requests: transferRequests,
+    transfer_requests: visibleTransferRequests,
     transport_orders: transportOrderSummaries,
     hotel_requests: tripData.hotel_requests,
+    flight_cards: tripData.flight_cards,
     benefits: tripData.benefits.length ? tripData.benefits : (tripOnly ? [] : [
       {
         title: '机场接送礼遇',

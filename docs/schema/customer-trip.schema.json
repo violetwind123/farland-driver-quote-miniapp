@@ -128,6 +128,12 @@
     "critical_warning_codes": {
       "type": "array",
       "items": { "$ref": "#/$defs/warning_code" }
+    },
+    "draft_snapshot": {
+      "$ref": "#/$defs/render_snapshot"
+    },
+    "published_snapshot": {
+      "$ref": "#/$defs/render_snapshot"
     }
   },
   "allOf": [
@@ -149,6 +155,135 @@
     }
   ],
   "$defs": {
+    "render_snapshot": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "snapshot_model_version": { "type": "integer", "const": 2 },
+        "hero": { "$ref": "#/$defs/snapshot_hero" },
+        "trip_summary": { "$ref": "#/$defs/trip_summary" },
+        "daily_summary_cards": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/daily_summary_card" }
+        },
+        "hotel_cards": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/hotel_card" }
+        },
+        "flight_cards": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/flight_card" }
+        },
+        "itinerary_days": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/itinerary_day" }
+        },
+        "hotels": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/hotel_card" }
+        },
+        "flights": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/flight" }
+        },
+        "transfers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/transfer" }
+        },
+        "charter_services": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/charter" }
+        }
+      }
+    },
+    "snapshot_hero": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "title": { "type": "string" },
+        "trip_no": { "type": "string" },
+        "date_range": { "type": "string" },
+        "city_summary": { "type": "string" }
+      }
+    },
+    "trip_summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "trip_id": { "type": "string" },
+        "external_trip_id": { "type": "string" },
+        "trip_no": { "type": "string" },
+        "title": { "type": "string" },
+        "date_range_text": { "type": "string" },
+        "city_route_text": { "type": "string" },
+        "days_count": { "type": "integer", "minimum": 0 },
+        "hotels_count": { "type": "integer", "minimum": 0 },
+        "flights_count": { "type": "integer", "minimum": 0 },
+        "transport_count": { "type": "integer", "minimum": 0 },
+        "next_day_label": { "type": "string" },
+        "last_hotel_name": { "type": "string" }
+      }
+    },
+    "daily_summary_card": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "day_no": { "type": "integer", "minimum": 1 },
+        "date": { "type": "string" },
+        "weekday": { "type": "string" },
+        "title": { "type": "string" },
+        "city": { "type": "string" },
+        "start_time_text": { "type": "string" },
+        "displayed_start_time_raw": { "type": "string" },
+        "estimated_departure_time_raw": { "type": "string" },
+        "has_time_conflict": { "type": "boolean" },
+        "highlight_items": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "hotel_badge": { "type": "string" },
+        "transport_badge": { "type": "string" },
+        "item_count": { "type": "integer", "minimum": 0 },
+        "clickable": { "type": "boolean" }
+      }
+    },
+    "hotel_card": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "hotel_id": { "type": "string" },
+        "name": { "type": "string" },
+        "hotel_name": { "type": "string" },
+        "city": { "type": "string" },
+        "check_in_date": { "type": "string" },
+        "check_out_date": { "type": "string" },
+        "date_text": { "type": "string" },
+        "arrival_time": { "type": "string" },
+        "address": { "type": "string" },
+        "room_type": { "type": "string" },
+        "status_text": { "type": "string" },
+        "note": { "type": "string" },
+        "linked_day_no": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "flight_card": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "flight_id": { "type": "string" },
+        "day_no": { "type": "integer", "minimum": 0 },
+        "flight_no": { "type": "string" },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "departure_time": { "type": "string" },
+        "arrival_time": { "type": "string" },
+        "aircraft": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
     "customer": {
       "type": "object",
       "additionalProperties": false,

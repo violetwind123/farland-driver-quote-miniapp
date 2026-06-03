@@ -120,6 +120,43 @@
           </view>
         </view>
 
+        <view wx:if="{{activeSnapshot.trip_summary}}" class="preview-section">
+          <view class="preview-title">整体概览</view>
+          <view class="info-row overview-row">
+            <view class="info-main">{{activeSnapshot.trip_summary.title || activeSnapshot.display_title}}</view>
+            <view class="info-sub">{{activeSnapshot.trip_summary.date_range_text || activeSnapshot.display_date_range}}</view>
+            <view class="info-sub">{{activeSnapshot.trip_summary.city_route_text || activeSnapshot.display_city}}</view>
+            <view class="overview-metrics">
+              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.days_count || 0}}</view><view class="overview-label">days</view></view>
+              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.hotels_count || 0}}</view><view class="overview-label">hotels</view></view>
+              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.flights_count || 0}}</view><view class="overview-label">flights</view></view>
+              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.transport_count || 0}}</view><view class="overview-label">transport</view></view>
+            </view>
+            <view wx:if="{{activeSnapshot.trip_summary.next_day_label}}" class="info-sub">{{activeSnapshot.trip_summary.next_day_label}}</view>
+          </view>
+        </view>
+
+        <view wx:if="{{activeSnapshot.daily_summary_cards.length}}" class="preview-section">
+          <view class="preview-title">每日摘要卡</view>
+          <view wx:for="{{activeSnapshot.daily_summary_cards}}" wx:key="id" class="day-card summary-card">
+            <view class="day-head">
+              <view>
+                <view class="day-label">Day {{item.day_no || index + 1}}</view>
+                <view class="day-title">{{item.title || '当日安排'}}</view>
+              </view>
+              <view class="day-date">{{item.date}} {{item.weekday}}</view>
+            </view>
+            <view wx:if="{{item.city}}" class="day-summary">{{item.city}}</view>
+            <view wx:if="{{item.start_time_text}}" class="service-line">出发：{{item.start_time_text}}</view>
+            <view wx:if="{{item.highlight_items.length}}" class="summary-highlights">
+              <view wx:for="{{item.highlight_items}}" wx:for-item="highlight" wx:key="*this" class="summary-highlight">{{highlight}}</view>
+            </view>
+            <view wx:if="{{item.hotel_badge || item.transport_badge}}" class="day-summary">
+              {{item.hotel_badge ? '酒店：' + item.hotel_badge : ''}}{{item.hotel_badge && item.transport_badge ? ' · ' : ''}}{{item.transport_badge ? '用车：' + item.transport_badge : ''}}
+            </view>
+          </view>
+        </view>
+
         <view wx:if="{{activeSnapshot.itinerary_days.length}}" class="preview-section">
           <view class="preview-title">每日行程</view>
           <view wx:for="{{activeSnapshot.itinerary_days}}" wx:key="day_no" class="day-card">
@@ -148,19 +185,22 @@
           </view>
         </view>
 
-        <view wx:if="{{activeSnapshot.hotels.length}}" class="preview-section">
+        <view wx:if="{{activeSnapshot.hotel_cards.length}}" class="preview-section">
           <view class="preview-title">酒店</view>
-          <view wx:for="{{activeSnapshot.hotels}}" wx:key="hotel_id" class="info-row">
+          <view wx:for="{{activeSnapshot.hotel_cards}}" wx:key="hotel_id" class="info-row">
             <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
-            <view class="info-sub">{{item.address || item.date_range_text || item.arrival_time || ''}}</view>
+            <view class="info-sub">{{item.date_text || item.check_in_date || ''}}</view>
+            <view class="info-sub">{{item.address || item.arrival_time || ''}}</view>
           </view>
         </view>
 
-        <view wx:if="{{activeSnapshot.flights.length}}" class="preview-section">
+        <view wx:if="{{activeSnapshot.flight_cards.length}}" class="preview-section">
           <view class="preview-title">航班</view>
-          <view wx:for="{{activeSnapshot.flights}}" wx:key="flight_id" class="info-row">
+          <view wx:for="{{activeSnapshot.flight_cards}}" wx:key="flight_id" class="info-row">
             <view class="info-main">{{item.flight_no || item.flight_number || item.title || '航班安排'}}</view>
-            <view class="info-sub">{{item.departure_airport || item.origin || ''}}{{item.arrival_airport || item.destination ? ' → ' + (item.arrival_airport || item.destination) : ''}}</view>
+            <view class="info-sub">{{item.from || item.origin || item.departure_airport || ''}}{{item.to || item.destination || item.arrival_airport ? ' → ' + (item.to || item.destination || item.arrival_airport) : ''}}</view>
+            <view class="info-sub">{{item.departure_time || item.depart_at || ''}}{{item.arrival_time || item.arrive_at ? ' - ' + (item.arrival_time || item.arrive_at) : ''}}</view>
+            <view wx:if="{{item.aircraft}}" class="info-sub">{{item.aircraft}}</view>
           </view>
         </view>
 

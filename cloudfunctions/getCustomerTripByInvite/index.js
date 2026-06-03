@@ -77,6 +77,12 @@ function buildDateText(start, end) {
   return [start || '', end || ''].filter(Boolean).join(' - ');
 }
 
+function parseFlightRoute(value) {
+  const text = safeString(value);
+  const match = text.match(/\b([A-Z]{3})\s*(?:->|→|-)\s*([A-Z]{3})\b/);
+  return match ? { from: match[1], to: match[2] } : {};
+}
+
 function normalizeHotelStatus(status) {
   const value = safeString(status).trim();
   if (value === 'confirmed') return '已确认';
@@ -102,6 +108,14 @@ function normalizeTimelineItem(item, index) {
     location_name: item.location_name || item.location || '',
     address: item.address || '',
     customer_note: item.customer_note || item.customer_visible_note || item.note || item.description || '',
+    route: item.route || '',
+    flight_no: item.flight_no || item.flight_number || '',
+    flight_number: item.flight_number || item.flight_no || '',
+    from: item.from || item.origin || item.departure_airport || '',
+    to: item.to || item.destination || item.arrival_airport || '',
+    departure_time: item.departure_time || item.depart_at || item.planned_start_time || '',
+    arrival_time: item.arrival_time || item.arrive_at || item.planned_arrival_time || '',
+    aircraft: item.aircraft || '',
   });
 }
 
@@ -221,14 +235,68 @@ function deriveHotelCards(snapshot) {
       linked_day_no: hotel.linked_day_no || day.day_no || index + 1,
     }));
   });
-  const topLevelHotels = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
-    ? snapshot.hotel_cards
-    : (Array.isArray(snapshot.hotels) ? snapshot.hotels : []);
+  const topLevelHotels = [
+    ...(Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : []),
+    ...(Array.isArray(snapshot.hotels) ? snapshot.hotels : []),
+    ...(Array.isArray(snapshot.hotel_requests) ? snapshot.hotel_requests : []),
+  ];
   topLevelHotels.forEach((hotel, index) => upsertHotelCard(cards, normalizeTopLevelHotel(hotel, index)));
   return Array.from(cards.values()).sort((a, b) => {
     const dayDiff = Number(a.linked_day_no || 0) - Number(b.linked_day_no || 0);
     if (dayDiff) return dayDiff;
     return safeString(a.check_in_date).localeCompare(safeString(b.check_in_date));
+  });
+}
+
+function normalizeFlightCard(flight, index, dayNo = 0) {
+  if (!flight) return null;
+  const route = parseFlightRoute(flight.route || flight.title || '');
+  const flightMatch = safeString(flight.title).match(/\b[A-Z]{2}\d{2,4}\b/);
+  const flightNo = firstText([flight.flight_no, flight.flight_number, flightMatch ? flightMatch[0] : '']);
+  const from = firstText([flight.from, flight.origin, flight.departure_airport, route.from]);
+  const to = firstText([flight.to, flight.destination, flight.arrival_airport, route.to]);
+  if (!flightNo && !from && !to) return null;
+  return sanitizeCustomerObject({
+    id: flight.flight_id || flight.id || makeId('flight', `${flightNo}-${from}-${to}`, index),
+    flight_id: flight.flight_id || flight.id || makeId('flight', `${flightNo}-${from}-${to}`, index),
+    day_no: flight.day_no || dayNo || 0,
+    flight_no: flightNo || '航班',
+    from,
+    to,
+    departure_time: flight.departure_time || flight.depart_at || flight.planned_start_time || flight.time || '',
+    arrival_time: flight.arrival_time || flight.arrive_at || flight.planned_arrival_time || '',
+    aircraft: flight.aircraft || '',
+    note: flight.customer_note || flight.customer_visible_note || flight.note || '',
+  });
+}
+
+function deriveFlightCards(snapshot) {
+  const cards = [];
+  const topLevelFlights = [
+    ...(Array.isArray(snapshot.flight_cards) ? snapshot.flight_cards : []),
+    ...(Array.isArray(snapshot.flights) ? snapshot.flights : []),
+  ];
+  topLevelFlights.forEach((flight) => {
+    const card = normalizeFlightCard(flight, cards.length, flight.day_no || 0);
+    if (card) cards.push(card);
+  });
+  const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+  days.forEach((day) => {
+    (day.timeline_items || []).forEach((item) => {
+      const itemType = item.item_type || item.type || '';
+      const title = safeString(item.title);
+      const route = safeString(item.route || `${item.from || ''} → ${item.to || ''}`);
+      if (itemType !== 'flight' && !item.flight_no && !item.flight_number && !/\b[A-Z]{2}\d{2,4}\b/.test(title) && !/\b[A-Z]{3}\s*(?:->|→|-)\s*[A-Z]{3}\b/.test(route || title)) return;
+      const card = normalizeFlightCard({ ...item, route: item.route || title }, cards.length, day.day_no);
+      if (card) cards.push(card);
+    });
+  });
+  const seen = new Set();
+  return cards.filter((card) => {
+    const key = [card.flight_no, card.day_no, card.from, card.to, card.departure_time].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -264,6 +332,8 @@ function buildDailySummaryCards(snapshot, hotelCards) {
       hotel_badge: hotelCard ? (hotelCard.name || hotelCard.hotel_name || '') : '',
       transport_badge: buildTransportBadge(day.transport_summary),
       highlight_items: highlights,
+      item_count: (day.timeline_items || []).length,
+      clickable: true,
     });
   });
 }
@@ -271,20 +341,21 @@ function buildDailySummaryCards(snapshot, hotelCards) {
 function buildTripSummary(snapshot) {
   const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
   const hotelCards = Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : [];
-  const flights = Array.isArray(snapshot.flights) ? snapshot.flights : [];
+  const flightCards = Array.isArray(snapshot.flight_cards) ? snapshot.flight_cards : (Array.isArray(snapshot.flights) ? snapshot.flights : []);
   const transfers = Array.isArray(snapshot.transfers) ? snapshot.transfers : [];
   const charterServices = Array.isArray(snapshot.charter_services) ? snapshot.charter_services : [];
   const firstDay = days[0] || null;
   const lastHotel = hotelCards[hotelCards.length - 1] || null;
   return sanitizeCustomerObject({
     trip_id: snapshot.trip_id || snapshot.external_trip_id || '',
+    external_trip_id: snapshot.external_trip_id || snapshot.trip_id || '',
     trip_no: snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '',
     title: snapshot.title || 'Farland 行程',
     date_range_text: buildDateText(snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''),
     city_route_text: unique(days.map((day) => day.city)).join(' → ') || snapshot.city || '',
     days_count: days.length,
     hotels_count: hotelCards.length,
-    flights_count: flights.length,
+    flights_count: flightCards.length,
     transport_count: transfers.length + charterServices.length,
     next_day_label: firstDay ? `Day ${firstDay.day_no || 1}: ${firstDay.title || firstDay.city || ''}` : '',
     last_hotel_name: lastHotel ? (lastHotel.name || lastHotel.hotel_name || '') : '',
@@ -304,18 +375,22 @@ function normalizePublishedSnapshot(rawSnapshot) {
   const hotelCards = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
     ? snapshot.hotel_cards.map((hotel, index) => normalizeTopLevelHotel(hotel, index)).filter(Boolean)
     : deriveHotelCards(normalized);
+  const flightCards = Array.isArray(snapshot.flight_cards) && snapshot.flight_cards.length
+    ? snapshot.flight_cards.map((flight, index) => normalizeFlightCard(flight, index)).filter(Boolean)
+    : deriveFlightCards(normalized);
   const dailySummaryCards = Array.isArray(snapshot.daily_summary_cards) && snapshot.daily_summary_cards.length
     ? snapshot.daily_summary_cards
     : buildDailySummaryCards(normalized, hotelCards);
   const tripSummary = isPlainObject(snapshot.trip_summary)
     ? snapshot.trip_summary
-    : buildTripSummary({ ...normalized, hotel_cards: hotelCards });
+    : buildTripSummary({ ...normalized, hotel_cards: hotelCards, flight_cards: flightCards });
   return sanitizeCustomerObject({
     ...normalized,
     snapshot_model_version: 2,
     trip_summary: tripSummary,
     daily_summary_cards: dailySummaryCards,
     hotel_cards: hotelCards,
+    flight_cards: flightCards,
     hotels: hotelCards,
   });
 }

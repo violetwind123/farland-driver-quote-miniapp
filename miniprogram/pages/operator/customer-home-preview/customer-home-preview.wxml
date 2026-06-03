@@ -136,6 +136,30 @@
           <view class="info-main">{{item.title}}</view>
           <view class="info-sub">{{item.trip_no}} · {{item.date_range_text}}</view>
           <view class="info-sub">{{item.city_summary}}</view>
+          <view wx:if="{{item.days_count || item.hotels_count || item.flights_count}}" class="info-sub">
+            {{item.days_count || 0}} days · {{item.hotels_count || 0}} hotels · {{item.flights_count || 0}} flights
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{customerHome.daily_summary_cards.length}}" class="preview-section">
+        <view class="preview-title">Daily Summary Cards</view>
+        <view wx:for="{{customerHome.daily_summary_cards}}" wx:key="id" class="day-card summary-card">
+          <view class="day-head">
+            <view>
+              <view class="day-label">Day {{item.day_no || index + 1}}</view>
+              <view class="day-title">{{item.title || '当日安排'}}</view>
+            </view>
+            <view class="day-date">{{item.weekday}} {{item.date}}</view>
+          </view>
+          <view wx:if="{{item.city}}" class="timeline-sub">{{item.city}}</view>
+          <view wx:if="{{item.start_time_text}}" class="timeline-sub">Start: {{item.start_time_text}}</view>
+          <view wx:if="{{item.highlight_items.length}}" class="summary-highlights">
+            <view wx:for="{{item.highlight_items}}" wx:for-item="highlight" wx:key="*this" class="summary-highlight">{{highlight}}</view>
+          </view>
+          <view wx:if="{{item.hotel_badge || item.transport_badge}}" class="timeline-sub">
+            {{item.hotel_badge ? 'Hotel: ' + item.hotel_badge : ''}}{{item.hotel_badge && item.transport_badge ? ' · ' : ''}}{{item.transport_badge ? 'Transport: ' + item.transport_badge : ''}}
+          </view>
         </view>
       </view>
 
@@ -180,6 +204,16 @@
         <view wx:for="{{customerHome.hotel_requests}}" wx:key="hotel_id" class="info-card">
           <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
           <view class="info-sub">{{item.address || item.date_range_text || item.arrival_time || ''}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{customerHome.flight_cards.length}}" class="preview-section">
+        <view class="preview-title">Flight Cards</view>
+        <view wx:for="{{customerHome.flight_cards}}" wx:key="flight_id" class="info-card">
+          <view class="info-main">{{item.flight_no || item.flight_number || item.title || '航班安排'}}</view>
+          <view class="info-sub">{{item.from || item.origin || item.departure_airport || ''}}{{item.to || item.destination || item.arrival_airport ? ' → ' + (item.to || item.destination || item.arrival_airport) : ''}}</view>
+          <view class="info-sub">{{item.departure_time || item.depart_at || ''}}{{item.arrival_time || item.arrive_at ? ' - ' + (item.arrival_time || item.arrive_at) : ''}}</view>
+          <view wx:if="{{item.aircraft}}" class="info-sub">{{item.aircraft}}</view>
         </view>
       </view>
 

@@ -186,6 +186,12 @@ Page({
     return {
       profile: home.profile || {},
       today_itinerary: home.today_itinerary || null,
+      daily_summary_cards: Array.isArray(home.daily_summary_cards)
+        ? home.daily_summary_cards.map((card) => ({
+          ...card,
+          highlight_items: Array.isArray(card.highlight_items) ? card.highlight_items : [],
+        }))
+        : [],
       itinerary_days: Array.isArray(home.itinerary_days) ? home.itinerary_days : [],
       trip_overview: Array.isArray(home.trip_overview) ? home.trip_overview : [],
       transportation_appointments: Array.isArray(home.transportation_appointments) ? home.transportation_appointments : [],

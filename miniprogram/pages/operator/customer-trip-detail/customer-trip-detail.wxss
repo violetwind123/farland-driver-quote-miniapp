@@ -382,6 +382,49 @@
   background: #F7F9FF;
 }
 
+.overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.overview-metric {
+  padding: 12rpx 8rpx;
+  border-radius: 16rpx;
+  background: #FFFFFF;
+  text-align: center;
+}
+
+.overview-number {
+  color: #6672A8;
+  font-size: 29rpx;
+  line-height: 1.1;
+  font-weight: 760;
+}
+
+.overview-label {
+  margin-top: 5rpx;
+  color: #7E889A;
+  font-size: 19rpx;
+  line-height: 1.2;
+}
+
+.summary-highlights {
+  display: grid;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+
+.summary-highlight {
+  padding: 10rpx 12rpx;
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  color: #253554;
+  font-size: 23rpx;
+  line-height: 1.35;
+}
+
 .day-head {
   display: flex;
   align-items: flex-start;

@@ -387,6 +387,21 @@
   text-align: right;
 }
 
+.summary-highlights {
+  display: grid;
+  gap: 8rpx;
+  margin-top: 14rpx;
+}
+
+.summary-highlight {
+  padding: 10rpx 12rpx;
+  border-radius: 14rpx;
+  background: #F7F9FF;
+  color: #253554;
+  font-size: 23rpx;
+  line-height: 1.35;
+}
+
 .timeline-row {
   display: grid;
   grid-template-columns: 112rpx 1fr;
