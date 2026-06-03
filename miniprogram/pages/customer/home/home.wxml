@@ -29,6 +29,13 @@
     </view>
 
     <block wx:else>
+      <view wx:if="{{operatorCustomerPreviewMode}}" class="operator-preview-banner card-surface">
+        <view class="operator-preview-title">运营预览</view>
+        <view class="operator-preview-copy">
+          {{operatorCustomerPreviewMeta.customer_would_see === 'published' ? '当前预览已发布客户版本。' : '当前预览为未发布草稿，客户真实打开时仍会看到等待页。'}}
+        </view>
+      </view>
+
       <view class="trip-invite-hero card-surface">
         <view class="section-kicker hero-kicker">Farland 行程</view>
         <view class="trip-invite-title">{{tripInviteTrip.displayTitle}}</view>
@@ -37,7 +44,8 @@
         </view>
         <view wx:if="{{tripInviteTrip.displayCity}}" class="trip-invite-route">{{tripInviteTrip.displayCity}}</view>
         <view wx:if="{{tripInviteTrip.displaySummary}}" class="trip-invite-copy">{{tripInviteTrip.displaySummary}}</view>
-        <view wx:if="{{tripInviteAutoSaved || tripInviteAlreadySaved}}" class="trip-invite-sync">已同步到我的 Farland 行程</view>
+        <view wx:if="{{operatorCustomerPreviewMode}}" class="trip-invite-sync muted">运营预览，不写入客户档案</view>
+        <view wx:elif="{{tripInviteAutoSaved || tripInviteAlreadySaved}}" class="trip-invite-sync">已同步到我的 Farland 行程</view>
         <view wx:else class="trip-invite-sync muted">临时查看本次行程</view>
       </view>
 

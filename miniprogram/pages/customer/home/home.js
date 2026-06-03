@@ -613,7 +613,15 @@ Page({
     const home = previewPayload.customer_home || {};
     const meta = previewPayload.preview_meta || {};
     const previewCustomer = previewPayload.preview_customer || {};
-    if (meta.customer_would_see === 'waiting') {
+    const hasPreviewContent = Boolean(
+      (Array.isArray(home.itinerary_days) && home.itinerary_days.length)
+      || (Array.isArray(home.hotel_requests) && home.hotel_requests.length)
+      || (Array.isArray(home.flight_cards) && home.flight_cards.length)
+      || (Array.isArray(home.transfer_requests) && home.transfer_requests.length)
+      || (Array.isArray(home.charter_services) && home.charter_services.length)
+      || (Array.isArray(home.transport_orders) && home.transport_orders.length)
+    );
+    if (!hasPreviewContent && meta.customer_would_see === 'waiting') {
       this.setData({
         loading: false,
         tripInviteMode: true,
