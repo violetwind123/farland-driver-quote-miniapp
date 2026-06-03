@@ -3,6 +3,7 @@ const { requireRole } = require('./lib/auth');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 const INTERNAL_KEYS = new Set([
   'openid',
@@ -542,6 +543,57 @@ async function findCustomerAccessRows(customer) {
   });
 }
 
+function uniqueByTripId(trips) {
+  const seen = {};
+  return trips.filter((trip) => {
+    const key = trip._id || trip.trip_id || trip.external_trip_id || trip.trip_no || '';
+    if (!key || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
+async function loadTripsByCustomerOwnership(customer) {
+  if (!customer) return [];
+  const queries = [];
+  const userId = customer._id || '';
+  const profileId = customer.customer_profile_id || '';
+  const wechatId = customer.wechat_id || '';
+  const phone = customer.phone || '';
+  const names = Array.from(new Set([customer.display_name, customer.name].filter(Boolean)));
+
+  if (userId) {
+    queries.push({ primary_customer_user_id: userId });
+    queries.push({ customer_user_id: userId });
+    queries.push({ customer_user_ids: _.in([userId]) });
+  }
+  if (profileId) {
+    queries.push({ customer_profile_id: profileId });
+    queries.push({ 'customer.customer_profile_id': profileId });
+  }
+  if (wechatId) {
+    queries.push({ 'customer.wechat_id': wechatId });
+  }
+  if (phone) {
+    queries.push({ 'customer.phone': phone });
+  }
+  names.forEach((name) => {
+    queries.push({ customer_display_name: name });
+    queries.push({ 'customer.display_name': name });
+    queries.push({ 'customer.name': name });
+  });
+
+  if (!queries.length) return [];
+  const results = await Promise.all(queries.map((query) => {
+    return db.collection('customer_trips')
+      .where(query)
+      .limit(20)
+      .get()
+      .catch(() => ({ data: [] }));
+  }));
+  return uniqueByTripId(results.flatMap((res) => res.data || []));
+}
+
 async function findCustomerDefaultTrip(customer) {
   const accessRows = await findCustomerAccessRows(customer);
   const tripIds = Array.from(new Set(accessRows.map((access) => access.trip_id).filter(Boolean)));
@@ -550,10 +602,12 @@ async function findCustomerDefaultTrip(customer) {
     const trip = await findTrip(tripId);
     if (trip) trips.push(trip);
   }
-  trips.sort((a, b) => {
-    const aPublished = a.visibility_status === 'published' ? 1 : 0;
-    const bPublished = b.visibility_status === 'published' ? 1 : 0;
-    if (aPublished !== bPublished) return bPublished - aPublished;
+  const ownedTrips = await loadTripsByCustomerOwnership(customer);
+  const candidates = uniqueByTripId([...ownedTrips, ...trips]);
+  candidates.sort((a, b) => {
+    const aUnpublished = a.visibility_status !== 'published' ? 1 : 0;
+    const bUnpublished = b.visibility_status !== 'published' ? 1 : 0;
+    if (aUnpublished !== bUnpublished) return bUnpublished - aUnpublished;
     const aEnd = toTime(a.end_at || a.date_end || '');
     const bEnd = toTime(b.end_at || b.date_end || '');
     const aActive = !aEnd || aEnd >= Date.now() ? 1 : 0;
@@ -563,7 +617,7 @@ async function findCustomerDefaultTrip(customer) {
     const bUpdated = toTime(b.last_operator_previewed_at || b.updated_at || b.imported_at || b.created_at || b.start_at || '');
     return bUpdated - aUpdated;
   });
-  return trips[0] || null;
+  return candidates[0] || null;
 }
 
 async function loadAssignedTransport(requestId) {

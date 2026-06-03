@@ -331,22 +331,6 @@ function parseTrip(input) {
   return input;
 }
 
-function normalizeBindMode(access = {}) {
-  if (access.bind_mode === 'farland_profile' || access.access_type === 'profile') return 'farland_profile';
-  if (access.bind_mode === 'trip_only' || access.access_type === 'trip_only') return 'trip_only';
-  return 'farland_profile';
-}
-
-function legacyAccessType(bindMode) {
-  return bindMode === 'farland_profile' ? 'profile' : 'trip_only';
-}
-
-function defaultVisibleUntilFromEnd(endAt) {
-  const end = new Date(endAt);
-  if (Number.isNaN(end.getTime())) return '';
-  return new Date(end.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-}
-
 function normalizeCanonicalTrip(trip, auth, now) {
   const transfer = isPlainObject(trip.transfer) ? trip.transfer : {};
   const charter = isPlainObject(trip.charter) ? trip.charter : {};
@@ -450,56 +434,85 @@ function lifecycleDataForUpdate(existingTrip, warningCodes = [], criticalWarning
   };
 }
 
-function buildAccessData({ trip, access, user, request, auth, now }) {
-  if (!user && !request) return null;
-  const bindMode = normalizeBindMode(access);
-  const accessType = legacyAccessType(bindMode);
-  const openid = user ? user.openid : request.customer_openid;
-  if (!openid) return null;
-  const userId = user ? user._id : '';
-  const tripId = trip.external_trip_id || trip.trip_id;
-  const visibleUntil = bindMode === 'trip_only'
-    ? String((access && access.visible_until) || defaultVisibleUntilFromEnd(trip.end_at || trip.date_end) || '')
-    : '';
+function uniqueStrings(values) {
+  const seen = {};
+  return values.map((value) => String(value || '').trim()).filter((value) => {
+    if (!value || seen[value]) return false;
+    seen[value] = true;
+    return true;
+  });
+}
+
+function ownershipFromUser(user) {
+  if (!user || user.role !== 'customer') return {};
+  if (user.status && user.status !== 'active') return {};
   return {
-    openid,
-    user_id: userId,
-    customer_openid: openid,
-    customer_user_id: userId,
-    trip_id: tripId,
-    request_id: access && access.request_id ? access.request_id : '',
-    bind_mode: bindMode,
-    access_type: accessType,
-    visible_from: now,
-    visible_until: visibleUntil,
-    status: 'active',
-    invite_id: access && access.invite_id ? access.invite_id : '',
-    source_invite_id: access && access.source_invite_id ? access.source_invite_id : '',
-    created_by: auth.user._id,
-    created_by_openid: auth.openid,
-    updated_at: now,
+    primary_customer_user_id: user._id || '',
+    customer_user_id: user._id || '',
+    customer_user_ids: user._id ? [user._id] : [],
+    customer_profile_id: user.customer_profile_id || '',
+    customer: {
+      customer_profile_id: user.customer_profile_id || '',
+      display_name: user.display_name || user.name || '',
+      name: user.name || user.display_name || '',
+      phone: user.phone || '',
+      wechat_id: user.wechat_id || '',
+    },
   };
 }
 
-async function resolveAccess(access = {}) {
-  const userId = access.customer_user_id || access.user_id || '';
-  if (!access || (!userId && !access.request_id)) {
-    return { user: null, request: null };
-  }
+async function resolveTripOwnership(access = {}) {
+  const userId = String(access.customer_user_id || access.user_id || '').trim();
   if (userId) {
     const userRes = await db.collection('users').doc(userId).get().catch(() => null);
-    const user = userRes && userRes.data;
-    if (!user || user.role !== 'customer' || !user.openid) {
-      return { error: 'customer_user_id 未对应有效客户' };
-    }
-    return { user, request: null };
+    return ownershipFromUser(userRes && userRes.data);
   }
-  const requestRes = await db.collection('ride_requests').doc(access.request_id).get().catch(() => null);
+
+  const requestId = String(access.request_id || '').trim();
+  if (!requestId) return {};
+  const requestRes = await db.collection('ride_requests').doc(requestId).get().catch(() => null);
   const request = requestRes && requestRes.data;
-  if (!request || !request.customer_openid) {
-    return { error: 'request_id 未绑定客户访问权限' };
-  }
-  return { user: null, request };
+  if (!request || !request.customer_openid) return {};
+  const userRes = await db.collection('users')
+    .where({ openid: request.customer_openid, role: 'customer', status: 'active' })
+    .limit(1)
+    .get()
+    .catch(() => ({ data: [] }));
+  return ownershipFromUser((userRes.data || [])[0]);
+}
+
+function mergeTripOwnership(trip, ownership) {
+  if (!ownership || !Object.keys(ownership).length) return trip;
+  const ownerId = ownership.primary_customer_user_id || ownership.customer_user_id || '';
+  const customer = {
+    ...(trip.customer || {}),
+    ...(ownership.customer || {}),
+  };
+  const customerUserIds = uniqueStrings([
+    ...(Array.isArray(trip.customer_user_ids) ? trip.customer_user_ids : []),
+    ...(Array.isArray(ownership.customer_user_ids) ? ownership.customer_user_ids : []),
+    ownerId,
+  ]);
+  return {
+    ...trip,
+    primary_customer_user_id: trip.primary_customer_user_id || ownerId,
+    customer_user_id: trip.customer_user_id || ownerId,
+    customer_user_ids: customerUserIds,
+    customer_profile_id: trip.customer_profile_id || ownership.customer_profile_id || '',
+    customer,
+  };
+}
+
+function buildTripOwnershipPatch(trip, ownership) {
+  if (!ownership || !Object.keys(ownership).length) return null;
+  const merged = mergeTripOwnership(trip, ownership);
+  return {
+    primary_customer_user_id: merged.primary_customer_user_id || '',
+    customer_user_id: merged.customer_user_id || '',
+    customer_user_ids: merged.customer_user_ids || [],
+    customer_profile_id: merged.customer_profile_id || '',
+    customer: merged.customer || {},
+  };
 }
 
 async function handleImportCustomerTripJSON(event = {}) {
@@ -554,7 +567,8 @@ async function handleImportCustomerTripJSON(event = {}) {
     }
 
     const now = new Date().toISOString();
-    const normalizedTrip = normalizeCanonicalTrip(trip, auth, now);
+    const ownership = await resolveTripOwnership(event.access || {});
+    const normalizedTrip = mergeTripOwnership(normalizeCanonicalTrip(trip, auth, now), ownership);
     const warningCodes = collectTripWarningCodes(trip);
     const criticalWarningCodes = [];
     const existingTripRes = await db.collection('customer_trips')
@@ -566,19 +580,6 @@ async function handleImportCustomerTripJSON(event = {}) {
     const action = existingTrip
       ? (existingTrip.source_hash === normalizedTrip.source_hash ? 'no_change' : 'update')
       : 'create';
-
-    const accessResult = await resolveAccess(event.access || {});
-    if (accessResult.error) {
-      return { success: false, code: 422, error_code: 'ACCESS_VALIDATION_FAILED', message: accessResult.error };
-    }
-    const accessData = buildAccessData({
-      trip: normalizedTrip,
-      access: event.access || {},
-      user: accessResult.user,
-      request: accessResult.request,
-      auth,
-      now,
-    });
 
     if (dryRun) {
       return {
@@ -612,6 +613,17 @@ async function handleImportCustomerTripJSON(event = {}) {
     }
 
     if (action === 'no_change') {
+      const ownershipPatch = buildTripOwnershipPatch(existingTrip, ownership);
+      if (ownershipPatch) {
+        await db.collection('customer_trips').doc(existingTrip._id).update({
+          data: {
+            ...ownershipPatch,
+            updated_by: auth.user._id,
+            updated_by_openid: auth.openid,
+            updated_at: now,
+          },
+        }).catch(() => null);
+      }
       const nextRoute = `/pages/operator/customer-home-preview/customer-home-preview?trip_id=${encodeURIComponent(normalizedTrip.trip_id)}&preview_access_mode=temporary_guest`;
       return {
         success: true,
@@ -655,27 +667,7 @@ async function handleImportCustomerTripJSON(event = {}) {
       tripDocId = addRes._id;
     }
 
-    let accessId = '';
-    if (accessData) {
-      const existingAccessRes = await db.collection('customer_trip_access')
-        .where({ customer_openid: accessData.customer_openid, trip_id: accessData.trip_id })
-        .limit(1)
-        .get()
-        .catch(() => ({ data: [] }));
-      const existingAccess = existingAccessRes.data[0];
-      if (existingAccess) {
-        await db.collection('customer_trip_access').doc(existingAccess._id).update({ data: accessData });
-        accessId = existingAccess._id;
-      } else {
-        const addAccessRes = await db.collection('customer_trip_access').add({
-          data: {
-            ...accessData,
-            created_at: now,
-          },
-        });
-        accessId = addAccessRes._id;
-      }
-    }
+    const accessId = '';
 
     await writeAuditLog(db, {
       actor_openid: auth.openid,
@@ -690,6 +682,7 @@ async function handleImportCustomerTripJSON(event = {}) {
         trip_type: normalizedTrip.trip_type,
         source_hash: normalizedTrip.source_hash,
         access_id: accessId,
+        access_binding_skipped: true,
         warning_codes: warningCodes,
         critical_warning_codes: criticalWarningCodes,
       },
@@ -713,6 +706,7 @@ async function handleImportCustomerTripJSON(event = {}) {
       visibility_status: (existingTrip && existingTrip.visibility_status) || 'hidden',
       published_version: (existingTrip && existingTrip.published_version) || 0,
       customer_trip_access_id: accessId,
+      access_binding_skipped: true,
       next_route: nextRoute,
     };
   }
@@ -736,20 +730,7 @@ async function handleImportCustomerTripJSON(event = {}) {
     .get()
     .catch(() => ({ data: [] }));
   const existingTrip = existingTripRes.data[0] || null;
-  const accessResult = await resolveAccess(event.access || {});
-  if (accessResult.error) {
-    return { success: false, code: 422, error_code: 'ACCESS_VALIDATION_FAILED', message: accessResult.error };
-  }
-
   const now = new Date().toISOString();
-  const accessData = buildAccessData({
-    trip,
-    access: event.access || {},
-    user: accessResult.user,
-    request: accessResult.request,
-    auth,
-    now,
-  });
 
   const operations = [
     {
@@ -760,15 +741,6 @@ async function handleImportCustomerTripJSON(event = {}) {
       title: trip.title,
     },
   ];
-  if (accessData) {
-    operations.push({
-      type: 'upsert',
-      collection: 'customer_trip_access',
-      key: `${accessData.customer_openid}:${trip.trip_id}`,
-      access_type: accessData.access_type,
-      visible_until: accessData.visible_until,
-    });
-  }
   const legacyWarningCodes = ['manual_review_required'];
 
   if (dryRun) {
@@ -789,8 +761,9 @@ async function handleImportCustomerTripJSON(event = {}) {
     };
   }
 
+  const ownership = await resolveTripOwnership(event.access || {});
   const tripData = {
-    ...trip,
+    ...mergeTripOwnership(trip, ownership),
     external_trip_id: trip.external_trip_id || trip.trip_id,
     trip_no: trip.trip_no || trip.trip_id,
     updated_by: auth.user._id,
@@ -818,27 +791,7 @@ async function handleImportCustomerTripJSON(event = {}) {
     tripDocId = addRes._id;
   }
 
-  let accessId = '';
-  if (accessData) {
-    const existingAccessRes = await db.collection('customer_trip_access')
-      .where({ customer_openid: accessData.customer_openid, trip_id: trip.trip_id })
-      .limit(1)
-      .get()
-      .catch(() => ({ data: [] }));
-    const existingAccess = existingAccessRes.data[0];
-    if (existingAccess) {
-      await db.collection('customer_trip_access').doc(existingAccess._id).update({ data: accessData });
-      accessId = existingAccess._id;
-    } else {
-      const addAccessRes = await db.collection('customer_trip_access').add({
-        data: {
-          ...accessData,
-          created_at: now,
-        },
-      });
-      accessId = addAccessRes._id;
-    }
-  }
+  const accessId = '';
 
   await writeAuditLog(db, {
     actor_openid: auth.openid,
@@ -850,6 +803,7 @@ async function handleImportCustomerTripJSON(event = {}) {
     detail: {
       trip_id: trip.trip_id,
       access_id: accessId,
+      access_binding_skipped: true,
       operations,
       warnings,
       warning_codes: legacyWarningCodes,
@@ -865,6 +819,7 @@ async function handleImportCustomerTripJSON(event = {}) {
     trip_id: trip.trip_id,
     customer_trip_id: tripDocId,
     customer_trip_access_id: accessId,
+    access_binding_skipped: true,
     warnings,
     warning_codes: legacyWarningCodes,
     critical_warning_codes: [],

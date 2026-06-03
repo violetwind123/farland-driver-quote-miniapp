@@ -2,6 +2,7 @@ const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 async function getOperator() {
   const { OPENID } = cloud.getWXContext();
@@ -65,6 +66,56 @@ async function loadTripById(tripId) {
   return null;
 }
 
+function uniqueByTripId(trips) {
+  const seen = {};
+  return trips.filter((trip) => {
+    const key = trip._id || trip.trip_id || trip.external_trip_id || trip.trip_no || '';
+    if (!key || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
+async function loadTripsByCustomerOwnership(user) {
+  const queries = [];
+  const userId = user._id || '';
+  const profileId = user.customer_profile_id || '';
+  const wechatId = user.wechat_id || '';
+  const phone = user.phone || '';
+  const names = Array.from(new Set([user.display_name, user.name].filter(Boolean)));
+
+  if (userId) {
+    queries.push({ primary_customer_user_id: userId });
+    queries.push({ customer_user_id: userId });
+    queries.push({ customer_user_ids: _.in([userId]) });
+  }
+  if (profileId) {
+    queries.push({ customer_profile_id: profileId });
+    queries.push({ 'customer.customer_profile_id': profileId });
+  }
+  if (wechatId) {
+    queries.push({ 'customer.wechat_id': wechatId });
+  }
+  if (phone) {
+    queries.push({ 'customer.phone': phone });
+  }
+  names.forEach((name) => {
+    queries.push({ customer_display_name: name });
+    queries.push({ 'customer.display_name': name });
+    queries.push({ 'customer.name': name });
+  });
+
+  if (!queries.length) return [];
+  const results = await Promise.all(queries.map((query) => {
+    return db.collection('customer_trips')
+      .where(query)
+      .limit(20)
+      .get()
+      .catch(() => ({ data: [] }));
+  }));
+  return uniqueByTripId(results.flatMap((res) => res.data || []));
+}
+
 async function loadPreviewStats(user) {
   const accessRows = [];
   const byUserId = await db.collection('customer_trip_access')
@@ -96,17 +147,19 @@ async function loadPreviewStats(user) {
     const trip = await loadTripById(tripId);
     if (trip) trips.push(trip);
   }
+  const ownedTrips = await loadTripsByCustomerOwnership(user);
+  const relatedTrips = uniqueByTripId([...trips, ...ownedTrips]);
 
   const nowMs = Date.now();
-  const unfinishedTrips = trips.filter((trip) => {
+  const unfinishedTrips = relatedTrips.filter((trip) => {
     const status = trip.status || '';
     if (['completed', 'cancelled', 'archived'].includes(status)) return false;
     const endMs = new Date(trip.end_at || trip.date_end || '').getTime();
     return Number.isNaN(endMs) || endMs >= nowMs;
   });
-  const unpublishedTrips = trips.filter((trip) => trip.visibility_status !== 'published');
-  const latestTripAt = maxDate(trips.map((trip) => trip.updated_at || trip.imported_at || trip.created_at || trip.start_at || trip.date_start || ''));
-  const lastPreviewedAt = maxDate(trips.map((trip) => trip.last_operator_previewed_at || ''));
+  const unpublishedTrips = ownedTrips.filter((trip) => trip.visibility_status !== 'published');
+  const latestTripAt = maxDate(relatedTrips.map((trip) => trip.updated_at || trip.imported_at || trip.created_at || trip.start_at || trip.date_start || ''));
+  const lastPreviewedAt = maxDate(relatedTrips.map((trip) => trip.last_operator_previewed_at || ''));
   const previewRank = unpublishedTrips.length * 100000
     + unfinishedTrips.length * 10000
     + (lastPreviewedAt ? 1000 : 0)

@@ -409,19 +409,6 @@ function isVisibleAccess(access, now) {
   return !visibleUntil || visibleUntil >= now.getTime();
 }
 
-function isRegisteredCustomer(user) {
-  if (!user) return false;
-  if (['operator', 'super_admin', 'driver'].includes(user.role)) return false;
-  if (user.status && user.status !== 'active') return false;
-  return user.role === 'customer'
-    || user.customer_status === 'active'
-    || Boolean(user.customer_profile_id)
-    || user.customer_binding_mode === 'farland_profile'
-    || user.bind_mode === 'farland_profile'
-    || user.bind_type === 'profile'
-    || user.access_type === 'profile';
-}
-
 function isBlockedRole(user) {
   return Boolean(user && ['operator', 'super_admin', 'driver'].includes(user.role));
 }
@@ -524,53 +511,6 @@ async function findActiveAccess({ tripIds, openid, userId, now }) {
   return records.find((access) => isVisibleAccess(access, now)) || null;
 }
 
-async function upsertTripAccess({ trip, user, invite, now, nowIso }) {
-  const openid = safeString(user.openid).trim();
-  const userId = safeString(user._id).trim();
-  const tripId = canonicalTripId(trip);
-  const tripIds = tripIdCandidates(trip, tripId);
-  const existing = await findActiveAccess({ tripIds, openid, userId, now });
-  const accessData = {
-    trip_id: tripId,
-    openid,
-    user_id: userId,
-    customer_openid: openid,
-    customer_user_id: userId,
-    customer_profile_id: user.customer_profile_id || '',
-    bind_mode: 'farland_profile',
-    access_type: 'profile',
-    status: 'active',
-    invite_id: invite ? invite._id : '',
-    source_invite_id: invite ? invite._id : '',
-    invite_code_snapshot: invite ? (invite.invite_code || '') : '',
-    visible_from: existing ? (existing.visible_from || existing.created_at || nowIso) : nowIso,
-    visible_until: '',
-    last_viewed_at: nowIso,
-    updated_at: nowIso,
-  };
-
-  if (existing) {
-    await db.collection('customer_trip_access').doc(existing._id).update({
-      data: {
-        ...accessData,
-        granted_source: existing.granted_source || 'invite_auto',
-        first_claimed_at: existing.first_claimed_at || existing.created_at || nowIso,
-      },
-    });
-    return { access_id: existing._id, existed: true };
-  }
-
-  const created = await db.collection('customer_trip_access').add({
-    data: {
-      ...accessData,
-      granted_source: 'invite_auto',
-      first_claimed_at: nowIso,
-      created_at: nowIso,
-    },
-  });
-  return { access_id: created._id, existed: false };
-}
-
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) {
@@ -596,7 +536,6 @@ exports.main = async (event = {}) => {
 
   const tripId = canonicalTripId(trip, inputTripId);
   const tripIds = tripIdCandidates(trip, inputTripId);
-  const registeredCustomer = isRegisteredCustomer(user);
   const blockedRole = isBlockedRole(user);
   const activeAccess = await findActiveAccess({
     tripIds,
@@ -645,31 +584,8 @@ exports.main = async (event = {}) => {
     };
   }
 
-  let autoSaved = false;
-  let alreadySaved = Boolean(activeAccess);
-  let accessSource = activeAccess ? 'customer_trip_access' : 'temporary_invite';
-  if (registeredCustomer && hasValidInvite && !blockedRole) {
-    const saved = await upsertTripAccess({ trip, user, invite, now, nowIso });
-    autoSaved = !saved.existed;
-    alreadySaved = saved.existed;
-    accessSource = saved.existed ? 'customer_trip_access' : 'invite_auto';
-    if (!saved.existed) {
-      await writeAuditLog({
-        actor_openid: OPENID,
-        actor_user_id: user._id,
-        actor_role: 'customer',
-        action: 'customer_trip_auto_saved',
-        target_type: 'customer_trip',
-        target_id: trip._id || tripId,
-        detail: {
-          trip_id: tripId,
-          invite_id: invite._id,
-          customer_trip_access_id: saved.access_id,
-        },
-        created_at: nowIso,
-      });
-    }
-  }
+  const alreadySaved = Boolean(activeAccess);
+  const accessSource = activeAccess ? 'customer_trip_access' : 'temporary_invite';
 
   await writeAuditLog({
     actor_openid: OPENID,
@@ -682,7 +598,7 @@ exports.main = async (event = {}) => {
       trip_id: tripId,
       invite_id: invite ? invite._id : '',
       access_source: accessSource,
-      auto_saved: autoSaved,
+      auto_saved: false,
       already_saved: alreadySaved,
     },
     created_at: nowIso,
@@ -694,9 +610,9 @@ exports.main = async (event = {}) => {
     trip_id: tripId,
     waiting: false,
     access_source: accessSource,
-    auto_saved: autoSaved,
+    auto_saved: false,
     already_saved: alreadySaved,
-    can_save_to_profile: Boolean(hasValidInvite && !registeredCustomer && !blockedRole),
+    can_save_to_profile: Boolean(hasValidInvite && !alreadySaved && !blockedRole),
     trip: normalizePublishedSnapshot(trip.published_snapshot),
   };
 };
