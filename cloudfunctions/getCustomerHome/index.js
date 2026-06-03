@@ -1169,6 +1169,7 @@ exports.main = async () => {
       assignedTransportByRequest[request._id] || null,
       assignedTransportSourceByRequest[request._id] || 'none',
     ));
+  const tripData = collectTripData(customerTrips);
   const snapshotTransferRequests = (tripData.transfer_requests || []).map((request, index) => ({
     ...request,
     request_id: request.request_id || request.transfer_id || request.id || `trip-transfer-${index}`,
@@ -1201,7 +1202,6 @@ exports.main = async () => {
     || (requests[0] && requests[0].customer_name)
     || 'Farland 客户';
   const tripOnly = activeAccess.length ? !activeAccess.some((access) => normalizeBindMode(access) === 'farland_profile') : !hasProfile;
-  const tripData = collectTripData(customerTrips);
 
   return {
     success: true,
