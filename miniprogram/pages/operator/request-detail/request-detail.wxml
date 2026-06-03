@@ -39,6 +39,44 @@
       <view class="field">截止：{{request.quote_deadline}}</view>
     </view>
 
+    <view wx:if="{{transportOrderHealth}}" class="panel transport-health-panel {{transportOrderHealth.panel_class}}">
+      <view class="transport-health-head">
+        <view>
+          <view class="section-title">执行快照健康</view>
+          <view class="transport-health-title">{{transportOrderHealth.status_text}}</view>
+        </view>
+        <view class="transport-source-pill {{transportOrderHealth.complete ? 'healthy' : 'unhealthy'}}">{{transportOrderHealth.source_text}}</view>
+      </view>
+      <view class="transport-health-detail">{{transportOrderHealth.warning_text || transportOrderHealth.detail_text}}</view>
+      <view wx:if="{{transportOrderHealth.missing_fields_text}}" class="transport-missing">
+        缺少：{{transportOrderHealth.missing_fields_text}}
+      </view>
+      <view wx:if="{{transportOrder}}" class="transport-snapshot-grid">
+        <view class="transport-snapshot-cell">
+          <view class="snapshot-label">司机</view>
+          <view class="snapshot-value">{{transportOrder.driver_name || '-'}}</view>
+        </view>
+        <view class="transport-snapshot-cell">
+          <view class="snapshot-label">电话</view>
+          <view class="snapshot-value">{{transportOrder.driver_phone || '-'}}</view>
+        </view>
+        <view class="transport-snapshot-cell">
+          <view class="snapshot-label">车辆</view>
+          <view class="snapshot-value">{{transportOrder.vehicle_model || transportOrder.vehicle_type || '-'}}</view>
+        </view>
+        <view class="transport-snapshot-cell">
+          <view class="snapshot-label">更新</view>
+          <view class="snapshot-value small">{{transportOrder.updated_at || transportOrder.assigned_at || '-'}}</view>
+        </view>
+      </view>
+      <button
+        wx:if="{{transportOrderHealth.can_repair}}"
+        class="transport-repair-btn"
+        loading="{{repairingTransportOrder}}"
+        bindtap="repairTransportOrder"
+      >{{repairingTransportOrder ? '修复中' : '修复执行快照'}}</button>
+    </view>
+
     <view wx:if="{{request.status === 'cancelled'}}" class="panel cancelled-panel">
       <view class="section-title">已取消</view>
       <view class="field">取消原因：{{request.cancel_reason_type_text}}</view>

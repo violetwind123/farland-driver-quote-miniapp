@@ -47,6 +47,9 @@ Page({
     statusClass: '',
     quoteCount: 0,
     selectedQuote: null,
+    transportOrder: null,
+    transportOrderHealth: null,
+    repairingTransportOrder: false,
     nextActionText: '',
     deadlineRiskText: '',
     refreshingDetail: false,
@@ -78,7 +81,7 @@ Page({
   startDetailPolling() {
     this.stopDetailPolling();
     this.detailPollTimer = setInterval(() => {
-      if (!this.data.requestId || this.data.loading || this.data.reviewingQuoteId || this.data.selectingQuoteId || this.data.cancelling) return;
+      if (!this.data.requestId || this.data.loading || this.data.reviewingQuoteId || this.data.selectingQuoteId || this.data.repairingTransportOrder || this.data.cancelling) return;
       this.loadDetail({ silent: true });
     }, 8000);
   },
@@ -110,10 +113,13 @@ Page({
     };
     const quotes = result.quotes || [];
     const selectedQuote = quotes.find((quote) => quote.quote_status === 'selected' || quote._id === request.selected_quote_id) || null;
+    const transportOrderHealth = this.formatTransportOrderHealth(result.transport_order_health);
     this.setData({
       loading: false,
       request,
       assignedCustomer: result.assigned_customer || null,
+      transportOrder: result.transport_order || null,
+      transportOrderHealth,
       invites: result.invites || [],
       quotes,
       token: invite ? invite.token : '',
@@ -439,6 +445,37 @@ Page({
     return '';
   },
 
+  formatTransportOrderHealth(health) {
+    if (!health) return null;
+    const missingLabels = Array.isArray(health.missing_field_labels) && health.missing_field_labels.length
+      ? health.missing_field_labels
+      : (Array.isArray(health.missing_fields) ? health.missing_fields : []);
+    const complete = Boolean(health.exists && health.complete);
+    let statusText = '执行快照待确认';
+    if (health.warning_code === 'TRANSPORT_ORDER_MISSING') statusText = '执行快照缺失';
+    if (health.warning_code === 'TRANSPORT_ORDER_INCOMPLETE') statusText = '执行快照不完整';
+    if (health.warning_code === 'TRANSPORT_ORDER_READ_FAILED') statusText = '执行快照读取失败';
+    if (complete) statusText = '执行快照正常';
+    const sourceTextMap = {
+      transport_orders: 'transport_orders',
+      fallback_driver_vehicle: 'fallback_driver_vehicle',
+      none: '未创建',
+      read_failed: '读取失败',
+    };
+    return {
+      ...health,
+      complete,
+      can_repair: Boolean(health.can_repair),
+      status_text: statusText,
+      source_text: sourceTextMap[health.source] || health.source || '-',
+      missing_fields_text: missingLabels.join('、'),
+      panel_class: complete ? 'healthy' : 'unhealthy',
+      detail_text: complete
+        ? '客户侧将读取正式司机与车辆快照。'
+        : (health.can_repair ? '可使用已选司机报价重建 transport_orders 快照。' : '请先确认司机或刷新后重试。'),
+    };
+  },
+
   formatSummaryValue(value) {
     if (value === undefined || value === null || value === '') return '-';
     return value;
@@ -687,6 +724,60 @@ Page({
       return this.buildCustomerShare();
     }
     return this.buildDriverShare();
+  },
+
+  async repairTransportOrder() {
+    const health = this.data.transportOrderHealth || {};
+    const selectedQuote = this.data.selectedQuote || {};
+    const quoteId = health.repair_quote_id || selectedQuote._id || '';
+    if (!quoteId || this.data.repairingTransportOrder) {
+      wx.showToast({ title: '缺少可修复的已选报价', icon: 'none' });
+      return;
+    }
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '修复执行快照',
+        content: '将使用已选司机报价重新写入 transport_orders 执行快照，不会更换司机。',
+        confirmText: '修复',
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+
+    this.setData({ repairingTransportOrder: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'selectDriverQuote',
+        data: {
+          request_id: this.data.requestId,
+          quote_id: quoteId,
+        },
+      });
+      if (!result || !result.success) {
+        const message = result
+          ? `${result.message || '修复失败'}${result.failed_step ? `\n步骤：${result.failed_step}` : ''}${result.error_code ? `\n错误码：${result.error_code}` : ''}`
+          : '修复失败：云函数无返回';
+        wx.showModal({
+          title: '修复执行快照失败',
+          content: message,
+          showCancel: false,
+        });
+        this.setData({ repairingTransportOrder: false });
+        return;
+      }
+      wx.showToast({ title: result.repaired ? '已修复快照' : '快照已确认', icon: 'success' });
+      this.setData({ repairingTransportOrder: false });
+      this.loadDetail();
+    } catch (error) {
+      console.error('repairTransportOrder failed', error);
+      wx.showModal({
+        title: '修复执行快照失败',
+        content: (error && (error.errMsg || error.message)) || '请检查云函数部署和控制台日志',
+        showCancel: false,
+      });
+      this.setData({ repairingTransportOrder: false });
+    }
   },
 
   async selectQuote(e) {

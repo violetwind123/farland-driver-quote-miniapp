@@ -2,6 +2,12 @@ const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const ASSIGNED_REQUEST_STATUSES = ['assigned', 'confirmed', 'completed'];
+const TRANSPORT_ORDER_REQUIRED_FIELDS = [
+  { key: 'driver_name', label: '司机姓名' },
+  { key: 'driver_phone', label: '司机电话' },
+  { key: 'vehicle_model', label: '车辆型号' },
+];
 
 async function getOperator() {
   const { OPENID } = cloud.getWXContext();
@@ -25,6 +31,84 @@ function toAssignedCustomer(request, customer) {
     customer_profile_id: request.customer_profile_id || (customer && customer.customer_profile_id) || '',
     customer_status: customer ? (customer.customer_status || customer.status || '') : '',
     assigned_at: request.customer_assigned_at || '',
+  };
+}
+
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function hasFallbackDriverVehicle(request) {
+  return Boolean(request && request.selected_driver_id);
+}
+
+function toTransportOrderSummary(order, requestId) {
+  if (!order) return null;
+  return {
+    transport_order_id: order._id || requestId,
+    request_id: order.request_id || requestId,
+    order_status: order.order_status || '',
+    driver_name: order.driver_name || '',
+    driver_phone: order.driver_phone || '',
+    vehicle_type: order.vehicle_type || '',
+    vehicle_model: order.vehicle_model || '',
+    seats: order.seats || 0,
+    luggage_capacity: order.luggage_capacity || 0,
+    plate_number: order.plate_number || '',
+    service_date: order.service_date || '',
+    pickup: order.pickup || '',
+    dropoff: order.dropoff || '',
+    assigned_at: order.assigned_at || '',
+    updated_at: order.updated_at || '',
+    snapshot_source: order.snapshot_source || '',
+    snapshot_version: order.snapshot_version || 0,
+    source_driver_quote_id: order.source_driver_quote_id || order.driver_quote_id || order.quote_id || '',
+  };
+}
+
+async function loadTransportOrderHealth({ request, requestId, selectedQuote }) {
+  const shouldInspect = ASSIGNED_REQUEST_STATUSES.includes(request.status) || Boolean(request.selected_quote_id);
+  if (!shouldInspect) return { transportOrder: null, health: null };
+
+  const repairQuoteId = request.selected_quote_id || (selectedQuote && selectedQuote._id) || '';
+  const orderRes = await db.collection('transport_orders').doc(requestId).get().catch(() => null);
+  const order = orderRes && orderRes.data ? orderRes.data : null;
+  if (!order) {
+    const fallbackAvailable = hasFallbackDriverVehicle(request);
+    return {
+      transportOrder: null,
+      health: {
+        exists: false,
+        complete: false,
+        source: fallbackAvailable ? 'fallback_driver_vehicle' : 'none',
+        assigned_transport_source: fallbackAvailable ? 'fallback_driver_vehicle' : 'none',
+        missing_fields: ['transport_orders'],
+        missing_field_labels: ['执行快照'],
+        warning_code: 'TRANSPORT_ORDER_MISSING',
+        warning_text: fallbackAvailable ? '未找到正式执行快照，客户侧可能使用司机/车辆 fallback' : '未找到正式执行快照',
+        repair_quote_id: repairQuoteId,
+        can_repair: Boolean(repairQuoteId),
+      },
+    };
+  }
+
+  const missing = TRANSPORT_ORDER_REQUIRED_FIELDS.filter((field) => !hasValue(order[field.key]));
+  const fallbackAvailable = Boolean(missing.length && hasFallbackDriverVehicle(request));
+  const assignedTransportSource = fallbackAvailable ? 'fallback_driver_vehicle' : 'transport_orders';
+  return {
+    transportOrder: toTransportOrderSummary(order, requestId),
+    health: {
+      exists: true,
+      complete: missing.length === 0,
+      source: assignedTransportSource,
+      assigned_transport_source: assignedTransportSource,
+      missing_fields: missing.map((field) => field.key),
+      missing_field_labels: missing.map((field) => field.label),
+      warning_code: missing.length ? 'TRANSPORT_ORDER_INCOMPLETE' : '',
+      warning_text: fallbackAvailable ? '正式执行快照不完整，客户侧可能使用司机/车辆 fallback' : (missing.length ? '正式执行快照缺少司机或车辆字段' : ''),
+      repair_quote_id: repairQuoteId,
+      can_repair: Boolean(missing.length && repairQuoteId),
+    },
   };
 }
 
@@ -60,6 +144,14 @@ exports.main = async (event = {}) => {
       customer_selected: customerQuote ? customerQuote.quote_status === 'selected' : false,
     };
   });
+  const selectedQuote = quotes.find((quote) => {
+    return quote.quote_status === 'selected' || quote._id === request.selected_quote_id;
+  }) || null;
+  const { transportOrder, health: transportOrderHealth } = await loadTransportOrderHealth({
+    request,
+    requestId: event.request_id,
+    selectedQuote,
+  });
 
   return {
     success: true,
@@ -72,6 +164,10 @@ exports.main = async (event = {}) => {
       quote_deadline: request.quote_deadline,
       internal_note: request.internal_note || '',
       status: request.status,
+      selected_quote_id: request.selected_quote_id || '',
+      selected_driver_id: request.selected_driver_id || '',
+      selected_vehicle_id: request.selected_vehicle_id || '',
+      assigned_at: request.assigned_at || '',
       customer_user_id: request.customer_user_id || '',
       customer_name: request.customer_name || '',
       customer_profile_id: request.customer_profile_id || '',
@@ -85,6 +181,8 @@ exports.main = async (event = {}) => {
       updated_at: request.updated_at,
     },
     assigned_customer: assignedCustomer,
+    transport_order: transportOrder,
+    transport_order_health: transportOrderHealth,
     invites: inviteRes.data,
     quotes,
   };

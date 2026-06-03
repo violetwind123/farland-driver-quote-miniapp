@@ -33,7 +33,7 @@ Reason:
 - `getCustomerTransportQuotes` and `getCustomerHome` own customer-facing assigned driver reads and `assigned_transport_source`.
 - `claimCustomerInvite` owns registered-customer auto-link and explicit invite save.
 - `assignCustomerToRideRequest` and `searchCustomersForOperator` own operator manual customer assignment.
-- `getRequestDetail` owns operator request detail and customer assignment visibility.
+- `getRequestDetail` owns operator request detail, customer assignment visibility, and transport order health / repair visibility.
 
 Frontend preview / upload must include:
 
@@ -112,9 +112,9 @@ Current baseline:
 - The response includes `transport_order_saved: true` only after the snapshot path succeeds.
 - Assigned / confirmed requests support idempotent same-quote confirmation and repair of missing same-quote snapshots.
 
-Remaining concern:
+Deployment / QA concern:
 
-- Operator UI still needs a visible transport order health / repair section.
+- Operator UI now has a visible transport order health / repair section, but it still needs deployment and device QA against complete, missing, and incomplete `transport_orders/{request_id}` snapshots.
 
 ### 5.2 Assigned Driver Display
 
@@ -438,7 +438,7 @@ Use this order:
 ```text
 P0-B: Complete ride_requests status transitions
 P0-C: Add customer quote selection concurrency guard
-P1-C: Add operator transport order health / repair UI
+P1-C: Deploy / QA operator transport order health / repair UI
 P1-D: Improve operator customer search coverage beyond first-100 in-memory filtering
 P2-A: Standardize ride request execution fields
 P2-B: Add assigned / confirmed / in_progress / completed lifecycle actions
@@ -549,6 +549,13 @@ The next code task should be:
 
 ```text
 P1-C: Add operator transport order health / repair UI
+```
+
+Implementation status:
+
+```text
+Implemented in getRequestDetail and pages/operator/request-detail.
+Deployment and device QA are still pending.
 ```
 
 Suggested minimal scope:

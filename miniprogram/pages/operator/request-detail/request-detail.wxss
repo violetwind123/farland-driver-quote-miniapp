@@ -110,3 +110,19 @@ textarea { min-height: 130rpx; }
 .next-action { margin-top: 18rpx; color: #253554; font-size: 26rpx; line-height: 1.6; }
 .selected-summary { margin-top: 14rpx; padding: 18rpx; border-radius: 18rpx; background: rgba(23, 153, 91, 0.08); color: #167A4D; font-size: 24rpx; line-height: 1.5; }
 .quote-head { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; color: #253554; font-size: 28rpx; font-weight: 600; }
+.transport-health-panel.healthy { border-left: 8rpx solid #17995B; }
+.transport-health-panel.unhealthy { border-left: 8rpx solid #D9822B; }
+.transport-health-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18rpx; }
+.transport-health-title { color: #1E2635; font-size: 28rpx; font-weight: 700; }
+.transport-source-pill { flex-shrink: 0; min-height: 42rpx; padding: 0 16rpx; border-radius: 999rpx; display: flex; align-items: center; justify-content: center; font-size: 21rpx; font-weight: 600; }
+.transport-source-pill.healthy { background: rgba(23, 153, 91, 0.10); color: #167A4D; }
+.transport-source-pill.unhealthy { background: rgba(217, 130, 43, 0.12); color: #A65F16; }
+.transport-health-detail { margin-top: 14rpx; color: #4F6385; font-size: 24rpx; line-height: 1.5; }
+.transport-missing { margin-top: 10rpx; color: #A65F16; font-size: 23rpx; line-height: 1.4; }
+.transport-snapshot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; margin-top: 16rpx; }
+.transport-snapshot-cell { min-height: 92rpx; box-sizing: border-box; padding: 14rpx 16rpx; border-radius: 16rpx; background: #F7F9FF; }
+.snapshot-label { color: #7E889A; font-size: 21rpx; }
+.snapshot-value { margin-top: 6rpx; color: #1E2635; font-size: 25rpx; font-weight: 600; line-height: 1.3; word-break: break-word; }
+.snapshot-value.small { font-size: 21rpx; font-weight: 500; }
+.transport-repair-btn { margin: 18rpx 0 0; height: 74rpx; line-height: 74rpx; border-radius: 37rpx; background: #6672A8; color: #fff; font-size: 25rpx; font-weight: 600; }
+.transport-repair-btn::after { border: none; }
