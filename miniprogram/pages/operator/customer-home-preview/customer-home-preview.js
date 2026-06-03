@@ -205,15 +205,33 @@ Page({
   },
 
   openCustomerFacingPreview(previewResult) {
-    const result = previewResult && previewResult.customer_home ? previewResult : this.data.preview;
-    if (!result || !result.customer_home) {
+    const result = previewResult && (previewResult.customer_share_preview || previewResult.customer_home)
+      ? previewResult
+      : this.data.preview;
+    if (!result || (!result.customer_share_preview && !result.customer_home)) {
       wx.showToast({ title: '请先生成预览', icon: 'none' });
       return;
     }
+    const meta = result.preview_meta || {};
+    const customerSharePreview = result.customer_share_preview || {
+      trip_id: meta.trip_id || this.data.tripId || '',
+      waiting: meta.customer_would_see !== 'published',
+      message: 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
+      access_source: 'operator_preview',
+      auto_saved: false,
+      already_saved: false,
+      can_save_to_profile: false,
+      trip: null,
+    };
     const app = getApp();
+    app.globalData.operatorCustomerSharePreview = {
+      customer_share_preview: customerSharePreview,
+      preview_meta: meta,
+      preview_customer: result.preview_customer || {},
+    };
     app.globalData.operatorCustomerHomePreview = {
       customer_home: result.customer_home,
-      preview_meta: result.preview_meta || {},
+      preview_meta: meta,
       preview_customer: result.preview_customer || {},
       preview_access_mode: result.preview_access_mode || this.data.previewMode,
     };

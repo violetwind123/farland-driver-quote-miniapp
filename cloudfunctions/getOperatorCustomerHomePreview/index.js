@@ -31,6 +31,8 @@ const INTERNAL_KEYS = new Set([
   'supplier_private_notes',
 ]);
 
+const CUSTOMER_SHARE_WAITING_MESSAGE = 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。';
+
 function safeString(value) {
   return value === undefined || value === null ? '' : String(value);
 }
@@ -686,7 +688,7 @@ function buildWaitingHome(trip, customer) {
       trip_no: trip ? (trip.trip_no || trip.external_trip_id || '') : '',
       title: trip ? (trip.title || 'Farland 行程') : 'Farland 行程',
       status_text: '待发布',
-      waiting_message: 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
+      waiting_message: CUSTOMER_SHARE_WAITING_MESSAGE,
     }],
     transportation_appointments: [],
     charter_services: [],
@@ -727,6 +729,29 @@ function buildCustomerHome({ snapshot, trip, customer, request, assignedTranspor
     flight_cards: Array.isArray(snapshot.flight_cards) ? snapshot.flight_cards : [],
     benefits: snapshot.benefits || [],
     links: [],
+  };
+}
+
+function buildCustomerSharePreview(trip, isPublished) {
+  const tripId = trip ? (trip.trip_id || trip.external_trip_id || trip.trip_no || trip._id || '') : '';
+  const base = {
+    trip_id: tripId,
+    waiting: true,
+    message: CUSTOMER_SHARE_WAITING_MESSAGE,
+    access_source: 'operator_preview',
+    auto_saved: false,
+    already_saved: false,
+    can_save_to_profile: false,
+    trip: null,
+  };
+  if (!trip || !isPublished) return base;
+  const snapshot = normalizeSnapshot(trip.published_snapshot);
+  if (!snapshot) return base;
+  return {
+    ...base,
+    waiting: false,
+    message: '',
+    trip: snapshot,
   };
 }
 
@@ -793,8 +818,9 @@ exports.main = async (event = {}) => {
       request,
       assignedTransport,
     }),
+    customer_share_preview: buildCustomerSharePreview(trip, isPublished),
     preview_meta: {
-      trip_id: trip ? (trip.trip_id || trip.external_trip_id || tripId) : tripId,
+      trip_id: trip ? (trip.trip_id || trip.external_trip_id || trip.trip_no || trip._id || tripId) : tripId,
       request_id: requestId,
       review_status: trip ? (trip.review_status || 'pending_review') : '',
       visibility_status: trip ? (trip.visibility_status || 'hidden') : '',

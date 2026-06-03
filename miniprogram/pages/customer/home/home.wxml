@@ -15,6 +15,11 @@
   </view>
 
   <view wx:elif="{{tripInviteMode}}" class="trip-invite-view">
+    <view wx:if="{{operatorCustomerPreviewMode}}" class="operator-preview-banner card-surface">
+      <view class="operator-preview-title">运营预览</view>
+      <view class="operator-preview-copy">运营预览：当前页面模拟客户打开分享卡后的真实显示效果。</view>
+    </view>
+
     <view wx:if="{{tripInviteError}}" class="trip-invite-state card-surface">
       <view class="trip-invite-state-title">行程链接不可用</view>
       <view class="trip-invite-state-copy">{{tripInviteError}}</view>
@@ -29,13 +34,6 @@
     </view>
 
     <block wx:else>
-      <view wx:if="{{operatorCustomerPreviewMode}}" class="operator-preview-banner card-surface">
-        <view class="operator-preview-title">运营预览</view>
-        <view class="operator-preview-copy">
-          {{operatorCustomerPreviewMeta.customer_would_see === 'published' ? '当前预览已发布客户版本。' : '当前预览为未发布草稿，客户真实打开时仍会看到等待页。'}}
-        </view>
-      </view>
-
       <view class="trip-invite-hero card-surface">
         <view class="section-kicker hero-kicker">Farland 行程</view>
         <view class="trip-invite-title">{{tripInviteTrip.displayTitle}}</view>
@@ -56,7 +54,7 @@
         <view wx:else class="trip-invite-sync muted">临时查看本次行程</view>
       </view>
 
-      <view wx:if="{{tripInviteCanSave}}" class="profile-upgrade card-surface">
+      <view wx:if="{{tripInviteCanSave && !operatorCustomerPreviewMode}}" class="profile-upgrade card-surface">
         <view>
           <view class="profile-upgrade-title">保存到我的 Farland 行程</view>
           <view class="profile-upgrade-copy">方便之后继续查看行程、酒店安排、司机信息和后续服务。</view>

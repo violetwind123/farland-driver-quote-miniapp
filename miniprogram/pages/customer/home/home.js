@@ -59,6 +59,11 @@ Page({
   },
 
   onLoad(options = {}) {
+    const operatorCustomerSharePreview = this.consumeOperatorCustomerSharePreview();
+    if (operatorCustomerSharePreview) {
+      this.applyOperatorCustomerSharePreview(operatorCustomerSharePreview);
+      return;
+    }
     const preview = this.consumeOperatorPreview();
     const operatorCustomerPreview = options.operator_customer_preview === '1'
       ? this.consumeOperatorCustomerHomePreview()
@@ -83,6 +88,11 @@ Page({
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
+    }
+    const operatorCustomerSharePreview = this.consumeOperatorCustomerSharePreview();
+    if (operatorCustomerSharePreview) {
+      this.applyOperatorCustomerSharePreview(operatorCustomerSharePreview);
+      return;
     }
     const operatorCustomerPreview = this.consumeOperatorCustomerHomePreview();
     if (operatorCustomerPreview) {
@@ -125,6 +135,14 @@ Page({
     const preview = app.globalData && app.globalData.operatorCustomerHomePreview;
     if (!preview || !preview.customer_home) return null;
     delete app.globalData.operatorCustomerHomePreview;
+    return preview;
+  },
+
+  consumeOperatorCustomerSharePreview() {
+    const app = getApp();
+    const preview = app.globalData && app.globalData.operatorCustomerSharePreview;
+    if (!preview || !preview.customer_share_preview) return null;
+    delete app.globalData.operatorCustomerSharePreview;
     return preview;
   },
 
@@ -655,34 +673,89 @@ Page({
     const daysSource = Array.isArray(snapshot.itinerary_days)
       ? snapshot.itinerary_days
       : (Array.isArray(snapshot.days) ? snapshot.days : []);
-    const hotelsSource = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
-      ? snapshot.hotel_cards
-      : (Array.isArray(snapshot.hotels) ? snapshot.hotels : []);
-    const flightsSource = Array.isArray(snapshot.flight_cards) && snapshot.flight_cards.length
-      ? snapshot.flight_cards
-      : (Array.isArray(snapshot.flights) ? snapshot.flights : []);
+    const hotelsSource = [
+      ...(Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : []),
+      ...(Array.isArray(snapshot.hotels) ? snapshot.hotels : []),
+      ...(Array.isArray(snapshot.hotel_requests) ? snapshot.hotel_requests : []),
+      ...daysSource.map((day, index) => {
+        if (!day || !day.hotel) return null;
+        return {
+          ...day.hotel,
+          check_in_date: day.hotel.check_in_date || day.hotel.date || day.date || '',
+          linked_day_no: day.hotel.linked_day_no || day.day_no || index + 1,
+          city: day.hotel.city || day.city || '',
+        };
+      }).filter(Boolean),
+    ];
+    const flightsSource = [
+      ...(Array.isArray(snapshot.flight_cards) ? snapshot.flight_cards : []),
+      ...(Array.isArray(snapshot.flights) ? snapshot.flights : []),
+    ];
+    daysSource.forEach((day) => {
+      const timelineItems = Array.isArray(day.timeline_items)
+        ? day.timeline_items
+        : (Array.isArray(day.items) ? day.items : []);
+      timelineItems.forEach((item) => {
+        const itemType = item.item_type || item.type || '';
+        const title = String(item.title || '');
+        const routeText = String(item.route || `${item.from || item.origin || item.departure_airport || ''} → ${item.to || item.destination || item.arrival_airport || ''}`);
+        const hasFlightSignal = itemType === 'flight'
+          || item.flight_no
+          || item.flight_number
+          || /\b[A-Z]{2}\d{2,4}\b/.test(title)
+          || /\b[A-Z]{3}\s*(?:->|→|-)\s*[A-Z]{3}\b/.test(routeText || title);
+        if (!hasFlightSignal) return;
+        flightsSource.push({
+          ...item,
+          day_no: item.day_no || day.day_no || 0,
+          route: item.route || title,
+        });
+      });
+    });
     const transportSource = this.normalizePublishedTransport(snapshot);
     const days = this.normalizeHomeDayCards(dailySummaryCards, daysSource);
-    const hotels = hotelsSource.map((hotel, index) => ({
-      id: hotel.hotel_id || hotel.id || `${hotel.hotel_name || hotel.name || 'hotel'}-${index}`,
-      name: hotel.hotel_name || hotel.name || hotel.title || '酒店安排',
-      city: hotel.city || '',
-      dateText: hotel.date_text || [hotel.check_in_date || hotel.date || '', hotel.check_out_date || ''].filter(Boolean).join(' - '),
-      address: hotel.address || '',
-      note: [
-        hotel.arrival_time ? `预计抵达：${this.formatDisplayTime(hotel.arrival_time)}` : '',
-        hotel.room_type || '',
-        hotel.status_text || '',
-        hotel.customer_note || hotel.note || '',
-      ].filter(Boolean).join(' · '),
-    }));
-    const flights = flightsSource.map((flight, index) => ({
-      id: flight.flight_id || flight.id || `${flight.flight_no || flight.flight_number || 'flight'}-${index}`,
-      flightNo: flight.flight_no || flight.flight_number || '航班',
-      route: flight.route || [flight.departure_airport || flight.from || '', flight.arrival_airport || flight.to || ''].filter(Boolean).join(' → '),
-      timeText: [this.formatDisplayTime(flight.departure_time || flight.depart_at || ''), this.formatDisplayTime(flight.arrival_time || flight.arrive_at || '')].filter(Boolean).join(' - '),
-      note: flight.customer_note || flight.note || '',
-    }));
+    const hotelSeen = {};
+    const hotels = hotelsSource.map((hotel, index) => {
+      const name = hotel.hotel_name || hotel.name || hotel.title || '';
+      const key = [name, hotel.check_in_date || hotel.date || '', hotel.linked_day_no || hotel.day_no || ''].join('|');
+      if (!name && !hotel.address) return null;
+      if (hotelSeen[key]) return null;
+      hotelSeen[key] = true;
+      return {
+        id: hotel.hotel_id || hotel.id || `${name || 'hotel'}-${index}`,
+        name: name || '酒店安排',
+        city: hotel.city || '',
+        dateText: hotel.date_text || [hotel.check_in_date || hotel.date || '', hotel.check_out_date || ''].filter(Boolean).join(' - '),
+        address: hotel.address || '',
+        note: [
+          hotel.arrival_time ? `预计抵达：${this.formatDisplayTime(hotel.arrival_time)}` : '',
+          hotel.room_type || '',
+          hotel.status_text || '',
+          hotel.customer_note || hotel.note || '',
+        ].filter(Boolean).join(' · '),
+      };
+    }).filter(Boolean);
+    const flightSeen = {};
+    const flights = flightsSource.map((flight, index) => {
+      const flightText = String(flight.flight_no || flight.flight_number || flight.title || '');
+      const flightMatch = flightText.match(/\b[A-Z]{2}\d{2,4}\b/);
+      const routeText = String(flight.route || flight.title || '');
+      const routeMatch = routeText.match(/\b([A-Z]{3})\s*(?:->|→|-)\s*([A-Z]{3})\b/);
+      const from = flight.departure_airport || flight.from || flight.origin || (routeMatch ? routeMatch[1] : '');
+      const to = flight.arrival_airport || flight.to || flight.destination || (routeMatch ? routeMatch[2] : '');
+      const flightNo = flight.flight_no || flight.flight_number || (flightMatch ? flightMatch[0] : '');
+      if (!flightNo && !from && !to) return null;
+      const key = [flightNo, flight.day_no || '', from, to, flight.departure_time || flight.depart_at || ''].join('|');
+      if (flightSeen[key]) return null;
+      flightSeen[key] = true;
+      return {
+        id: flight.flight_id || flight.id || `${flightNo || 'flight'}-${index}`,
+        flightNo: flightNo || '航班',
+        route: flight.route || [from, to].filter(Boolean).join(' → '),
+        timeText: [this.formatDisplayTime(flight.departure_time || flight.depart_at || ''), this.formatDisplayTime(flight.arrival_time || flight.arrive_at || '')].filter(Boolean).join(' - '),
+        note: flight.customer_note || flight.note || '',
+      };
+    }).filter(Boolean);
 
     return {
       ...snapshot,
@@ -715,6 +788,96 @@ Page({
       hasFlights: Boolean(flights.length),
       hasTransports: Boolean(transportSource.length),
     };
+  },
+
+  applyOperatorCustomerSharePreview(previewPayload) {
+    const sharePreview = previewPayload.customer_share_preview || {};
+    const meta = {
+      ...(previewPayload.preview_meta || {}),
+      customer_would_see: sharePreview.waiting ? 'waiting' : 'published',
+    };
+    const previewCustomer = previewPayload.preview_customer || {};
+    const tripId = sharePreview.trip_id || meta.trip_id || '';
+    const waitingMessage = sharePreview.message || 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。';
+    const commonState = {
+      loading: false,
+      tripInviteMode: true,
+      tripInviteId: tripId,
+      inviteCode: '',
+      inviteRequestId: '',
+      inviteMode: false,
+      operatorPreview: false,
+      needsInviteClaim: false,
+      claimingTemporaryAccess: false,
+      currentBindMode: '',
+      showProfileUpgrade: false,
+      showProfileUpgradeForm: false,
+      tripInviteAccessSource: sharePreview.access_source || 'operator_preview',
+      tripInviteAutoSaved: false,
+      tripInviteAlreadySaved: false,
+      tripInviteCanSave: false,
+      tripInviteShowSaveForm: false,
+      tripInviteSaveName: '',
+      tripInviteSaving: false,
+      operatorCustomerPreviewMode: true,
+      operatorCustomerPreviewMeta: meta,
+      operatorPreviewDays: [],
+      operatorPreviewFlights: [],
+      showHomeEmpty: false,
+      showLegacyTransport: false,
+      hotelRequests: [],
+      transportationAppointments: [],
+      progressStrip: null,
+      todayCard: null,
+      todayDriverCard: null,
+      todayHotelCard: null,
+      todayItinerary: null,
+      nextConfirmed: {},
+      tripOverview: [],
+      tripDayCards: [],
+      flightCards: [],
+      hotelCards: [],
+      transferRequests: [],
+      primaryTransfer: null,
+      transportOrders: [],
+      charterServices: [],
+      benefits: [],
+      topBenefits: [],
+    };
+
+    if (sharePreview.waiting || !sharePreview.trip) {
+      this.setData({
+        ...commonState,
+        tripInviteTrip: null,
+        tripInviteWaiting: true,
+        tripInviteMessage: waitingMessage,
+        tripInviteError: '',
+        profile: {
+          name: previewCustomer.display_name || '客户分享卡预览',
+          member_level: '运营预览',
+          points_balance: 0,
+          subtitle: '当前页面模拟客户打开分享卡后的等待状态。',
+        },
+        advisorPhone: '',
+      });
+      return;
+    }
+
+    const trip = this.normalizePublishedTrip(sharePreview.trip || {});
+    this.setData({
+      ...commonState,
+      tripInviteTrip: trip,
+      tripInviteWaiting: false,
+      tripInviteMessage: '',
+      tripInviteError: '',
+      profile: {
+        name: trip.displayCustomer || previewCustomer.display_name || '客户分享卡预览',
+        member_level: '运营预览',
+        points_balance: 0,
+        subtitle: '当前页面模拟客户打开分享卡后的真实显示效果。',
+      },
+      advisorPhone: trip.advisorPhone || '',
+    });
   },
 
   applyOperatorCustomerHomePreview(previewPayload) {
