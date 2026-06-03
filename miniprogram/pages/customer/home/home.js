@@ -37,15 +37,32 @@ Page({
     claimSubmitting: false,
     autoClaimingInvite: false,
     autoClaimedInviteKey: '',
+    tripInviteMode: false,
+    tripInviteId: '',
+    tripInviteTrip: null,
+    tripInviteWaiting: false,
+    tripInviteMessage: '',
+    tripInviteError: '',
+    tripInviteAccessSource: '',
+    tripInviteAutoSaved: false,
+    tripInviteAlreadySaved: false,
+    tripInviteCanSave: false,
+    tripInviteSaveName: '',
+    tripInviteShowSaveForm: false,
+    tripInviteSaving: false,
   },
 
   onLoad(options = {}) {
     const preview = this.consumeOperatorPreview();
+    const tripInviteId = this.decodeQueryValue(options.trip_id || options.external_trip_id || options.trip_no || '');
+    const inviteCode = this.decodeQueryValue(options.invite_code || '');
     this.setData({
-      inviteCode: options.invite_code || '',
-      inviteRequestId: options.request_id || preview.requestId || '',
-      inviteMode: Boolean(options.invite_code && options.request_id),
-      operatorPreview: Boolean(preview.requestId),
+      tripInviteId,
+      tripInviteMode: Boolean(tripInviteId),
+      inviteCode,
+      inviteRequestId: tripInviteId ? '' : (options.request_id || preview.requestId || ''),
+      inviteMode: Boolean(!tripInviteId && options.invite_code && options.request_id),
+      operatorPreview: Boolean(!tripInviteId && preview.requestId),
     });
     this.loadHome();
   },
@@ -55,7 +72,7 @@ Page({
       this.getTabBar().setData({ selected: 1 });
     }
     const preview = this.consumeOperatorPreview();
-    if (preview.requestId && (preview.requestId !== this.data.inviteRequestId || !this.data.operatorPreview)) {
+    if (!this.data.tripInviteMode && preview.requestId && (preview.requestId !== this.data.inviteRequestId || !this.data.operatorPreview)) {
       this.setData({
         inviteCode: '',
         inviteRequestId: preview.requestId,
@@ -64,6 +81,16 @@ Page({
         needsInviteClaim: false,
       });
       this.loadHome();
+    }
+  },
+
+  decodeQueryValue(value) {
+    const raw = String(value || '');
+    if (!raw) return '';
+    try {
+      return decodeURIComponent(raw);
+    } catch (error) {
+      return raw;
     }
   },
 
@@ -78,6 +105,11 @@ Page({
   async loadHome() {
     this.setData({ loading: true });
     try {
+      if (this.data.tripInviteMode && this.data.tripInviteId) {
+        await this.loadTripInviteHome();
+        return;
+      }
+
       if (this.data.operatorPreview && this.data.inviteRequestId) {
         const invitedTransfer = await this.loadInvitedTransferIfNeeded();
         this.setData({
@@ -422,6 +454,259 @@ Page({
         if (period === '上午' && hour24 === 12) hour24 = 0;
         return `${String(hour24).padStart(2, '0')}:${minute}`;
       });
+  },
+
+  async loadTripInviteHome() {
+    this.setData({
+      loading: true,
+      tripInviteError: '',
+      tripInviteWaiting: false,
+      tripInviteMessage: '',
+    });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'getCustomerTripByInvite',
+        data: {
+          trip_id: this.data.tripInviteId,
+          invite_code: this.data.inviteCode,
+        },
+      });
+
+      if (!result || !result.success) {
+        this.setData({
+          loading: false,
+          tripInviteTrip: null,
+          tripInviteWaiting: false,
+          tripInviteError: (result && result.message) || '该行程链接无效或已失效，请联系 Farland 顾问。',
+          tripInviteCanSave: false,
+        });
+        return;
+      }
+
+      if (result.waiting) {
+        this.setData({
+          loading: false,
+          tripInviteTrip: null,
+          tripInviteWaiting: true,
+          tripInviteMessage: result.message || 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
+          tripInviteError: '',
+          tripInviteAccessSource: result.access_source || '',
+          tripInviteAutoSaved: Boolean(result.auto_saved),
+          tripInviteAlreadySaved: Boolean(result.already_saved),
+          tripInviteCanSave: false,
+          needsInviteClaim: false,
+        });
+        return;
+      }
+
+      const trip = this.normalizePublishedTrip(result.trip || {});
+      this.setData({
+        loading: false,
+        tripInviteTrip: trip,
+        tripInviteWaiting: false,
+        tripInviteMessage: '',
+        tripInviteError: '',
+        tripInviteAccessSource: result.access_source || '',
+        tripInviteAutoSaved: Boolean(result.auto_saved),
+        tripInviteAlreadySaved: Boolean(result.already_saved),
+        tripInviteCanSave: Boolean(result.can_save_to_profile),
+        tripInviteShowSaveForm: false,
+        needsInviteClaim: false,
+        profile: {
+          name: trip.displayCustomer || 'Farland 行程',
+          member_level: result.auto_saved || result.already_saved ? '已同步' : '临时查看',
+          points_balance: 0,
+          subtitle: result.auto_saved || result.already_saved
+            ? '已同步到我的 Farland 行程'
+            : 'Farland 顾问已为您整理本次行程',
+        },
+        advisorPhone: trip.advisorPhone || '',
+      });
+    } catch (error) {
+      console.error('[customer-home] getCustomerTripByInvite failed', error);
+      this.setData({
+        loading: false,
+        tripInviteTrip: null,
+        tripInviteWaiting: false,
+        tripInviteError: '该行程链接无效或已失效，请联系 Farland 顾问。',
+        tripInviteCanSave: false,
+      });
+    }
+  },
+
+  normalizePublishedTrip(snapshot) {
+    const hero = snapshot.hero || {};
+    const customer = snapshot.customer || {};
+    const advisor = snapshot.advisor || {};
+    const daysSource = Array.isArray(snapshot.itinerary_days)
+      ? snapshot.itinerary_days
+      : (Array.isArray(snapshot.days) ? snapshot.days : []);
+    const hotelsSource = Array.isArray(snapshot.hotels)
+      ? snapshot.hotels
+      : (Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : []);
+    const flightsSource = Array.isArray(snapshot.flights)
+      ? snapshot.flights
+      : (Array.isArray(snapshot.flight_cards) ? snapshot.flight_cards : []);
+    const transportSource = this.normalizePublishedTransport(snapshot);
+    const days = daysSource.map((day, index) => this.normalizePublishedTripDay(day, index));
+    const hotels = hotelsSource.map((hotel, index) => ({
+      id: hotel.hotel_id || hotel.id || `${hotel.hotel_name || hotel.name || 'hotel'}-${index}`,
+      name: hotel.hotel_name || hotel.name || hotel.title || '酒店安排',
+      city: hotel.city || '',
+      dateText: [hotel.check_in_date || hotel.date || '', hotel.check_out_date || ''].filter(Boolean).join(' - '),
+      address: hotel.address || '',
+      note: hotel.customer_note || hotel.note || hotel.room_type || '',
+    }));
+    const flights = flightsSource.map((flight, index) => ({
+      id: flight.flight_id || flight.id || `${flight.flight_no || flight.flight_number || 'flight'}-${index}`,
+      flightNo: flight.flight_no || flight.flight_number || '航班',
+      route: flight.route || [flight.departure_airport || flight.from || '', flight.arrival_airport || flight.to || ''].filter(Boolean).join(' → '),
+      timeText: [this.formatDisplayTime(flight.departure_time || flight.depart_at || ''), this.formatDisplayTime(flight.arrival_time || flight.arrive_at || '')].filter(Boolean).join(' - '),
+      note: flight.customer_note || flight.note || '',
+    }));
+
+    return {
+      ...snapshot,
+      displayTitle: hero.title || snapshot.title || 'Farland 行程',
+      displayTripNo: hero.trip_no || snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '',
+      displayDateRange: hero.date_range || [snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''].filter(Boolean).join(' - '),
+      displayCity: hero.city_summary || snapshot.city || '',
+      displaySummary: snapshot.summary || hero.summary || '',
+      displayCustomer: customer.display_name || customer.name || '',
+      advisorName: advisor.name || 'Farland 顾问',
+      advisorPhone: advisor.phone || '',
+      advisorNote: advisor.note || snapshot.advisor_note || '',
+      days,
+      hotels,
+      flights,
+      transports: transportSource,
+      hasDays: Boolean(days.length),
+      hasHotels: Boolean(hotels.length),
+      hasFlights: Boolean(flights.length),
+      hasTransports: Boolean(transportSource.length),
+    };
+  },
+
+  normalizePublishedTripDay(day, index) {
+    const itemsSource = Array.isArray(day.timeline_items)
+      ? day.timeline_items
+      : (Array.isArray(day.items) ? day.items : []);
+    return {
+      id: day.day_id || day.id || `day-${day.day_no || index + 1}`,
+      dayNo: day.day_no || index + 1,
+      date: day.date || '',
+      weekday: day.weekday || '',
+      title: day.title || `Day ${day.day_no || index + 1}`,
+      city: day.city || '',
+      summary: day.summary || '',
+      startTime: this.formatDisplayTime(day.estimated_departure_time || day.displayed_start_time || day.start_time || ''),
+      hotel: day.hotel || null,
+      transportSummary: day.transport_summary || null,
+      timelineItems: itemsSource.map((item, itemIndex) => ({
+        id: item.item_id || item.id || `${day.day_no || index + 1}-${itemIndex}`,
+        time: this.formatDisplayTime(item.time || item.planned_start_time || item.planned_arrival_time || ''),
+        title: item.title || '行程节点',
+        location: item.location_name || item.location || '',
+        note: item.customer_note || item.note || item.description || '',
+        driveText: [item.drive_time_text || item.drive_time || '', item.distance_text || item.distance || ''].filter(Boolean).join(' · '),
+        trafficText: item.traffic_text || item.traffic_level || '',
+      })),
+    };
+  },
+
+  normalizePublishedTransport(snapshot) {
+    const transportItems = [];
+    const summary = snapshot.transport_summary;
+    if (summary && !Array.isArray(summary)) {
+      transportItems.push({
+        id: summary.transport_id || summary.id || 'transport-summary',
+        title: summary.title || summary.service_type || '用车安排',
+        meta: [summary.date || '', summary.depart_time || summary.pickup_time || '', summary.vehicle_summary || summary.vehicle_class || ''].filter(Boolean).join(' · '),
+        note: summary.status_text || summary.customer_note || summary.note || '',
+      });
+    }
+    if (Array.isArray(summary)) {
+      summary.forEach((item, index) => {
+        transportItems.push({
+          id: item.transport_id || item.id || `transport-${index}`,
+          title: item.title || item.service_type || '用车安排',
+          meta: [item.date || '', item.depart_time || item.pickup_time || '', item.vehicle_summary || item.vehicle_class || ''].filter(Boolean).join(' · '),
+          note: item.status_text || item.customer_note || item.note || '',
+        });
+      });
+    }
+    const charterServices = Array.isArray(snapshot.charter_services) ? snapshot.charter_services : [];
+    const transfers = Array.isArray(snapshot.transfers) ? snapshot.transfers : [];
+    charterServices.forEach((item, index) => {
+      transportItems.push({
+        id: item.charter_id || item.id || `charter-${index}`,
+        title: item.title || '包车服务',
+        meta: [item.date_range_text || item.date || '', item.vehicle_class || item.vehicle_summary || '', item.service_area || ''].filter(Boolean).join(' · '),
+        note: item.continuity_text || item.status_text || item.customer_note || item.note || '',
+      });
+    });
+    transfers.forEach((item, index) => {
+      transportItems.push({
+        id: item.request_id || item.transfer_id || item.id || `transfer-${index}`,
+        title: item.title || '接送安排',
+        meta: [item.pickup || '', item.dropoff || ''].filter(Boolean).join(' → '),
+        note: [this.formatDisplayTime(item.pickup_time_text || item.pickup_time || ''), item.status_text || ''].filter(Boolean).join(' · '),
+      });
+    });
+    return transportItems;
+  },
+
+  openTripInviteSaveForm() {
+    this.setData({ tripInviteShowSaveForm: true });
+  },
+
+  onTripInviteSaveNameInput(e) {
+    this.setData({ tripInviteSaveName: e.detail.value || '' });
+  },
+
+  async saveTripInviteToProfile() {
+    const displayName = String(this.data.tripInviteSaveName || '').trim();
+    if (!displayName) {
+      wx.showToast({ title: '请填写称呼', icon: 'none' });
+      return;
+    }
+    if (this.data.tripInviteSaving) return;
+
+    this.setData({ tripInviteSaving: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'saveCustomerTripToProfile',
+        data: {
+          trip_id: this.data.tripInviteId,
+          invite_code: this.data.inviteCode,
+          display_name: displayName,
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({ tripInviteSaving: false });
+        wx.showToast({ title: (result && result.message) || '保存失败', icon: 'none' });
+        return;
+      }
+      wx.showToast({ title: '已保存', icon: 'success' });
+      this.setData({
+        tripInviteSaving: false,
+        tripInviteCanSave: false,
+        tripInviteAlreadySaved: true,
+        tripInviteAccessSource: result.access_source || 'customer_trip_access',
+        tripInviteShowSaveForm: false,
+        tripInviteSaveName: '',
+        profile: {
+          ...(this.data.profile || {}),
+          name: result.display_name || displayName,
+          member_level: '已同步',
+          subtitle: '已同步到我的 Farland 行程',
+        },
+      });
+    } catch (error) {
+      console.error('[customer-home] saveCustomerTripToProfile failed', error);
+      this.setData({ tripInviteSaving: false });
+      wx.showToast({ title: '保存失败', icon: 'none' });
+    }
   },
 
   selectClaimBindType(e) {

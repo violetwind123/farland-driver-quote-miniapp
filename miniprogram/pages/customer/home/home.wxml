@@ -1,7 +1,7 @@
 <view class="trip-page">
   <button wx:if="{{operatorPreview}}" class="operator-back-btn" bindtap="backToOperatorCenter">运营中心</button>
 
-  <view wx:if="{{loading}}" class="empty-state">正在加载您的行程...</view>
+  <view wx:if="{{loading}}" class="empty-state">{{tripInviteMode ? '正在加载 Farland 行程...' : '正在加载您的行程...'}}</view>
 
   <view wx:elif="{{needsInviteClaim}}" class="claim-panel card-surface">
     <view class="claim-kicker">欢迎使用 Farland</view>
@@ -12,6 +12,127 @@
     </view>
 
     <button class="claim-submit" loading="{{claimingTemporaryAccess}}" bindtap="claimTemporaryAccess">查看本次行程</button>
+  </view>
+
+  <view wx:elif="{{tripInviteMode}}" class="trip-invite-view">
+    <view wx:if="{{tripInviteError}}" class="trip-invite-state card-surface">
+      <view class="trip-invite-state-title">行程链接不可用</view>
+      <view class="trip-invite-state-copy">{{tripInviteError}}</view>
+      <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
+    </view>
+
+    <view wx:elif="{{tripInviteWaiting}}" class="trip-invite-state card-surface">
+      <view class="trip-invite-state-kicker">Farland 行程</view>
+      <view class="trip-invite-state-title">顾问正在核对行程安排</view>
+      <view class="trip-invite-state-copy">{{tripInviteMessage}}</view>
+      <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
+    </view>
+
+    <block wx:else>
+      <view class="trip-invite-hero card-surface">
+        <view class="section-kicker hero-kicker">Farland 行程</view>
+        <view class="trip-invite-title">{{tripInviteTrip.displayTitle}}</view>
+        <view wx:if="{{tripInviteTrip.displayTripNo || tripInviteTrip.displayDateRange}}" class="trip-invite-meta">
+          {{tripInviteTrip.displayTripNo}}{{tripInviteTrip.displayTripNo && tripInviteTrip.displayDateRange ? ' · ' : ''}}{{tripInviteTrip.displayDateRange}}
+        </view>
+        <view wx:if="{{tripInviteTrip.displayCity}}" class="trip-invite-route">{{tripInviteTrip.displayCity}}</view>
+        <view wx:if="{{tripInviteTrip.displaySummary}}" class="trip-invite-copy">{{tripInviteTrip.displaySummary}}</view>
+        <view wx:if="{{tripInviteAutoSaved || tripInviteAlreadySaved}}" class="trip-invite-sync">已同步到我的 Farland 行程</view>
+        <view wx:else class="trip-invite-sync muted">临时查看本次行程</view>
+      </view>
+
+      <view wx:if="{{tripInviteCanSave}}" class="profile-upgrade card-surface">
+        <view>
+          <view class="profile-upgrade-title">保存到我的 Farland 行程</view>
+          <view class="profile-upgrade-copy">方便之后继续查看行程、酒店安排、司机信息和后续服务。</view>
+        </view>
+        <button wx:if="{{!tripInviteShowSaveForm}}" class="profile-upgrade-open" bindtap="openTripInviteSaveForm">保存行程</button>
+        <view wx:else class="profile-upgrade-form">
+          <input
+            class="profile-upgrade-input"
+            placeholder="称呼，例如：王女士"
+            value="{{tripInviteSaveName}}"
+            bindinput="onTripInviteSaveNameInput"
+          />
+          <button class="profile-upgrade-btn" loading="{{tripInviteSaving}}" bindtap="saveTripInviteToProfile">保存</button>
+        </view>
+      </view>
+
+      <view class="section-shell">
+        <view class="section-kicker">ITINERARY</view>
+        <view class="section-title">每日行程</view>
+        <view wx:if="{{!tripInviteTrip.hasDays}}" class="today-card-empty">Farland 顾问正在补充每日行程细节。</view>
+        <view wx:else class="trip-invite-day-list">
+          <view wx:for="{{tripInviteTrip.days}}" wx:key="id" class="trip-invite-day card-surface">
+            <view class="trip-invite-day-head">
+              <view>
+                <view class="trip-invite-day-kicker">Day {{item.dayNo}}</view>
+                <view class="trip-invite-day-title">{{item.title}}</view>
+              </view>
+              <view class="trip-invite-day-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
+            </view>
+            <view wx:if="{{item.city || item.summary}}" class="trip-invite-day-copy">{{item.city}}{{item.city && item.summary ? ' · ' : ''}}{{item.summary}}</view>
+            <view wx:if="{{item.startTime}}" class="trip-invite-day-start">预计出发：{{item.startTime}}</view>
+
+            <view wx:if="{{item.timelineItems.length}}" class="trip-invite-timeline">
+              <view wx:for="{{item.timelineItems}}" wx:for-item="node" wx:key="id" class="trip-invite-node">
+                <view class="trip-invite-node-time">{{node.time || '待定'}}</view>
+                <view class="trip-invite-node-dot"></view>
+                <view class="trip-invite-node-copy">
+                  <view class="trip-invite-node-title">{{node.title}}</view>
+                  <view wx:if="{{node.location}}" class="trip-invite-node-sub">{{node.location}}</view>
+                  <view wx:if="{{node.driveText || node.trafficText}}" class="trip-invite-node-sub">{{node.driveText}}{{node.driveText && node.trafficText ? ' · ' : ''}}{{node.trafficText}}</view>
+                  <view wx:if="{{node.note}}" class="trip-invite-node-note">{{node.note}}</view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{tripInviteTrip.hasHotels}}" class="section-shell">
+        <view class="section-kicker">HOTEL</view>
+        <view class="section-title">酒店安排</view>
+        <view class="stack-list">
+          <view wx:for="{{tripInviteTrip.hotels}}" wx:key="id" class="trip-invite-info-card card-surface">
+            <view class="trip-invite-info-title">{{item.name}}</view>
+            <view wx:if="{{item.dateText}}" class="trip-invite-info-meta">{{item.dateText}}</view>
+            <view wx:if="{{item.city || item.address}}" class="trip-invite-info-copy">{{item.city}}{{item.city && item.address ? ' · ' : ''}}{{item.address}}</view>
+            <view wx:if="{{item.note}}" class="trip-invite-info-note">{{item.note}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{tripInviteTrip.hasFlights}}" class="section-shell">
+        <view class="section-kicker">FLIGHT</view>
+        <view class="section-title">航班安排</view>
+        <view class="stack-list">
+          <view wx:for="{{tripInviteTrip.flights}}" wx:key="id" class="trip-invite-info-card card-surface">
+            <view class="trip-invite-info-title">{{item.flightNo}}</view>
+            <view wx:if="{{item.route}}" class="trip-invite-info-meta">{{item.route}}</view>
+            <view wx:if="{{item.timeText}}" class="trip-invite-info-copy">{{item.timeText}}</view>
+            <view wx:if="{{item.note}}" class="trip-invite-info-note">{{item.note}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{tripInviteTrip.hasTransports}}" class="section-shell">
+        <view class="section-kicker">TRANSPORT</view>
+        <view class="section-title">用车安排</view>
+        <view class="stack-list">
+          <view wx:for="{{tripInviteTrip.transports}}" wx:key="id" class="trip-invite-info-card card-surface">
+            <view class="trip-invite-info-title">{{item.title}}</view>
+            <view wx:if="{{item.meta}}" class="trip-invite-info-meta">{{item.meta}}</view>
+            <view wx:if="{{item.note}}" class="trip-invite-info-copy">{{item.note}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="advisor-panel trip-invite-advisor">
+        <view>{{tripInviteTrip.advisorName || 'Farland 顾问'}}已为您整理本次行程。如需调整或确认细节，请联系顾问。</view>
+        <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
+      </view>
+    </block>
   </view>
 
   <block wx:else>
