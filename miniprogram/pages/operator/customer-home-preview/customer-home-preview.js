@@ -127,10 +127,11 @@ Page({
       },
       invitePath: '',
     });
-    this.loadPreview();
+    this.loadPreview({ enterCustomerPage: true });
   },
 
-  async loadPreview() {
+  async loadPreview(options = {}) {
+    const enterCustomerPage = Boolean(options.enterCustomerPage);
     const hasSelectedCustomer = this.data.previewMode === 'existing_customer' && this.data.selectedCustomer;
     if (!this.data.tripId && !this.data.requestId && !hasSelectedCustomer) {
       wx.showToast({ title: '请选择客户或输入 trip_id', icon: 'none' });
@@ -168,6 +169,9 @@ Page({
         inviteCode: '',
         inviteExpiresAt: '',
       });
+      if (enterCustomerPage) {
+        this.openCustomerFacingPreview(result);
+      }
     } catch (error) {
       console.error('[customer-home-preview] getOperatorCustomerHomePreview failed', error);
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
@@ -192,6 +196,28 @@ Page({
       flight_cards: Array.isArray(home.flight_cards) ? home.flight_cards : [],
       benefits: Array.isArray(home.benefits) ? home.benefits : [],
     };
+  },
+
+  openCustomerFacingPreview(previewResult) {
+    const result = previewResult && previewResult.customer_home ? previewResult : this.data.preview;
+    if (!result || !result.customer_home) {
+      wx.showToast({ title: '请先生成预览', icon: 'none' });
+      return;
+    }
+    const app = getApp();
+    app.globalData.operatorCustomerHomePreview = {
+      customer_home: result.customer_home,
+      preview_meta: result.preview_meta || {},
+      preview_customer: result.preview_customer || {},
+      preview_access_mode: result.preview_access_mode || this.data.previewMode,
+    };
+    wx.navigateTo({
+      url: '/pages/customer/home/home?operator_customer_preview=1',
+      fail: (error) => {
+        console.error('[customer-home-preview] open customer page failed', error);
+        wx.showToast({ title: '客户页面打开失败', icon: 'none' });
+      },
+    });
   },
 
   async buildDraft() {
