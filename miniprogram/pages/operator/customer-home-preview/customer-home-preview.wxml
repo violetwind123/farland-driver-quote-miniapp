@@ -1,0 +1,201 @@
+<view class="page">
+  <view class="preview-header">
+    <view>
+      <view class="kicker">OPERATOR PREVIEW</view>
+      <view class="title">Customer Preview Center</view>
+    </view>
+    <view class="header-note">Preview mode. Restart the Mini Program to return to Operator Home.</view>
+  </view>
+
+  <view class="mode-banner {{previewMeta && previewMeta.unpublished ? 'unpublished' : 'published'}}">
+    <view class="banner-title">{{previewMeta && previewMeta.unpublished ? 'UNPUBLISHED - OPERATOR PREVIEW ONLY' : 'PUBLISHED CUSTOMER VIEW'}}</view>
+    <view class="banner-sub">Customer would see: {{previewMeta.customer_would_see || 'waiting'}}</view>
+  </view>
+
+  <view class="panel">
+    <view class="section-title">Preview Target</view>
+    <view class="field-label">trip_id</view>
+    <view class="trip-row">
+      <input class="text-input" value="{{tripId}}" placeholder="输入或粘贴 trip_id / external_trip_id" bindinput="onTripIdInput" />
+      <button class="mini-btn" loading="{{loading}}" bindtap="loadPreview">预览</button>
+    </view>
+
+    <view class="selector-row">
+      <view class="guest-card {{previewMode === 'temporary_guest' ? 'active' : ''}}" bindtap="selectTemporaryGuest">
+        <view class="customer-name">Temporary Guest Preview</view>
+        <view class="customer-sub">不创建用户，不写 customer_trip_access</view>
+      </view>
+    </view>
+
+    <view class="field-label">选择已有客户</view>
+    <view class="search-row">
+      <input class="text-input" value="{{keyword}}" placeholder="客户称呼 / 手机 / 微信号" bindinput="onKeywordInput" />
+      <button class="mini-btn" loading="{{customerLoading}}" bindtap="searchCustomers">搜索</button>
+    </view>
+
+    <view wx:if="{{customers.length}}" class="customer-list">
+      <view
+        wx:for="{{customers}}"
+        wx:key="customer_user_id"
+        class="customer-bar {{selectedCustomer && selectedCustomer.customer_user_id === item.customer_user_id ? 'active' : ''}}"
+        data-user-id="{{item.customer_user_id}}"
+        bindtap="selectCustomer"
+      >
+        <view class="customer-main">
+          <view class="customer-name">{{item.display_name || item.name}}</view>
+          <view class="customer-sub">WeChat: {{item.wechat_id || '未填写'}}</view>
+          <view class="customer-sub">OpenID: {{item.openid_display || '未绑定'}}</view>
+        </view>
+        <view class="customer-stats">
+          <view>{{item.active_trip_count || 0}} active</view>
+          <view>{{item.unpublished_preview_count || 0}} unpublished</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{error}}" class="panel error-panel">
+    <view class="section-title">错误</view>
+    <view class="error-text">{{error}}</view>
+  </view>
+
+  <view wx:if="{{preview}}" class="panel">
+    <view class="section-title">Operator Warning Panel</view>
+    <view class="meta-grid">
+      <view class="meta-item">
+        <view class="meta-label">review</view>
+        <view class="meta-value">{{previewMeta.review_status || '-'}}</view>
+      </view>
+      <view class="meta-item">
+        <view class="meta-label">visibility</view>
+        <view class="meta-value">{{previewMeta.visibility_status || '-'}}</view>
+      </view>
+      <view class="meta-item">
+        <view class="meta-label">version</view>
+        <view class="meta-value">v{{previewMeta.published_version || 0}}</view>
+      </view>
+    </view>
+    <view wx:if="{{previewCustomer}}" class="selected-preview-customer">
+      <view class="customer-name">{{previewCustomer.display_name}}</view>
+      <view class="customer-sub">{{previewCustomer.is_registered ? 'Registered Customer' : 'Temporary Guest'}}</view>
+      <view wx:if="{{previewCustomer.wechat_id}}" class="customer-sub">WeChat: {{previewCustomer.wechat_id}}</view>
+      <view wx:if="{{previewCustomer.openid_display}}" class="customer-sub">OpenID: {{previewCustomer.openid_display}}</view>
+    </view>
+
+    <view wx:if="{{previewMeta.critical_warnings.length}}" class="critical-box">
+      <view class="warning-title">Critical warnings</view>
+      <view wx:for="{{previewMeta.critical_warnings}}" wx:key="*this" class="warning-row">{{item}}</view>
+    </view>
+    <view wx:if="{{previewMeta.warnings.length}}" class="warning-box">
+      <view class="warning-title">Warnings</view>
+      <view wx:for="{{previewMeta.warnings}}" wx:key="*this" class="warning-row">{{item}}</view>
+    </view>
+
+    <textarea
+      class="note-input"
+      value="{{reviewNote}}"
+      maxlength="300"
+      placeholder="发布备注，可选"
+      bindinput="onReviewNoteInput"
+    />
+    <view class="action-row">
+      <button class="secondary-btn" loading="{{building}}" bindtap="buildDraft">Build Customer Draft</button>
+      <button class="primary-btn" loading="{{publishing}}" bindtap="publishTrip">Publish After Review</button>
+    </view>
+    <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
+      <button class="primary-wide-btn" loading="{{creatingInvite}}" bindtap="createInvite">Create / Copy Customer Card</button>
+      <view wx:if="{{invitePath}}" class="invite-path">{{invitePath}}</view>
+      <button wx:if="{{invitePath}}" class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
+    </view>
+  </view>
+
+  <view class="panel customer-preview">
+    <view class="section-title">Customer Home Preview</view>
+    <view wx:if="{{!customerHome}}" class="empty-card">
+      <view class="empty-title">暂无预览</view>
+      <view class="empty-sub">输入 trip_id 或从导入页进入后查看客户主页预览。</view>
+    </view>
+
+    <block wx:else>
+      <view class="customer-hero">
+        <view class="customer-kicker">MY FARLAND TRIP</view>
+        <view class="customer-title">{{customerHome.profile.display_name || 'Farland 客户'}}</view>
+        <view class="customer-sub">Advisor: {{customerHome.profile.advisor_name || 'Farland Advisor'}}</view>
+      </view>
+
+      <view wx:if="{{previewMeta.customer_would_see === 'waiting'}}" class="waiting-card">
+        <view class="waiting-title">Farland 顾问正在核对行程</view>
+        <view class="waiting-sub">确认后将在这里显示客户可见版本。</view>
+      </view>
+
+      <view wx:if="{{customerHome.trip_overview.length}}" class="preview-section">
+        <view class="preview-title">行程总览</view>
+        <view wx:for="{{customerHome.trip_overview}}" wx:key="trip_id" class="info-card">
+          <view class="info-main">{{item.title}}</view>
+          <view class="info-sub">{{item.trip_no}} · {{item.date_range_text}}</view>
+          <view class="info-sub">{{item.city_summary}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{customerHome.today_itinerary}}" class="preview-section">
+        <view class="preview-title">今日 / 即将行程</view>
+        <view class="day-card">
+          <view class="day-head">
+            <view>
+              <view class="day-label">Day {{customerHome.today_itinerary.day_no || 1}}</view>
+              <view class="day-title">{{customerHome.today_itinerary.title || customerHome.today_itinerary.city || '当日安排'}}</view>
+            </view>
+            <view class="day-date">{{customerHome.today_itinerary.date}} {{customerHome.today_itinerary.weekday}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{customerHome.itinerary_days.length}}" class="preview-section">
+        <view class="preview-title">Day-by-day Schedule</view>
+        <view wx:for="{{customerHome.itinerary_days}}" wx:key="day_no" class="day-card">
+          <view class="day-head">
+            <view>
+              <view class="day-label">Day {{item.day_no || index + 1}}</view>
+              <view class="day-title">{{item.title || item.city || '当日安排'}}</view>
+            </view>
+            <view class="day-date">{{item.date}} {{item.weekday}}</view>
+          </view>
+          <view wx:for="{{item.timeline_items}}" wx:for-item="node" wx:key="item_id" class="timeline-row">
+            <view class="timeline-time">{{node.time || node.planned_start_time || node.planned_arrival_time || '--:--'}}</view>
+            <view>
+              <view class="timeline-title">{{node.title || '行程节点'}}</view>
+              <view wx:if="{{node.location_name || node.address}}" class="timeline-sub">{{node.location_name || node.address}}</view>
+              <view wx:if="{{node.drive_time_text || node.distance_text || node.traffic_text}}" class="timeline-sub">
+                {{node.drive_time_text}}{{node.distance_text ? ' · ' + node.distance_text : ''}}{{node.traffic_text ? ' · ' + node.traffic_text : ''}}
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{customerHome.hotel_requests.length}}" class="preview-section">
+        <view class="preview-title">Hotel Cards</view>
+        <view wx:for="{{customerHome.hotel_requests}}" wx:key="hotel_id" class="info-card">
+          <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
+          <view class="info-sub">{{item.address || item.date_range_text || item.arrival_time || ''}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{customerHome.transfer_requests.length || customerHome.charter_services.length || customerHome.transport_orders.length}}" class="preview-section">
+        <view class="preview-title">Transport / Charter Blocks</view>
+        <view wx:for="{{customerHome.transport_orders}}" wx:key="transport_order_id" class="info-card">
+          <view class="info-main">{{item.driver_name || '已确认司机'}}</view>
+          <view class="info-sub">{{item.vehicle_model || item.vehicle_type || '车辆待同步'}} · {{item.driver_phone || '电话待同步'}}</view>
+        </view>
+        <view wx:for="{{customerHome.transfer_requests}}" wx:key="transfer_id" class="info-card">
+          <view class="info-main">{{item.title || '接送安排'}}</view>
+          <view class="info-sub">{{item.pickup || item.origin || ''}}{{item.dropoff || item.destination ? ' → ' + (item.dropoff || item.destination) : ''}}</view>
+        </view>
+        <view wx:for="{{customerHome.charter_services}}" wx:key="charter_id" class="info-card">
+          <view class="info-main">{{item.title || '包车服务'}}</view>
+          <view class="info-sub">{{item.date_range_text || item.service_area || item.vehicle_class || ''}}</view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>

@@ -86,7 +86,7 @@
       <view wx:if="{{item.visible_until}}" class="operation-sub">visible_until：{{item.visible_until}}</view>
     </view>
     <view wx:if="{{preview.dry_run && !preview.display_can_apply}}" class="operation-sub">当前预览不可写入，请检查校验结果。</view>
-    <button wx:if="{{preview.can_open_detail}}" class="secondary-btn" bindtap="openPreviewTripDetail">查看行程详情</button>
+    <button wx:if="{{preview.can_open_detail}}" class="secondary-btn" bindtap="openPreviewTripDetail">进入客户预览中心</button>
   </view>
 
   <view class="button-bar">

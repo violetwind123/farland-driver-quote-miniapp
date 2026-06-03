@@ -235,7 +235,7 @@ Page({
       });
       wx.showToast({ title: dryRun ? '预览完成' : '写入完成', icon: 'success' });
       if (!dryRun) {
-        this.openTripDetail(result);
+        this.openCustomerPreview(result);
       }
     } catch (error) {
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
@@ -253,22 +253,25 @@ Page({
     }
   },
 
-  openTripDetail(result) {
+  openCustomerPreview(result) {
     const tripId = result && (result.trip_id || result.external_trip_id || result.customer_trip_id);
-    if (!tripId) return;
+    const route = result && result.next_route
+      ? result.next_route
+      : (tripId ? `/pages/operator/customer-home-preview/customer-home-preview?trip_id=${encodeURIComponent(tripId)}&preview_access_mode=temporary_guest` : '');
+    if (!route) return;
     setTimeout(() => {
       wx.navigateTo({
-        url: `/pages/operator/customer-trip-detail/customer-trip-detail?trip_id=${encodeURIComponent(tripId)}`,
+        url: route,
         fail: (error) => {
           const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
-          console.error('[customer-import] navigate to customer trip detail failed', error);
+          console.error('[customer-import] navigate to customer preview center failed', error);
           this.setData({
             errors: [
-              `行程已写入，但打开详情页失败：${errMsg}`,
-              '请重新编译小程序，或手动打开运营行程详情页。',
+              `行程已写入，但打开客户预览中心失败：${errMsg}`,
+              '请重新编译小程序，或从运营控制台进入客户界面预览。',
             ],
           });
-          wx.showToast({ title: '请手动查看详情', icon: 'none' });
+          wx.showToast({ title: '请手动进入预览', icon: 'none' });
         },
       });
     }, 450);
@@ -279,7 +282,7 @@ Page({
       wx.showToast({ title: '请先确认写入', icon: 'none' });
       return;
     }
-    this.openTripDetail(this.data.preview);
+    this.openCustomerPreview(this.data.preview);
   },
 
   previewImport() {

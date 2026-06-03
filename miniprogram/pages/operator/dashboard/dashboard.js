@@ -59,6 +59,10 @@ Page({
     wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
   },
 
+  openCustomerHomePreview() {
+    wx.navigateTo({ url: '/pages/operator/customer-home-preview/customer-home-preview?preview_access_mode=temporary_guest' });
+  },
+
   openCustomerInviteRequests() {
     wx.navigateTo({ url: '/pages/operator/request-hall/request-hall?tab=all' });
   },

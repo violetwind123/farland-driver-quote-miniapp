@@ -612,6 +612,7 @@ async function handleImportCustomerTripJSON(event = {}) {
     }
 
     if (action === 'no_change') {
+      const nextRoute = `/pages/operator/customer-home-preview/customer-home-preview?trip_id=${encodeURIComponent(normalizedTrip.trip_id)}&preview_access_mode=temporary_guest`;
       return {
         success: true,
         code: 0,
@@ -627,6 +628,7 @@ async function handleImportCustomerTripJSON(event = {}) {
         review_status: existingTrip.review_status || 'pending_review',
         visibility_status: existingTrip.visibility_status || 'hidden',
         published_version: existingTrip.published_version || 0,
+        next_route: nextRoute,
         message: '行程内容未变化',
       };
     }
@@ -694,6 +696,7 @@ async function handleImportCustomerTripJSON(event = {}) {
       created_at: now,
     }).catch(() => null);
 
+    const nextRoute = `/pages/operator/customer-home-preview/customer-home-preview?trip_id=${encodeURIComponent(normalizedTrip.trip_id)}&preview_access_mode=temporary_guest`;
     return {
       success: true,
       code: 0,
@@ -710,6 +713,7 @@ async function handleImportCustomerTripJSON(event = {}) {
       visibility_status: (existingTrip && existingTrip.visibility_status) || 'hidden',
       published_version: (existingTrip && existingTrip.published_version) || 0,
       customer_trip_access_id: accessId,
+      next_route: nextRoute,
     };
   }
 
@@ -853,6 +857,7 @@ async function handleImportCustomerTripJSON(event = {}) {
     created_at: now,
   }).catch(() => null);
 
+  const nextRoute = `/pages/operator/customer-home-preview/customer-home-preview?trip_id=${encodeURIComponent(trip.trip_id)}&preview_access_mode=temporary_guest`;
   return {
     success: true,
     code: 0,
@@ -867,6 +872,7 @@ async function handleImportCustomerTripJSON(event = {}) {
     visibility_status: (existingTrip && existingTrip.visibility_status) || 'hidden',
     published_version: (existingTrip && existingTrip.published_version) || 0,
     operations,
+    next_route: nextRoute,
   };
 }
 
