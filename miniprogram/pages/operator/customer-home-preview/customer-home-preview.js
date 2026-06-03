@@ -39,16 +39,6 @@ Page({
     }
   },
 
-  returnOperatorHome() {
-    wx.reLaunch({
-      url: '/pages/operator/dashboard/dashboard',
-      fail: (error) => {
-        console.error('[customer-home-preview] return operator home failed', error);
-        wx.showToast({ title: '返回失败，请重启小程序', icon: 'none' });
-      },
-    });
-  },
-
   onKeywordInput(e) {
     this.setData({ keyword: e.detail.value || '' });
   },

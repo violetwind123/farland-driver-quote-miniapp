@@ -4,10 +4,7 @@
       <view class="kicker">OPERATOR PREVIEW</view>
       <view class="title">Customer Preview Center</view>
     </view>
-    <view class="header-actions">
-      <button wx:if="{{!preview}}" class="return-btn" bindtap="returnOperatorHome">返回运营</button>
-      <view class="header-note">{{preview ? 'Preview mode. Restart the Mini Program to return to Operator Home.' : 'Select customer or temporary guest, then enter customer preview.'}}</view>
-    </view>
+    <view class="header-note">{{preview ? 'Preview mode. Use the native page back control to leave this operator page.' : 'Select customer or temporary guest, then enter customer preview.'}}</view>
   </view>
 
   <view class="mode-banner {{previewMeta && previewMeta.unpublished ? 'unpublished' : 'published'}}">

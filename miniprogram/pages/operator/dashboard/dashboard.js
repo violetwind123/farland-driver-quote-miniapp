@@ -60,7 +60,7 @@ Page({
   },
 
   openCustomerHomePreview() {
-    wx.reLaunch({
+    wx.navigateTo({
       url: '/pages/operator/customer-home-preview/customer-home-preview?preview_access_mode=temporary_guest',
       fail: (error) => {
         console.error('[dashboard] open customer home preview failed', error);

@@ -260,7 +260,7 @@ Page({
       : (tripId ? `/pages/operator/customer-home-preview/customer-home-preview?trip_id=${encodeURIComponent(tripId)}&preview_access_mode=temporary_guest` : '');
     if (!route) return;
     setTimeout(() => {
-      wx.reLaunch({
+      wx.navigateTo({
         url: route,
         fail: (error) => {
           const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
