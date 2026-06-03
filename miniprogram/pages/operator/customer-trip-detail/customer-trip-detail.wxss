@@ -195,7 +195,9 @@
 
 .secondary-btn,
 .primary-btn,
-.footer-btn {
+.footer-btn,
+.primary-wide-btn,
+.secondary-wide-btn {
   margin: 0;
   min-height: 76rpx;
   line-height: 76rpx;
@@ -204,14 +206,84 @@
 }
 
 .secondary-btn,
-.footer-btn {
+.footer-btn,
+.secondary-wide-btn {
   background: #F2F4F7;
   color: #6672A8;
 }
 
-.primary-btn {
+.primary-btn,
+.primary-wide-btn {
   background: #6672A8;
   color: #FFFFFF;
+}
+
+.primary-wide-btn,
+.secondary-wide-btn {
+  width: 100%;
+  margin-top: 18rpx;
+}
+
+.share-empty {
+  padding: 24rpx 18rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+}
+
+.share-note {
+  color: #6E7788;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.invite-box {
+  margin-top: 18rpx;
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+}
+
+.invite-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid rgba(102, 114, 168, 0.10);
+}
+
+.invite-label {
+  flex: 0 0 160rpx;
+  color: #7E889A;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.invite-value {
+  flex: 1;
+  color: #1D2433;
+  font-size: 23rpx;
+  line-height: 1.35;
+  text-align: right;
+  word-break: break-word;
+}
+
+.invite-path {
+  margin-top: 14rpx;
+  padding: 14rpx;
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  color: #253554;
+  font-size: 22rpx;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.invite-sub {
+  margin-top: 10rpx;
+  color: #6672A8;
+  font-size: 22rpx;
+  line-height: 1.4;
 }
 
 .snapshot-tabs {

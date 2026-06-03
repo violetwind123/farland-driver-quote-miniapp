@@ -73,6 +73,31 @@
     </view>
 
     <view class="panel">
+      <view class="section-title">客户分享卡</view>
+      <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
+        <view class="empty-title">发布后可生成客户分享卡</view>
+        <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
+      </view>
+      <block wx:else>
+        <view class="share-note">生成后可复制路径，通过顾问卡片发送给客户。</view>
+        <button class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createTripInvite">生成客户分享卡</button>
+        <view wx:if="{{invitePath}}" class="invite-box">
+          <view class="invite-row">
+            <view class="invite-label">invite_code</view>
+            <view class="invite-value">{{inviteCode}}</view>
+          </view>
+          <view class="invite-row">
+            <view class="invite-label">expires_at</view>
+            <view class="invite-value">{{inviteExpiresAt}}</view>
+          </view>
+          <view class="invite-path">{{invitePath}}</view>
+          <view wx:if="{{inviteReused}}" class="invite-sub">已复用当前有效分享卡。</view>
+          <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
+        </view>
+      </block>
+    </view>
+
+    <view class="panel">
       <view class="section-title">客户视图预览</view>
       <view class="snapshot-tabs">
         <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">草稿预览</view>

@@ -4,6 +4,7 @@ Page({
     refreshing: false,
     building: false,
     publishing: false,
+    creatingInvite: false,
     tripId: '',
     error: '',
     reviewNote: '',
@@ -20,6 +21,10 @@ Page({
     stateText: '',
     stateHint: '',
     canPublish: false,
+    invitePath: '',
+    inviteCode: '',
+    inviteExpiresAt: '',
+    inviteReused: false,
   },
 
   onLoad(options) {
@@ -248,7 +253,14 @@ Page({
         return;
       }
       wx.showToast({ title: '已发布', icon: 'success' });
-      this.setData({ publishing: false, activeSnapshotType: 'published' });
+      this.setData({
+        publishing: false,
+        activeSnapshotType: 'published',
+        invitePath: '',
+        inviteCode: '',
+        inviteExpiresAt: '',
+        inviteReused: false,
+      });
       this.loadPreview({ silent: true });
     } catch (error) {
       console.error('[customer-trip-detail] publishCustomerTrip failed', error);
@@ -259,6 +271,60 @@ Page({
       });
       wx.showToast({ title: '发布失败', icon: 'none' });
     }
+  },
+
+  async createTripInvite() {
+    if (this.data.creatingInvite) return;
+    const preview = this.data.preview || {};
+    if (preview.visibility_status !== 'published' || !this.data.hasPublished) {
+      wx.showToast({ title: '请先发布行程', icon: 'none' });
+      return;
+    }
+    this.setData({ creatingInvite: true, error: '' });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'createCustomerTripInvite',
+        data: {
+          trip_id: this.data.tripId,
+          expires_in_days: 30,
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({
+          creatingInvite: false,
+          error: (result && result.message) || '客户分享卡生成失败',
+        });
+        wx.showToast({ title: '生成失败', icon: 'none' });
+        return;
+      }
+      this.setData({
+        creatingInvite: false,
+        invitePath: result.share_path || result.path || '',
+        inviteCode: result.invite_code || '',
+        inviteExpiresAt: result.expires_at || '',
+        inviteReused: Boolean(result.reused),
+      });
+      wx.showToast({ title: result.reused ? '已复用分享卡' : '分享卡已生成', icon: 'success' });
+    } catch (error) {
+      console.error('[customer-trip-detail] createCustomerTripInvite failed', error);
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      this.setData({
+        creatingInvite: false,
+        error: `客户分享卡生成失败：${errMsg}`,
+      });
+      wx.showToast({ title: '生成失败', icon: 'none' });
+    }
+  },
+
+  copyInvitePath() {
+    if (!this.data.invitePath) {
+      wx.showToast({ title: '请先生成分享卡', icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: this.data.invitePath,
+      success: () => wx.showToast({ title: '已复制客户路径', icon: 'success' }),
+    });
   },
 
   refreshPreview() {
