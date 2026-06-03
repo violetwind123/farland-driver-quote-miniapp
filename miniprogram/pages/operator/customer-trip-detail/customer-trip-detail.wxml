@@ -1,0 +1,161 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading-panel">
+    <view class="loading-title">正在加载行程</view>
+    <view class="loading-sub">读取运营预览和发布状态</view>
+  </view>
+
+  <block wx:else>
+    <view class="hero">
+      <view class="hero-top">
+        <view>
+          <view class="kicker">CUSTOMER TRIP RELEASE</view>
+          <view class="title">{{activeSnapshot && activeSnapshot.display_title ? activeSnapshot.display_title : '行程预览发布'}}</view>
+        </view>
+        <button class="icon-btn" loading="{{refreshing}}" bindtap="refreshPreview">刷新</button>
+      </view>
+      <view class="trip-meta">
+        <view class="meta-chip">{{preview.trip_id || tripId}}</view>
+        <view wx:if="{{preview.external_trip_id}}" class="meta-chip">{{preview.external_trip_id}}</view>
+        <view class="meta-chip">{{stateText}}</view>
+      </view>
+      <view class="state-hint">{{stateHint}}</view>
+    </view>
+
+    <view wx:if="{{error}}" class="panel error-panel">
+      <view class="section-title">错误</view>
+      <view class="error-text">{{error}}</view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">审核发布</view>
+      <view class="status-grid">
+        <view class="status-item">
+          <view class="status-label">review</view>
+          <view class="status-value">{{preview.review_status || 'pending_review'}}</view>
+        </view>
+        <view class="status-item">
+          <view class="status-label">visibility</view>
+          <view class="status-value">{{preview.visibility_status || 'hidden'}}</view>
+        </view>
+        <view class="status-item">
+          <view class="status-label">version</view>
+          <view class="status-value">v{{preview.published_version || 0}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{criticalWarningList.length}}" class="critical-box">
+        <view class="warning-title">关键警告</view>
+        <view wx:for="{{criticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+      </view>
+
+      <view wx:if="{{warningList.length}}" class="warning-box">
+        <view class="warning-title">需复核</view>
+        <view wx:for="{{warningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+      </view>
+
+      <view wx:if="{{changedSections.length}}" class="changed-box">
+        <view class="warning-title">与已发布版本不同</view>
+        <view wx:for="{{changedSections}}" wx:key="*this" class="warning-row">{{item}}</view>
+      </view>
+
+      <textarea
+        class="note-input"
+        value="{{reviewNote}}"
+        placeholder="发布备注，可选"
+        maxlength="300"
+        bindinput="onReviewNoteInput"
+      />
+
+      <view class="action-row">
+        <button class="secondary-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见草稿</button>
+        <button class="primary-btn" loading="{{publishing}}" disabled="{{publishing || building || !canPublish}}" bindtap="publishTrip">发布</button>
+      </view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">客户视图预览</view>
+      <view class="snapshot-tabs">
+        <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">草稿预览</view>
+        <view class="snapshot-tab {{activeSnapshotType === 'published' ? 'active' : ''}}" data-type="published" bindtap="selectSnapshot">已发布版本</view>
+      </view>
+
+      <view wx:if="{{!activeSnapshot}}" class="empty-preview">
+        <view class="empty-title">暂无客户可见内容</view>
+        <view class="empty-sub">请先点击“生成客户可见草稿”。</view>
+      </view>
+
+      <block wx:else>
+        <view class="customer-hero">
+          <view class="customer-kicker">{{activeSnapshot.display_trip_no || 'Farland Trip'}}</view>
+          <view class="customer-title">{{activeSnapshot.display_title}}</view>
+          <view wx:if="{{activeSnapshot.display_date_range}}" class="customer-sub">{{activeSnapshot.display_date_range}}</view>
+          <view wx:if="{{activeSnapshot.display_city}}" class="customer-sub">{{activeSnapshot.display_city}}</view>
+          <view wx:if="{{activeSnapshot.display_customer || activeSnapshot.display_advisor}}" class="customer-note">
+            {{activeSnapshot.display_customer || '客户'}} · {{activeSnapshot.display_advisor}}
+          </view>
+        </view>
+
+        <view wx:if="{{activeSnapshot.itinerary_days.length}}" class="preview-section">
+          <view class="preview-title">每日行程</view>
+          <view wx:for="{{activeSnapshot.itinerary_days}}" wx:key="day_no" class="day-card">
+            <view class="day-head">
+              <view>
+                <view class="day-label">{{item.display_day_label}}</view>
+                <view class="day-title">{{item.title || item.city || '当日安排'}}</view>
+              </view>
+              <view class="day-date">{{item.date}} {{item.weekday}}</view>
+            </view>
+            <view wx:if="{{item.summary}}" class="day-summary">{{item.summary}}</view>
+            <view wx:if="{{item.estimated_departure_time || item.displayed_start_time}}" class="service-line">
+              出发：{{item.estimated_departure_time || item.displayed_start_time}}
+            </view>
+            <view wx:for="{{item.timeline_items}}" wx:for-item="node" wx:key="item_id" class="timeline-row">
+              <view class="timeline-time">{{node.time || node.planned_start_time || node.planned_arrival_time || '--:--'}}</view>
+              <view class="timeline-main">
+                <view class="timeline-title">{{node.title || '行程节点'}}</view>
+                <view wx:if="{{node.location_name || node.address}}" class="timeline-sub">{{node.location_name || node.address}}</view>
+                <view wx:if="{{node.drive_time_text || node.distance_text || node.traffic_text}}" class="timeline-sub">
+                  {{node.drive_time_text}}{{node.distance_text ? ' · ' + node.distance_text : ''}}{{node.traffic_text ? ' · ' + node.traffic_text : ''}}
+                </view>
+                <view wx:if="{{node.customer_note}}" class="timeline-note">{{node.customer_note}}</view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{activeSnapshot.hotels.length}}" class="preview-section">
+          <view class="preview-title">酒店</view>
+          <view wx:for="{{activeSnapshot.hotels}}" wx:key="hotel_id" class="info-row">
+            <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
+            <view class="info-sub">{{item.address || item.date_range_text || item.arrival_time || ''}}</view>
+          </view>
+        </view>
+
+        <view wx:if="{{activeSnapshot.flights.length}}" class="preview-section">
+          <view class="preview-title">航班</view>
+          <view wx:for="{{activeSnapshot.flights}}" wx:key="flight_id" class="info-row">
+            <view class="info-main">{{item.flight_no || item.flight_number || item.title || '航班安排'}}</view>
+            <view class="info-sub">{{item.departure_airport || item.origin || ''}}{{item.arrival_airport || item.destination ? ' → ' + (item.arrival_airport || item.destination) : ''}}</view>
+          </view>
+        </view>
+
+        <view wx:if="{{activeSnapshot.transfers.length || activeSnapshot.charter_services.length}}" class="preview-section">
+          <view class="preview-title">用车</view>
+          <view wx:for="{{activeSnapshot.transfers}}" wx:key="transfer_id" class="info-row">
+            <view class="info-main">{{item.title || '接送安排'}}</view>
+            <view class="info-sub">{{item.pickup || item.origin || ''}}{{item.dropoff || item.destination ? ' → ' + (item.dropoff || item.destination) : ''}}</view>
+          </view>
+          <view wx:for="{{activeSnapshot.charter_services}}" wx:key="charter_id" class="info-row">
+            <view class="info-main">{{item.title || '包车服务'}}</view>
+            <view class="info-sub">{{item.date_range_text || item.service_area || item.vehicle_class || ''}}</view>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view class="footer-actions">
+      <button class="footer-btn" bindtap="copyTripId">复制 trip_id</button>
+      <button class="footer-btn" bindtap="backToImport">返回导入</button>
+    </view>
+  </block>
+</view>

@@ -234,6 +234,9 @@ Page({
         applyLoading: false,
       });
       wx.showToast({ title: dryRun ? '预览完成' : '写入完成', icon: 'success' });
+      if (!dryRun) {
+        this.openTripDetail(result);
+      }
     } catch (error) {
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
       console.error('[customer-import] importCustomerTripJSON call failed', error);
@@ -248,6 +251,16 @@ Page({
       });
       wx.showToast({ title: '调用失败', icon: 'none' });
     }
+  },
+
+  openTripDetail(result) {
+    const tripId = result && (result.trip_id || result.external_trip_id || result.customer_trip_id);
+    if (!tripId) return;
+    setTimeout(() => {
+      wx.navigateTo({
+        url: `/pages/operator/customer-trip-detail/customer-trip-detail?trip_id=${encodeURIComponent(tripId)}`,
+      });
+    }, 450);
   },
 
   previewImport() {
