@@ -620,6 +620,8 @@ Page({
       || (Array.isArray(home.transfer_requests) && home.transfer_requests.length)
       || (Array.isArray(home.charter_services) && home.charter_services.length)
       || (Array.isArray(home.transport_orders) && home.transport_orders.length)
+      || (Array.isArray(home.transportation_appointments) && home.transportation_appointments.length)
+      || (Array.isArray(home.trip_overview) && home.trip_overview.length && (home.trip_overview[0].status_text !== '待发布' || home.trip_overview[0].title))
     );
     if (!hasPreviewContent && meta.customer_would_see === 'waiting') {
       this.setData({

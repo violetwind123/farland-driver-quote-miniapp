@@ -4,12 +4,52 @@ const { requireRole } = require('./lib/auth');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+const INTERNAL_KEYS = new Set([
+  'openid',
+  'customer_openid',
+  'customer_user_id',
+  'user_id',
+  'driver_quotes',
+  'driver_quote',
+  'internal_note',
+  'internal_notes',
+  'operator_note',
+  'operator_notes',
+  'operator_internal_note',
+  'raw_parse_note',
+  'raw_parse_notes',
+  'source_raw_text',
+  'source_pdf_text',
+  'source_hash',
+  'audit_logs',
+  'cost',
+  'driver_cost',
+  'margin',
+  'supplier_note',
+  'supplier_notes',
+  'supplier_private_note',
+  'supplier_private_notes',
+]);
+
 function safeString(value) {
   return value === undefined || value === null ? '' : String(value);
 }
 
 function isObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeCustomerObject(value) {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeCustomerObject).filter((item) => item !== undefined);
+  }
+  if (!isObject(value)) return value;
+  return Object.keys(value).reduce((acc, key) => {
+    if (INTERNAL_KEYS.has(key)) return acc;
+    const sanitized = sanitizeCustomerObject(value[key]);
+    if (sanitized !== undefined) acc[key] = sanitized;
+    return acc;
+  }, {});
 }
 
 function maskOpenid(openid) {
@@ -23,6 +63,100 @@ function toTime(value) {
   if (!value) return 0;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function normalizeTimelineItem(item, index) {
+  const itemType = item.item_type || item.type || 'other';
+  return sanitizeCustomerObject({
+    item_id: item.item_id || item.id || `${itemType}_${index + 1}`,
+    item_type: itemType,
+    type: itemType,
+    title: item.title || '行程节点',
+    time: item.time || item.planned_start_time || item.planned_arrival_time || '',
+    planned_arrival_time: item.planned_arrival_time || '',
+    planned_start_time: item.planned_start_time || item.time || '',
+    planned_end_time: item.planned_end_time || '',
+    drive_time_text: item.drive_time_text || item.drive_time || '',
+    distance_text: item.distance_text || item.distance || '',
+    traffic_text: item.traffic_text || item.traffic_level || '',
+    location_name: item.location_name || item.location || '',
+    address: item.address || '',
+    customer_note: item.customer_note || item.customer_visible_note || item.note || item.description || '',
+  });
+}
+
+function normalizeDay(day, index) {
+  const timelineSource = Array.isArray(day.timeline_items)
+    ? day.timeline_items
+    : (Array.isArray(day.items) ? day.items : []);
+  return sanitizeCustomerObject({
+    day_no: day.day_no || index + 1,
+    date: day.date || '',
+    weekday: day.weekday || '',
+    title: day.title || `Day ${day.day_no || index + 1}`,
+    city: day.city || '',
+    summary: day.summary || '',
+    displayed_start_time: day.displayed_start_time || '',
+    estimated_departure_time: day.estimated_departure_time || '',
+    timeline_items: timelineSource.map(normalizeTimelineItem),
+    hotel: day.hotel ? sanitizeCustomerObject(day.hotel) : null,
+    transport_summary: day.transport_summary ? sanitizeCustomerObject(day.transport_summary) : null,
+  });
+}
+
+function buildOperatorDraftSnapshot(trip) {
+  if (!trip) return null;
+  const days = Array.isArray(trip.itinerary_days)
+    ? trip.itinerary_days
+    : (Array.isArray(trip.daily_itinerary) ? trip.daily_itinerary : []);
+  const hasSourceContent = days.length
+    || (Array.isArray(trip.hotels) && trip.hotels.length)
+    || (Array.isArray(trip.hotel_requests) && trip.hotel_requests.length)
+    || (Array.isArray(trip.flights) && trip.flights.length)
+    || (Array.isArray(trip.charter_services) && trip.charter_services.length)
+    || (Array.isArray(trip.transfers) && trip.transfers.length)
+    || isObject(trip.charter)
+    || isObject(trip.transfer);
+  if (!hasSourceContent) return null;
+  return sanitizeCustomerObject({
+    trip_id: trip.trip_id || trip.external_trip_id || '',
+    external_trip_id: trip.external_trip_id || trip.trip_id || '',
+    trip_no: trip.trip_no || trip.external_trip_id || trip.trip_id || '',
+    title: trip.title || 'Farland 行程',
+    trip_type: trip.trip_type || '',
+    status: trip.status || '',
+    city: trip.city || '',
+    country: trip.country || '',
+    timezone: trip.timezone || '',
+    start_at: trip.start_at || trip.date_start || '',
+    end_at: trip.end_at || trip.date_end || '',
+    summary: trip.summary || '',
+    customer: sanitizeCustomerObject(trip.customer || {}),
+    advisor: sanitizeCustomerObject(trip.advisor || {}),
+    hero: {
+      title: trip.title || 'Farland 行程',
+      trip_no: trip.trip_no || trip.external_trip_id || trip.trip_id || '',
+      date_range: [trip.start_at || trip.date_start || '', trip.end_at || trip.date_end || ''].filter(Boolean).join(' - '),
+      city_summary: trip.city || '',
+    },
+    itinerary_days: days.map(normalizeDay),
+    hotels: sanitizeCustomerObject(trip.hotels || trip.hotel_requests || []),
+    flights: sanitizeCustomerObject(trip.flights || []),
+    transfers: sanitizeCustomerObject(trip.transfers || (trip.transfer ? [trip.transfer] : [])),
+    charter_services: sanitizeCustomerObject(trip.charter_services || (trip.charter ? [trip.charter] : [])),
+    documents: sanitizeCustomerObject((trip.documents || []).filter((doc) => doc.visible_to_customer !== false)),
+  });
+}
+
+function hasSnapshot(snapshot) {
+  return isObject(snapshot) && Object.keys(snapshot).length > 0;
+}
+
+function getOperatorPreviewSnapshot(trip, isPublished) {
+  if (!trip) return null;
+  if (isPublished && hasSnapshot(trip.published_snapshot)) return trip.published_snapshot;
+  if (hasSnapshot(trip.draft_snapshot)) return trip.draft_snapshot;
+  return buildOperatorDraftSnapshot(trip);
 }
 
 async function findTrip(tripId) {
@@ -301,12 +435,13 @@ exports.main = async (event = {}) => {
   const request = await loadRequest(requestId);
   const { assigned_transport: assignedTransport, transport_order_health: transportOrderHealth } = await loadAssignedTransport(requestId);
 
-  const isPublished = Boolean(trip && trip.visibility_status === 'published' && isObject(trip.published_snapshot) && Object.keys(trip.published_snapshot).length);
-  const rawSnapshot = isPublished ? trip.published_snapshot : (trip && isObject(trip.draft_snapshot) ? trip.draft_snapshot : null);
+  const isPublished = Boolean(trip && trip.visibility_status === 'published' && hasSnapshot(trip.published_snapshot));
+  const rawSnapshot = getOperatorPreviewSnapshot(trip, isPublished);
   const snapshot = normalizeSnapshot(rawSnapshot);
   const warnings = Array.isArray(trip && trip.warning_codes) ? trip.warning_codes.slice() : [];
   const criticalWarnings = Array.isArray(trip && trip.critical_warning_codes) ? trip.critical_warning_codes.slice() : [];
   if (trip && !isPublished) warnings.push('unpublished_trip');
+  if (trip && !isPublished && !hasSnapshot(trip.draft_snapshot) && snapshot) warnings.push('preview_from_import_source');
   if (transportOrderHealth && transportOrderHealth.warning_code) warnings.push(transportOrderHealth.warning_code);
 
   return {
