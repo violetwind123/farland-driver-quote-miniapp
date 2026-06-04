@@ -1,6 +1,4 @@
 <view class="trip-page">
-  <button wx:if="{{operatorPreview || operatorCustomerPreviewMode}}" class="operator-back-btn" aria-label="返回" bindtap="backToOperatorCenter">‹</button>
-
   <view wx:if="{{loading}}" class="empty-state">{{tripInviteMode ? '正在加载 Farland 行程...' : '正在加载您的行程...'}}</view>
 
   <view wx:elif="{{needsInviteClaim}}" class="claim-panel card-surface">

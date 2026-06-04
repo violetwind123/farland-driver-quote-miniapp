@@ -339,8 +339,8 @@ Page({
       preview_customer: result.preview_customer || {},
     };
     delete app.globalData.operatorCustomerSharePreview;
-    wx.switchTab({
-      url: '/pages/customer/home/home',
+    wx.navigateTo({
+      url: '/pages/customer/home-preview/home-preview?operator_customer_preview=1',
       fail: (error) => {
         console.error('[customer-home-preview] open draft preview failed', error);
         wx.showToast({ title: '草稿预览打开失败', icon: 'none' });
@@ -365,8 +365,8 @@ Page({
       preview_customer: result.preview_customer || {},
     };
     delete app.globalData.operatorCustomerHomePreview;
-    wx.switchTab({
-      url: '/pages/customer/home/home',
+    wx.navigateTo({
+      url: '/pages/customer/home-preview/home-preview',
       fail: (error) => {
         console.error('[customer-home-preview] open customer page failed', error);
         wx.showToast({ title: '客户页面打开失败', icon: 'none' });

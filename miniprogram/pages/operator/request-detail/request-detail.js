@@ -373,7 +373,7 @@ Page({
       requestId: this.data.requestId,
       from: 'operator',
     };
-    wx.switchTab({ url: '/pages/customer/home/home' });
+    wx.navigateTo({ url: '/pages/customer/home-preview/home-preview' });
   },
 
   onCustomerShareTap() {
