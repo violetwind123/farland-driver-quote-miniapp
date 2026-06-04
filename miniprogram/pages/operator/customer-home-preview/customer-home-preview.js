@@ -162,7 +162,7 @@ Page({
         loading: false,
         preview: result,
         customerHome: this.normalizeCustomerHome(result.customer_home || {}),
-        previewMeta: result.preview_meta || {},
+        previewMeta: this.normalizePreviewMeta(result.preview_meta || {}),
         previewCustomer: result.preview_customer || {},
         tripId: (result.preview_meta && result.preview_meta.trip_id) || this.data.tripId,
         invitePath: '',
@@ -180,6 +180,16 @@ Page({
         error: `预览加载失败：${errMsg}`,
       });
     }
+  },
+
+  normalizePreviewMeta(meta = {}) {
+    return {
+      ...meta,
+      customer_would_see: meta.customer_would_see || 'waiting',
+      warnings: Array.isArray(meta.warnings) ? meta.warnings : [],
+      critical_warnings: Array.isArray(meta.critical_warnings) ? meta.critical_warnings : [],
+      unpublished: Boolean(meta.unpublished),
+    };
   },
 
   normalizeCustomerHome(home) {

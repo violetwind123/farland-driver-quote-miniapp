@@ -43,7 +43,7 @@
         </view>
         <view wx:if="{{tripInviteTrip.displayCity}}" class="trip-invite-route">{{tripInviteTrip.displayCity}}</view>
         <view wx:if="{{tripInviteTrip.displaySummary}}" class="trip-invite-copy">{{tripInviteTrip.displaySummary}}</view>
-        <view wx:if="{{tripInviteTrip.summaryMetrics.length}}" class="trip-overview-metrics">
+        <view wx:if="{{tripInviteTrip.summaryMetrics && tripInviteTrip.summaryMetrics.length}}" class="trip-overview-metrics">
           <view wx:for="{{tripInviteTrip.summaryMetrics}}" wx:key="label" class="trip-overview-metric">
             <view class="metric-number">{{item.value}}</view>
             <view class="metric-name">{{item.label}}</view>
@@ -72,7 +72,7 @@
         </view>
       </view>
 
-      <view wx:if="{{tripInviteTrip.progressNodes.length > 1}}" class="section-shell progress-shell">
+      <view wx:if="{{tripInviteTrip.progressNodes && tripInviteTrip.progressNodes.length > 1}}" class="section-shell progress-shell">
         <view class="section-kicker">TRIP</view>
         <view class="section-title">行程进度</view>
         <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
