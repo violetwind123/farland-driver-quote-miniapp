@@ -4,7 +4,7 @@
       <view class="kicker">OPERATOR PREVIEW</view>
       <view class="title">Customer Preview Center</view>
     </view>
-    <view class="header-note">{{preview ? 'Preview mode. Use the native page back control to leave this operator page.' : 'Select customer or temporary guest, then enter customer preview.'}}</view>
+    <view class="header-note">{{preview ? '高级复核工具。标准导入交付流程请在“导入客户行程”页面完成。' : '用于复核已导入行程状态、警告和发布情况。'}}</view>
   </view>
 
   <view class="mode-banner {{previewMeta.banner_class || (previewMeta && previewMeta.unpublished ? 'unpublished' : 'published')}}">

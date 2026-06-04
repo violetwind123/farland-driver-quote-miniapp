@@ -428,14 +428,15 @@ function lifecycleDataForCreate(warningCodes = [], criticalWarningCodes = []) {
 }
 
 function lifecycleDataForUpdate(existingTrip, warningCodes = [], criticalWarningCodes = []) {
+  const discarded = existingTrip && (existingTrip.visibility_status === 'discarded' || existingTrip.status === 'discarded');
   return {
-    review_status: existingTrip && existingTrip.published_version > 0 ? 'needs_review' : 'pending_review',
-    visibility_status: (existingTrip && existingTrip.visibility_status) || 'hidden',
+    review_status: existingTrip && existingTrip.published_version > 0 && !discarded ? 'needs_review' : 'pending_review',
+    visibility_status: discarded ? 'hidden' : ((existingTrip && existingTrip.visibility_status) || 'hidden'),
     warning_codes: warningCodes,
     critical_warning_codes: criticalWarningCodes,
-    draft_snapshot: (existingTrip && existingTrip.draft_snapshot) || {},
-    published_snapshot: (existingTrip && existingTrip.published_snapshot) || {},
-    published_version: (existingTrip && existingTrip.published_version) || 0,
+    draft_snapshot: discarded ? {} : ((existingTrip && existingTrip.draft_snapshot) || {}),
+    published_snapshot: discarded ? {} : ((existingTrip && existingTrip.published_snapshot) || {}),
+    published_version: discarded ? 0 : ((existingTrip && existingTrip.published_version) || 0),
   };
 }
 

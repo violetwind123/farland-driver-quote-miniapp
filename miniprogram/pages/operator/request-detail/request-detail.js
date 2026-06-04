@@ -373,7 +373,7 @@ Page({
       requestId: this.data.requestId,
       from: 'operator',
     };
-    wx.navigateTo({ url: '/pages/customer/home-preview/home-preview' });
+    wx.navigateTo({ url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview' });
   },
 
   onCustomerShareTap() {

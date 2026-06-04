@@ -340,7 +340,7 @@ Page({
     };
     delete app.globalData.operatorCustomerSharePreview;
     wx.navigateTo({
-      url: '/pages/customer/home-preview/home-preview?operator_customer_preview=1',
+      url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview?operator_customer_preview=1',
       fail: (error) => {
         console.error('[customer-home-preview] open draft preview failed', error);
         wx.showToast({ title: '草稿预览打开失败', icon: 'none' });
@@ -366,7 +366,7 @@ Page({
     };
     delete app.globalData.operatorCustomerHomePreview;
     wx.navigateTo({
-      url: '/pages/customer/home-preview/home-preview',
+      url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview',
       fail: (error) => {
         console.error('[customer-home-preview] open customer page failed', error);
         wx.showToast({ title: '客户页面打开失败', icon: 'none' });
