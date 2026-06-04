@@ -15,7 +15,9 @@
         <view class="service-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
         <view class="service-sub">{{todayCard.serviceSubText}}</view>
         <view wx:if="{{todayCard.driver}}" class="service-driver">
-          <view>{{todayCard.driver.detailLine}}</view>
+          <view class="driver-row"><text class="driver-label">司机</text><text>{{todayCard.driver.name || '待同步'}}</text></view>
+          <view class="driver-row"><text class="driver-label">电话</text><text>{{todayCard.driver.phone || '待同步'}}</text></view>
+          <view class="driver-row"><text class="driver-label">车辆</text><text>{{todayCard.driver.vehicleText}}</text></view>
           <view wx:if="{{todayCard.driver.plate_number}}">车牌：{{todayCard.driver.plate_number}}</view>
         </view>
         <view wx:elif="{{todayCard.driverPendingText}}" class="service-sub">{{todayCard.driverPendingText}}</view>
@@ -24,8 +26,7 @@
 
     <view wx:if="{{!cards.length}}" class="day-detail-empty card-surface">
       <view class="empty-title">今日行程详情正在同步</view>
-      <view class="empty-copy">如需即时更新，请联系 Farland 顾问。</view>
-      <button class="card-action" bindtap="contactAdvisor">联系顾问</button>
+      <view class="empty-copy">Farland 顾问确认后会在这里显示完整时间线。</view>
     </view>
 
     <block wx:else>
@@ -61,22 +62,23 @@
             <view wx:if="{{item.note}}" class="detail-note">{{item.note}}</view>
             <view wx:if="{{item.next_stop}}" class="detail-next">下一站：{{item.next_stop}}</view>
 
-            <button class="card-action" bindtap="contactAdvisor">{{item.primaryAction}}</button>
+            <button wx:if="{{item.canOpenMap}}" class="map-link" data-index="{{index}}" bindtap="openCurrentMap">打开地图</button>
           </view>
         </swiper-item>
       </swiper>
 
-      <view class="time-chip-row">
+      <scroll-view scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" class="time-chip-row">
         <view
           wx:for="{{cards}}"
           wx:key="card_id"
           class="time-chip {{currentIndex === index ? 'active' : ''}}"
           data-index="{{index}}"
           bindtap="jumpToCard"
+          aria-label="{{item.chipText}}{{currentIndex === index ? '，当前选中' : ''}}"
         >
           {{item.chipText}}
         </view>
-      </view>
+      </scroll-view>
 
       <view wx:if="{{todayCard.hotel}}" class="endpoint-summary card-surface">
         <view class="endpoint-label">今日终点 / 酒店</view>
@@ -87,24 +89,8 @@
     </block>
 
     <view class="bottom-actions">
-      <button class="bottom-btn secondary" bindtap="contactAdvisor">联系顾问</button>
       <button class="bottom-btn secondary" bindtap="viewFullTrip">查看完整行程</button>
       <button class="bottom-btn primary" bindtap="backHome">返回我的行程</button>
-    </view>
-
-    <view wx:if="{{showAdvisorQr}}" class="advisor-qr-mask" catchtap="closeAdvisorQr">
-      <view class="advisor-qr-modal" catchtap="noop">
-        <view class="advisor-qr-title">添加 Farland 顾问微信</view>
-        <view class="advisor-qr-copy">长按识别二维码，或点击二维码放大查看。</view>
-        <image
-          class="advisor-qr-image"
-          src="{{advisorQrPath}}"
-          mode="aspectFit"
-          show-menu-by-longpress="{{true}}"
-          bindtap="previewAdvisorQr"
-        />
-        <button class="advisor-qr-close" bindtap="closeAdvisorQr">关闭</button>
-      </view>
     </view>
   </block>
 </view>

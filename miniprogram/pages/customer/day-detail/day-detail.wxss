@@ -106,6 +106,19 @@
   line-height: 1.55;
 }
 
+.driver-row {
+  display: grid;
+  grid-template-columns: 88rpx minmax(0, 1fr);
+  gap: 12rpx;
+  min-height: 44rpx;
+  align-items: center;
+}
+
+.driver-label {
+  color: #667085;
+  font-weight: 600;
+}
+
 .day-detail-empty {
   margin: 28rpx 24rpx 0;
   padding: 32rpx;
@@ -206,10 +219,10 @@
   color: #4F598B;
 }
 
-.card-action {
+.map-link {
   margin: 28rpx 0 0;
-  height: 78rpx;
-  line-height: 78rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
   border-radius: 999rpx;
   background: #5B6596;
   color: #FFFFFF;
@@ -217,21 +230,27 @@
   font-weight: 650;
 }
 
-.card-action::after {
+.map-link {
+  background: rgba(91, 101, 150, 0.10);
+  color: #4F598B;
+}
+
+.map-link::after {
   border: none;
 }
 
 .time-chip-row {
-  display: flex;
-  gap: 12rpx;
-  overflow-x: auto;
-  padding: 8rpx 24rpx 0;
+  white-space: nowrap;
+  padding: 8rpx 24rpx 2rpx;
   box-sizing: border-box;
 }
 
 .time-chip {
-  flex: 0 0 auto;
-  padding: 14rpx 18rpx;
+  display: inline-flex;
+  min-height: 80rpx;
+  align-items: center;
+  margin-right: 12rpx;
+  padding: 0 20rpx;
   border-radius: 999rpx;
   background: #FFFFFF;
   color: #667085;
@@ -290,8 +309,8 @@
 
 .bottom-btn {
   margin: 0;
-  height: 78rpx;
-  line-height: 78rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
   border-radius: 999rpx;
   font-size: 24rpx;
   font-weight: 650;
@@ -310,66 +329,5 @@
 }
 
 .bottom-btn::after {
-  border: none;
-}
-
-.advisor-qr-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 44rpx;
-  box-sizing: border-box;
-  background: rgba(18, 24, 38, 0.46);
-}
-
-.advisor-qr-modal {
-  width: 100%;
-  padding: 34rpx;
-  box-sizing: border-box;
-  border-radius: 32rpx;
-  background: #FFFFFF;
-  box-shadow: 0 24rpx 70rpx rgba(17, 24, 39, 0.18);
-}
-
-.advisor-qr-title {
-  color: #1D2433;
-  font-size: 32rpx;
-  line-height: 1.3;
-  font-weight: 750;
-  text-align: center;
-}
-
-.advisor-qr-copy {
-  margin-top: 10rpx;
-  color: #667085;
-  font-size: 24rpx;
-  line-height: 1.5;
-  text-align: center;
-}
-
-.advisor-qr-image {
-  display: block;
-  width: 430rpx;
-  height: 430rpx;
-  margin: 30rpx auto 0;
-  border-radius: 24rpx;
-  background: #FFFFFF;
-}
-
-.advisor-qr-close {
-  margin: 28rpx 0 0;
-  height: 78rpx;
-  line-height: 78rpx;
-  border-radius: 999rpx;
-  background: #5B6596;
-  color: #FFFFFF;
-  font-size: 25rpx;
-  font-weight: 650;
-}
-
-.advisor-qr-close::after {
   border: none;
 }

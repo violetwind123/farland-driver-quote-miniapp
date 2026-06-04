@@ -3,8 +3,7 @@ Page({
     todayCard: null,
     cards: [],
     currentIndex: 0,
-    advisorQrPath: '/assets/images/advisor-wechat-qr.jpg',
-    showAdvisorQr: false,
+    currentCard: null,
   },
 
   onLoad() {
@@ -19,6 +18,7 @@ Page({
       todayCard: normalized,
       cards: normalized.destination_cards,
       currentIndex: 0,
+      currentCard: normalized.destination_cards[0] || null,
     });
   },
 
@@ -60,7 +60,13 @@ Page({
       typeText: this.typeText(item.type),
       chipText: `${this.formatDisplayTime(item.time || '')} ${this.shortTitle(item.title || '')}`.trim(),
       detailLine: [item.drive_time, item.distance, item.traffic_level].filter(Boolean).join(' · '),
-      primaryAction: '联系顾问',
+      latitude: Number(item.latitude || item.lat || item.map_latitude || 0),
+      longitude: Number(item.longitude || item.lng || item.map_longitude || 0),
+      map_url: item.map_url || '',
+      canOpenMap: Boolean(
+        (Number(item.latitude || item.lat || item.map_latitude || 0) && Number(item.longitude || item.lng || item.map_longitude || 0))
+        || item.map_url,
+      ),
     }));
     const serviceWindowText = this.formatDisplayTime(
       (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
@@ -142,31 +148,45 @@ Page({
   },
 
   onSwiperChange(e) {
-    this.setData({ currentIndex: e.detail.current || 0 });
+    const currentIndex = e.detail.current || 0;
+    this.setData({
+      currentIndex,
+      currentCard: this.data.cards[currentIndex] || null,
+    });
   },
 
   jumpToCard(e) {
     const index = Number(e.currentTarget.dataset.index || 0);
     if (index < 0 || index >= this.data.cards.length) return;
-    this.setData({ currentIndex: index });
-  },
-
-  contactAdvisor() {
-    this.setData({ showAdvisorQr: true });
-  },
-
-  closeAdvisorQr() {
-    this.setData({ showAdvisorQr: false });
-  },
-
-  previewAdvisorQr() {
-    wx.previewImage({
-      urls: [this.data.advisorQrPath],
-      current: this.data.advisorQrPath,
+    this.setData({
+      currentIndex: index,
+      currentCard: this.data.cards[index] || null,
     });
   },
 
   noop() {},
+
+  openCurrentMap(e) {
+    const index = Number(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.index);
+    const card = this.data.cards[index] || this.data.currentCard || {};
+    if (!card.canOpenMap) return;
+    if ((!card.latitude || !card.longitude) && card.map_url) {
+      wx.setClipboardData({
+        data: card.map_url,
+        success: () => wx.showToast({ title: '地图链接已复制', icon: 'success' }),
+      });
+      return;
+    }
+    wx.openLocation({
+      latitude: card.latitude,
+      longitude: card.longitude,
+      name: card.title || card.location || 'Farland 行程地点',
+      address: card.location || card.route || '',
+      fail: () => {
+        wx.showToast({ title: '暂无法打开地图', icon: 'none' });
+      },
+    });
+  },
 
   viewFullTrip() {
     wx.showToast({ title: '完整行程即将开放', icon: 'none' });
