@@ -38,6 +38,7 @@ const sampleHint = `{
           "location_name": "Boston Logan International Airport",
           "drive_time_text": "约 35 分钟",
           "distance_text": "约 8 miles",
+          "traffic_text": "Moderate",
           "customer_note": "当日接机费用：USD 260。司机信息将在确认后显示。"
         },
         {
@@ -48,6 +49,7 @@ const sampleHint = `{
           "location_name": "The Kendall Hotel",
           "drive_time_text": "约 20 分钟",
           "distance_text": "约 5 miles",
+          "traffic_text": "Good",
           "customer_note": "当晚住宿费用：USD 260，税费以酒店最终确认单为准。",
           "address": "350 Main St, Cambridge, MA 02142"
         },
@@ -60,6 +62,7 @@ const sampleHint = `{
           "location_name": "Cambridge",
           "drive_time_text": "约 2 小时服务时长",
           "distance_text": "市区内短途",
+          "traffic_text": "Moderate",
           "customer_note": "晚间短途用车费用：USD 220。"
         }
       ],
@@ -97,6 +100,7 @@ const sampleHint = `{
           "location_name": "The Kendall Hotel",
           "drive_time_text": "约 20 分钟",
           "distance_text": "约 4 miles",
+          "traffic_text": "Good",
           "customer_note": "已计入当日包车费用。"
         },
         {
@@ -108,6 +112,7 @@ const sampleHint = `{
           "location_name": "Boston / Cambridge",
           "drive_time_text": "约 6 小时服务时长",
           "distance_text": "市区内多点",
+          "traffic_text": "Moderate",
           "customer_note": "校园访问与协调费用：USD 720。"
         },
         {
@@ -118,6 +123,7 @@ const sampleHint = `{
           "location_name": "The Kendall Hotel",
           "drive_time_text": "约 25 分钟",
           "distance_text": "约 6 miles",
+          "traffic_text": "Heavy",
           "customer_note": "如超出 8 小时服务范围，额外时长需运营确认。"
         }
       ],
@@ -155,6 +161,7 @@ const sampleHint = `{
           "location_name": "The Kendall Hotel",
           "drive_time_text": "约 1 小时 45 分钟",
           "distance_text": "约 95 miles",
+          "traffic_text": "Moderate",
           "customer_note": "跨城用车费用已计入 Day 3 预计费用。"
         },
         {
@@ -166,6 +173,7 @@ const sampleHint = `{
           "location_name": "Amherst, MA",
           "drive_time_text": "约 3.5 小时停留",
           "distance_text": "校园周边",
+          "traffic_text": "Good",
           "customer_note": "顾问协调与现场等待费用：USD 320。"
         },
         {
@@ -177,6 +185,7 @@ const sampleHint = `{
           "location_name": "Boston",
           "drive_time_text": "约 2 小时 10 分钟",
           "distance_text": "约 100 miles",
+          "traffic_text": "Heavy",
           "customer_note": "跨城返程用车费用：USD 560。"
         }
       ]

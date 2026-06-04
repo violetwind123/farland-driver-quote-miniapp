@@ -728,6 +728,22 @@ const customerHomePageConfig = {
     };
   },
 
+  normalizeRouteLegMeta(item = {}) {
+    const driveText = item.driveText || item.drive_time_text || item.drive_time || '';
+    const distanceText = item.distanceText || item.distance_text || item.distance || '';
+    const trafficText = item.trafficText || item.traffic_text || item.traffic_level || '';
+    const pieces = [];
+    if (driveText) pieces.push(`预计车程 ${driveText}`);
+    if (distanceText && !String(driveText).includes(String(distanceText))) pieces.push(distanceText);
+    if (trafficText) pieces.push(`交通 ${trafficText}`);
+    return {
+      driveText,
+      distanceText,
+      trafficText,
+      legMeta: pieces.join(' · '),
+    };
+  },
+
   normalizeTodayCard(card) {
     if (!card) return null;
     const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
@@ -735,19 +751,23 @@ const customerHomePageConfig = {
     const driverAssigned = driverVisibility === 'assigned' && normalizedDriver;
     const timelineItems = (card.timeline_items || []).map((item, index) => {
       const time = this.formatDisplayTime(item.time || '');
+      const routeLeg = this.normalizeRouteLegMeta(item);
       return {
         ...item,
+        ...routeLeg,
         time,
         id: item.id || `${item.time || 'time'}-${index}`,
-        meta: [item.location, item.route, item.drive_time].filter(Boolean).join(' · '),
-        noteText: [item.traffic_level ? `Traffic: ${item.traffic_level}` : '', item.note].filter(Boolean).join(' · '),
+        meta: [item.location, item.route, routeLeg.legMeta].filter(Boolean).join(' · '),
+        noteText: [item.note].filter(Boolean).join(' · '),
       };
     });
     const destinationCards = (card.destination_cards && card.destination_cards.length ? card.destination_cards : timelineItems).map((item, index) => {
       const time = this.formatDisplayTime(item.time || '');
       const arrivalEstimate = this.formatDisplayTime(item.arrival_estimate || '');
+      const routeLeg = this.normalizeRouteLegMeta(item);
       return {
         ...item,
+        ...routeLeg,
         time,
         arrival_estimate: arrivalEstimate,
         card_id: item.card_id || item.id || `${item.time || 'node'}-${index}`,
@@ -780,6 +800,10 @@ const customerHomePageConfig = {
         id: item.card_id,
         time: item.time,
         title: item.title,
+        legMeta: item.legMeta || '',
+        driveText: item.driveText || '',
+        distanceText: item.distanceText || '',
+        trafficText: item.trafficText || '',
       })),
       nodeCount: destinationCards.length,
       extraNodeCount: Math.max(0, destinationCards.length - 3),
@@ -933,8 +957,10 @@ const customerHomePageConfig = {
       id: item.id || `${dayNo}-${index}`,
       time: item.time || '',
       title: item.title || '行程节点',
+      ...this.normalizeRouteLegMeta(item),
     }));
     const timelineItems = (day.timelineItems || []).map((item, index) => ({
+      ...this.normalizeRouteLegMeta(item),
       id: item.id || `${dayNo}-${index}`,
       item_id: item.id || `${dayNo}-${index}`,
       type: item.type || item.item_type || 'custom',
@@ -1017,7 +1043,7 @@ const customerHomePageConfig = {
       items: (day.timelineItems || []).map((item) => ({
         time: item.time || '',
         title: item.title || '行程节点',
-        description: [item.location || '', item.driveText || '', item.trafficText || '', item.note || ''].filter(Boolean).join(' · '),
+        description: [item.location || '', item.route || '', item.driveText || '', item.distanceText || '', item.trafficText || '', item.note || ''].filter(Boolean).join(' · '),
       })),
       farland_contact: {
         name: 'Farland 顾问',
@@ -1697,7 +1723,7 @@ const customerHomePageConfig = {
       items: today.timelineItems.map((item) => ({
         time: item.time,
         title: item.title,
-        description: [item.location, item.driveText, item.trafficText, item.note].filter(Boolean).join(' · '),
+        description: [item.location, item.route, item.driveText, item.distanceText, item.trafficText, item.note].filter(Boolean).join(' · '),
       })),
       farland_contact: {
         name: advisorName,
@@ -1898,7 +1924,7 @@ const customerHomePageConfig = {
         location: item.location_name || item.location || '',
         route: item.route || [item.from || item.origin || item.departure_airport || '', item.to || item.destination || item.arrival_airport || ''].filter(Boolean).join(' → '),
         note: item.customer_note || item.note || item.description || '',
-        driveText: [item.drive_time_text || item.drive_time || '', item.distance_text || item.distance || ''].filter(Boolean).join(' · '),
+        driveText: item.drive_time_text || item.drive_time || '',
         distanceText: item.distance_text || item.distance || '',
         trafficText: item.traffic_text || item.traffic_level || '',
         arrival_estimate: this.formatDisplayTime(item.arrival_estimate || item.estimated_arrival_time || item.planned_arrival_time || ''),
@@ -2333,6 +2359,7 @@ const customerHomePageConfig = {
       party_summary: '',
       driver_visibility: 'pending',
       timeline_items: (day.timelineItems || []).map((item, index) => ({
+        ...this.normalizeRouteLegMeta(item),
         id: item.id || `${dayNo}-${index}`,
         item_id: item.id || `${dayNo}-${index}`,
         type: item.type || item.item_type || 'custom',

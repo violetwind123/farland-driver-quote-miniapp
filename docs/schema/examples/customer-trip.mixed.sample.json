@@ -67,6 +67,9 @@
           "type": "arrival",
           "title": "抵达 Logan Airport",
           "description": "请按顾问提示前往约定会合区域。",
+          "drive_time_text": "约 20 分钟",
+          "distance_text": "约 5 miles",
+          "traffic_text": "Moderate",
           "linked_entity_type": "transfer",
           "linked_entity_id": "transfer_airport_pickup",
           "client_status": "接送已预约"
@@ -76,6 +79,9 @@
           "type": "hotel",
           "title": "酒店入住协调",
           "description": "如需提前寄存行李，请联系 Farland 顾问。",
+          "drive_time_text": "约 15 分钟",
+          "distance_text": "约 3 miles",
+          "traffic_text": "Good",
           "linked_entity_type": "hotel",
           "linked_entity_id": "hotel_boston_marriott",
           "client_status": "已确认"

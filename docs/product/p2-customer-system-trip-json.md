@@ -324,6 +324,10 @@ Semantic validations beyond JSON Schema:
 - `visible_until` after trip end
 - timezone is valid
 - segment order is valid
+- customer-visible itinerary legs should include route estimates in each drivable `itinerary_days[].timeline_items[]` entry:
+  - `drive_time_text`: estimated drive time or service duration, for example `约 35 分钟`
+  - `distance_text`: estimated distance, for example `约 8 miles`
+  - `traffic_text`: estimated traffic condition, for example `Good`, `Moderate`, or `Heavy`
 - driver-sensitive fields are only customer-visible when allowed
 - documents marked `visible_to_customer = false` are not returned
 

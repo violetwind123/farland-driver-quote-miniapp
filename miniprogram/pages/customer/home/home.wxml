@@ -124,7 +124,10 @@
           <view class="p4-summary-times">
             <view wx:for="{{tripInviteTrip.todayOverviewCard.routeStops}}" wx:key="id" class="p4-summary-time">
               <view class="p4-summary-clock">{{item.time}}</view>
-              <view class="p4-summary-stop">{{item.title}}</view>
+              <view class="p4-summary-stop-wrap">
+                <view class="p4-summary-stop">{{item.title}}</view>
+                <view wx:if="{{item.legMeta}}" class="p4-summary-leg">{{item.legMeta}}</view>
+              </view>
             </view>
           </view>
           <view wx:if="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
@@ -265,7 +268,10 @@
                   <view class="p4-summary-times">
                     <view wx:for="{{todayCard.routeStops}}" wx:key="id" class="p4-summary-time">
                       <view class="p4-summary-clock">{{item.time}}</view>
-                      <view class="p4-summary-stop">{{item.title}}</view>
+                      <view class="p4-summary-stop-wrap">
+                        <view class="p4-summary-stop">{{item.title}}</view>
+                        <view wx:if="{{item.legMeta}}" class="p4-summary-leg">{{item.legMeta}}</view>
+                      </view>
                     </view>
                   </view>
                   <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
@@ -437,7 +443,10 @@
         <view class="p4-summary-times">
           <view wx:for="{{todayCard.routeStops}}" wx:key="id" class="p4-summary-time">
             <view class="p4-summary-clock">{{item.time}}</view>
-            <view class="p4-summary-stop">{{item.title}}</view>
+            <view class="p4-summary-stop-wrap">
+              <view class="p4-summary-stop">{{item.title}}</view>
+              <view wx:if="{{item.legMeta}}" class="p4-summary-leg">{{item.legMeta}}</view>
+            </view>
           </view>
         </view>
         <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
