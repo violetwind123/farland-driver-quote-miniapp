@@ -1,5 +1,5 @@
 <view class="trip-page">
-  <button wx:if="{{operatorPreview}}" class="operator-back-btn" bindtap="backToOperatorCenter">运营中心</button>
+  <button wx:if="{{operatorPreview || operatorCustomerPreviewMode}}" class="operator-back-btn" bindtap="backToOperatorCenter">运营中心</button>
 
   <view wx:if="{{loading}}" class="empty-state">{{tripInviteMode ? '正在加载 Farland 行程...' : '正在加载您的行程...'}}</view>
 
