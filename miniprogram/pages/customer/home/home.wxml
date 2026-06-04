@@ -191,7 +191,189 @@
       <view class="empty-sub">如需调整，请在 Farland 客户群内沟通。</view>
     </view>
 
-    <view wx:if="{{!inviteMode && tripProgress && tripProgress.visible && !showHomeEmpty}}" class="section-shell progress-shell">
+    <view wx:if="{{useHomePaneSwiper && !showHomeEmpty}}" class="home-pane-shell">
+      <view class="home-pane-tabs card-surface">
+        <view class="home-pane-tab {{homePaneIndex === 0 ? 'active' : ''}}" data-index="0" bindtap="switchHomePane">包车行程</view>
+        <view class="home-pane-tab {{homePaneIndex === 1 ? 'active' : ''}}" data-index="1" bindtap="switchHomePane">临时用车</view>
+      </view>
+
+      <swiper class="home-pane-swiper" current="{{homePaneIndex}}" duration="260" bindchange="onHomePaneChange">
+        <swiper-item>
+          <scroll-view class="home-pane-scroll" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+            <view class="home-pane-content">
+              <view wx:if="{{tripProgress && tripProgress.visible}}" class="section-shell progress-shell">
+                <view class="section-kicker">TRIP</view>
+                <view class="section-title">行程进度</view>
+                <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+                  <view class="daily-progress-track">
+                    <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="daily-progress-node {{item.status}}">
+                      <view class="daily-progress-dot"></view>
+                      <view class="daily-progress-label">{{item.label}}</view>
+                      <view wx:if="{{item.weekday || item.date}}" class="daily-progress-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
+                      <view class="daily-progress-sub">{{item.location_summary}}</view>
+                    </view>
+                  </view>
+                </scroll-view>
+              </view>
+
+              <view wx:if="{{todayDriverCard}}" class="section-shell driver-shell">
+                <view class="section-kicker">SERVICE</view>
+                <view class="section-title">{{todayDriverCard.title}}</view>
+                <view class="today-driver-card card-surface">
+                  <view class="driver-card-head">
+                    <view>
+                      <view class="driver-card-label">出发时间</view>
+                      <view class="driver-card-time">{{todayDriverCard.departureTime}}</view>
+                    </view>
+                    <view class="status-chip {{todayDriverCard.statusClass}}">{{todayDriverCard.statusText}}</view>
+                  </view>
+
+                  <view wx:if="{{todayDriverCard.driver}}" class="driver-card-person">
+                    <view class="driver-name">{{todayDriverCard.driver.name || '司机待同步'}}</view>
+                    <view class="driver-phone">{{todayDriverCard.driver.phone || '电话待同步'}}</view>
+                  </view>
+
+                  <view class="driver-card-meta">{{todayDriverCard.vehicleSummary}}</view>
+                  <view wx:if="{{todayDriverCard.partySummary}}" class="driver-card-sub">{{todayDriverCard.partySummary}}</view>
+                  <view wx:if="{{todayDriverCard.helperText}}" class="driver-card-helper">{{todayDriverCard.helperText}}</view>
+
+                  <button
+                    wx:if="{{todayDriverCard.actionLabel && todayDriverCard.actionType === 'transfer'}}"
+                    class="arrangement-btn"
+                    data-request-id="{{todayDriverCard.requestId}}"
+                    bindtap="viewTransferDetail"
+                  >{{todayDriverCard.actionLabel}}</button>
+                  <button wx:elif="{{todayDriverCard.actionLabel}}" class="arrangement-btn" bindtap="openTodayDetail">{{todayDriverCard.actionLabel}}</button>
+                </view>
+              </view>
+
+              <view wx:if="{{todayCard}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
+                <view class="section-kicker">TODAY</view>
+                <view class="section-title">今日行程概览</view>
+                <view class="p4-today-card compact card-surface">
+                  <view class="p4-today-head">
+                    <view class="p4-today-labels">
+                      <view class="p4-trip-label">{{todayCard.dayLabel}}</view>
+                      <view class="p4-today-title">{{todayCard.weekday}} {{todayCard.date}}</view>
+                      <view class="p4-today-route">{{todayCard.dateRouteText}}</view>
+                    </view>
+                    <view class="status-pill confirmed">{{todayCard.status_text}}</view>
+                  </view>
+
+                  <view class="p4-summary-route">{{todayCard.city_summary}}</view>
+
+                  <view class="p4-summary-times">
+                    <view wx:for="{{todayCard.routeStops}}" wx:key="id" class="p4-summary-time">
+                      <view class="p4-summary-clock">{{item.time}}</view>
+                      <view class="p4-summary-stop">{{item.title}}</view>
+                    </view>
+                  </view>
+                  <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">今日共 {{todayCard.nodeCount}} 个行程节点</view>
+
+                  <view class="p4-action-row">
+                    <button class="p4-action-primary single" bindtap="openTodayDetail">查看今日行程</button>
+                  </view>
+                </view>
+              </view>
+
+              <view wx:if="{{!todayCard && todayItinerary}}" id="customer-today-itinerary-section" class="section-shell">
+                <view class="section-kicker">今日</view>
+                <view class="section-title">今日行程</view>
+                <view class="today-card card-surface">
+                  <view class="today-header">
+                    <view>
+                      <view class="today-topline">{{todayItinerary.date}} · {{todayItinerary.city}}</view>
+                      <view class="today-title">{{todayItinerary.title}}</view>
+                    </view>
+                    <view class="status-pill confirmed">已确认</view>
+                  </view>
+                  <view class="body-text">{{todayItinerary.summary}}</view>
+
+                  <view class="timeline">
+                    <view wx:for="{{todayItinerary.items}}" wx:key="time" class="timeline-item">
+                      <view class="timeline-time">{{item.time}}</view>
+                      <view class="timeline-dot"></view>
+                      <view class="timeline-copy">
+                        <view class="timeline-title-row">
+                          <view class="timeline-title">{{item.title}}</view>
+                          <view wx:if="{{item.client_status}}" class="mini-status">{{item.client_status === 'quoted' ? '已收到方案' : item.client_status}}</view>
+                        </view>
+                        <view class="body-text">{{item.description}}</view>
+                      </view>
+                    </view>
+                  </view>
+
+                  <view wx:if="{{todayItinerary.driver && todayItinerary.driver_visibility === 'assigned'}}" class="transport-card">
+                    <view class="transport-kicker">用车安排</view>
+                    <view class="transport-main">{{todayItinerary.driver.name}} · {{todayItinerary.driver.vehicle}}</view>
+                    <view class="transport-sub">{{todayItinerary.driver.phone}}</view>
+                  </view>
+                </view>
+              </view>
+
+              <view wx:if="{{todayHotelCard}}" id="customer-today-hotel-section" class="section-shell">
+                <view class="section-kicker">酒店</view>
+                <view class="section-title">今晚住宿</view>
+                <view class="hotel-summary-card card-surface" bindtap="openHotelDetail">
+                  <view class="arrangement-title">{{todayHotelCard.name}}</view>
+                  <view wx:if="{{todayHotelCard.metaText}}" class="hotel-meta">{{todayHotelCard.metaText}}</view>
+                  <view class="arrangement-main">{{todayHotelCard.arrivalText}}</view>
+                  <view class="arrangement-sub">{{todayHotelCard.address || todayHotelCard.city || '完整酒店信息将由 Farland 顾问同步。'}}</view>
+                  <view class="trip-card-action">查看酒店信息</view>
+                </view>
+              </view>
+            </view>
+          </scroll-view>
+        </swiper-item>
+
+        <swiper-item>
+          <scroll-view class="home-pane-scroll" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+            <view class="home-pane-content">
+              <view class="section-shell">
+                <view class="section-kicker">用车</view>
+                <view class="section-title">临时用车预约</view>
+                <view wx:if="{{!transferRequests.length && !transportOrders.length}}" class="empty-state">暂无用车安排。</view>
+                <view wx:else class="stack-list">
+                  <view wx:for="{{transferRequests}}" wx:key="request_id" class="transfer-card compact card-surface">
+                    <view class="transfer-head">
+                      <view>
+                        <view class="transfer-title">{{item.title}}</view>
+                        <view class="transfer-meta">{{item.pickup_time_text}} · {{item.created_by_text}}</view>
+                      </view>
+                      <view class="status-chip {{item.statusClass}}">{{item.status_text}}</view>
+                    </view>
+                    <view class="route-line compact">
+                      <view class="route-dot"></view>
+                      <view class="route-text">{{item.pickup}}</view>
+                      <view class="route-arrow">→</view>
+                      <view class="route-text">{{item.dropoff}}</view>
+                    </view>
+                    <view wx:if="{{item.status === 'cancelled'}}" class="ops-sub">{{item.cancel_reason_driver || '该用车需求已取消，如需重新安排请在 Farland 客户群内沟通。'}}</view>
+                    <view wx:elif="{{item.status === 'assigned' && item.assigned_transport}}" class="ops-sub">
+                      司机：{{item.assigned_transport.driver_name || '待确认'}} · {{item.assigned_transport.vehicle_model || item.assigned_transport.vehicle_type || '车辆待确认'}}
+                    </view>
+                    <view wx:else class="ops-sub">已收到 {{item.quoteCount}} 个优选用车方案。</view>
+                    <button class="detail-btn" data-request-id="{{item.request_id}}" bindtap="viewTransferDetail">查看用车方案</button>
+                  </view>
+
+                  <view wx:for="{{transportOrders}}" wx:key="order_id" class="service-card card-surface">
+                    <view class="stay-head">
+                      <view class="service-title">{{item.title}}</view>
+                      <view class="status-chip {{item.statusClass}}">{{item.status_text}}</view>
+                    </view>
+                    <view class="body-text">{{item.pickup}} → {{item.dropoff}}</view>
+                    <view class="service-sub">{{item.pickup_time_text}} · {{item.vehicle_class}}</view>
+                    <view wx:if="{{item.driver}}" class="service-sub">{{item.driver.display_name}} · {{item.driver.vehicle_model}} · {{item.driver.plate_number}}</view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </scroll-view>
+        </swiper-item>
+      </swiper>
+    </view>
+
+    <view wx:if="{{!useHomePaneSwiper && !inviteMode && tripProgress && tripProgress.visible && !showHomeEmpty}}" class="section-shell progress-shell">
       <view class="section-kicker">TRIP</view>
       <view class="section-title">行程进度</view>
       <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
@@ -206,7 +388,7 @@
       </scroll-view>
     </view>
 
-    <view wx:if="{{!inviteMode && todayDriverCard && !showHomeEmpty}}" class="section-shell driver-shell">
+    <view wx:if="{{!useHomePaneSwiper && !inviteMode && todayDriverCard && !showHomeEmpty}}" class="section-shell driver-shell">
       <view class="section-kicker">SERVICE</view>
       <view class="section-title">{{todayDriverCard.title}}</view>
       <view class="today-driver-card card-surface">
@@ -237,7 +419,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && todayCard && !showHomeEmpty}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
+    <view wx:if="{{!useHomePaneSwiper && !inviteMode && todayCard && !showHomeEmpty}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
       <view class="section-kicker">TODAY</view>
       <view class="section-title">今日行程概览</view>
       <view class="p4-today-card compact card-surface">
@@ -266,7 +448,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !todayCard && todayItinerary && !showHomeEmpty}}" id="customer-today-itinerary-section" class="section-shell">
+    <view wx:if="{{!useHomePaneSwiper && !inviteMode && !todayCard && todayItinerary && !showHomeEmpty}}" id="customer-today-itinerary-section" class="section-shell">
       <view class="section-kicker">今日</view>
       <view class="section-title">今日行程</view>
       <view class="today-card card-surface">
@@ -302,7 +484,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty && todayHotelCard}}" id="customer-today-hotel-section" class="section-shell">
+    <view wx:if="{{!useHomePaneSwiper && !inviteMode && !showHomeEmpty && todayHotelCard}}" id="customer-today-hotel-section" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">今晚住宿</view>
       <view wx:if="{{todayHotelCard}}" class="hotel-summary-card card-surface" bindtap="openHotelDetail">
@@ -314,7 +496,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty && showTransferRequests}}" class="section-shell">
+    <view wx:if="{{!useHomePaneSwiper && !inviteMode && !showHomeEmpty && showTransferRequests}}" class="section-shell">
       <view class="section-kicker">用车</view>
       <view class="section-title">临时用车预约</view>
       <view wx:if="{{!transferRequests.length && !transportOrders.length}}" class="empty-state">暂无用车安排。</view>
@@ -333,7 +515,7 @@
             <view class="route-arrow">→</view>
             <view class="route-text">{{item.dropoff}}</view>
           </view>
-          <view wx:if="{{item.status === 'cancelled'}}" class="ops-sub">{{item.cancel_reason_driver || '该用车需求已取消，如需重新安排请联系 Farland 顾问。'}}</view>
+          <view wx:if="{{item.status === 'cancelled'}}" class="ops-sub">{{item.cancel_reason_driver || '该用车需求已取消，如需重新安排请在 Farland 客户群内沟通。'}}</view>
           <view wx:elif="{{item.status === 'assigned' && item.assigned_transport}}" class="ops-sub">
             司机：{{item.assigned_transport.driver_name || '待确认'}} · {{item.assigned_transport.vehicle_model || item.assigned_transport.vehicle_type || '车辆待确认'}}
           </view>

@@ -24,6 +24,10 @@ Page({
     primaryTransfer: null,
     transportOrders: [],
     showTransferRequests: false,
+    useHomePaneSwiper: false,
+    homePaneIndex: 0,
+    hasCharterHomeSurface: false,
+    hasTemporaryTransportSurface: false,
     charterServices: [],
     topBenefits: [],
     advisorPhone: '',
@@ -233,6 +237,10 @@ Page({
           primaryTransfer: invitedTransfer || null,
           transportOrders: [],
           showTransferRequests: Boolean(invitedTransfer),
+          useHomePaneSwiper: false,
+          homePaneIndex: 0,
+          hasCharterHomeSurface: false,
+          hasTemporaryTransportSurface: Boolean(invitedTransfer),
           charterServices: [],
           advisorPhone: '',
         });
@@ -291,6 +299,10 @@ Page({
           primaryTransfer: invitedTransfer || null,
           transportOrders: [],
           showTransferRequests: Boolean(invitedTransfer),
+          useHomePaneSwiper: false,
+          homePaneIndex: 0,
+          hasCharterHomeSurface: false,
+          hasTemporaryTransportSurface: Boolean(invitedTransfer),
           charterServices: [],
           advisorPhone: '',
           currentBindMode: 'temporary_invite',
@@ -379,6 +391,17 @@ Page({
             time: '',
             city: tripOverview[0] ? tripOverview[0].city : '',
           };
+      const hasCharterHomeSurface = Boolean(!showHomeEmpty && (
+        tripProgress
+        || todayDriverCard
+        || todayCard
+        || todayItinerary
+        || todayHotelCard
+        || tripDayCards.length
+        || flightCards.length
+      ));
+      const hasTemporaryTransportSurface = Boolean(mergedTransferRequests.length || transportOrders.length);
+      const useHomePaneSwiper = hasCharterHomeSurface && hasTemporaryTransportSurface;
       this.cacheTripDetailContext(tripDayCards, {
         trip_id: tripOverview[0] ? (tripOverview[0].trip_id || '') : '',
         trip_no: tripOverview[0] ? (tripOverview[0].trip_no || '') : '',
@@ -419,6 +442,10 @@ Page({
         primaryTransfer: mergedTransferRequests[0] || null,
         transportOrders,
         showTransferRequests: Boolean(mergedTransferRequests.length || transportOrders.length),
+        useHomePaneSwiper,
+        homePaneIndex: useHomePaneSwiper ? Math.min(Number(this.data.homePaneIndex || 0), 1) : 0,
+        hasCharterHomeSurface,
+        hasTemporaryTransportSurface,
         charterServices: result.charter_services || [],
         advisorPhone: hideModules.advisor_panel
           ? ''
@@ -454,6 +481,16 @@ Page({
         phone ? `电话：${phone}` : '',
       ].filter(Boolean).join(' · '),
     };
+  },
+
+  onHomePaneChange(e) {
+    const current = Number(e.detail && e.detail.current ? e.detail.current : 0);
+    this.setData({ homePaneIndex: current });
+  },
+
+  switchHomePane(e) {
+    const index = Number(e.currentTarget.dataset.index || 0);
+    this.setData({ homePaneIndex: index });
   },
 
   normalizeCustomerSummaryBar(result = {}) {
