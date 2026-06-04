@@ -5,6 +5,8 @@ Page({
     benefits: [],
     hotelRequests: [],
     transportationAppointments: [],
+    customerSummaryBar: null,
+    tripProgress: null,
     progressStrip: null,
     todayCard: null,
     dailyCharter: null,
@@ -202,6 +204,8 @@ Page({
           hideModules: {},
           hotelRequests: [],
           transportationAppointments: [],
+          customerSummaryBar: null,
+          tripProgress: null,
           progressStrip: null,
           todayCard: null,
           dailyCharter: null,
@@ -258,6 +262,8 @@ Page({
           hideModules: {},
           hotelRequests: [],
           transportationAppointments: [],
+          customerSummaryBar: null,
+          tripProgress: null,
           progressStrip: null,
           todayCard: null,
           dailyCharter: null,
@@ -292,14 +298,16 @@ Page({
         return;
       }
       const hideModules = result.hide_modules || {};
-      const progressStrip = this.normalizeProgressStrip(result.progress_strip || null);
+      const customerSummaryBar = this.normalizeCustomerSummaryBar(result);
+      const tripProgress = this.normalizeDailyProgress(result.trip_progress || result.progress_strip || null, result);
+      const progressStrip = tripProgress;
       const dailyCharter = this.normalizeDailyCharter(result.daily_charter || null);
       const todayCard = this.normalizeTodayCard((dailyCharter && dailyCharter.today_card) || result.today_card || null);
       const hasCharterContract = Boolean(result.daily_charter || result.today_driver_card || result.hide_modules);
       const todayDriverCard = hasCharterContract
         ? this.normalizeTodayDriverCard(result.today_driver_card || null)
         : this.buildTodayDriverCard(todayCard);
-      const todayHotelCard = this.buildTodayHotelCard(todayCard);
+      const todayHotelCard = this.normalizeTodayHotelCard(result.today_hotel_card || null) || this.buildTodayHotelCard(todayCard);
       const todayItinerary = this.normalizeTodayItinerary(result.today_itinerary || null);
       const tripOverview = (result.trip_overview || []).map((item) => ({
         ...item,
@@ -387,6 +395,8 @@ Page({
         hideModules,
         hotelRequests: result.hotel_requests || [],
         transportationAppointments: result.transportation_appointments || [],
+        customerSummaryBar,
+        tripProgress,
         progressStrip,
         todayCard,
         dailyCharter,
@@ -445,6 +455,83 @@ Page({
     };
   },
 
+  normalizeCustomerSummaryBar(result = {}) {
+    const bar = result.customer_summary_bar || {};
+    const profile = result.profile || {};
+    const overview = (result.trip_overview || [])[0] || {};
+    const todayCard = result.today_card || {};
+    const dayCount = overview.days_count
+      || (Array.isArray(result.itinerary_days) ? result.itinerary_days.length : 0)
+      || (Array.isArray(result.daily_summary_cards) ? result.daily_summary_cards.length : 0);
+    const tripSummaryText = bar.trip_summary_text
+      || overview.summary_text
+      || (dayCount ? `${dayCount}天行程` : '');
+    return {
+      visible: bar.visible !== false,
+      customer_display_name: bar.customer_display_name || profile.name || result.customer_name || 'Farland 客户',
+      trip_no: bar.trip_no || todayCard.trip_no || overview.trip_no || overview.external_trip_id || '',
+      date_range_text: bar.date_range_text || overview.date_range_text || '',
+      trip_summary_text: tripSummaryText,
+      thank_you_text: bar.thank_you_text || '感谢您使用 Farland 的服务',
+      sync_status_text: bar.sync_status_text || '行程已同步',
+      communication_note: bar.communication_note || '后续沟通请以客户群为准',
+    };
+  },
+
+  normalizeDailyProgress(strip, result = {}) {
+    const sourceNodes = strip && Array.isArray(strip.nodes) ? strip.nodes : [];
+    let nodes = sourceNodes.map((node, index) => ({
+      ...node,
+      node_id: node.node_id || node.id || `day_${node.day_no || index + 1}`,
+      type: node.type || 'trip_day',
+      day_no: Number(node.day_no || index + 1),
+      label: node.label || `Day ${node.day_no || index + 1}`,
+      date: node.date || '',
+      weekday: node.weekday || '',
+      location_summary: node.location_summary || node.city || node.summary || '',
+      status: ['completed', 'current', 'upcoming'].includes(node.status) ? node.status : 'upcoming',
+    })).filter((node) => node.label && (node.location_summary || node.day_no));
+
+    if (nodes.length < 2) {
+      const dayDetails = Array.isArray(result.itinerary_days) ? result.itinerary_days : [];
+      const summaryCards = Array.isArray(result.daily_summary_cards) ? result.daily_summary_cards : [];
+      const sourceDays = dayDetails.length ? dayDetails : summaryCards;
+      nodes = sourceDays.map((day, index) => {
+        const dayNo = Number(day.day_no || index + 1);
+        const locationSummary = day.location_summary || day.city || day.city_summary || day.route_label || day.title || '';
+        return {
+          node_id: `day_${dayNo}`,
+          type: 'trip_day',
+          day_no: dayNo,
+          label: `Day ${dayNo}`,
+          date: day.date || '',
+          weekday: day.weekday || '',
+          location_summary: String(locationSummary || '').replace(/^Day\s+\d+\s*[:：-]?\s*/i, ''),
+          status: 'upcoming',
+        };
+      }).filter((node) => node.day_no && node.location_summary);
+    }
+
+    if (nodes.length < 2) return null;
+    const currentDayNo = Number((strip && strip.current_day_no) || (result.today_card && result.today_card.day_no) || nodes[0].day_no);
+    let currentIndex = nodes.findIndex((node) => Number(node.day_no || 0) === currentDayNo);
+    if (currentIndex < 0) currentIndex = 0;
+    nodes = nodes.map((node, index) => ({
+      ...node,
+      status: index < currentIndex ? 'completed' : (index === currentIndex ? 'current' : 'upcoming'),
+      statusText: index < currentIndex ? '已完成' : (index === currentIndex ? '当前' : '待前往'),
+      location_summary: node.location_summary || '行程同步中',
+    }));
+    return {
+      ...(strip || {}),
+      visible: true,
+      mode: 'daily_nodes',
+      current_day_no: currentDayNo,
+      current_node_id: nodes[currentIndex].node_id,
+      nodes,
+    };
+  },
+
   normalizeProgressStrip(strip) {
     if (!strip || !Array.isArray(strip.nodes) || !strip.nodes.length) return null;
     const nodes = strip.nodes.map((node, index) => ({
@@ -490,8 +577,8 @@ Page({
       driver,
       helperText: isAssigned ? '' : (card.helper_text || '司机信息将在出发前同步。'),
       requestId: card.request_id || '',
-      actionLabel: card.cta_label || '查看用车安排',
-      actionType: 'detail',
+      actionLabel: isAssigned ? (card.cta_label || '查看用车详情') : '',
+      actionType: isAssigned ? 'detail' : 'none',
     };
   },
 
@@ -543,11 +630,13 @@ Page({
       transportStatusText: driverAssigned
         ? '已分配司机'
         : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
-      routeStops: destinationCards.map((item) => ({
+      routeStops: destinationCards.slice(0, 3).map((item) => ({
         id: item.card_id,
         time: item.time,
         title: item.title,
       })),
+      nodeCount: destinationCards.length,
+      extraNodeCount: Math.max(0, destinationCards.length - 3),
       hotel,
       advisor: card.advisor || {},
       driver: driverAssigned ? normalizedDriver : null,
@@ -568,19 +657,52 @@ Page({
       vehicleSummary: todayCard.vehicle_summary || '车辆待确认',
       partySummary: todayCard.party_summary || '',
       driver,
-      helperText: isAssigned ? '' : (todayCard.driverPendingText || '司机信息将在 Farland 完成确认后同步。'),
+      helperText: isAssigned ? '' : (todayCard.driverPendingText || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
       requestId: todayCard.assigned_request_id || '',
-      actionLabel: isAssigned ? (shouldOpenTransfer ? '查看接送详情' : '查看用车安排') : '联系顾问',
-      actionType: isAssigned ? (shouldOpenTransfer ? 'transfer' : 'detail') : 'advisor',
+      actionLabel: isAssigned ? (shouldOpenTransfer ? '查看接送详情' : '查看用车详情') : '',
+      actionType: isAssigned ? (shouldOpenTransfer ? 'transfer' : 'detail') : 'none',
+    };
+  },
+
+  normalizeTodayHotelCard(card) {
+    if (!card || card.visible === false) return null;
+    const metaParts = [card.group, card.brand, card.star_rating ? `${card.star_rating}星` : ''].filter(Boolean);
+    return {
+      ...card,
+      visible: true,
+      hotel_id: card.hotel_id || card.id || '',
+      name: card.name || card.hotel_name || '今晚住宿',
+      metaText: metaParts.join(' · '),
+      arrivalText: card.arrival_time ? `预计 ${this.formatDisplayTime(card.arrival_time)} 抵达` : '抵达时间待同步',
+      dateText: card.date_text || [card.check_in_date || '', card.check_out_date || ''].filter(Boolean).join(' - '),
+      roomSummary: card.room_summary || card.room_type || '',
+      statusText: card.status_text || '已同步',
+      note: card.note || '完整酒店信息将由 Farland 顾问同步。',
     };
   },
 
   buildTodayHotelCard(todayCard) {
     if (!todayCard || !todayCard.hotel) return null;
+    const hotel = todayCard.hotel;
+    const metaParts = [hotel.group, hotel.brand, hotel.star_rating ? `${hotel.star_rating}星` : ''].filter(Boolean);
     return {
-      name: todayCard.hotel.name || '今晚住宿',
-      arrivalText: todayCard.hotel.arrival_time ? `预计 ${todayCard.hotel.arrival_time} 抵达` : '抵达时间待同步',
-      address: todayCard.hotel.address || '',
+      visible: true,
+      hotel_id: hotel.hotel_id || hotel.id || '',
+      name: hotel.name || hotel.hotel_name || '今晚住宿',
+      group: hotel.group || '',
+      brand: hotel.brand || '',
+      star_rating: hotel.star_rating || '',
+      metaText: metaParts.join(' · '),
+      city: hotel.city || '',
+      address: hotel.address || '',
+      check_in_date: hotel.check_in_date || hotel.date || todayCard.date || '',
+      check_out_date: hotel.check_out_date || '',
+      dateText: hotel.date_text || [hotel.check_in_date || hotel.date || todayCard.date || '', hotel.check_out_date || ''].filter(Boolean).join(' - '),
+      arrival_time: hotel.arrival_time || '',
+      arrivalText: hotel.arrival_time ? `预计 ${hotel.arrival_time} 抵达` : '抵达时间待同步',
+      roomSummary: hotel.room_summary || hotel.room_type || '',
+      statusText: hotel.status_text || '已同步',
+      note: hotel.note || hotel.customer_note || '完整酒店信息将由 Farland 顾问同步。',
     };
   },
 
@@ -826,7 +948,17 @@ Page({
         id: hotel.hotel_id || hotel.id || `${name || 'hotel'}-${index}`,
         name: name || '酒店安排',
         city: hotel.city || '',
+        linkedDayNo: Number(hotel.linked_day_no || hotel.day_no || 0),
         dateText: hotel.date_text || [hotel.check_in_date || hotel.date || '', hotel.check_out_date || ''].filter(Boolean).join(' - '),
+        check_in_date: hotel.check_in_date || hotel.date || '',
+        check_out_date: hotel.check_out_date || '',
+        arrival_time: hotel.arrival_time || '',
+        group: hotel.group || hotel.hotel_group || hotel.chain || '',
+        brand: hotel.brand || hotel.hotel_brand || '',
+        star_rating: hotel.star_rating || hotel.stars || '',
+        room_summary: hotel.room_summary || hotel.room_type || '',
+        confirmation_no: hotel.confirmation_no || hotel.confirmation_number || '',
+        status_text: hotel.status_text || '已同步',
         address: hotel.address || '',
         note: [
           hotel.arrival_time ? `预计抵达：${this.formatDisplayTime(hotel.arrival_time)}` : '',
@@ -857,6 +989,52 @@ Page({
         note: flight.customer_note || flight.note || '',
       };
     }).filter(Boolean);
+    const progressNodes = days.map((day, index) => ({
+      node_id: `day_${day.dayNo || index + 1}`,
+      type: 'trip_day',
+      day_no: day.dayNo || index + 1,
+      label: `Day ${day.dayNo || index + 1}`,
+      date: day.date || '',
+      weekday: day.weekday || '',
+      location_summary: day.city || day.title || '行程同步中',
+      status: index === 0 ? 'current' : 'upcoming',
+      statusText: index === 0 ? '当前' : '待前往',
+    }));
+    const todayDay = days[0] || null;
+    const todayRouteStops = todayDay
+      ? (todayDay.timelineItems || []).slice(0, 3).map((item, index) => ({
+          id: item.id || `today-${index}`,
+          time: item.time || '',
+          title: item.title || '行程节点',
+        }))
+      : [];
+    const todayHotel = todayDay
+      ? (hotels.find((hotel) => Number(hotel.linkedDayNo || 0) === Number(todayDay.dayNo || 0)) || hotels[0] || null)
+      : (hotels[0] || null);
+    const todayDriverCard = todayDay ? {
+      title: '今日用车',
+      statusText: '司机信息待同步',
+      statusClass: 'pending',
+      departureTime: todayDay.startTime || '待确认',
+      vehicleSummary: todayDay.transportBadge || '车辆待确认',
+      partySummary: '',
+      helperText: '司机信息确认后会同步到这里；如需调整请在客户群沟通。',
+    } : null;
+    const todayOverviewCard = todayDay ? {
+      dayNo: todayDay.dayNo,
+      date: todayDay.date || '',
+      weekday: todayDay.weekday || '',
+      title: todayDay.title || `Day ${todayDay.dayNo || 1}`,
+      city: todayDay.city || '',
+      startTime: todayDay.startTime || '',
+      routeStops: todayRouteStops,
+      nodeCount: (todayDay.timelineItems || []).length,
+    } : null;
+    const todayHotelCard = todayHotel ? this.normalizeTodayHotelCard({
+      ...todayHotel,
+      visible: true,
+      hotel_id: todayHotel.id,
+    }) : null;
 
     return {
       ...snapshot,
@@ -881,6 +1059,10 @@ Page({
       advisorPhone: advisor.phone || '',
       advisorNote: advisor.note || snapshot.advisor_note || '',
       days,
+      progressNodes,
+      todayDriverCard,
+      todayOverviewCard,
+      todayHotelCard,
       hotels,
       flights,
       transports: transportSource,
@@ -928,6 +1110,8 @@ Page({
       showLegacyTransport: false,
       hotelRequests: [],
       transportationAppointments: [],
+      customerSummaryBar: null,
+      tripProgress: null,
       progressStrip: null,
       todayCard: null,
       dailyCharter: null,
@@ -1023,6 +1207,8 @@ Page({
       topBenefits: previewHome.topBenefits,
       hotelRequests: previewHome.hotelRequests,
       transportationAppointments: previewHome.transportationAppointments,
+      customerSummaryBar: previewHome.customerSummaryBar,
+      tripProgress: previewHome.tripProgress,
       progressStrip: previewHome.progressStrip,
       todayCard: null,
       dailyCharter: null,
@@ -1190,12 +1376,34 @@ Page({
       statusText: meta.customer_would_see === 'published' ? '已发布' : '运营预览',
       statusClass: meta.customer_would_see === 'published' ? 'confirmed' : 'pending',
     }));
-    const progressNodes = operatorPreviewDays.slice(0, 8).map((day, index) => ({
+    const progressNodes = operatorPreviewDays.map((day, index) => ({
       node_id: `preview-day-${day.dayNo || index + 1}`,
+      type: 'trip_day',
+      day_no: day.dayNo || index + 1,
       label: `Day ${day.dayNo || index + 1}`,
+      date: day.date || '',
+      weekday: day.weekday || '',
+      location_summary: day.city || day.title || '行程同步中',
       status: index === 0 ? 'current' : 'upcoming',
       statusText: index === 0 ? '当前' : '待前往',
     }));
+    const tripProgress = progressNodes.length > 1 ? {
+      visible: true,
+      mode: 'daily_nodes',
+      current_day_no: progressNodes[0].day_no || 1,
+      current_node_id: progressNodes[0].node_id,
+      nodes: progressNodes,
+    } : null;
+    const customerSummaryBar = {
+      visible: true,
+      customer_display_name: profileName,
+      trip_no: overview.trip_no || '',
+      date_range_text: overview.date_range_text || '',
+      trip_summary_text: overview.days_count ? `${overview.days_count}天行程` : '',
+      thank_you_text: '感谢您使用 Farland 的服务',
+      sync_status_text: meta.customer_would_see === 'published' ? '行程已同步' : '行程同步中',
+      communication_note: '后续沟通请以客户群为准',
+    };
     const hasTransport = Boolean(transferRequests.length || transportOrders.length || charterServices.length);
     const hasContent = Boolean(
       operatorPreviewDays.length
@@ -1220,7 +1428,9 @@ Page({
       topBenefits: benefits.slice(0, 2),
       hotelRequests: home.hotel_requests || [],
       transportationAppointments: home.transportation_appointments || [],
-      progressStrip: progressNodes.length ? { nodes: progressNodes } : null,
+      customerSummaryBar,
+      tripProgress,
+      progressStrip: tripProgress,
       todayItinerary,
       nextConfirmed: today ? {
         title: firstNode ? firstNode.title : today.title,
@@ -1675,6 +1885,42 @@ Page({
     app.globalData.todayCardDetail = todayCard;
     wx.setStorageSync('todayCardDetail', todayCard);
     wx.navigateTo({ url: '/pages/customer/day-detail/day-detail' });
+  },
+
+  openHotelDetail() {
+    const hotelCard = this.data.todayHotelCard;
+    if (!hotelCard) {
+      wx.showToast({ title: '暂无酒店信息', icon: 'none' });
+      return;
+    }
+    const app = getApp();
+    if (app.globalData) {
+      app.globalData.customerHotelDetail = hotelCard;
+    }
+    try {
+      wx.setStorageSync('customerHotelDetail', hotelCard);
+    } catch (error) {
+      console.warn('[customer-home] cache hotel detail failed', error);
+    }
+    wx.navigateTo({ url: '/pages/customer/hotel-detail/hotel-detail' });
+  },
+
+  openTripInviteHotelDetail() {
+    const hotelCard = this.data.tripInviteTrip && this.data.tripInviteTrip.todayHotelCard;
+    if (!hotelCard) {
+      wx.showToast({ title: '暂无酒店信息', icon: 'none' });
+      return;
+    }
+    const app = getApp();
+    if (app.globalData) {
+      app.globalData.customerHotelDetail = hotelCard;
+    }
+    try {
+      wx.setStorageSync('customerHotelDetail', hotelCard);
+    } catch (error) {
+      console.warn('[customer-home] cache invite hotel detail failed', error);
+    }
+    wx.navigateTo({ url: '/pages/customer/hotel-detail/hotel-detail' });
   },
 
   cacheTripDetailContext(days, context = {}) {

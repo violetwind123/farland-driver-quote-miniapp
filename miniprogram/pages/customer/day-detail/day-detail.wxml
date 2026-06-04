@@ -88,8 +88,7 @@
       </view>
     </block>
 
-    <view class="bottom-actions">
-      <button class="bottom-btn secondary" bindtap="viewFullTrip">返回今日行程</button>
+    <view class="bottom-actions single">
       <button class="bottom-btn primary" bindtap="backHome">返回我的行程</button>
     </view>
   </block>

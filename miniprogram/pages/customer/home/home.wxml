@@ -36,6 +36,7 @@
     <block wx:else>
       <view class="trip-invite-hero card-surface">
         <view class="section-kicker hero-kicker">Farland 行程</view>
+        <view class="trip-invite-copy">感谢您使用 Farland 的服务</view>
         <view class="trip-invite-title">{{tripInviteTrip.displayTitle}}</view>
         <view wx:if="{{tripInviteTrip.displayTripNo || tripInviteTrip.displayDateRange}}" class="trip-invite-meta">
           {{tripInviteTrip.displayTripNo}}{{tripInviteTrip.displayTripNo && tripInviteTrip.displayDateRange ? ' · ' : ''}}{{tripInviteTrip.displayDateRange}}
@@ -71,81 +72,73 @@
         </view>
       </view>
 
-      <view id="customer-full-itinerary-section" class="section-shell">
-        <view class="section-kicker">ITINERARY</view>
-        <view class="section-title">每日行程</view>
-        <view wx:if="{{!tripInviteTrip.hasDays}}" class="today-card-empty">Farland 顾问正在补充每日行程细节。</view>
-        <view wx:else class="trip-invite-day-list">
-          <view
-            wx:for="{{tripInviteTrip.days}}"
-            wx:key="id"
-            class="trip-invite-day card-surface clickable"
-            data-source="invite"
-            data-day-no="{{item.dayNo}}"
-            bindtap="openTripDayDetail"
-          >
-            <view class="trip-invite-day-head">
-              <view>
-                <view class="trip-invite-day-kicker">Day {{item.dayNo}}</view>
-                <view class="trip-invite-day-title">{{item.title}}</view>
-              </view>
-              <view class="trip-invite-day-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
+      <view wx:if="{{tripInviteTrip.progressNodes.length > 1}}" class="section-shell progress-shell">
+        <view class="section-kicker">TRIP</view>
+        <view class="section-title">行程进度</view>
+        <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+          <view class="daily-progress-track">
+            <view wx:for="{{tripInviteTrip.progressNodes}}" wx:key="node_id" class="daily-progress-node {{item.status}}">
+              <view class="daily-progress-dot"></view>
+              <view class="daily-progress-label">{{item.label}}</view>
+              <view wx:if="{{item.weekday || item.date}}" class="daily-progress-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
+              <view class="daily-progress-sub">{{item.location_summary}}</view>
             </view>
-            <view wx:if="{{item.city || item.summary}}" class="trip-invite-day-copy">{{item.city}}{{item.city && item.summary ? ' · ' : ''}}{{item.summary}}</view>
-            <view wx:if="{{item.startTime}}" class="trip-invite-day-start">预计出发：{{item.startTime}}</view>
-            <view wx:if="{{item.highlightItems.length}}" class="trip-highlight-list">
-              <view wx:for="{{item.highlightItems}}" wx:for-item="highlight" wx:key="*this" class="trip-highlight-item">{{highlight}}</view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view wx:if="{{tripInviteTrip.todayDriverCard}}" class="section-shell driver-shell">
+        <view class="section-kicker">用车</view>
+        <view class="section-title">今日用车</view>
+        <view class="today-driver-card card-surface">
+          <view class="driver-card-head">
+            <view>
+              <view class="driver-card-label">出发时间</view>
+              <view class="driver-card-time">{{tripInviteTrip.todayDriverCard.departureTime}}</view>
             </view>
-            <view wx:if="{{item.hotelBadge || item.transportBadge}}" class="trip-invite-badges">
-              <view wx:if="{{item.hotelBadge}}" class="trip-invite-badge">酒店：{{item.hotelBadge}}</view>
-              <view wx:if="{{item.transportBadge}}" class="trip-invite-badge">用车：{{item.transportBadge}}</view>
+            <view class="status-chip {{tripInviteTrip.todayDriverCard.statusClass}}">{{tripInviteTrip.todayDriverCard.statusText}}</view>
+          </view>
+          <view class="driver-card-meta">{{tripInviteTrip.todayDriverCard.vehicleSummary}}</view>
+          <view wx:if="{{tripInviteTrip.todayDriverCard.helperText}}" class="driver-card-helper">{{tripInviteTrip.todayDriverCard.helperText}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{tripInviteTrip.todayOverviewCard}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
+        <view class="section-kicker">TODAY</view>
+        <view class="section-title">今日行程概览</view>
+        <view class="p4-today-card compact card-surface">
+          <view class="p4-today-head">
+            <view class="p4-today-labels">
+              <view class="p4-trip-label">Day {{tripInviteTrip.todayOverviewCard.dayNo}}</view>
+              <view class="p4-today-title">{{tripInviteTrip.todayOverviewCard.weekday}} {{tripInviteTrip.todayOverviewCard.date}}</view>
+              <view class="p4-today-route">{{tripInviteTrip.todayOverviewCard.city}}</view>
             </view>
-            <view class="trip-card-action">查看 Day {{item.dayNo}} 详情</view>
+            <view class="status-pill confirmed">已确认</view>
+          </view>
+          <view wx:if="{{tripInviteTrip.todayOverviewCard.startTime}}" class="p4-summary-route">预计出发：{{tripInviteTrip.todayOverviewCard.startTime}}</view>
+          <view class="p4-summary-times">
+            <view wx:for="{{tripInviteTrip.todayOverviewCard.routeStops}}" wx:key="id" class="p4-summary-time">
+              <view class="p4-summary-clock">{{item.time}}</view>
+              <view class="p4-summary-stop">{{item.title}}</view>
+            </view>
+          </view>
+          <view wx:if="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">今日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
+          <view class="p4-action-row">
+            <button class="p4-action-primary single" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看今日行程</button>
           </view>
         </view>
       </view>
 
-      <view wx:if="{{tripInviteTrip.hasHotels}}" class="section-shell">
-        <view class="section-kicker">HOTEL</view>
-        <view class="section-title">酒店安排</view>
-        <view class="stack-list">
-          <view wx:for="{{tripInviteTrip.hotels}}" wx:key="id" class="trip-invite-info-card card-surface">
-            <view class="trip-invite-info-title">{{item.name}}</view>
-            <view wx:if="{{item.dateText}}" class="trip-invite-info-meta">{{item.dateText}}</view>
-            <view wx:if="{{item.city || item.address}}" class="trip-invite-info-copy">{{item.city}}{{item.city && item.address ? ' · ' : ''}}{{item.address}}</view>
-            <view wx:if="{{item.note}}" class="trip-invite-info-note">{{item.note}}</view>
-          </view>
+      <view wx:if="{{tripInviteTrip.todayHotelCard}}" class="section-shell">
+        <view class="section-kicker">酒店</view>
+        <view class="section-title">今晚住宿</view>
+        <view class="hotel-summary-card card-surface" bindtap="openTripInviteHotelDetail">
+          <view class="arrangement-title">{{tripInviteTrip.todayHotelCard.name}}</view>
+          <view wx:if="{{tripInviteTrip.todayHotelCard.metaText}}" class="hotel-meta">{{tripInviteTrip.todayHotelCard.metaText}}</view>
+          <view class="arrangement-main">{{tripInviteTrip.todayHotelCard.arrivalText}}</view>
+          <view class="arrangement-sub">{{tripInviteTrip.todayHotelCard.address || tripInviteTrip.todayHotelCard.city || '完整酒店信息将由 Farland 顾问同步。'}}</view>
+          <view class="trip-card-action">查看酒店信息</view>
         </view>
-      </view>
-
-      <view wx:if="{{tripInviteTrip.hasFlights}}" class="section-shell">
-        <view class="section-kicker">FLIGHT</view>
-        <view class="section-title">航班安排</view>
-        <view class="stack-list">
-          <view wx:for="{{tripInviteTrip.flights}}" wx:key="id" class="trip-invite-info-card card-surface">
-            <view class="trip-invite-info-title">{{item.flightNo}}</view>
-            <view wx:if="{{item.route}}" class="trip-invite-info-meta">{{item.route}}</view>
-            <view wx:if="{{item.timeText}}" class="trip-invite-info-copy">{{item.timeText}}</view>
-            <view wx:if="{{item.note}}" class="trip-invite-info-note">{{item.note}}</view>
-          </view>
-        </view>
-      </view>
-
-      <view wx:if="{{tripInviteTrip.hasTransports}}" class="section-shell">
-        <view class="section-kicker">TRANSPORT</view>
-        <view class="section-title">用车安排</view>
-        <view class="stack-list">
-          <view wx:for="{{tripInviteTrip.transports}}" wx:key="id" class="trip-invite-info-card card-surface">
-            <view class="trip-invite-info-title">{{item.title}}</view>
-            <view wx:if="{{item.meta}}" class="trip-invite-info-meta">{{item.meta}}</view>
-            <view wx:if="{{item.note}}" class="trip-invite-info-copy">{{item.note}}</view>
-          </view>
-        </view>
-      </view>
-
-      <view class="advisor-panel trip-invite-advisor">
-        <view>{{tripInviteTrip.advisorName || 'Farland 顾问'}}已为您整理本次行程。如需调整或确认细节，请联系顾问。</view>
-        <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
       </view>
     </block>
   </view>
@@ -175,19 +168,34 @@
       </view>
     </view>
 
+    <view wx:if="{{!inviteMode && customerSummaryBar && customerSummaryBar.visible && !showHomeEmpty}}" class="customer-summary-bar card-surface">
+      <view class="summary-main">
+        <view class="summary-kicker">{{customerSummaryBar.thank_you_text}}</view>
+        <view class="summary-title">{{customerSummaryBar.customer_display_name}}</view>
+        <view wx:if="{{customerSummaryBar.trip_no || customerSummaryBar.date_range_text}}" class="summary-meta">
+          {{customerSummaryBar.trip_no}}{{customerSummaryBar.trip_no && customerSummaryBar.date_range_text ? ' · ' : ''}}{{customerSummaryBar.date_range_text}}
+        </view>
+        <view wx:if="{{customerSummaryBar.trip_summary_text}}" class="summary-trip-text">{{customerSummaryBar.trip_summary_text}}</view>
+        <view class="summary-note">{{customerSummaryBar.communication_note}}</view>
+      </view>
+      <view class="summary-status">{{customerSummaryBar.sync_status_text}}</view>
+    </view>
+
     <view wx:if="{{showHomeEmpty}}" class="home-empty-card card-surface">
       <view class="empty-title">暂无行程安排</view>
       <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
     </view>
 
-    <view wx:if="{{!inviteMode && progressStrip && !showHomeEmpty}}" class="section-shell progress-shell">
+    <view wx:if="{{!inviteMode && tripProgress && tripProgress.visible && !showHomeEmpty}}" class="section-shell progress-shell">
       <view class="section-kicker">TRIP</view>
       <view class="section-title">行程进度</view>
-      <scroll-view class="progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
-        <view class="progress-track">
-          <view wx:for="{{progressStrip.nodes}}" wx:key="node_id" class="progress-node {{item.status}}">
-            <view class="progress-dot"></view>
-            <view class="progress-label">{{item.label}}</view>
+      <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+        <view class="daily-progress-track">
+          <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="daily-progress-node {{item.status}}">
+            <view class="daily-progress-dot"></view>
+            <view class="daily-progress-label">{{item.label}}</view>
+            <view wx:if="{{item.weekday || item.date}}" class="daily-progress-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
+            <view class="daily-progress-sub">{{item.location_summary}}</view>
           </view>
         </view>
       </scroll-view>
@@ -214,20 +222,19 @@
         <view wx:if="{{todayDriverCard.partySummary}}" class="driver-card-sub">{{todayDriverCard.partySummary}}</view>
         <view wx:if="{{todayDriverCard.helperText}}" class="driver-card-helper">{{todayDriverCard.helperText}}</view>
 
-        <button wx:if="{{todayDriverCard.actionType === 'advisor'}}" class="arrangement-btn" bindtap="contactAdvisor">{{todayDriverCard.actionLabel}}</button>
         <button
-          wx:elif="{{todayDriverCard.actionType === 'transfer'}}"
+          wx:if="{{todayDriverCard.actionLabel && todayDriverCard.actionType === 'transfer'}}"
           class="arrangement-btn"
           data-request-id="{{todayDriverCard.requestId}}"
           bindtap="viewTransferDetail"
         >{{todayDriverCard.actionLabel}}</button>
-        <button wx:else class="arrangement-btn" bindtap="openTodayDetail">{{todayDriverCard.actionLabel}}</button>
+        <button wx:elif="{{todayDriverCard.actionLabel}}" class="arrangement-btn" bindtap="openTodayDetail">{{todayDriverCard.actionLabel}}</button>
       </view>
     </view>
 
     <view wx:if="{{!inviteMode && todayCard && !showHomeEmpty}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
       <view class="section-kicker">TODAY</view>
-      <view class="section-title">今日行程</view>
+      <view class="section-title">今日行程概览</view>
       <view class="p4-today-card compact card-surface">
         <view class="p4-today-head">
           <view class="p4-today-labels">
@@ -246,6 +253,7 @@
             <view class="p4-summary-stop">{{item.title}}</view>
           </view>
         </view>
+        <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">今日共 {{todayCard.nodeCount}} 个行程节点</view>
 
         <view class="p4-action-row">
           <button class="p4-action-primary single" bindtap="openTodayDetail">查看今日行程</button>
@@ -292,16 +300,18 @@
     <view wx:if="{{!inviteMode && !showHomeEmpty && todayHotelCard}}" id="customer-today-hotel-section" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">今晚住宿</view>
-      <view wx:if="{{todayHotelCard}}" class="home-arrangement-card card-surface">
+      <view wx:if="{{todayHotelCard}}" class="hotel-summary-card card-surface" bindtap="openHotelDetail">
         <view class="arrangement-title">{{todayHotelCard.name}}</view>
+        <view wx:if="{{todayHotelCard.metaText}}" class="hotel-meta">{{todayHotelCard.metaText}}</view>
         <view class="arrangement-main">{{todayHotelCard.arrivalText}}</view>
-        <view class="arrangement-sub">{{todayHotelCard.address || '完整酒店信息将由 Farland 顾问同步。'}}</view>
+        <view class="arrangement-sub">{{todayHotelCard.address || todayHotelCard.city || '完整酒店信息将由 Farland 顾问同步。'}}</view>
+        <view class="trip-card-action">查看酒店信息</view>
       </view>
     </view>
 
     <view wx:if="{{!inviteMode && !showHomeEmpty && showTransferRequests}}" class="section-shell">
       <view class="section-kicker">用车</view>
-      <view class="section-title">我的用车</view>
+      <view class="section-title">临时用车预约</view>
       <view wx:if="{{!transferRequests.length && !transportOrders.length}}" class="empty-state">暂无用车安排。</view>
       <view wx:else class="stack-list">
         <view wx:for="{{transferRequests}}" wx:key="request_id" class="transfer-card compact card-surface">

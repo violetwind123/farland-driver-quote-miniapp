@@ -266,24 +266,27 @@ function buildMockTodayCard() {
 
 function buildMockProgressStrip() {
   return {
-    current_node_id: 'amherst',
+    visible: true,
+    title: 'Trip Progress',
+    mode: 'daily_nodes',
+    current_day_no: 1,
+    current_node_id: 'day_1',
     nodes: [
-      { node_id: 'arrival', type: 'flight_arrival', label: 'Arrival', status: 'completed' },
-      { node_id: 'boston', type: 'center_city', label: 'Boston', status: 'completed' },
-      { node_id: 'amherst', type: 'center_city', label: 'Amherst', status: 'current' },
-      { node_id: 'providence', type: 'center_city', label: 'Providence', status: 'upcoming' },
-      { node_id: 'new_haven', type: 'center_city', label: 'New Haven', status: 'upcoming' },
-      { node_id: 'new_york', type: 'center_city', label: 'New York', status: 'upcoming' },
-      { node_id: 'philadelphia', type: 'center_city', label: 'Philadelphia', status: 'upcoming' },
-      { node_id: 'dc', type: 'center_city', label: 'DC', status: 'upcoming' },
-      { node_id: 'return', type: 'flight_departure', label: 'Return', status: 'upcoming' },
+      { node_id: 'day_1', type: 'trip_day', day_no: 1, label: 'Day 1', location_summary: 'Boston / Amherst / Providence', status: 'current' },
+      { node_id: 'day_2', type: 'trip_day', day_no: 2, label: 'Day 2', location_summary: 'Brown / Yale', status: 'upcoming' },
+      { node_id: 'day_3', type: 'trip_day', day_no: 3, label: 'Day 3', location_summary: 'New York', status: 'upcoming' },
+      { node_id: 'day_4', type: 'trip_day', day_no: 4, label: 'Day 4', location_summary: 'Columbia / NYU', status: 'upcoming' },
+      { node_id: 'day_5', type: 'trip_day', day_no: 5, label: 'Day 5', location_summary: 'Philadelphia', status: 'upcoming' },
+      { node_id: 'day_6', type: 'trip_day', day_no: 6, label: 'Day 6', location_summary: 'Washington DC', status: 'upcoming' },
+      { node_id: 'day_7', type: 'trip_day', day_no: 7, label: 'Day 7', location_summary: 'Georgetown / DC', status: 'upcoming' },
+      { node_id: 'day_8', type: 'trip_day', day_no: 8, label: 'Day 8', location_summary: 'Chicago / Return', status: 'upcoming' },
     ],
   };
 }
 
 function splitRouteCities(value) {
   return String(value || '')
-    .split(/→|->|-|,|，/)
+    .split(/→|->|-|,|，|\//)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -295,41 +298,68 @@ function normalizeNodeId(value, index) {
     .replace(/^_+|_+$/g, '') || `node_${index + 1}`;
 }
 
-function buildProgressStripFromTripData(tripData, todayCard) {
-  const rawCities = [];
-  (tripData.daily_summary_cards || []).forEach((card) => {
-    rawCities.push(...splitRouteCities(card.city || card.route_label || card.title || ''));
-  });
-  (tripData.itinerary_days || []).forEach((day) => {
-    rawCities.push(...splitRouteCities(day.city || day.city_summary || ''));
-  });
-  (tripData.trip_overview || []).forEach((summary) => {
-    rawCities.push(...splitRouteCities(summary.city_route_text || summary.city_summary || ''));
-  });
-
+function normalizeLocationSummary(value) {
+  const parts = splitRouteCities(value)
+    .map((item) => item.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
   const deduped = [];
-  rawCities.forEach((city) => {
-    if (!deduped.length || deduped[deduped.length - 1] !== city) deduped.push(city);
+  parts.forEach((part) => {
+    if (!deduped.includes(part)) deduped.push(part);
   });
-  const visibleCities = deduped.slice(0, 5);
-  if (visibleCities.length < 2) return null;
+  return deduped.slice(0, 3).join(' / ');
+}
 
-  const currentRoute = splitRouteCities(todayCard ? todayCard.city_summary : '');
-  const currentCity = currentRoute[currentRoute.length - 1] || visibleCities[0];
-  let currentIndex = visibleCities.findIndex((city) => city === currentCity);
-  if (currentIndex < 0) currentIndex = Math.min(1, visibleCities.length - 1);
+function firstMeaningfulText(values) {
+  return values.map((value) => String(value || '').trim()).find(Boolean) || '';
+}
 
+function buildProgressStripFromTripData(tripData, todayCard) {
+  const days = Array.isArray(tripData.itinerary_days) ? tripData.itinerary_days : [];
+  const summaries = Array.isArray(tripData.daily_summary_cards) ? tripData.daily_summary_cards : [];
+  const summaryByDayNo = summaries.reduce((acc, card, index) => {
+    const dayNo = Number(card.day_no || index + 1);
+    acc[dayNo] = card;
+    return acc;
+  }, {});
+  const source = days.length
+    ? days.map((day, index) => ({ day, summary: summaryByDayNo[Number(day.day_no || index + 1)] || {}, index }))
+    : summaries.map((summary, index) => ({ day: {}, summary, index }));
+  const nodes = source.map(({ day, summary, index }) => {
+    const dayNo = Number(day.day_no || summary.day_no || index + 1);
+    const locationSummary = normalizeLocationSummary(firstMeaningfulText([
+      summary.location_summary,
+      summary.city,
+      summary.route_label,
+      day.city_summary,
+      day.city,
+      summary.title,
+      day.title,
+    ]));
+    const fallbackText = firstMeaningfulText([summary.title, day.title]).replace(/^Day\s+\d+\s*[:：-]?\s*/i, '');
+    return {
+      node_id: `day_${dayNo}`,
+      id: `day_${dayNo}`,
+      type: 'trip_day',
+      day_no: dayNo,
+      label: `Day ${dayNo}`,
+      date: day.date || summary.date || '',
+      weekday: day.weekday || summary.weekday || '',
+      location_summary: locationSummary || fallbackText || '行程同步中',
+      linked_day_id: day.id || day.day_id || summary.id || `day_${dayNo}`,
+    };
+  }).filter((node) => node.day_no);
+  if (nodes.length < 2) return null;
+  const currentDayNo = Number(todayCard && todayCard.day_no ? todayCard.day_no : nodes[0].day_no);
+  const currentIndex = Math.max(0, nodes.findIndex((node) => Number(node.day_no) === currentDayNo));
   return {
     visible: true,
     title: 'Trip Progress',
+    mode: 'daily_nodes',
+    current_day_no: currentDayNo,
     current_index: currentIndex,
-    current_node_id: normalizeNodeId(visibleCities[currentIndex], currentIndex),
-    nodes: visibleCities.map((city, index) => ({
-      node_id: normalizeNodeId(city, index),
-      id: normalizeNodeId(city, index),
-      type: index === 0 ? 'arrival' : (index === visibleCities.length - 1 ? 'departure' : 'city'),
-      label: city,
-      city,
+    current_node_id: nodes[currentIndex].node_id,
+    nodes: nodes.map((node, index) => ({
+      ...node,
       status: index < currentIndex ? 'completed' : (index === currentIndex ? 'current' : 'upcoming'),
     })),
   };
@@ -741,7 +771,7 @@ function buildDailyCharter(todayCard) {
 }
 
 function buildTodayDriverCard(dailyCharter) {
-  if (!dailyCharter || !dailyCharter.visible || dailyCharter.driver_visibility !== 'assigned' || !dailyCharter.driver) {
+  if (!dailyCharter || !dailyCharter.visible) {
     return {
       visible: false,
       status: 'pending',
@@ -749,19 +779,91 @@ function buildTodayDriverCard(dailyCharter) {
       helper_text: 'Driver details will appear closer to departure.',
     };
   }
+  if (dailyCharter.driver_visibility !== 'assigned' || !dailyCharter.driver) {
+    return {
+      visible: true,
+      service_type: dailyCharter.service_type || 'charter',
+      status: 'driver_pending',
+      status_text: '司机信息待同步',
+      driver_visibility: 'pending',
+      departure_time: dailyCharter.service_window_label || '',
+      driver_name: '',
+      driver_phone: '',
+      plate_number: '',
+      vehicle_summary: dailyCharter.vehicle_summary || '',
+      party_summary: dailyCharter.party_summary || '',
+      helper_text: '司机信息确认后会同步到这里；如需调整请在客户群沟通。',
+      cta_label: '',
+      request_id: dailyCharter.today_card ? (dailyCharter.today_card.assigned_request_id || '') : '',
+    };
+  }
   const driver = dailyCharter.driver || {};
   return {
     visible: true,
     status: 'assigned',
-    status_text: 'Assigned',
+    status_text: '已分配司机',
+    driver_visibility: 'assigned',
     departure_time: dailyCharter.service_window_label || '',
     driver_name: driver.name || driver.driver_name || '',
     driver_phone: driver.phone || driver.driver_phone || '',
+    plate_number: driver.plate_number || '',
     vehicle_summary: dailyCharter.vehicle_summary || driver.vehicle_model || driver.vehicle_type || '',
     party_summary: dailyCharter.party_summary || '',
-    cta_label: 'View transport details',
+    cta_label: '查看用车详情',
     request_id: dailyCharter.today_card ? (dailyCharter.today_card.assigned_request_id || '') : '',
   };
+}
+
+function buildCustomerSummaryBar(displayName, tripData, todayCard) {
+  const summary = (tripData.trip_overview || [])[0] || {};
+  const daysCount = Number(summary.days_count || (tripData.itinerary_days || []).length || (tripData.daily_summary_cards || []).length || 0);
+  const tripSummaryText = firstMeaningfulText([
+    summary.summary_text,
+    summary.title && daysCount ? `${daysCount}天${summary.title.replace(/^Farland\s*/i, '')}` : '',
+    daysCount ? `${daysCount}天行程` : '',
+  ]);
+  const tripNo = firstMeaningfulText([todayCard && todayCard.trip_no, summary.trip_no, summary.external_trip_id]);
+  return sanitizeCustomerObject({
+    visible: true,
+    customer_display_name: displayName || 'Farland 客户',
+    trip_no: tripNo,
+    date_range_text: summary.date_range_text || (todayCard ? todayCard.date : '') || '',
+    trip_summary_text: tripSummaryText,
+    thank_you_text: '感谢您使用 Farland 的服务',
+    sync_status_text: tripData.has_published_trip ? '行程已同步' : '行程同步中',
+    communication_note: '后续沟通请以客户群为准',
+  });
+}
+
+function buildTodayHotelCard(todayCard, tripData) {
+  const todayDayNo = Number(todayCard && todayCard.day_no ? todayCard.day_no : 1);
+  const hotels = Array.isArray(tripData.hotel_requests) ? tripData.hotel_requests : [];
+  const hotel = (todayCard && todayCard.hotel)
+    || hotels.find((item) => Number(item.linked_day_no || item.day_no || 0) === todayDayNo)
+    || hotels[0]
+    || null;
+  if (!hotel) return null;
+  const name = firstMeaningfulText([hotel.name, hotel.hotel_name, hotel.title]);
+  if (!name && !hotel.address) return null;
+  return sanitizeCustomerObject({
+    visible: true,
+    hotel_id: hotel.hotel_id || hotel.id || `hotel_day_${todayDayNo}`,
+    name: name || '今晚住宿',
+    group: hotel.group || hotel.hotel_group || hotel.chain || '',
+    brand: hotel.brand || hotel.hotel_brand || '',
+    star_rating: hotel.star_rating || hotel.stars || '',
+    city: hotel.city || '',
+    address: hotel.address || '',
+    check_in_date: hotel.check_in_date || hotel.date || (todayCard ? todayCard.date : '') || '',
+    check_out_date: hotel.check_out_date || '',
+    date_text: hotel.date_text || buildDateText(hotel.check_in_date || hotel.date || '', hotel.check_out_date || ''),
+    arrival_time: hotel.arrival_time || '',
+    room_summary: hotel.room_summary || hotel.room_type || '',
+    confirmation_no: hotel.confirmation_no || hotel.confirmation_number || '',
+    status_text: hotel.status_text || '已同步',
+    note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '完整酒店信息将由 Farland 顾问同步。',
+    linked_day_no: hotel.linked_day_no || todayDayNo,
+  });
 }
 
 function toTransportOrderSummary(transfer) {
@@ -892,7 +994,12 @@ function normalizeSnapshotDayHotel(hotel, day, index) {
     check_out_date: hotel.check_out_date || '',
     arrival_time: hotel.arrival_time || hotel.planned_arrival_time || hotel.time || '',
     address,
+    group: hotel.group || hotel.hotel_group || hotel.chain || '',
+    brand: hotel.brand || hotel.hotel_brand || '',
+    star_rating: hotel.star_rating || hotel.stars || '',
     room_type: hotel.room_type || '',
+    room_summary: hotel.room_summary || hotel.room_type || '',
+    confirmation_no: hotel.confirmation_no || hotel.confirmation_number || '',
     status_text: hotel.status_text || normalizeHotelStatus(hotel.status),
     customer_note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '',
     linked_day_no: dayNo,
@@ -947,7 +1054,12 @@ function normalizeSnapshotHotel(hotel, index) {
     date_text: hotel.date_text || buildDateText(hotel.check_in_date || hotel.date || '', hotel.check_out_date || ''),
     arrival_time: hotel.arrival_time || '',
     address,
+    group: hotel.group || hotel.hotel_group || hotel.chain || '',
+    brand: hotel.brand || hotel.hotel_brand || '',
+    star_rating: hotel.star_rating || hotel.stars || '',
     room_type: hotel.room_type || '',
+    room_summary: hotel.room_summary || hotel.room_type || '',
+    confirmation_no: hotel.confirmation_no || hotel.confirmation_number || '',
     status_text: hotel.status_text || normalizeHotelStatus(hotel.status),
     note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '',
     linked_day_no: hotel.linked_day_no || hotel.day_no || 0,
@@ -1409,6 +1521,8 @@ exports.main = async () => {
   const todayDriverCard = buildTodayDriverCard(dailyCharter);
   const progressStrip = buildProgressStripFromTripData(tripData, todayCard)
     || (hasCharterSurface ? buildMockProgressStrip() : null);
+  const customerSummaryBar = buildCustomerSummaryBar(displayName, tripData, todayCard);
+  const todayHotelCard = buildTodayHotelCard(todayCard, tripData);
 
   return {
     success: true,
@@ -1421,9 +1535,12 @@ exports.main = async () => {
       subtitle: tripOnly ? 'Farland 顾问已为您同步本次行程与报价' : '您的行程与报价已由 Farland 顾问同步',
     },
     surface_mode: hasCharterSurface ? 'charter_only' : 'transfer_only',
+    customer_summary_bar: customerSummaryBar,
+    trip_progress: progressStrip,
     progress_strip: progressStrip,
     daily_charter: dailyCharter,
     today_driver_card: todayDriverCard,
+    today_hotel_card: todayHotelCard,
     today_card: todayCard,
     today_itinerary: tripData.today_itinerary,
     trip_overview: tripData.trip_overview,

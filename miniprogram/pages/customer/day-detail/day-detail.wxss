@@ -307,6 +307,10 @@
   margin: 26rpx 24rpx 0;
 }
 
+.bottom-actions.single {
+  grid-template-columns: 1fr;
+}
+
 .bottom-btn {
   margin: 0;
   min-height: 88rpx;
