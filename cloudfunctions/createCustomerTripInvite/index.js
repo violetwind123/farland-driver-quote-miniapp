@@ -22,10 +22,12 @@ function isActiveInvite(invite, now) {
 }
 
 async function findTrip(tripId) {
+  const safeTripId = safeString(tripId).trim();
+  if (!safeTripId) return null;
   const queries = [
-    { trip_id: tripId },
-    { external_trip_id: tripId },
-    { trip_no: tripId },
+    { trip_id: safeTripId },
+    { external_trip_id: safeTripId },
+    { trip_no: safeTripId },
   ];
   for (const query of queries) {
     const res = await db.collection('customer_trips')
@@ -35,7 +37,8 @@ async function findTrip(tripId) {
       .catch(() => ({ data: [] }));
     if (res.data[0]) return res.data[0];
   }
-  return null;
+  const byDoc = await db.collection('customer_trips').doc(safeTripId).get().catch(() => null);
+  return byDoc && byDoc.data ? byDoc.data : null;
 }
 
 exports.main = async (event = {}) => {
