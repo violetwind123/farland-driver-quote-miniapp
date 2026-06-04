@@ -10,7 +10,9 @@
     bindchange="onSwiperChange"
   >
     <swiper-item wx:for="{{cards}}" wx:key="card_id">
-      <view class="destination-card">
+      <school-visit-card wx:if="{{item.isSchoolVisitCard}}" card="{{item}}" />
+
+      <view wx:else class="destination-card">
         <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
         <view class="card-type">{{item.typeText}}</view>
         <view wx:if="{{item.time}}" class="card-time">{{item.time}}</view>

@@ -1,0 +1,65 @@
+<view class="school-visit-card">
+  <view class="card-top">
+    <view class="card-index">第 {{card.sequence}} 站 / 共 {{card.total_count}} 站</view>
+    <view class="card-type-pill">访校</view>
+  </view>
+
+  <view class="school-title-block">
+    <view wx:if="{{card.display_snapshot.name_en}}" class="school-name-en">{{card.display_snapshot.name_en}}</view>
+    <view wx:if="{{card.display_snapshot.name_zh}}" class="school-name-zh">{{card.display_snapshot.name_zh}}</view>
+  </view>
+
+  <view class="school-meta-row">
+    <view wx:if="{{card.display_snapshot.entity_type_text}}" class="meta-pill">{{card.display_snapshot.entity_type_text}}</view>
+    <view wx:if="{{card.display_snapshot.location_text}}" class="meta-pill">{{card.display_snapshot.location_text}}</view>
+  </view>
+
+  <view wx:if="{{card.display_snapshot.ranking_badges && card.display_snapshot.ranking_badges.length}}" class="ranking-row">
+    <view wx:for="{{card.display_snapshot.ranking_badges}}" wx:key="display_text" class="ranking-pill">{{item.display_text}}</view>
+  </view>
+
+  <view wx:if="{{card.display_snapshot.address}}" class="info-section">
+    <view class="info-label">地址</view>
+    <view class="address-text">{{card.display_snapshot.address}}</view>
+  </view>
+
+  <view wx:if="{{card.display_snapshot.intro_lines && card.display_snapshot.intro_lines.length}}" class="info-section">
+    <view class="info-label">学校亮点</view>
+    <view class="intro-list">
+      <view wx:for="{{card.display_snapshot.intro_lines}}" wx:key="*this" class="intro-line">{{item}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{card.display_snapshot.strengths && card.display_snapshot.strengths.length}}" class="info-section">
+    <view class="info-label">强势学院 / 方向</view>
+    <view class="strength-list">
+      <view wx:for="{{card.display_snapshot.strengths}}" wx:key="title" class="strength-item">
+        <view class="strength-title">{{item.title}}</view>
+        <view wx:if="{{item.desc}}" class="strength-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{card.display_snapshot.fit_tags && card.display_snapshot.fit_tags.length}}" class="info-section fit-section">
+    <view class="info-label">适合学生</view>
+    <view class="fit-tags">
+      <view wx:for="{{card.display_snapshot.fit_tags}}" wx:key="*this" class="fit-tag">{{item}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{card.time_snapshot.has_time}}" class="time-footer">
+    <view wx:if="{{card.time_snapshot.departure_time}}" class="time-item">
+      <view class="time-label">出发</view>
+      <view class="time-value">{{card.time_snapshot.departure_time}}</view>
+    </view>
+    <view wx:if="{{card.time_snapshot.arrival_time}}" class="time-item">
+      <view class="time-label">到达</view>
+      <view class="time-value">{{card.time_snapshot.arrival_time}}</view>
+    </view>
+    <view wx:if="{{card.time_snapshot.appointment_time}}" class="time-item">
+      <view class="time-label">预约</view>
+      <view class="time-value">{{card.time_snapshot.appointment_time}}</view>
+    </view>
+    <view wx:if="{{card.time_snapshot.time_warning_text}}" class="time-warning">{{card.time_snapshot.time_warning_text}}</view>
+  </view>
+</view>

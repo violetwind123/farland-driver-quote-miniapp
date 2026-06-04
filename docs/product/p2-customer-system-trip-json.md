@@ -331,6 +331,15 @@ Semantic validations beyond JSON Schema:
 - driver-sensitive fields are only customer-visible when allowed
 - documents marked `visible_to_customer = false` are not returned
 
+School visit card snapshots:
+
+- `itinerary_days[].timeline_items[]` may include `card_type = "school_visit"`.
+- `display_snapshot` stores the customer-visible school profile frozen at publish time:
+  `name_en`, `name_zh`, `entity_type_text`, `city`, `state`, `address`, `ranking_badges`, `intro_lines`, `strengths`, and `fit_tags`.
+- `time_snapshot` stores visit execution times from the itinerary:
+  `departure_time`, `arrival_time`, `appointment_time`, and optional `time_warning_text`.
+- School visit cards should not show route, drive time, distance, traffic, driver, advisor, price, or internal notes.
+
 ## AI-To-JSON Operator Workflow
 
 ```text

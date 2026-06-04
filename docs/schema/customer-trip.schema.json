@@ -457,6 +457,22 @@
       "required": ["title"],
       "properties": {
         "item_id": { "type": "string" },
+        "card_id": { "type": "string" },
+        "card_type": { "type": "string" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "total_count": { "type": "integer", "minimum": 1 },
+        "entity_ref": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "display_snapshot": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "time_snapshot": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "time": { "type": "string", "minLength": 1 },
         "type": {
           "type": "string",
