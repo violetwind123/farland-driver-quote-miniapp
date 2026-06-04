@@ -550,13 +550,35 @@ async function findTripDeliveryRows(trip, customer, fallbackTripId = '') {
   });
 }
 
-function buildCustomerDeliveryMeta(accessRows) {
-  const delivered = accessRows.length > 0;
+async function findTripInviteRows(trip, fallbackTripId = '') {
+  const ids = tripLookupIds(trip, fallbackTripId);
+  if (!ids.length) return [];
+  const results = await Promise.all(ids.map((id) => db.collection('customer_trip_invites')
+    .where({ trip_id: id, status: 'active' })
+    .limit(20)
+    .get()
+    .catch(() => ({ data: [] }))));
+  const now = Date.now();
+  const seen = {};
+  return results.flatMap((res) => res.data || []).filter((invite) => {
+    const key = invite._id || `${invite.trip_id}:${invite.invite_code}`;
+    if (seen[key]) return false;
+    const expiresAt = invite.expires_at instanceof Date ? invite.expires_at : new Date(invite.expires_at || '');
+    if (invite.expires_at && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < now) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
+function buildCustomerDeliveryMeta(accessRows, inviteRows = []) {
+  const delivered = accessRows.length > 0 || inviteRows.length > 0;
+  const deliveryRows = accessRows.length ? accessRows : inviteRows;
   return {
     customer_delivery_status: delivered ? 'delivered' : 'not_delivered',
     customer_delivery_text: delivered ? '已推送客户端' : '未推送客户端',
-    delivered_customer_count: accessRows.length,
-    delivered_at: maxDate(accessRows.map((access) => access.updated_at || access.created_at || access.granted_at || access.saved_at || '')),
+    delivered_customer_count: accessRows.length || inviteRows.length,
+    delivery_source: accessRows.length ? 'customer_trip_access' : (inviteRows.length ? 'customer_trip_invite' : 'none'),
+    delivered_at: maxDate(deliveryRows.map((row) => row.updated_at || row.created_at || row.granted_at || row.saved_at || '')),
   };
 }
 
@@ -905,7 +927,8 @@ exports.main = async (event = {}) => {
   const request = await loadRequest(requestId);
   const { assigned_transport: assignedTransport, transport_order_health: transportOrderHealth } = await loadAssignedTransport(requestId);
   const deliveryRows = trip ? await findTripDeliveryRows(trip, customer, tripId) : [];
-  const deliveryMeta = buildCustomerDeliveryMeta(deliveryRows);
+  const inviteRows = trip ? await findTripInviteRows(trip, tripId) : [];
+  const deliveryMeta = buildCustomerDeliveryMeta(deliveryRows, inviteRows);
 
   const isPublished = Boolean(trip && trip.visibility_status === 'published' && hasSnapshot(trip.published_snapshot));
   const rawSnapshot = getOperatorPreviewSnapshot(trip, isPublished);

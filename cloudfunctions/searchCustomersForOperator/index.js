@@ -47,6 +47,87 @@ function maxDate(values) {
   return values.filter(Boolean).sort().pop() || '';
 }
 
+function hasSnapshot(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+}
+
+function normalizeMatchText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function customerNameTokens(user) {
+  const rawTokens = [user.display_name, user.name]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+  const suffixPattern = /(女士|先生|小姐|太太|夫人|同学|客户|一家|家庭)$/;
+  const tokens = [];
+  rawTokens.forEach((token) => {
+    tokens.push(token);
+    const stripped = token.replace(suffixPattern, '').trim();
+    if (stripped && stripped !== token) tokens.push(stripped);
+  });
+  return Array.from(new Set(tokens.map(normalizeMatchText).filter(Boolean)));
+}
+
+function tripCustomerTexts(trip) {
+  const customer = trip.customer || {};
+  const snapshotCustomer = (trip.published_snapshot && trip.published_snapshot.customer)
+    || (trip.draft_snapshot && trip.draft_snapshot.customer)
+    || {};
+  return [
+    trip.customer_display_name,
+    trip.customer_name,
+    trip.customer_phone,
+    trip.customer_wechat_id,
+    trip.customer_profile_id,
+    customer.display_name,
+    customer.name,
+    customer.phone,
+    customer.wechat_id,
+    customer.customer_profile_id,
+    snapshotCustomer.display_name,
+    snapshotCustomer.name,
+    snapshotCustomer.phone,
+    snapshotCustomer.wechat_id,
+  ].map(normalizeMatchText).filter(Boolean);
+}
+
+function looseNameMatchesCustomer(candidate, tokens) {
+  if (!candidate || !tokens.length) return false;
+  return tokens.some((token) => {
+    if (!token) return false;
+    if (candidate === token) return true;
+    if (token.length === 1) return candidate.startsWith(token);
+    return candidate.includes(token) || token.includes(candidate);
+  });
+}
+
+function tripMatchesCustomerLoose(trip, user) {
+  const userId = normalizeMatchText(user._id);
+  const userIds = Array.isArray(trip.customer_user_ids) ? trip.customer_user_ids.map(normalizeMatchText) : [];
+  if (userId && [
+    normalizeMatchText(trip.primary_customer_user_id),
+    normalizeMatchText(trip.customer_user_id),
+    ...userIds,
+  ].includes(userId)) {
+    return true;
+  }
+
+  const exactTokens = [
+    user.customer_profile_id,
+    user.phone,
+    user.wechat_id,
+  ].map(normalizeMatchText).filter(Boolean);
+  const tripTexts = tripCustomerTexts(trip);
+  if (exactTokens.some((token) => tripTexts.includes(token))) return true;
+
+  return tripTexts.some((text) => looseNameMatchesCustomer(text, customerNameTokens(user)));
+}
+
+function isCustomerVisibleTrip(trip) {
+  return trip && trip.visibility_status === 'published' && hasSnapshot(trip.published_snapshot);
+}
+
 async function loadTripById(tripId) {
   const safeTripId = String(tripId || '').trim();
   if (!safeTripId) return null;
@@ -77,7 +158,15 @@ function uniqueByTripId(trips) {
   });
 }
 
-async function loadTripsByCustomerOwnership(user) {
+async function loadRecentTripPool() {
+  const res = await db.collection('customer_trips')
+    .limit(200)
+    .get()
+    .catch(() => ({ data: [] }));
+  return res.data || [];
+}
+
+async function loadTripsByCustomerOwnership(user, tripPool = []) {
   const queries = [];
   const userId = user._id || '';
   const profileId = user.customer_profile_id || '';
@@ -104,18 +193,21 @@ async function loadTripsByCustomerOwnership(user) {
     queries.push({ customer_name: name });
   });
 
-  if (!queries.length) return [];
-  const results = await Promise.all(queries.map((query) => {
-    return db.collection('customer_trips')
-      .where(query)
-      .limit(20)
-      .get()
-      .catch(() => ({ data: [] }));
-  }));
-  return uniqueByTripId(results.flatMap((res) => res.data || []));
+  const results = queries.length
+    ? await Promise.all(queries.map((query) => {
+      return db.collection('customer_trips')
+        .where(query)
+        .limit(20)
+        .get()
+        .catch(() => ({ data: [] }));
+    }))
+    : [];
+  const exactTrips = results.flatMap((res) => res.data || []);
+  const looseTrips = (tripPool || []).filter((trip) => tripMatchesCustomerLoose(trip, user));
+  return uniqueByTripId([...exactTrips, ...looseTrips]);
 }
 
-async function loadPreviewStats(user) {
+async function loadPreviewStats(user, tripPool = []) {
   const accessRows = [];
   const byUserId = await db.collection('customer_trip_access')
     .where({ customer_user_id: user._id, status: 'active' })
@@ -147,7 +239,7 @@ async function loadPreviewStats(user) {
     if (trip) trips.push(trip);
   }
   const resolvedAccessTrips = uniqueByTripId(trips);
-  const ownedTrips = await loadTripsByCustomerOwnership(user);
+  const ownedTrips = await loadTripsByCustomerOwnership(user, tripPool);
   const relatedTrips = uniqueByTripId([...resolvedAccessTrips, ...ownedTrips]);
 
   const nowMs = Date.now();
@@ -157,8 +249,8 @@ async function loadPreviewStats(user) {
     const endMs = new Date(trip.end_at || trip.date_end || '').getTime();
     return Number.isNaN(endMs) || endMs >= nowMs;
   });
-  const activePublishedTrips = resolvedAccessTrips.filter((trip) => trip.visibility_status === 'published');
-  const unpublishedTrips = ownedTrips.filter((trip) => trip.visibility_status !== 'published');
+  const activePublishedTrips = relatedTrips.filter(isCustomerVisibleTrip);
+  const unpublishedTrips = relatedTrips.filter((trip) => !isCustomerVisibleTrip(trip));
   const latestTripAt = maxDate(relatedTrips.map((trip) => trip.updated_at || trip.imported_at || trip.created_at || trip.start_at || trip.date_start || ''));
   const lastPreviewedAt = maxDate(relatedTrips.map((trip) => trip.last_operator_previewed_at || ''));
   const previewRank = resolvedAccessTrips.length * 200000
@@ -169,7 +261,7 @@ async function loadPreviewStats(user) {
     + (latestTripAt ? 100 : 0);
 
   return {
-    active_trip_count: resolvedAccessTrips.length,
+    active_trip_count: activePublishedTrips.length,
     active_access_count: tripIds.length,
     active_unresolved_count: Math.max(0, tripIds.length - resolvedAccessTrips.length),
     active_published_trip_count: activePublishedTrips.length,
@@ -181,8 +273,8 @@ async function loadPreviewStats(user) {
   };
 }
 
-async function toPreviewCustomerListItem(user) {
-  const stats = await loadPreviewStats(user);
+async function toPreviewCustomerListItem(user, tripPool = []) {
+  const stats = await loadPreviewStats(user, tripPool);
   return {
     customer_user_id: user._id,
     user_id: user._id,
@@ -213,8 +305,9 @@ exports.main = async (event = {}) => {
     .catch(() => ({ data: [] }));
 
   const matchedUsers = (userRes.data || []).filter((user) => includesKeyword(user, keyword));
+  const tripPool = mode === 'preview_selector' ? await loadRecentTripPool() : [];
   const customers = mode === 'preview_selector'
-    ? (await Promise.all(matchedUsers.map(toPreviewCustomerListItem)))
+    ? (await Promise.all(matchedUsers.map((user) => toPreviewCustomerListItem(user, tripPool))))
       .sort((a, b) => {
         if (b.preview_rank !== a.preview_rank) return b.preview_rank - a.preview_rank;
         if (String(b.latest_trip_at || '') !== String(a.latest_trip_at || '')) {
