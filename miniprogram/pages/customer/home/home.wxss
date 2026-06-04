@@ -864,38 +864,26 @@
 
 .segment-connector {
   display: grid;
-  gap: 9rpx;
-  margin-top: 16rpx;
-  padding-bottom: 2rpx;
+  gap: 11rpx;
+  margin-top: 18rpx;
+  padding: 0 0 4rpx;
 }
 
 .segment-dash {
   width: 100%;
-  border-top: 1rpx dashed rgba(91, 101, 150, 0.22);
+  min-width: 420rpx;
+  border-top: 2rpx dashed rgba(91, 101, 150, 0.30);
 }
 
 .segment-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8rpx;
+  gap: 10rpx;
   color: #8A91A1;
   font-size: 21rpx;
   line-height: 1.35;
   font-weight: 560;
-}
-
-.segment-car {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34rpx;
-  height: 34rpx;
-  border-radius: 999rpx;
-  color: #5B6596;
-  background: rgba(91, 101, 150, 0.10);
-  font-size: 18rpx;
-  font-weight: 760;
 }
 
 .traffic-pill {
