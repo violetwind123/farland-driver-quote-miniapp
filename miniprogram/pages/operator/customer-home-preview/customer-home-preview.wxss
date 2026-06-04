@@ -324,8 +324,100 @@
 
 .selected-preview-customer,
 .critical-box,
-.warning-box {
+.warning-box,
+.release-flow-card {
   margin-top: 18rpx;
+}
+
+.release-flow-card {
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: #F7F9FF;
+  border: 1rpx solid rgba(102, 114, 168, 0.14);
+}
+
+.release-flow-card.waiting,
+.release-flow-card.ready {
+  background: #FFF8EA;
+  border-color: rgba(194, 122, 0, 0.18);
+}
+
+.release-flow-card.blocked {
+  background: #FFF7F7;
+  border-color: rgba(182, 71, 71, 0.18);
+}
+
+.release-flow-card.published {
+  background: #F1F8F4;
+  border-color: rgba(62, 140, 92, 0.18);
+}
+
+.release-flow-card.delivered {
+  background: linear-gradient(135deg, rgba(91, 101, 150, 0.12) 0%, rgba(124, 111, 168, 0.14) 100%);
+  border-color: rgba(91, 101, 150, 0.22);
+}
+
+.release-title {
+  color: #1D2433;
+  font-size: 27rpx;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.release-copy,
+.release-tip,
+.share-sub,
+.release-open-hint {
+  margin-top: 8rpx;
+  color: #6E7788;
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.release-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.release-step {
+  min-height: 82rpx;
+  box-sizing: border-box;
+  padding: 12rpx 8rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.62);
+  color: #8A91A1;
+  text-align: center;
+}
+
+.release-step.done {
+  color: #3E8C5C;
+  background: rgba(62, 140, 92, 0.10);
+}
+
+.release-step.active {
+  color: #6672A8;
+  background: rgba(102, 114, 168, 0.12);
+}
+
+.release-step.blocked {
+  color: #B64747;
+  background: rgba(182, 71, 71, 0.10);
+}
+
+.release-dot {
+  width: 14rpx;
+  height: 14rpx;
+  margin: 0 auto 8rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+}
+
+.release-label {
+  font-size: 20rpx;
+  line-height: 1.25;
+  font-weight: 700;
 }
 
 .critical-box,
@@ -378,6 +470,13 @@
   font-size: 22rpx;
   line-height: 1.5;
   word-break: break-all;
+}
+
+.share-title {
+  color: #1D2433;
+  font-size: 25rpx;
+  line-height: 1.35;
+  font-weight: 800;
 }
 
 .customer-preview {

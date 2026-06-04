@@ -1,3 +1,104 @@
+function createDefaultPreviewMeta() {
+  return {
+    customer_would_see: 'waiting',
+    warnings: [],
+    critical_warnings: [],
+    unpublished: true,
+    customer_delivery_status: 'not_delivered',
+    customer_delivery_text: '未推送客户端',
+    delivered_customer_count: 0,
+    banner_class: 'unpublished',
+    banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
+    banner_sub: 'Customer would see: waiting',
+    release_status: 'waiting',
+    release_step_title: '客户真实打开仍是等待页',
+    release_step_copy: '请先输入正确 trip_id 并点击预览；生成客户草稿并发布后，客户才会看到正式行程。',
+    release_step_tip: '发布成功后这里会变成 PUBLISHED CUSTOMER VIEW。',
+    customer_preview_button_text: '查看客户等待页',
+    customer_preview_button_class: 'secondary-wide-btn',
+    release_steps: [
+      { key: 'preview', label: '1 预览', status: 'pending' },
+      { key: 'draft', label: '2 生成草稿', status: 'pending' },
+      { key: 'publish', label: '3 发布', status: 'pending' },
+      { key: 'card', label: '4 客户卡', status: 'pending' },
+    ],
+  };
+}
+
+function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, delivered, tripId }) {
+  const published = customerWouldSee === 'published';
+  const hasPreview = Boolean(tripId);
+  const hasCriticalWarnings = criticalWarnings.length > 0;
+  const needsDraft = warnings.includes('preview_from_import_source');
+  const hasDraft = published || (hasPreview && !needsDraft);
+  const releaseSteps = [
+    { key: 'preview', label: '1 预览', status: hasPreview ? 'done' : 'active' },
+    {
+      key: 'draft',
+      label: '2 生成草稿',
+      status: published || hasDraft ? 'done' : (hasPreview ? 'active' : 'pending'),
+    },
+    {
+      key: 'publish',
+      label: '3 发布',
+      status: published ? 'done' : (hasCriticalWarnings ? 'blocked' : (hasDraft ? 'active' : 'pending')),
+    },
+    {
+      key: 'card',
+      label: '4 客户卡',
+      status: delivered ? 'done' : (published ? 'active' : 'pending'),
+    },
+  ];
+
+  if (published) {
+    return {
+      release_status: delivered ? 'delivered' : 'published',
+      release_step_title: delivered ? '已推送客户端' : '已发布客户可见版本',
+      release_step_copy: delivered
+        ? '客户客户端已可查看该行程。可再次进入客户页面核对展示效果。'
+        : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并创建或复制客户卡。',
+      release_step_tip: delivered ? '如需重新发送，可继续生成或复制客户卡。' : '下一步：Create / Copy Customer Card。',
+      customer_preview_button_text: '进入客户看到的页面',
+      customer_preview_button_class: 'primary-wide-btn',
+      release_steps: releaseSteps,
+    };
+  }
+
+  if (hasCriticalWarnings) {
+    return {
+      release_status: 'blocked',
+      release_step_title: '存在关键警告，暂不能发布',
+      release_step_copy: '请先处理 Critical warnings，再重新生成客户草稿。当前客户真实打开只会看到等待页。',
+      release_step_tip: '关键警告清空后再点击 Publish After Review。',
+      customer_preview_button_text: '查看客户等待页',
+      customer_preview_button_class: 'secondary-wide-btn',
+      release_steps: releaseSteps,
+    };
+  }
+
+  if (hasDraft) {
+    return {
+      release_status: 'ready',
+      release_step_title: '草稿已可审核，尚未发布',
+      release_step_copy: '运营可以审核下方摘要。确认无误后点击 Publish After Review，客户页面才会显示正式行程。',
+      release_step_tip: '未发布前客户真实打开仍是等待页。',
+      customer_preview_button_text: '查看客户等待页',
+      customer_preview_button_class: 'secondary-wide-btn',
+      release_steps: releaseSteps,
+    };
+  }
+
+  return {
+    release_status: 'waiting',
+    release_step_title: '客户真实打开仍是等待页',
+    release_step_copy: '请确认 Preview Target 已填正确 trip_id，然后按顺序点击 Build Customer Draft 和 Publish After Review。',
+    release_step_tip: '未发布草稿不会展示给客户，这是客户数据安全规则。',
+    customer_preview_button_text: '查看客户等待页',
+    customer_preview_button_class: 'secondary-wide-btn',
+    release_steps: releaseSteps,
+  };
+}
+
 Page({
   data: {
     loading: false,
@@ -13,18 +114,7 @@ Page({
     selectedCustomer: null,
     preview: null,
     customerHome: null,
-    previewMeta: {
-      customer_would_see: 'waiting',
-      warnings: [],
-      critical_warnings: [],
-      unpublished: true,
-      customer_delivery_status: 'not_delivered',
-      customer_delivery_text: '未推送客户端',
-      delivered_customer_count: 0,
-      banner_class: 'unpublished',
-      banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
-      banner_sub: 'Customer would see: waiting',
-    },
+    previewMeta: createDefaultPreviewMeta(),
     previewCustomer: null,
     error: '',
     reviewNote: '',
@@ -54,18 +144,7 @@ Page({
       tripId: e.detail.value || '',
       preview: null,
       customerHome: null,
-      previewMeta: {
-        customer_would_see: 'waiting',
-        warnings: [],
-        critical_warnings: [],
-        unpublished: true,
-        customer_delivery_status: 'not_delivered',
-        customer_delivery_text: '未推送客户端',
-        delivered_customer_count: 0,
-        banner_class: 'unpublished',
-        banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
-        banner_sub: 'Customer would see: waiting',
-      },
+      previewMeta: createDefaultPreviewMeta(),
       invitePath: '',
     });
   },
@@ -111,18 +190,7 @@ Page({
       selectedCustomer: null,
       preview: null,
       customerHome: null,
-      previewMeta: {
-        customer_would_see: 'waiting',
-        warnings: [],
-        critical_warnings: [],
-        unpublished: true,
-        customer_delivery_status: 'not_delivered',
-        customer_delivery_text: '未推送客户端',
-        delivered_customer_count: 0,
-        banner_class: 'unpublished',
-        banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
-        banner_sub: 'Customer would see: waiting',
-      },
+      previewMeta: createDefaultPreviewMeta(),
       invitePath: '',
     });
     if (this.data.tripId || this.data.requestId) this.loadPreview();
@@ -137,18 +205,7 @@ Page({
       selectedCustomer: customer,
       preview: null,
       customerHome: null,
-      previewMeta: {
-        customer_would_see: 'waiting',
-        warnings: [],
-        critical_warnings: [],
-        unpublished: true,
-        customer_delivery_status: 'not_delivered',
-        customer_delivery_text: '未推送客户端',
-        delivered_customer_count: 0,
-        banner_class: 'unpublished',
-        banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
-        banner_sub: 'Customer would see: waiting',
-      },
+      previewMeta: createDefaultPreviewMeta(),
       invitePath: '',
     });
     this.loadPreview({ enterCustomerPage: true });
@@ -208,7 +265,9 @@ Page({
 
   normalizePreviewMeta(meta = {}) {
     const customerWouldSee = meta.customer_would_see || 'waiting';
-    const unpublished = Boolean(meta.unpublished);
+    const warnings = Array.isArray(meta.warnings) ? meta.warnings : [];
+    const criticalWarnings = Array.isArray(meta.critical_warnings) ? meta.critical_warnings : [];
+    const unpublished = meta.unpublished === undefined ? customerWouldSee !== 'published' : Boolean(meta.unpublished);
     const delivered = meta.customer_delivery_status === 'delivered' || Boolean(meta.delivered_customer_count);
     const deliveryText = meta.customer_delivery_text || (delivered ? '已推送客户端' : '未推送客户端');
     const bannerTitle = unpublished
@@ -220,8 +279,8 @@ Page({
     return {
       ...meta,
       customer_would_see: customerWouldSee,
-      warnings: Array.isArray(meta.warnings) ? meta.warnings : [],
-      critical_warnings: Array.isArray(meta.critical_warnings) ? meta.critical_warnings : [],
+      warnings,
+      critical_warnings: criticalWarnings,
       unpublished,
       customer_delivery_status: delivered ? 'delivered' : 'not_delivered',
       customer_delivery_text: deliveryText,
@@ -229,6 +288,13 @@ Page({
       banner_class: unpublished ? 'unpublished' : (delivered ? 'delivered' : 'published'),
       banner_title: bannerTitle,
       banner_sub: bannerSub,
+      ...buildReleaseState({
+        customerWouldSee,
+        warnings,
+        criticalWarnings,
+        delivered,
+        tripId: meta.trip_id || this.data.tripId || '',
+      }),
     };
   },
 
@@ -254,7 +320,7 @@ Page({
     };
   },
 
-  openCustomerFacingPreview(previewResult) {
+  async openCustomerFacingPreview(previewResult) {
     const result = previewResult && (previewResult.customer_share_preview || previewResult.customer_home)
       ? previewResult
       : this.data.preview;
@@ -262,7 +328,20 @@ Page({
       wx.showToast({ title: '请先生成预览', icon: 'none' });
       return;
     }
-    const meta = result.preview_meta || {};
+    const meta = this.normalizePreviewMeta(result.preview_meta || this.data.previewMeta || {});
+    if (meta.customer_would_see !== 'published') {
+      const confirmed = await new Promise((resolve) => {
+        wx.showModal({
+          title: '当前仍是等待页',
+          content: '客户真实打开只会看到等待状态。请先 Build Customer Draft，再 Publish After Review。仍要查看等待页吗？',
+          confirmText: '查看等待页',
+          cancelText: '返回发布',
+          success: (res) => resolve(res.confirm),
+          fail: () => resolve(false),
+        });
+      });
+      if (!confirmed) return;
+    }
     const customerSharePreview = result.customer_share_preview || {
       trip_id: meta.trip_id || this.data.tripId || '',
       waiting: meta.customer_would_see !== 'published',

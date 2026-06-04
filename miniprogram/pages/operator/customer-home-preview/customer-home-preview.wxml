@@ -87,6 +87,18 @@
       <view wx:if="{{previewCustomer.openid_display}}" class="customer-sub">OpenID: {{previewCustomer.openid_display}}</view>
     </view>
 
+    <view class="release-flow-card {{previewMeta.release_status}}">
+      <view class="release-title">{{previewMeta.release_step_title}}</view>
+      <view class="release-copy">{{previewMeta.release_step_copy}}</view>
+      <view class="release-steps">
+        <view wx:for="{{previewMeta.release_steps}}" wx:key="key" class="release-step {{item.status}}">
+          <view class="release-dot"></view>
+          <view class="release-label">{{item.label}}</view>
+        </view>
+      </view>
+      <view class="release-tip">{{previewMeta.release_step_tip}}</view>
+    </view>
+
     <view wx:if="{{previewMeta.critical_warnings.length}}" class="critical-box">
       <view class="warning-title">Critical warnings</view>
       <view wx:for="{{previewMeta.critical_warnings}}" wx:key="*this" class="warning-row">{{item}}</view>
@@ -107,8 +119,15 @@
       <button class="secondary-btn" loading="{{building}}" bindtap="buildDraft">Build Customer Draft</button>
       <button class="primary-btn" loading="{{publishing}}" bindtap="publishTrip">Publish After Review</button>
     </view>
-    <button class="primary-wide-btn preview-open-btn" bindtap="openCustomerFacingPreview">进入客户看到的页面</button>
+    <button class="{{previewMeta.customer_preview_button_class || 'secondary-wide-btn'}} preview-open-btn" bindtap="openCustomerFacingPreview">
+      {{previewMeta.customer_preview_button_text || '查看客户等待页'}}
+    </button>
+    <view wx:if="{{previewMeta.customer_would_see !== 'published'}}" class="release-open-hint">
+      当前未发布，客户真实页面只显示等待状态，不显示草稿。
+    </view>
     <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
+      <view class="share-title">客户分享卡</view>
+      <view class="share-sub">发布成功后才允许创建或复制客户卡。</view>
       <button class="primary-wide-btn" loading="{{creatingInvite}}" bindtap="createInvite">Create / Copy Customer Card</button>
       <view wx:if="{{invitePath}}" class="invite-path">{{invitePath}}</view>
       <button wx:if="{{invitePath}}" class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
@@ -127,7 +146,9 @@
         <view class="customer-kicker">CUSTOMER VIEW</view>
         <view class="customer-title">这里不是客户真实页面</view>
         <view class="customer-sub">客户真实显示效果请点击下方按钮进入 `我的行程`。该入口会模拟客户打开分享卡，不创建访问记录，不绑定客户。</view>
-        <button class="primary-wide-btn" bindtap="openCustomerFacingPreview">进入客户看到的页面</button>
+        <button class="{{previewMeta.customer_preview_button_class || 'secondary-wide-btn'}}" bindtap="openCustomerFacingPreview">
+          {{previewMeta.customer_preview_button_text || '查看客户等待页'}}
+        </button>
       </view>
 
       <view wx:if="{{previewMeta.customer_would_see === 'waiting'}}" class="waiting-card">
