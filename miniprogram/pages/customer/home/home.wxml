@@ -23,14 +23,14 @@
     <view wx:if="{{tripInviteError}}" class="trip-invite-state card-surface">
       <view class="trip-invite-state-title">行程链接不可用</view>
       <view class="trip-invite-state-copy">{{tripInviteError}}</view>
-      <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
+      <view class="trip-invite-state-copy muted">请回到 Farland 客户群确认最新链接。</view>
     </view>
 
     <view wx:elif="{{tripInviteWaiting}}" class="trip-invite-state card-surface">
       <view class="trip-invite-state-kicker">Farland 行程</view>
       <view class="trip-invite-state-title">顾问正在核对行程安排</view>
       <view class="trip-invite-state-copy">{{tripInviteMessage}}</view>
-      <button class="arrangement-btn secondary" bindtap="contactAdvisor">联系顾问</button>
+      <view class="trip-invite-state-copy muted">如需调整，请在 Farland 客户群内沟通。</view>
     </view>
 
     <block wx:else>
@@ -99,6 +99,11 @@
             <view class="status-chip {{tripInviteTrip.todayDriverCard.statusClass}}">{{tripInviteTrip.todayDriverCard.statusText}}</view>
           </view>
           <view class="driver-card-meta">{{tripInviteTrip.todayDriverCard.vehicleSummary}}</view>
+          <view wx:if="{{tripInviteTrip.todayDriverCard.driver}}" class="driver-card-person">
+            <view class="driver-name">{{tripInviteTrip.todayDriverCard.driver.name}}</view>
+            <view wx:if="{{tripInviteTrip.todayDriverCard.driver.phone}}" class="driver-phone">{{tripInviteTrip.todayDriverCard.driver.phone}}</view>
+          </view>
+          <view wx:if="{{tripInviteTrip.todayDriverCard.partySummary}}" class="driver-card-sub">{{tripInviteTrip.todayDriverCard.partySummary}}</view>
           <view wx:if="{{tripInviteTrip.todayDriverCard.helperText}}" class="driver-card-helper">{{tripInviteTrip.todayDriverCard.helperText}}</view>
         </view>
       </view>

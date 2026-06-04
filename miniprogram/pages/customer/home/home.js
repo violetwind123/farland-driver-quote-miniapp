@@ -583,6 +583,45 @@ Page({
     };
   },
 
+  buildPublishedTripTodayDriverCard(todayDay, snapshot = {}) {
+    if (!todayDay) return null;
+    const summary = todayDay.transportSummary || {};
+    const explicit = snapshot.today_driver_card || snapshot.todayDriverCard || {};
+    const rawDriver = explicit.driver
+      || explicit.assigned_transport
+      || summary.driver
+      || summary.assigned_transport
+      || {
+        name: explicit.driver_name || summary.driver_name || '',
+        phone: explicit.driver_phone || summary.driver_phone || '',
+        vehicle_model: explicit.vehicle_model || summary.vehicle_model || explicit.vehicle_summary || summary.vehicle_summary || '',
+        vehicle_type: explicit.vehicle_type || summary.vehicle_type || summary.vehicle_class || '',
+        plate_number: explicit.plate_number || summary.plate_number || '',
+      };
+    const driver = this.normalizeAssignedDriver(rawDriver);
+    const driverVisibility = explicit.driver_visibility || summary.driver_visibility || (driver && (driver.name || driver.phone) ? 'assigned' : 'pending');
+    const isAssigned = driverVisibility === 'assigned' && driver;
+    return {
+      title: '今日用车',
+      statusText: isAssigned ? '已分配司机' : (explicit.status_text || summary.status_text || '司机信息待同步'),
+      statusClass: isAssigned ? 'confirmed' : 'pending',
+      departureTime: this.formatDisplayTime(explicit.departure_time || summary.departure_time || summary.depart_time || todayDay.startTime || '') || '待确认',
+      vehicleSummary: explicit.vehicle_summary
+        || summary.vehicle_summary
+        || summary.vehicle_model
+        || summary.vehicle_class
+        || todayDay.transportBadge
+        || (driver ? driver.vehicleText : '')
+        || '车辆待确认',
+      partySummary: explicit.party_summary || summary.party_summary || '',
+      driver: isAssigned ? driver : null,
+      helperText: isAssigned ? '' : (explicit.helper_text || summary.helper_text || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
+      requestId: explicit.request_id || summary.request_id || '',
+      actionLabel: isAssigned ? (explicit.cta_label || summary.cta_label || '') : '',
+      actionType: isAssigned ? 'detail' : 'none',
+    };
+  },
+
   normalizeTodayCard(card) {
     if (!card) return null;
     const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
@@ -1012,15 +1051,7 @@ Page({
     const todayHotel = todayDay
       ? (hotels.find((hotel) => Number(hotel.linkedDayNo || 0) === Number(todayDay.dayNo || 0)) || hotels[0] || null)
       : (hotels[0] || null);
-    const todayDriverCard = todayDay ? {
-      title: '今日用车',
-      statusText: '司机信息待同步',
-      statusClass: 'pending',
-      departureTime: todayDay.startTime || '待确认',
-      vehicleSummary: todayDay.transportBadge || '车辆待确认',
-      partySummary: '',
-      helperText: '司机信息确认后会同步到这里；如需调整请在客户群沟通。',
-    } : null;
+    const todayDriverCard = this.buildPublishedTripTodayDriverCard(todayDay, snapshot);
     const todayOverviewCard = todayDay ? {
       dayNo: todayDay.dayNo,
       date: todayDay.date || '',

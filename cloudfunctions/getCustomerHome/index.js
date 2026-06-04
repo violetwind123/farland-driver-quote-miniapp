@@ -3,6 +3,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
+const ENABLE_CUSTOMER_HOME_MOCK = false;
 
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
@@ -1512,7 +1513,7 @@ exports.main = async () => {
     || (tripData.charter_services || []).length,
   );
   const baseTodayCard = hasCharterSurface
-    ? (buildTodayCardFromTripData(tripData) || buildMockTodayCard())
+    ? (buildTodayCardFromTripData(tripData) || (ENABLE_CUSTOMER_HOME_MOCK ? buildMockTodayCard() : null))
     : null;
   const todayCard = baseTodayCard
     ? applyAssignedTransportToTodayCard(baseTodayCard, primaryAssignedCharter)
@@ -1520,7 +1521,7 @@ exports.main = async () => {
   const dailyCharter = buildDailyCharter(todayCard);
   const todayDriverCard = buildTodayDriverCard(dailyCharter);
   const progressStrip = buildProgressStripFromTripData(tripData, todayCard)
-    || (hasCharterSurface ? buildMockProgressStrip() : null);
+    || (hasCharterSurface && ENABLE_CUSTOMER_HOME_MOCK ? buildMockProgressStrip() : null);
   const customerSummaryBar = buildCustomerSummaryBar(displayName, tripData, todayCard);
   const todayHotelCard = buildTodayHotelCard(todayCard, tripData);
 
@@ -1530,8 +1531,8 @@ exports.main = async () => {
     bind_mode: tripOnly ? 'trip_only' : 'farland_profile',
     profile: {
       name: displayName,
-      member_level: tripOnly ? '本次行程查看' : 'Farland Signature',
-      points_balance: tripOnly ? 0 : 3280,
+      member_level: hasCharterSurface ? '行程已同步' : (tripOnly ? '本次行程查看' : 'Farland Signature'),
+      points_balance: hasCharterSurface || tripOnly ? 0 : 3280,
       subtitle: tripOnly ? 'Farland 顾问已为您同步本次行程与报价' : '您的行程与报价已由 Farland 顾问同步',
     },
     surface_mode: hasCharterSurface ? 'charter_only' : 'transfer_only',
@@ -1558,7 +1559,7 @@ exports.main = async () => {
       advisor_panel: true,
       legacy_transport: true,
     } : {},
-    benefits: tripData.benefits.length ? tripData.benefits : (tripOnly ? [] : [
+    benefits: hasCharterSurface ? [] : (tripData.benefits.length ? tripData.benefits : (tripOnly ? [] : [
       {
         title: '机场接送礼遇',
         description: '指定城市机场接送服务可享 Farland 会员权益',
@@ -1567,6 +1568,6 @@ exports.main = async () => {
         title: '酒店预订礼遇',
         description: '顾问协助筛选校园周边与高端品牌酒店方案',
       },
-    ]),
+    ])),
   };
 };
