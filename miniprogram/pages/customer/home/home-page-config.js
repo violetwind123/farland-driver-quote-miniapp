@@ -818,6 +818,74 @@ const customerHomePageConfig = {
     return '';
   },
 
+  normalizeTravelMode(item = {}, explicitMeta = {}, formattedMeta = {}) {
+    const explicitMode = String(
+      explicitMeta.mode
+        || explicitMeta.travel_mode
+        || explicitMeta.transport_mode
+        || explicitMeta.segment_mode
+        || item.mode
+        || item.travel_mode
+        || item.transport_mode
+        || item.segment_mode
+        || '',
+    ).trim().toLowerCase();
+
+    if (/walk|walking|foot|pedestrian|步行|徒步/.test(explicitMode)) return 'walk';
+    if (/flight|plane|airplane|fly|航班|飞机|飞行/.test(explicitMode)) return 'flight';
+    if (/drive|driving|car|vehicle|charter|transfer|shuttle|van|包车|用车|接送|开车|车辆/.test(explicitMode)) return 'drive';
+
+    const raw = [
+      item.item_type,
+      item.card_type,
+      item.type,
+      item.service_type,
+      item.title,
+      item.route,
+      item.location_name,
+      item.location,
+      explicitMeta.type,
+      explicitMeta.mode_text,
+      explicitMeta.transport_mode_text,
+    ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean).join(' ');
+
+    if (/walk|walking|foot|pedestrian|步行|徒步/.test(raw)) return 'walk';
+
+    const hasGroundSignal = Boolean(
+      formattedMeta.driveText
+        || formattedMeta.distanceText
+        || formattedMeta.trafficText
+        || item.drive_time_text
+        || item.drive_time
+        || item.distance_text
+        || item.distance
+        || item.traffic_text
+        || item.traffic_level
+        || explicitMeta.drive_time_text
+        || explicitMeta.distance_text
+        || explicitMeta.traffic_text,
+    );
+
+    if (!hasGroundSignal && (
+      item.flight_no
+        || item.flight_number
+        || explicitMeta.flight_no
+        || explicitMeta.flight_number
+        || /\b[A-Z]{2}\d{2,4}\b/.test(raw)
+        || /flight|plane|airplane|航班|飞机|飞行/.test(raw)
+    )) {
+      return 'flight';
+    }
+
+    return 'drive';
+  },
+
+  getTravelModeLabel(mode) {
+    if (mode === 'walk') return '步行';
+    if (mode === 'flight') return '飞行';
+    return '开车';
+  },
+
   normalizeRouteLegMeta(item = {}) {
     const explicitMeta = item.travelMeta || item.travel_meta || {};
     const driveText = this.formatDriveTimeMeta(item.driveText || item.drive_time_text || item.drive_time || explicitMeta.drive_time_text || '');
@@ -825,11 +893,16 @@ const customerHomePageConfig = {
     const rawTrafficText = item.trafficText || item.traffic_text || item.traffic_level || explicitMeta.traffic_text || explicitMeta.traffic_level || '';
     const trafficLevel = this.normalizeTrafficLevel(rawTrafficText);
     const trafficText = this.formatTrafficText(rawTrafficText, trafficLevel);
+    const iconType = this.normalizeTravelMode(item, explicitMeta, { driveText, distanceText, trafficText });
     const pieces = [];
     if (driveText) pieces.push(driveText);
     if (distanceText && !String(driveText).includes(String(distanceText))) pieces.push(distanceText);
     if (trafficText) pieces.push(trafficText);
     const travelMeta = {
+      icon_type: iconType,
+      icon_label: this.getTravelModeLabel(iconType),
+      mode: iconType,
+      transport_mode: iconType,
       drive_time_text: driveText,
       distance_text: distanceText,
       traffic_text: trafficText,

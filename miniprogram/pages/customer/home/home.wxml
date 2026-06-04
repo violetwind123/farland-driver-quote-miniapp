@@ -123,6 +123,13 @@
                 <view wx:if="{{item.connectorTravelMeta && item.connectorTravelMeta.hasContent}}" class="segment-connector">
                   <view class="segment-dash"></view>
                   <view class="segment-meta">
+                    <view wx:if="{{item.connectorTravelMeta.icon_type}}" class="segment-mode-icon segment-mode-{{item.connectorTravelMeta.icon_type}}" aria-label="{{item.connectorTravelMeta.icon_label}}">
+                      <view class="segment-icon-part segment-icon-a"></view>
+                      <view class="segment-icon-part segment-icon-b"></view>
+                      <view class="segment-icon-part segment-icon-c"></view>
+                      <view class="segment-icon-part segment-icon-d"></view>
+                      <view class="segment-icon-part segment-icon-e"></view>
+                    </view>
                     <text wx:if="{{item.connectorTravelMeta.drive_time_text}}">{{item.connectorTravelMeta.drive_time_text}}</text>
                     <text wx:if="{{item.connectorTravelMeta.distance_text}}">{{item.connectorTravelMeta.drive_time_text ? ' · ' : ''}}{{item.connectorTravelMeta.distance_text}}</text>
                     <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic-pill traffic-{{item.connectorTravelMeta.traffic_level}}">{{item.connectorTravelMeta.traffic_text}}</text>
@@ -258,6 +265,13 @@
                         <view wx:if="{{item.connectorTravelMeta && item.connectorTravelMeta.hasContent}}" class="segment-connector">
                           <view class="segment-dash"></view>
                           <view class="segment-meta">
+                            <view wx:if="{{item.connectorTravelMeta.icon_type}}" class="segment-mode-icon segment-mode-{{item.connectorTravelMeta.icon_type}}" aria-label="{{item.connectorTravelMeta.icon_label}}">
+                              <view class="segment-icon-part segment-icon-a"></view>
+                              <view class="segment-icon-part segment-icon-b"></view>
+                              <view class="segment-icon-part segment-icon-c"></view>
+                              <view class="segment-icon-part segment-icon-d"></view>
+                              <view class="segment-icon-part segment-icon-e"></view>
+                            </view>
                             <text wx:if="{{item.connectorTravelMeta.drive_time_text}}">{{item.connectorTravelMeta.drive_time_text}}</text>
                             <text wx:if="{{item.connectorTravelMeta.distance_text}}">{{item.connectorTravelMeta.drive_time_text ? ' · ' : ''}}{{item.connectorTravelMeta.distance_text}}</text>
                             <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic-pill traffic-{{item.connectorTravelMeta.traffic_level}}">{{item.connectorTravelMeta.traffic_text}}</text>
@@ -424,6 +438,13 @@
               <view wx:if="{{item.connectorTravelMeta && item.connectorTravelMeta.hasContent}}" class="segment-connector">
                 <view class="segment-dash"></view>
                 <view class="segment-meta">
+                  <view wx:if="{{item.connectorTravelMeta.icon_type}}" class="segment-mode-icon segment-mode-{{item.connectorTravelMeta.icon_type}}" aria-label="{{item.connectorTravelMeta.icon_label}}">
+                    <view class="segment-icon-part segment-icon-a"></view>
+                    <view class="segment-icon-part segment-icon-b"></view>
+                    <view class="segment-icon-part segment-icon-c"></view>
+                    <view class="segment-icon-part segment-icon-d"></view>
+                    <view class="segment-icon-part segment-icon-e"></view>
+                  </view>
                   <text wx:if="{{item.connectorTravelMeta.drive_time_text}}">{{item.connectorTravelMeta.drive_time_text}}</text>
                   <text wx:if="{{item.connectorTravelMeta.distance_text}}">{{item.connectorTravelMeta.drive_time_text ? ' · ' : ''}}{{item.connectorTravelMeta.distance_text}}</text>
                   <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic-pill traffic-{{item.connectorTravelMeta.traffic_level}}">{{item.connectorTravelMeta.traffic_text}}</text>
