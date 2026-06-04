@@ -7,6 +7,7 @@ Page({
     transportationAppointments: [],
     progressStrip: null,
     todayCard: null,
+    dailyCharter: null,
     todayDriverCard: null,
     todayHotelCard: null,
     todayItinerary: null,
@@ -56,6 +57,7 @@ Page({
     operatorCustomerPreviewMeta: null,
     operatorPreviewDays: [],
     operatorPreviewFlights: [],
+    hideModules: {},
   },
 
   onLoad(options = {}) {
@@ -167,10 +169,12 @@ Page({
           },
           benefits: [],
           topBenefits: [],
+          hideModules: {},
           hotelRequests: [],
           transportationAppointments: [],
           progressStrip: null,
           todayCard: null,
+          dailyCharter: null,
           todayDriverCard: null,
           todayHotelCard: null,
           todayItinerary: null,
@@ -220,10 +224,12 @@ Page({
           },
           benefits: [],
           topBenefits: [],
+          hideModules: {},
           hotelRequests: [],
           transportationAppointments: [],
           progressStrip: null,
           todayCard: null,
+          dailyCharter: null,
           todayDriverCard: null,
           todayHotelCard: null,
           todayItinerary: null,
@@ -253,9 +259,14 @@ Page({
         });
         return;
       }
+      const hideModules = result.hide_modules || {};
       const progressStrip = this.normalizeProgressStrip(result.progress_strip || null);
-      const todayCard = this.normalizeTodayCard(result.today_card || null);
-      const todayDriverCard = this.buildTodayDriverCard(todayCard);
+      const dailyCharter = this.normalizeDailyCharter(result.daily_charter || null);
+      const todayCard = this.normalizeTodayCard((dailyCharter && dailyCharter.today_card) || result.today_card || null);
+      const hasCharterContract = Boolean(result.daily_charter || result.today_driver_card || result.hide_modules);
+      const todayDriverCard = hasCharterContract
+        ? this.normalizeTodayDriverCard(result.today_driver_card || null)
+        : this.buildTodayDriverCard(todayCard);
       const todayHotelCard = this.buildTodayHotelCard(todayCard);
       const todayItinerary = this.normalizeTodayItinerary(result.today_itinerary || null);
       const tripOverview = (result.trip_overview || []).map((item) => ({
@@ -331,17 +342,19 @@ Page({
         currentBindMode: result.bind_mode || '',
         showProfileUpgrade: this.data.inviteMode && result.bind_mode !== 'farland_profile',
         showProfileUpgradeForm: this.data.showProfileUpgradeForm && result.bind_mode !== 'farland_profile',
-        benefits: result.benefits || [],
-        topBenefits: (result.benefits || []).slice(0, 2),
+        benefits: hideModules.benefits ? [] : (result.benefits || []),
+        topBenefits: hideModules.benefits ? [] : (result.benefits || []).slice(0, 2),
+        hideModules,
         hotelRequests: result.hotel_requests || [],
         transportationAppointments: result.transportation_appointments || [],
         progressStrip,
         todayCard,
+        dailyCharter,
         todayDriverCard,
         todayHotelCard,
         todayItinerary,
         showHomeEmpty,
-        showLegacyTransport: !todayCard && !showHomeEmpty && hasTransport,
+        showLegacyTransport: !hideModules.legacy_transport && !todayCard && !showHomeEmpty && hasTransport,
         operatorCustomerPreviewMode: false,
         operatorCustomerPreviewMeta: null,
         operatorPreviewDays: [],
@@ -355,8 +368,10 @@ Page({
         primaryTransfer: mergedTransferRequests[0] || null,
         transportOrders,
         charterServices: result.charter_services || [],
-        advisorPhone: (todayCard && todayCard.advisor && todayCard.advisor.phone)
-          || (todayItinerary && todayItinerary.farland_contact ? todayItinerary.farland_contact.phone : ''),
+        advisorPhone: hideModules.advisor_panel
+          ? ''
+          : ((todayCard && todayCard.advisor && todayCard.advisor.phone)
+            || (todayItinerary && todayItinerary.farland_contact ? todayItinerary.farland_contact.phone : '')),
       });
     } catch (error) {
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -401,6 +416,40 @@ Page({
     return {
       ...strip,
       nodes,
+    };
+  },
+
+  normalizeDailyCharter(charter) {
+    if (!charter || !charter.visible) return null;
+    return {
+      ...charter,
+      destination_cards: Array.isArray(charter.destination_cards) ? charter.destination_cards : [],
+      today_card: charter.today_card || null,
+    };
+  },
+
+  normalizeTodayDriverCard(card) {
+    if (!card || !card.visible) return null;
+    const isAssigned = card.status === 'assigned';
+    const driver = isAssigned
+      ? this.normalizeAssignedDriver({
+          name: card.driver_name,
+          phone: card.driver_phone,
+          vehicle_model: card.vehicle_summary,
+        })
+      : null;
+    return {
+      title: '今日司机',
+      statusText: isAssigned ? '已分配司机' : '司机信息待同步',
+      statusClass: isAssigned ? 'confirmed' : 'pending',
+      departureTime: this.formatDisplayTime(card.departure_time || '') || '待确认',
+      vehicleSummary: card.vehicle_summary || '车辆待确认',
+      partySummary: card.party_summary || '',
+      driver,
+      helperText: isAssigned ? '' : (card.helper_text || '司机信息将在出发前同步。'),
+      requestId: card.request_id || '',
+      actionLabel: card.cta_label || '查看用车安排',
+      actionType: 'detail',
     };
   },
 
@@ -829,6 +878,7 @@ Page({
       transportationAppointments: [],
       progressStrip: null,
       todayCard: null,
+      dailyCharter: null,
       todayDriverCard: null,
       todayHotelCard: null,
       todayItinerary: null,
@@ -843,6 +893,7 @@ Page({
       charterServices: [],
       benefits: [],
       topBenefits: [],
+      hideModules: {},
     };
 
     if (sharePreview.waiting || !sharePreview.trip) {
@@ -911,9 +962,11 @@ Page({
       transportationAppointments: previewHome.transportationAppointments,
       progressStrip: previewHome.progressStrip,
       todayCard: null,
+      dailyCharter: null,
       todayDriverCard: null,
       todayHotelCard: null,
       todayItinerary: previewHome.todayItinerary,
+      hideModules: {},
       showHomeEmpty: !previewHome.hasContent,
       showLegacyTransport: previewHome.hasTransport,
       nextConfirmed: previewHome.nextConfirmed,

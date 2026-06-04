@@ -175,7 +175,7 @@
       </view>
     </view>
 
-    <view class="trip-hero card-surface">
+    <view wx:if="{{!hideModules.profile_hero}}" class="trip-hero card-surface">
       <view class="section-kicker hero-kicker">我的行程</view>
       <view class="trip-hero-title">{{profile.name || '我的行程'}}</view>
       <view class="trip-hero-meta">{{profile.member_level}}{{profile.points_balance ? ' · ' + profile.points_balance + ' 积分' : ''}}</view>
@@ -296,13 +296,13 @@
           <view class="transport-sub">{{todayItinerary.driver.phone}}</view>
         </view>
 
-        <view wx:if="{{todayItinerary.farland_contact}}" class="advisor-card">
+        <view wx:if="{{todayItinerary.farland_contact && !hideModules.advisor_panel}}" class="advisor-card">
           <view class="transport-kicker">Farland 顾问</view>
           <view class="transport-main">{{todayItinerary.farland_contact.name}}</view>
           <view class="transport-sub">{{todayItinerary.farland_contact.phone}}</view>
         </view>
 
-        <view class="cta-row">
+        <view wx:if="{{!hideModules.advisor_panel}}" class="cta-row">
           <button class="cta-primary" bindtap="contactAdvisor">联系顾问</button>
         </view>
       </view>
@@ -456,7 +456,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="benefit-panel card-surface">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && !hideModules.benefits}}" class="benefit-panel card-surface">
       <view class="section-kicker">权益</view>
       <view class="section-title">积分福利</view>
       <view class="benefit-meta">{{profile.points_balance}} 积分 · {{profile.member_level}}</view>
@@ -467,7 +467,7 @@
       <button class="benefit-btn" bindtap="goBenefits">查看全部福利</button>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty}}" class="advisor-panel">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && !hideModules.advisor_panel}}" class="advisor-panel">
       如需酒店预订、美国用车或访校服务，请联系 Farland 顾问为您安排。
     </view>
   </block>

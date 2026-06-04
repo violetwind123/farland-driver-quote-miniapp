@@ -281,6 +281,60 @@ function buildMockProgressStrip() {
   };
 }
 
+function splitRouteCities(value) {
+  return String(value || '')
+    .split(/→|->|-|,|，/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeNodeId(value, index) {
+  return String(value || `node-${index + 1}`)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || `node_${index + 1}`;
+}
+
+function buildProgressStripFromTripData(tripData, todayCard) {
+  const rawCities = [];
+  (tripData.daily_summary_cards || []).forEach((card) => {
+    rawCities.push(...splitRouteCities(card.city || card.route_label || card.title || ''));
+  });
+  (tripData.itinerary_days || []).forEach((day) => {
+    rawCities.push(...splitRouteCities(day.city || day.city_summary || ''));
+  });
+  (tripData.trip_overview || []).forEach((summary) => {
+    rawCities.push(...splitRouteCities(summary.city_route_text || summary.city_summary || ''));
+  });
+
+  const deduped = [];
+  rawCities.forEach((city) => {
+    if (!deduped.length || deduped[deduped.length - 1] !== city) deduped.push(city);
+  });
+  const visibleCities = deduped.slice(0, 5);
+  if (visibleCities.length < 2) return null;
+
+  const currentRoute = splitRouteCities(todayCard ? todayCard.city_summary : '');
+  const currentCity = currentRoute[currentRoute.length - 1] || visibleCities[0];
+  let currentIndex = visibleCities.findIndex((city) => city === currentCity);
+  if (currentIndex < 0) currentIndex = Math.min(1, visibleCities.length - 1);
+
+  return {
+    visible: true,
+    title: 'Trip Progress',
+    current_index: currentIndex,
+    current_node_id: normalizeNodeId(visibleCities[currentIndex], currentIndex),
+    nodes: visibleCities.map((city, index) => ({
+      node_id: normalizeNodeId(city, index),
+      id: normalizeNodeId(city, index),
+      type: index === 0 ? 'arrival' : (index === visibleCities.length - 1 ? 'departure' : 'city'),
+      label: city,
+      city,
+      status: index < currentIndex ? 'completed' : (index === currentIndex ? 'current' : 'upcoming'),
+    })),
+  };
+}
+
 function statusClass(status, hasQuotes) {
   if (status === 'cancelled') return 'cancelled';
   if (status === 'assigned' || status === 'confirmed') return 'confirmed';
@@ -573,6 +627,136 @@ function applyAssignedTransportToTodayCard(card, transfer) {
       status_text: '已分配司机',
       action_label: isCharter ? '查看用车安排' : '查看接送详情',
     },
+  };
+}
+
+function timelineToDestinationCards(day) {
+  const items = Array.isArray(day.timeline_items)
+    ? day.timeline_items
+    : (Array.isArray(day.items) ? day.items : []);
+  return items.map((item, index) => ({
+    card_id: item.card_id || item.item_id || item.id || `day_${day.day_no || 1}_${index + 1}`,
+    type: item.item_type || item.type || 'itinerary',
+    sequence: index + 1,
+    time: item.time || item.planned_start_time || item.planned_arrival_time || '',
+    arrival_estimate: item.arrival_estimate || '',
+    title: item.title || item.location_name || item.location || '行程节点',
+    location: item.location || item.location_name || '',
+    route: item.route || '',
+    drive_time: item.drive_time || item.drive_time_text || '',
+    distance: item.distance || item.distance_text || '',
+    traffic_level: item.traffic_level || item.traffic_text || '',
+    segment_status: item.segment_status || 'upcoming',
+    note: item.note || item.customer_note || '',
+    next_stop: item.next_stop || '',
+    map_url: item.map_url || '',
+  }));
+}
+
+function buildTodayCardFromTripData(tripData) {
+  const day = tripData.today_itinerary || (tripData.itinerary_days || [])[0] || null;
+  if (!day) return null;
+  const summary = (tripData.trip_overview || [])[0] || {};
+  const destinationCards = timelineToDestinationCards(day);
+  const firstTime = destinationCards[0] ? destinationCards[0].time : '';
+  return {
+    trip_id: summary.trip_id || day.trip_id || '',
+    trip_no: summary.trip_no || day.trip_no || '',
+    day_id: day.id || day.day_id || `day_${day.day_no || 1}`,
+    day_no: day.day_no || 1,
+    date: day.date || '',
+    weekday: day.weekday || '',
+    timezone: day.timezone || '',
+    city_summary: day.city || day.city_summary || summary.city_route_text || '',
+    title: day.title || `Day ${day.day_no || 1}`,
+    status: 'confirmed',
+    status_text: '已确认',
+    last_updated_at: day.updated_at || '',
+    change_summary: day.change_summary || '',
+    service_type: 'charter',
+    service_summary: '今日包车服务',
+    service_window: {
+      start_time: firstTime,
+      end_time: '',
+      label: firstTime ? `${firstTime} 出发` : '',
+    },
+    depart_time: firstTime,
+    vehicle_summary: day.vehicle_summary || '',
+    party_summary: day.party_summary || '',
+    advisor: {},
+    driver_visibility: 'pending',
+    driver: null,
+    timeline_items: destinationCards.map((card) => ({
+      time: card.time,
+      title: card.title,
+      location: card.location,
+      route: card.route,
+      drive_time: card.drive_time,
+      distance: card.distance,
+      traffic_level: card.traffic_level,
+      note: card.note,
+    })),
+    destination_cards: destinationCards,
+    transport_summary: day.transport_summary || {
+      type: 'charter',
+      title: '今日包车服务',
+      status_text: '车辆已确认，司机信息待同步',
+      action_label: '查看用车安排',
+    },
+    hotel: day.hotel || null,
+    next_day_teaser: summary.next_day_label || '',
+    documents: day.documents || [],
+    actions: [
+      { type: 'view_full_trip', label: 'View full trip' },
+    ],
+  };
+}
+
+function buildDailyCharter(todayCard) {
+  if (!todayCard) {
+    return {
+      visible: false,
+      surface_mode: 'charter_only',
+      service_type: 'charter',
+      driver_visibility: 'pending',
+      destination_cards: [],
+    };
+  }
+  return {
+    visible: true,
+    surface_mode: 'charter_only',
+    service_type: 'charter',
+    service_window_label: (todayCard.service_window && todayCard.service_window.label) || todayCard.depart_time || '',
+    vehicle_summary: todayCard.vehicle_summary || '',
+    party_summary: todayCard.party_summary || '',
+    driver_visibility: todayCard.driver_visibility || 'pending',
+    driver: todayCard.driver_visibility === 'assigned' ? (todayCard.driver || null) : null,
+    destination_cards: todayCard.destination_cards || [],
+    today_card: todayCard,
+  };
+}
+
+function buildTodayDriverCard(dailyCharter) {
+  if (!dailyCharter || !dailyCharter.visible || dailyCharter.driver_visibility !== 'assigned' || !dailyCharter.driver) {
+    return {
+      visible: false,
+      status: 'pending',
+      status_text: 'Pending',
+      helper_text: 'Driver details will appear closer to departure.',
+    };
+  }
+  const driver = dailyCharter.driver || {};
+  return {
+    visible: true,
+    status: 'assigned',
+    status_text: 'Assigned',
+    departure_time: dailyCharter.service_window_label || '',
+    driver_name: driver.name || driver.driver_name || '',
+    driver_phone: driver.phone || driver.driver_phone || '',
+    vehicle_summary: dailyCharter.vehicle_summary || driver.vehicle_model || driver.vehicle_type || '',
+    party_summary: dailyCharter.party_summary || '',
+    cta_label: 'View transport details',
+    request_id: dailyCharter.today_card ? (dailyCharter.today_card.assigned_request_id || '') : '',
   };
 }
 
@@ -1186,8 +1370,9 @@ exports.main = async () => {
       return !snapshotTransferRequests.some((item) => item.request_id === request.request_id);
     }),
   ];
-  const primaryAssignedTransfer = transferRequests.find((request) => {
+  const primaryAssignedCharter = transferRequests.find((request) => {
     return (request.status === 'assigned' || request.status === 'confirmed')
+      && request.service_type === 'charter'
       && hasAssignedTransportDetails(request.assigned_transport);
   });
   const transportOrderSummaries = transferRequests
@@ -1202,6 +1387,23 @@ exports.main = async () => {
     || (requests[0] && requests[0].customer_name)
     || 'Farland 客户';
   const tripOnly = activeAccess.length ? !activeAccess.some((access) => normalizeBindMode(access) === 'farland_profile') : !hasProfile;
+  const hasCharterSurface = Boolean(
+    tripData.has_published_trip
+    || tripData.today_itinerary
+    || (tripData.itinerary_days || []).length
+    || (tripData.daily_summary_cards || []).length
+    || (tripData.charter_services || []).length,
+  );
+  const baseTodayCard = hasCharterSurface
+    ? (buildTodayCardFromTripData(tripData) || buildMockTodayCard())
+    : null;
+  const todayCard = baseTodayCard
+    ? applyAssignedTransportToTodayCard(baseTodayCard, primaryAssignedCharter)
+    : null;
+  const dailyCharter = buildDailyCharter(todayCard);
+  const todayDriverCard = buildTodayDriverCard(dailyCharter);
+  const progressStrip = buildProgressStripFromTripData(tripData, todayCard)
+    || (hasCharterSurface ? buildMockProgressStrip() : null);
 
   return {
     success: true,
@@ -1213,8 +1415,11 @@ exports.main = async () => {
       points_balance: tripOnly ? 0 : 3280,
       subtitle: tripOnly ? 'Farland 顾问已为您同步本次行程与报价' : '您的行程与报价已由 Farland 顾问同步',
     },
-    progress_strip: buildMockProgressStrip(),
-    today_card: applyAssignedTransportToTodayCard(buildMockTodayCard(), primaryAssignedTransfer),
+    surface_mode: hasCharterSurface ? 'charter_only' : 'transfer_only',
+    progress_strip: progressStrip,
+    daily_charter: dailyCharter,
+    today_driver_card: todayDriverCard,
+    today_card: todayCard,
     today_itinerary: tripData.today_itinerary,
     trip_overview: tripData.trip_overview,
     daily_summary_cards: tripData.daily_summary_cards,
@@ -1225,6 +1430,12 @@ exports.main = async () => {
     transport_orders: transportOrderSummaries,
     hotel_requests: tripData.hotel_requests,
     flight_cards: tripData.flight_cards,
+    hide_modules: hasCharterSurface ? {
+      profile_hero: true,
+      benefits: true,
+      advisor_panel: true,
+      legacy_transport: true,
+    } : {},
     benefits: tripData.benefits.length ? tripData.benefits : (tripOnly ? [] : [
       {
         title: '机场接送礼遇',
