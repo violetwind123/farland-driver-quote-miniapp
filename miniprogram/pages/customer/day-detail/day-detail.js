@@ -110,7 +110,7 @@ Page({
       sequence: item.sequence || index + 1,
       typeText: this.typeText(item.type),
       chipText: `${this.formatDisplayTime(item.time || '')} ${this.shortTitle(item.title || '')}`.trim(),
-      detailLine: [item.drive_time, item.distance, item.traffic_level].filter(Boolean).join(' · '),
+      detailLine: item.legMeta || [item.drive_time, item.distance, item.traffic_level].filter(Boolean).join(' · '),
       latitude: Number(item.latitude || item.lat || item.map_latitude || 0),
       longitude: Number(item.longitude || item.lng || item.map_longitude || 0),
       map_url: item.map_url || '',
@@ -128,9 +128,10 @@ Page({
           arrival_time: this.formatDisplayTime(card.hotel.arrival_time || card.hotel.eta || ''),
         }
       : null;
+    const destinationCards = this.appendHotelCard(cards, hotel, card);
     return {
       ...card,
-      destination_cards: cards,
+      destination_cards: destinationCards,
       hotel,
       driver: driverAssigned ? normalizedDriver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
@@ -138,6 +139,46 @@ Page({
       serviceWindowText,
       serviceSubText: [card.party_summary, driverAssigned ? '已分配司机' : '司机信息待同步'].filter(Boolean).join(' · '),
     };
+  },
+
+  appendHotelCard(cards = [], hotel, dayCard = {}) {
+    if (!hotel) return cards;
+    const hotelName = hotel.name || hotel.hotel_name || hotel.title || '';
+    const hasHotelCard = cards.some((card) => {
+      const type = card.type || card.item_type || '';
+      return type === 'hotel'
+        || type === 'hotel_arrival'
+        || (hotelName && card.title === hotelName);
+    });
+    if (hasHotelCard) {
+      return cards.map((card, index) => ({ ...card, sequence: index + 1 }));
+    }
+    const arrivalTime = this.formatDisplayTime(hotel.arrival_time || hotel.eta || hotel.planned_arrival_time || '');
+    const latitude = Number(hotel.latitude || hotel.lat || hotel.map_latitude || 0);
+    const longitude = Number(hotel.longitude || hotel.lng || hotel.map_longitude || 0);
+    const hotelCard = {
+      card_id: hotel.hotel_id || hotel.id || `hotel-${dayCard.day_no || cards.length + 1}`,
+      type: 'hotel',
+      typeText: '酒店',
+      time: arrivalTime,
+      arrival_estimate: arrivalTime,
+      title: hotelName || '酒店安排',
+      location: hotel.address || hotel.city || '',
+      route: '',
+      detailLine: [
+        hotel.city || '',
+        hotel.room_summary || hotel.room_type || '',
+        hotel.confirmation_no ? `确认号：${hotel.confirmation_no}` : '',
+      ].filter(Boolean).join(' · '),
+      note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '',
+      next_stop: '',
+      latitude,
+      longitude,
+      map_url: hotel.map_url || '',
+      canOpenMap: Boolean((latitude && longitude) || hotel.map_url),
+      chipText: `${arrivalTime || ''} 酒店`.trim(),
+    };
+    return [...cards, hotelCard].map((card, index) => ({ ...card, sequence: index + 1 }));
   },
 
   buildCardsFromTimeline(items) {
@@ -190,6 +231,7 @@ Page({
       city_tour: '城市行程',
       transfer: '接送',
       meal: '餐饮',
+      hotel: '酒店',
       hotel_arrival: '酒店抵达',
       flight: '航班',
       free_time: '自由时间',

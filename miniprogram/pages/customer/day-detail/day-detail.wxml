@@ -1,95 +1,44 @@
 <view class="day-page">
-  <view wx:if="{{!todayCard}}" class="empty-state">暂无今日行程，Farland 顾问正在为您确认安排。</view>
+  <view wx:if="{{!todayCard || !cards.length}}" class="empty-state">暂无今日行程卡片，Farland 顾问正在为您确认安排。</view>
 
-  <block wx:else>
-    <view class="day-header">
-      <view class="day-kicker">{{todayCard.trip_no}} · Day {{todayCard.day_no}}</view>
-      <view class="day-title">{{todayCard.weekday}} {{todayCard.date}}</view>
-      <view class="day-route">{{todayCard.city_summary}}</view>
-      <view class="day-status">{{todayCard.status_text}}</view>
-    </view>
+  <swiper
+    wx:else
+    class="destination-swiper"
+    current="{{currentIndex}}"
+    previous-margin="28rpx"
+    next-margin="28rpx"
+    bindchange="onSwiperChange"
+  >
+    <swiper-item wx:for="{{cards}}" wx:key="card_id">
+      <view class="destination-card">
+        <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
+        <view class="card-type">{{item.typeText}}</view>
+        <view wx:if="{{item.time}}" class="card-time">{{item.time}}</view>
+        <view class="card-title">{{item.title}}</view>
 
-    <view class="service-strip">
-      <view>
-        <view class="service-title">{{todayCard.serviceTitle}}</view>
-        <view class="service-main">{{todayCard.serviceWindowText}} · {{todayCard.vehicle_summary}}</view>
-        <view class="service-sub">{{todayCard.serviceSubText}}</view>
-        <view wx:if="{{todayCard.driver}}" class="service-driver">
-          <view class="driver-row"><text class="driver-label">司机</text><text>{{todayCard.driver.name || '待同步'}}</text></view>
-          <view class="driver-row"><text class="driver-label">电话</text><text>{{todayCard.driver.phone || '待同步'}}</text></view>
-          <view class="driver-row"><text class="driver-label">车辆</text><text>{{todayCard.driver.vehicleText}}</text></view>
-          <view wx:if="{{todayCard.driver.plate_number}}">车牌：{{todayCard.driver.plate_number}}</view>
+        <view wx:if="{{item.location}}" class="detail-block">
+          <view class="detail-label">地点</view>
+          <view class="detail-value">{{item.location}}</view>
         </view>
-        <view wx:elif="{{todayCard.driverPendingText}}" class="service-sub">{{todayCard.driverPendingText}}</view>
-      </view>
-    </view>
 
-    <view wx:if="{{!cards.length}}" class="day-detail-empty card-surface">
-      <view class="empty-title">今日行程详情正在同步</view>
-      <view class="empty-copy">Farland 顾问确认后会在这里显示完整时间线。</view>
-    </view>
-
-    <block wx:else>
-      <swiper
-        class="destination-swiper"
-        current="{{currentIndex}}"
-        previous-margin="24rpx"
-        next-margin="34rpx"
-        bindchange="onSwiperChange"
-      >
-        <swiper-item wx:for="{{cards}}" wx:key="card_id">
-          <view class="destination-card">
-            <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
-            <view class="card-type">{{item.typeText}}</view>
-            <view class="card-time">{{item.time}}</view>
-            <view class="card-title">{{item.title}}</view>
-
-            <view wx:if="{{item.route}}" class="detail-block">
-              <view class="detail-label">路线</view>
-              <view class="detail-value">{{item.route}}</view>
-            </view>
-
-            <view wx:if="{{item.arrival_estimate}}" class="detail-block">
-              <view class="detail-label">预计到达</view>
-              <view class="detail-value">{{item.arrival_estimate}}</view>
-            </view>
-
-            <view wx:if="{{item.detailLine}}" class="detail-block">
-              <view class="detail-label">车程</view>
-              <view class="detail-value">{{item.detailLine}}</view>
-            </view>
-
-            <view wx:if="{{item.note}}" class="detail-note">{{item.note}}</view>
-            <view wx:if="{{item.next_stop}}" class="detail-next">下一站：{{item.next_stop}}</view>
-
-            <button wx:if="{{item.canOpenMap}}" class="map-link" data-index="{{index}}" bindtap="openCurrentMap">打开地图</button>
-          </view>
-        </swiper-item>
-      </swiper>
-
-      <scroll-view scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" class="time-chip-row">
-        <view
-          wx:for="{{cards}}"
-          wx:key="card_id"
-          class="time-chip {{currentIndex === index ? 'active' : ''}}"
-          data-index="{{index}}"
-          bindtap="jumpToCard"
-          aria-label="{{item.chipText}}{{currentIndex === index ? '，当前选中' : ''}}"
-        >
-          {{item.chipText}}
+        <view wx:if="{{item.route}}" class="detail-block">
+          <view class="detail-label">路线</view>
+          <view class="detail-value">{{item.route}}</view>
         </view>
-      </scroll-view>
 
-      <view wx:if="{{todayCard.hotel}}" class="endpoint-summary card-surface">
-        <view class="endpoint-label">今日终点 / 酒店</view>
-        <view class="endpoint-title">{{todayCard.hotel.name}}</view>
-        <view wx:if="{{todayCard.hotel.arrival_time}}" class="endpoint-meta">预计 {{todayCard.hotel.arrival_time}} 抵达</view>
-        <view wx:if="{{todayCard.hotel.address}}" class="endpoint-meta">{{todayCard.hotel.address}}</view>
+        <view wx:if="{{item.arrival_estimate}}" class="detail-block">
+          <view class="detail-label">预计到达</view>
+          <view class="detail-value">{{item.arrival_estimate}}</view>
+        </view>
+
+        <view wx:if="{{item.detailLine}}" class="detail-block">
+          <view class="detail-label">{{item.type === 'hotel' ? '酒店信息' : '路段预估'}}</view>
+          <view class="detail-value">{{item.detailLine}}</view>
+        </view>
+
+        <view wx:if="{{item.note}}" class="detail-note">{{item.note}}</view>
+        <view wx:if="{{item.next_stop}}" class="detail-next">下一站：{{item.next_stop}}</view>
       </view>
-    </block>
-
-    <view class="bottom-actions single">
-      <button class="bottom-btn primary" bindtap="backHome">返回我的行程</button>
-    </view>
-  </block>
+    </swiper-item>
+  </swiper>
 </view>
