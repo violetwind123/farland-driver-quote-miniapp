@@ -675,7 +675,8 @@ const customerHomePageConfig = {
         })
       : null;
     return {
-      title: '今日司机',
+      title: '今日用车',
+      sectionTitle: '今日用车',
       statusText: isAssigned ? '已分配司机' : '司机信息待同步',
       statusClass: isAssigned ? 'confirmed' : 'pending',
       departureTime: this.formatDisplayTime(card.departure_time || '') || '待确认',
@@ -708,7 +709,8 @@ const customerHomePageConfig = {
     const driverVisibility = explicit.driver_visibility || summary.driver_visibility || (driver && (driver.name || driver.phone) ? 'assigned' : 'pending');
     const isAssigned = driverVisibility === 'assigned' && driver;
     return {
-      title: '当日用车',
+      title: '今日用车',
+      sectionTitle: '今日用车',
       statusText: isAssigned ? '已分配司机' : (explicit.status_text || summary.status_text || '司机信息待同步'),
       statusClass: isAssigned ? 'confirmed' : 'pending',
       departureTime: this.formatDisplayTime(explicit.departure_time || summary.departure_time || summary.depart_time || todayDay.startTime || '') || '待确认',
@@ -728,18 +730,93 @@ const customerHomePageConfig = {
     };
   },
 
+  extractTimeForDisplay(value) {
+    const text = this.formatDisplayTime(value || '');
+    const match = String(text).match(/\b([01]?\d|2[0-3]):[0-5]\d\b/);
+    return match ? match[0] : String(text).replace(/\s*出发\s*$/, '');
+  },
+
+  formatDriveTimeMeta(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^(约|大约)/.test(raw) || /(分钟|小时|服务)/.test(raw)) return raw;
+
+    const hourMinute = raw.match(/^(\d{1,2}):([0-5]\d)$/);
+    if (hourMinute) {
+      const hours = Number(hourMinute[1]);
+      const minutes = Number(hourMinute[2]);
+      if (hours && minutes) return `约${hours}小时${minutes}分钟`;
+      if (hours) return `约${hours}小时`;
+      if (minutes) return `约${minutes}分钟`;
+    }
+
+    const minutesOnly = raw.match(/^(\d+(?:\.\d+)?)\s*(min|mins|minute|minutes)$/i);
+    if (minutesOnly) return `约${Number(minutesOnly[1])}分钟`;
+
+    return /^约/.test(raw) ? raw : `约${raw}`;
+  },
+
+  formatDistanceMeta(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const mileMatch = raw.match(/^(\d+(?:\.\d+)?)\s*(mi|mile|miles)$/i);
+    if (!mileMatch) return raw.replace(/\s*miles?\b/i, 'mi');
+    const miles = Number(mileMatch[1]);
+    const display = Number.isFinite(miles)
+      ? String(Math.round(miles * 10) / 10).replace(/\.0$/, '')
+      : mileMatch[1];
+    return `${display}mi`;
+  },
+
+  normalizeTrafficLevel(value) {
+    const text = String(value || '').trim().toLowerCase();
+    if (!text) return 'unknown';
+    if (/good|smooth|light|clear|顺畅|良好/.test(text)) return 'good';
+    if (/moderate|medium|normal|适中|一般/.test(text)) return 'moderate';
+    if (/heavy|congest|busy|slow|拥堵|缓慢/.test(text)) return 'heavy';
+    return 'unknown';
+  },
+
+  formatTrafficText(value, level) {
+    const raw = String(value || '').trim();
+    if (raw) {
+      if (/^good$/i.test(raw)) return 'Good';
+      if (/^moderate$/i.test(raw)) return 'Moderate';
+      if (/^heavy$/i.test(raw)) return 'Heavy';
+      if (/^unknown$/i.test(raw)) return 'Unknown';
+      return raw;
+    }
+    if (level === 'good') return 'Good';
+    if (level === 'moderate') return 'Moderate';
+    if (level === 'heavy') return 'Heavy';
+    return '';
+  },
+
   normalizeRouteLegMeta(item = {}) {
-    const driveText = item.driveText || item.drive_time_text || item.drive_time || '';
-    const distanceText = item.distanceText || item.distance_text || item.distance || '';
-    const trafficText = item.trafficText || item.traffic_text || item.traffic_level || '';
+    const explicitMeta = item.travelMeta || item.travel_meta || {};
+    const driveText = this.formatDriveTimeMeta(item.driveText || item.drive_time_text || item.drive_time || explicitMeta.drive_time_text || '');
+    const distanceText = this.formatDistanceMeta(item.distanceText || item.distance_text || item.distance || explicitMeta.distance_text || '');
+    const rawTrafficText = item.trafficText || item.traffic_text || item.traffic_level || explicitMeta.traffic_text || explicitMeta.traffic_level || '';
+    const trafficLevel = this.normalizeTrafficLevel(rawTrafficText);
+    const trafficText = this.formatTrafficText(rawTrafficText, trafficLevel);
     const pieces = [];
-    if (driveText) pieces.push(`预计车程 ${driveText}`);
+    if (driveText) pieces.push(driveText);
     if (distanceText && !String(driveText).includes(String(distanceText))) pieces.push(distanceText);
-    if (trafficText) pieces.push(`交通 ${trafficText}`);
+    if (trafficText) pieces.push(trafficText);
+    const travelMeta = {
+      drive_time_text: driveText,
+      distance_text: distanceText,
+      traffic_text: trafficText,
+      traffic_level: trafficText ? trafficLevel : 'unknown',
+      hasContent: Boolean(driveText || distanceText || trafficText),
+    };
     return {
       driveText,
       distanceText,
       trafficText,
+      trafficLevel,
+      travelMeta,
+      travel_meta: travelMeta,
       legMeta: pieces.join(' · '),
     };
   },
@@ -778,6 +855,15 @@ const customerHomePageConfig = {
     const serviceWindowText = this.formatDisplayTime(
       (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
     );
+    const departureTime = this.extractTimeForDisplay(
+      card.departure_time
+        || card.start_time_text
+        || card.startTime
+        || card.depart_time
+        || (card.service_window && card.service_window.label)
+        || card.service_window
+        || '',
+    );
     const hotel = card.hotel
       ? {
           ...card.hotel,
@@ -789,9 +875,12 @@ const customerHomePageConfig = {
       driver_visibility: driverVisibility,
       dayLabel: `Trip ${card.trip_no || card.trip_id || ''} · Day ${card.day_no || ''}`,
       dateRouteText: `${card.weekday || ''}${card.date ? ` · ${card.date}` : ''}${card.city_summary ? ` · ${card.city_summary}` : ''}`,
+      overviewSubtitle: [`Day ${card.day_no || ''}`, card.weekday || '', card.date || '', card.city_summary || card.city || ''].filter(Boolean).join(' · '),
       timeline_items: timelineItems,
       destination_cards: destinationCards,
       serviceWindowText,
+      departureTime,
+      startTime: departureTime || card.startTime || card.start_time_text || '',
       transportTitle: (card.transport_summary && card.transport_summary.title) || (card.service_type === 'charter' ? '今日包车服务' : '今日接送安排'),
       transportStatusText: driverAssigned
         ? '已分配司机'
@@ -801,9 +890,12 @@ const customerHomePageConfig = {
         time: item.time,
         title: item.title,
         legMeta: item.legMeta || '',
+        travelMeta: item.travelMeta || item.travel_meta || null,
+        travel_meta: item.travel_meta || item.travelMeta || null,
         driveText: item.driveText || '',
         distanceText: item.distanceText || '',
         trafficText: item.trafficText || '',
+        trafficLevel: item.trafficLevel || 'unknown',
       })),
       nodeCount: destinationCards.length,
       extraNodeCount: Math.max(0, destinationCards.length - 3),
@@ -820,7 +912,8 @@ const customerHomePageConfig = {
     const isAssigned = Boolean(driver);
     const shouldOpenTransfer = Boolean(todayCard.assigned_request_id && todayCard.service_type !== 'charter');
     return {
-      title: todayCard.service_type === 'transfer' ? '今日接送安排' : '今日司机与车辆',
+      title: '今日用车',
+      sectionTitle: '今日用车',
       statusText: isAssigned ? '已分配司机' : (todayCard.transportStatusText || '司机信息待同步'),
       statusClass: isAssigned ? 'confirmed' : 'pending',
       departureTime: todayCard.serviceWindowText || todayCard.depart_time || '待确认',
@@ -840,10 +933,11 @@ const customerHomePageConfig = {
     return {
       ...card,
       visible: true,
+      sectionTitle: '今晚住宿',
       hotel_id: card.hotel_id || card.id || '',
-      name: card.name || card.hotel_name || '当晚住宿',
+      name: card.name || card.hotel_name || '今晚住宿',
       metaText: metaParts.join(' · '),
-      arrivalText: card.arrival_time ? `预计 ${this.formatDisplayTime(card.arrival_time)} 抵达` : '抵达时间待同步',
+      arrivalText: card.arrival_time ? `预计入住：${this.formatDisplayTime(card.arrival_time)}` : '',
       dateText: card.date_text || [card.check_in_date || '', card.check_out_date || ''].filter(Boolean).join(' - '),
       roomSummary: card.room_summary || card.room_type || '',
       statusText: card.status_text || '已同步',
@@ -857,8 +951,9 @@ const customerHomePageConfig = {
     const metaParts = [hotel.group, hotel.brand, hotel.star_rating ? `${hotel.star_rating}星` : ''].filter(Boolean);
     return {
       visible: true,
+      sectionTitle: '今晚住宿',
       hotel_id: hotel.hotel_id || hotel.id || '',
-      name: hotel.name || hotel.hotel_name || '当晚住宿',
+      name: hotel.name || hotel.hotel_name || '今晚住宿',
       group: hotel.group || '',
       brand: hotel.brand || '',
       star_rating: hotel.star_rating || '',
@@ -868,8 +963,8 @@ const customerHomePageConfig = {
       check_in_date: hotel.check_in_date || hotel.date || todayCard.date || '',
       check_out_date: hotel.check_out_date || '',
       dateText: hotel.date_text || [hotel.check_in_date || hotel.date || todayCard.date || '', hotel.check_out_date || ''].filter(Boolean).join(' - '),
-      arrival_time: hotel.arrival_time || '',
-      arrivalText: hotel.arrival_time ? `预计 ${hotel.arrival_time} 抵达` : '抵达时间待同步',
+      arrival_time: this.formatDisplayTime(hotel.arrival_time || ''),
+      arrivalText: hotel.arrival_time ? `预计入住：${this.formatDisplayTime(hotel.arrival_time)}` : '',
       roomSummary: hotel.room_summary || hotel.room_type || '',
       statusText: hotel.status_text || '已同步',
       note: hotel.note || hotel.customer_note || '完整酒店信息将由 Farland 顾问同步。',
@@ -994,13 +1089,15 @@ const customerHomePageConfig = {
       date: day.date || '',
       weekday: day.weekday || '',
       dateRouteText: [day.weekday || '', day.date || '', day.city || overview.city_summary || overview.city_route_text || ''].filter(Boolean).join(' · '),
+      overviewSubtitle: [`Day ${dayNo}`, day.weekday || '', day.date || '', day.city || overview.city_summary || overview.city_route_text || ''].filter(Boolean).join(' · '),
       status_text: day.hasTimeConflict ? '待复核' : '已确认',
       title: day.title || `Day ${dayNo}`,
       city: day.city || overview.city_summary || overview.city_route_text || '',
       city_summary: day.city || overview.city_summary || overview.city_route_text || '',
-      sectionTitle: `Day ${dayNo} 行程概览`,
+      sectionTitle: '今日行程概览',
       service_type: day.transportSummary && day.transportSummary.service_type ? day.transportSummary.service_type : 'charter',
       startTime: day.startTime || '',
+      departureTime: this.extractTimeForDisplay(day.startTime || ''),
       depart_time: day.startTime || '',
       service_window: day.startTime ? { label: `${day.startTime} 出发` } : null,
       vehicle_summary: day.transportBadge || (day.transportSummary && (day.transportSummary.vehicle_summary || day.transportSummary.vehicle_class)) || '车辆待确认',
@@ -1090,15 +1187,15 @@ const customerHomePageConfig = {
     }) : this.data.todayCard;
     const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, {}) : this.data.todayDriverCard;
     if (todayDriverCard && selectedDayNo) {
-      todayDriverCard.title = `Day ${selectedDayNo} 用车`;
-      todayDriverCard.sectionTitle = `Day ${selectedDayNo} 用车`;
+      todayDriverCard.title = '今日用车';
+      todayDriverCard.sectionTitle = '今日用车';
     }
     const selectedHotel = this.findHotelForTripDay(selectedDay, this.data.hotelCards || []);
     const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
       ...selectedHotel,
       visible: true,
       hotel_id: selectedHotel.hotel_id || selectedHotel.id,
-      sectionTitle: `Day ${selectedDayNo} 住宿`,
+      sectionTitle: '今晚住宿',
     }) : null;
     return {
       selectedTripDayNo: selectedDayNo,
@@ -1264,15 +1361,15 @@ const customerHomePageConfig = {
     );
     const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, trip) : null;
     if (todayDriverCard) {
-      todayDriverCard.title = `Day ${selectedDayNo} 用车`;
-      todayDriverCard.sectionTitle = `Day ${selectedDayNo} 用车`;
+      todayDriverCard.title = '今日用车';
+      todayDriverCard.sectionTitle = '今日用车';
     }
     const selectedHotel = this.findHotelForTripDay(selectedDay, trip.hotels || []);
     const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
       ...selectedHotel,
       visible: true,
       hotel_id: selectedHotel.hotel_id || selectedHotel.id,
-      sectionTitle: `Day ${selectedDayNo} 住宿`,
+      sectionTitle: '今晚住宿',
     }) : null;
 
     return {
@@ -1797,15 +1894,15 @@ const customerHomePageConfig = {
     }) : null;
     const selectedDriverCard = today ? this.buildPublishedTripTodayDriverCard(today, {}) : null;
     if (selectedDriverCard) {
-      selectedDriverCard.title = `Day ${selectedDayNo} 用车`;
-      selectedDriverCard.sectionTitle = `Day ${selectedDayNo} 用车`;
+      selectedDriverCard.title = '今日用车';
+      selectedDriverCard.sectionTitle = '今日用车';
     }
     const selectedHotel = this.findHotelForTripDay(today, hotelCards);
     const selectedHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
       ...selectedHotel,
       visible: true,
       hotel_id: selectedHotel.hotel_id || selectedHotel.id,
-      sectionTitle: `Day ${selectedDayNo} 住宿`,
+      sectionTitle: '今晚住宿',
     }) : null;
     const firstNode = today && today.timelineItems[0] ? today.timelineItems[0] : null;
     const benefits = Array.isArray(home.benefits) ? home.benefits : [];
