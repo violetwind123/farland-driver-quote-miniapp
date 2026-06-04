@@ -59,6 +59,20 @@
   border-color: rgba(62, 140, 92, 0.20);
 }
 
+.mode-banner.delivered {
+  background: linear-gradient(135deg, #5B6596 0%, #7C6FA8 100%);
+  border-color: rgba(91, 101, 150, 0.28);
+}
+
+.mode-banner.delivered .banner-title,
+.mode-banner.delivered .banner-sub {
+  color: #FFFFFF;
+}
+
+.mode-banner.delivered .banner-sub {
+  opacity: 0.86;
+}
+
 .banner-title {
   color: #1F3266;
   font-size: 27rpx;

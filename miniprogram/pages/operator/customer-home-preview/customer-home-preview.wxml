@@ -7,9 +7,9 @@
     <view class="header-note">{{preview ? 'Preview mode. Use the native page back control to leave this operator page.' : 'Select customer or temporary guest, then enter customer preview.'}}</view>
   </view>
 
-  <view class="mode-banner {{previewMeta && previewMeta.unpublished ? 'unpublished' : 'published'}}">
-    <view class="banner-title">{{previewMeta && previewMeta.unpublished ? 'UNPUBLISHED - OPERATOR PREVIEW ONLY' : 'PUBLISHED CUSTOMER VIEW'}}</view>
-    <view class="banner-sub">Customer would see: {{previewMeta.customer_would_see || 'waiting'}}</view>
+  <view class="mode-banner {{previewMeta.banner_class || (previewMeta && previewMeta.unpublished ? 'unpublished' : 'published')}}">
+    <view class="banner-title">{{previewMeta.banner_title || (previewMeta && previewMeta.unpublished ? 'UNPUBLISHED - OPERATOR PREVIEW ONLY' : 'PUBLISHED CUSTOMER VIEW')}}</view>
+    <view class="banner-sub">{{previewMeta.banner_sub || 'Customer would see: waiting'}}</view>
   </view>
 
   <view class="panel">
@@ -74,6 +74,10 @@
       <view class="meta-item">
         <view class="meta-label">version</view>
         <view class="meta-value">v{{previewMeta.published_version || 0}}</view>
+      </view>
+      <view class="meta-item">
+        <view class="meta-label">client</view>
+        <view class="meta-value">{{previewMeta.customer_delivery_text || '未推送客户端'}}</view>
       </view>
     </view>
     <view wx:if="{{previewCustomer}}" class="selected-preview-customer">

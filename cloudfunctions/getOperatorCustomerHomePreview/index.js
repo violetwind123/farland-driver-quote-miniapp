@@ -83,6 +83,10 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function maxDate(values) {
+  return values.filter(Boolean).sort().pop() || '';
+}
+
 function buildDateText(start, end) {
   return [start || '', end || ''].filter(Boolean).join(' - ');
 }
@@ -467,11 +471,12 @@ function getOperatorPreviewSnapshot(trip, isPublished) {
 }
 
 async function findTrip(tripId) {
-  if (!tripId) return null;
+  const safeTripId = safeString(tripId).trim();
+  if (!safeTripId) return null;
   const queries = [
-    { trip_id: tripId },
-    { external_trip_id: tripId },
-    { trip_no: tripId },
+    { trip_id: safeTripId },
+    { external_trip_id: safeTripId },
+    { trip_no: safeTripId },
   ];
   for (const query of queries) {
     const res = await db.collection('customer_trips')
@@ -481,7 +486,8 @@ async function findTrip(tripId) {
       .catch(() => ({ data: [] }));
     if (res.data[0]) return res.data[0];
   }
-  return null;
+  const byDoc = await db.collection('customer_trips').doc(safeTripId).get().catch(() => null);
+  return byDoc && byDoc.data ? byDoc.data : null;
 }
 
 async function loadCustomer(customerUserId) {
@@ -502,6 +508,56 @@ function isActiveAccess(access) {
   if (!access || access.status !== 'active') return false;
   const visibleUntil = toTime(access.visible_until);
   return !visibleUntil || visibleUntil >= Date.now();
+}
+
+function tripLookupIds(trip, fallbackTripId = '') {
+  return unique([
+    fallbackTripId,
+    trip && trip._id,
+    trip && trip.trip_id,
+    trip && trip.external_trip_id,
+    trip && trip.trip_no,
+  ].map((value) => safeString(value).trim()));
+}
+
+function accessBelongsToCustomer(access, customer) {
+  if (!customer) return true;
+  const customerId = safeString(customer._id).trim();
+  const openid = safeString(customer.openid).trim();
+  if (customerId && [access.customer_user_id, access.user_id].some((value) => safeString(value).trim() === customerId)) {
+    return true;
+  }
+  if (openid && [access.customer_openid, access.openid].some((value) => safeString(value).trim() === openid)) {
+    return true;
+  }
+  return false;
+}
+
+async function findTripDeliveryRows(trip, customer, fallbackTripId = '') {
+  const ids = tripLookupIds(trip, fallbackTripId);
+  if (!ids.length) return [];
+  const results = await Promise.all(ids.map((id) => db.collection('customer_trip_access')
+    .where({ trip_id: id, status: 'active' })
+    .limit(20)
+    .get()
+    .catch(() => ({ data: [] }))));
+  const seen = {};
+  return results.flatMap((res) => res.data || []).filter((access) => {
+    const key = access._id || `${access.trip_id}:${access.customer_user_id || access.user_id || access.customer_openid || access.openid}`;
+    if (seen[key] || !isActiveAccess(access) || !accessBelongsToCustomer(access, customer)) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
+function buildCustomerDeliveryMeta(accessRows) {
+  const delivered = accessRows.length > 0;
+  return {
+    customer_delivery_status: delivered ? 'delivered' : 'not_delivered',
+    customer_delivery_text: delivered ? '已推送客户端' : '未推送客户端',
+    delivered_customer_count: accessRows.length,
+    delivered_at: maxDate(accessRows.map((access) => access.updated_at || access.created_at || access.granted_at || access.saved_at || '')),
+  };
 }
 
 async function findCustomerAccessRows(customer) {
@@ -834,6 +890,8 @@ exports.main = async (event = {}) => {
   }
   const request = await loadRequest(requestId);
   const { assigned_transport: assignedTransport, transport_order_health: transportOrderHealth } = await loadAssignedTransport(requestId);
+  const deliveryRows = trip ? await findTripDeliveryRows(trip, customer, tripId) : [];
+  const deliveryMeta = buildCustomerDeliveryMeta(deliveryRows);
 
   const isPublished = Boolean(trip && trip.visibility_status === 'published' && hasSnapshot(trip.published_snapshot));
   const rawSnapshot = getOperatorPreviewSnapshot(trip, isPublished);
@@ -880,6 +938,7 @@ exports.main = async (event = {}) => {
       warnings: Array.from(new Set(warnings)),
       critical_warnings: criticalWarnings,
       unpublished: Boolean(trip && !isPublished),
+      ...deliveryMeta,
       assigned_transport_source: assignedTransport ? 'transport_orders' : 'none',
       transport_order_health: transportOrderHealth,
     },

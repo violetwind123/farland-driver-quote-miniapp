@@ -18,6 +18,12 @@ Page({
       warnings: [],
       critical_warnings: [],
       unpublished: true,
+      customer_delivery_status: 'not_delivered',
+      customer_delivery_text: '未推送客户端',
+      delivered_customer_count: 0,
+      banner_class: 'unpublished',
+      banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
+      banner_sub: 'Customer would see: waiting',
     },
     previewCustomer: null,
     error: '',
@@ -53,6 +59,12 @@ Page({
         warnings: [],
         critical_warnings: [],
         unpublished: true,
+        customer_delivery_status: 'not_delivered',
+        customer_delivery_text: '未推送客户端',
+        delivered_customer_count: 0,
+        banner_class: 'unpublished',
+        banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
+        banner_sub: 'Customer would see: waiting',
       },
       invitePath: '',
     });
@@ -104,6 +116,12 @@ Page({
         warnings: [],
         critical_warnings: [],
         unpublished: true,
+        customer_delivery_status: 'not_delivered',
+        customer_delivery_text: '未推送客户端',
+        delivered_customer_count: 0,
+        banner_class: 'unpublished',
+        banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
+        banner_sub: 'Customer would see: waiting',
       },
       invitePath: '',
     });
@@ -124,6 +142,12 @@ Page({
         warnings: [],
         critical_warnings: [],
         unpublished: true,
+        customer_delivery_status: 'not_delivered',
+        customer_delivery_text: '未推送客户端',
+        delivered_customer_count: 0,
+        banner_class: 'unpublished',
+        banner_title: 'UNPUBLISHED - OPERATOR PREVIEW ONLY',
+        banner_sub: 'Customer would see: waiting',
       },
       invitePath: '',
     });
@@ -183,12 +207,28 @@ Page({
   },
 
   normalizePreviewMeta(meta = {}) {
+    const customerWouldSee = meta.customer_would_see || 'waiting';
+    const unpublished = Boolean(meta.unpublished);
+    const delivered = meta.customer_delivery_status === 'delivered' || Boolean(meta.delivered_customer_count);
+    const deliveryText = meta.customer_delivery_text || (delivered ? '已推送客户端' : '未推送客户端');
+    const bannerTitle = unpublished
+      ? 'UNPUBLISHED - OPERATOR PREVIEW ONLY'
+      : (delivered ? '已推送客户端' : 'PUBLISHED CUSTOMER VIEW');
+    const bannerSub = unpublished
+      ? 'Customer would see: waiting'
+      : (delivered ? '客户客户端已可查看该行程' : '已发布，尚未发现客户访问记录');
     return {
       ...meta,
-      customer_would_see: meta.customer_would_see || 'waiting',
+      customer_would_see: customerWouldSee,
       warnings: Array.isArray(meta.warnings) ? meta.warnings : [],
       critical_warnings: Array.isArray(meta.critical_warnings) ? meta.critical_warnings : [],
-      unpublished: Boolean(meta.unpublished),
+      unpublished,
+      customer_delivery_status: delivered ? 'delivered' : 'not_delivered',
+      customer_delivery_text: deliveryText,
+      delivered_customer_count: Number(meta.delivered_customer_count || 0),
+      banner_class: unpublished ? 'unpublished' : (delivered ? 'delivered' : 'published'),
+      banner_title: bannerTitle,
+      banner_sub: bannerSub,
     };
   },
 
