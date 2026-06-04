@@ -6,9 +6,14 @@ Page({
     currentCard: null,
   },
 
-  onLoad() {
+  onLoad(options = {}) {
     const app = getApp();
-    const card = (app.globalData && app.globalData.todayCardDetail) || wx.getStorageSync('todayCardDetail') || null;
+    const route = this.normalizeRouteParams(options);
+    const storedCard = (app.globalData && app.globalData.todayCardDetail) || wx.getStorageSync('todayCardDetail') || null;
+    const cachedCard = this.findCachedTripDayCard(route);
+    const card = route.hasRoute
+      ? (this.cardMatchesRoute(storedCard, route) ? storedCard : cachedCard)
+      : storedCard;
     if (!card) {
       this.setData({ todayCard: null, cards: [] });
       return;
@@ -20,6 +25,52 @@ Page({
       currentIndex: 0,
       currentCard: normalized.destination_cards[0] || null,
     });
+  },
+
+  normalizeRouteParams(options) {
+    const tripId = this.decodeQueryValue(options.trip_id || '');
+    const parsedDayNo = Number(options.day_no || 0);
+    const dayNo = Number.isFinite(parsedDayNo) ? parsedDayNo : 0;
+    return {
+      trip_id: tripId,
+      day_no: dayNo,
+      hasRoute: Boolean(tripId || dayNo),
+    };
+  },
+
+  decodeQueryValue(value) {
+    if (!value && value !== 0) return '';
+    try {
+      return decodeURIComponent(String(value));
+    } catch (error) {
+      return String(value);
+    }
+  },
+
+  cardMatchesRoute(card, route) {
+    if (!card || !route || !route.hasRoute) return false;
+    if (route.trip_id) {
+      if (!card.trip_id) return false;
+      if (String(card.trip_id) !== route.trip_id) return false;
+    }
+    if (route.day_no && Number(card.day_no || 0) !== route.day_no) return false;
+    return true;
+  },
+
+  findCachedTripDayCard(route) {
+    const app = getApp();
+    const context = (app.globalData && app.globalData.customerTripDetailContext)
+      || wx.getStorageSync('customerTripDetailContext')
+      || null;
+    if (!context) return null;
+    if (route.trip_id) {
+      if (!context.trip_id) return null;
+      if (String(context.trip_id) !== route.trip_id) return null;
+    }
+    const cards = Array.isArray(context.cards) ? context.cards : [];
+    if (!cards.length) return null;
+    if (!route.day_no) return cards[0] || null;
+    return cards.find((card) => Number(card.day_no || 0) === route.day_no) || null;
   },
 
   normalizeAssignedDriver(source) {

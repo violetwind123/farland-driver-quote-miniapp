@@ -335,6 +335,11 @@ Page({
             time: '',
             city: tripOverview[0] ? tripOverview[0].city : '',
           };
+      this.cacheTripDetailContext(tripDayCards, {
+        trip_id: tripOverview[0] ? (tripOverview[0].trip_id || '') : '',
+        trip_no: tripOverview[0] ? (tripOverview[0].trip_no || '') : '',
+        overview: tripOverview[0] || {},
+      });
       this.setData({
         loading: false,
         needsInviteClaim: false,
@@ -679,6 +684,15 @@ Page({
       }
 
       const trip = this.normalizePublishedTrip(result.trip || {});
+      this.cacheTripDetailContext(trip.days, {
+        trip_id: this.data.tripInviteId,
+        trip_no: trip.displayTripNo,
+        overview: {
+          trip_id: this.data.tripInviteId,
+          trip_no: trip.displayTripNo,
+          city_summary: trip.displayCity,
+        },
+      });
       this.setData({
         loading: false,
         tripInviteTrip: trip,
@@ -915,6 +929,15 @@ Page({
     }
 
     const trip = this.normalizePublishedTrip(sharePreview.trip || {});
+    this.cacheTripDetailContext(trip.days, {
+      trip_id: tripId,
+      trip_no: trip.displayTripNo,
+      overview: {
+        trip_id: tripId,
+        trip_no: trip.displayTripNo,
+        city_summary: trip.displayCity,
+      },
+    });
     this.setData({
       ...commonState,
       tripInviteTrip: trip,
@@ -981,6 +1004,11 @@ Page({
       operatorPreviewDays: previewHome.operatorPreviewDays,
       operatorPreviewFlights: previewHome.operatorPreviewFlights,
       advisorPhone: previewHome.advisorPhone || '',
+    });
+    this.cacheTripDetailContext(previewHome.operatorPreviewDays, {
+      trip_id: meta.trip_id || '',
+      trip_no: (previewHome.tripOverview[0] && previewHome.tripOverview[0].trip_no) || '',
+      overview: previewHome.tripOverview[0] || {},
     });
   },
 
@@ -1254,6 +1282,11 @@ Page({
         driveText: [item.drive_time_text || item.drive_time || '', item.distance_text || item.distance || ''].filter(Boolean).join(' · '),
         distanceText: item.distance_text || item.distance || '',
         trafficText: item.traffic_text || item.traffic_level || '',
+        arrival_estimate: this.formatDisplayTime(item.arrival_estimate || item.estimated_arrival_time || item.planned_arrival_time || ''),
+        next_stop: item.next_stop || item.next_location || '',
+        latitude: item.latitude || item.lat || item.map_latitude || '',
+        longitude: item.longitude || item.lng || item.map_longitude || '',
+        map_url: item.map_url || '',
       })),
     };
   },
@@ -1603,17 +1636,40 @@ Page({
     wx.navigateTo({ url: '/pages/customer/day-detail/day-detail' });
   },
 
-  buildTripDayDetailCard(day) {
+  cacheTripDetailContext(days, context = {}) {
+    const sourceDays = Array.isArray(days) ? days : [];
+    const cards = sourceDays.map((day) => this.buildTripDayDetailCard(day, context)).filter(Boolean);
+    if (!cards.length) return;
+    const firstCard = cards[0] || {};
+    const payload = {
+      trip_id: context.trip_id || firstCard.trip_id || '',
+      trip_no: context.trip_no || firstCard.trip_no || '',
+      cards,
+      updated_at: Date.now(),
+    };
+    const app = getApp();
+    if (app.globalData) {
+      app.globalData.customerTripDetailContext = payload;
+    }
+    try {
+      wx.setStorageSync('customerTripDetailContext', payload);
+    } catch (error) {
+      console.warn('[customer-home] cacheTripDetailContext failed', error);
+    }
+  },
+
+  buildTripDayDetailCard(day, context = {}) {
     if (!day) return null;
-    const overview = (this.data.tripOverview || [])[0] || {};
+    const overview = context.overview || (this.data.tripOverview || [])[0] || {};
+    const dayNo = day.dayNo || day.day_no || 1;
     return {
-      trip_id: this.data.tripInviteId || overview.trip_id || '',
-      trip_no: overview.trip_no || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '',
-      day_no: day.dayNo || day.day_no || 1,
+      trip_id: context.trip_id || this.data.tripInviteId || overview.trip_id || '',
+      trip_no: context.trip_no || overview.trip_no || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '',
+      day_no: dayNo,
       date: day.date || '',
       weekday: day.weekday || '',
       city_summary: day.city || overview.city_summary || overview.city_route_text || '',
-      title: day.title || `Day ${day.dayNo || day.day_no || 1}`,
+      title: day.title || `Day ${dayNo}`,
       status_text: '已确认',
       service_type: day.transportBadge ? 'charter' : 'itinerary',
       service_window: day.startTime ? { label: `${day.startTime} 出发` } : null,
@@ -1622,8 +1678,8 @@ Page({
       party_summary: '',
       driver_visibility: 'pending',
       timeline_items: (day.timelineItems || []).map((item, index) => ({
-        id: item.id || `${day.dayNo || 1}-${index}`,
-        item_id: item.id || `${day.dayNo || 1}-${index}`,
+        id: item.id || `${dayNo}-${index}`,
+        item_id: item.id || `${dayNo}-${index}`,
         type: item.type || item.item_type || 'custom',
         time: item.time || '',
         title: item.title || '行程节点',
@@ -1633,6 +1689,11 @@ Page({
         distance: item.distanceText || item.distance_text || '',
         traffic_level: item.trafficText || item.traffic_text || '',
         note: item.note || item.customer_note || '',
+        arrival_estimate: item.arrival_estimate || '',
+        next_stop: item.next_stop || '',
+        latitude: item.latitude || item.lat || item.map_latitude || '',
+        longitude: item.longitude || item.lng || item.map_longitude || '',
+        map_url: item.map_url || '',
       })),
       transport_summary: day.transportSummary || (day.transportBadge ? { title: day.transportBadge } : null),
       hotel: day.hotel ? {
