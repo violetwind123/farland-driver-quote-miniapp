@@ -14,7 +14,7 @@
       maxlength="-1"
       bindinput="onJsonInput"
     />
-    <button class="secondary-btn" bindtap="fillSample">填入最小样例</button>
+    <button class="secondary-btn" bindtap="fillSample">填入多天费用样例</button>
   </view>
 
   <view wx:if="{{errors.length}}" class="panel error-panel">

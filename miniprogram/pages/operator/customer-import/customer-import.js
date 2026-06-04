@@ -1,15 +1,16 @@
 const sampleHint = `{
   "schema_version": "1.0.0",
-  "external_trip_id": "2026XBC091",
+  "external_trip_id": "2026FEEDEMO01",
   "trip_type": "mixed",
-  "title": "Farland School Visit Itinerary",
+  "title": "Farland Multi-Day Fee Itinerary",
   "status": "active",
-  "city": "Boston / Amherst / Providence",
+  "city": "Boston / Cambridge / Amherst",
   "country": "US",
   "timezone": "America/New_York",
   "start_at": "2026-06-05T00:00:00-04:00",
-  "end_at": "2026-06-12T23:59:59-05:00",
-  "customer": { "display_name": "王女士" },
+  "end_at": "2026-06-07T23:59:59-04:00",
+  "summary": "3 天访校与用车安排。费用以每日服务项列明，最终以顾问确认版本为准。",
+  "customer": { "display_name": "测试客户" },
   "source": { "source_type": "manual_json" },
   "advisor": { "name": "Farland Advisor" },
   "itinerary_days": [
@@ -17,22 +18,193 @@ const sampleHint = `{
       "day_no": 1,
       "date": "2026-06-05",
       "weekday": "Fri",
-      "title": "Boston / Amherst / Providence",
-      "city": "Boston / Amherst / Providence",
-      "estimated_departure_time": "08:10",
+      "title": "Boston 抵达与市区接送",
+      "city": "Boston",
+      "summary": "抵达 Boston 后完成机场接机、酒店入住与当日晚间市区用车。",
+      "estimated_departure_time": "14:20",
+      "transport_summary": {
+        "service_type": "airport_transfer",
+        "status_text": "待运营确认",
+        "driver_visibility": "hidden_until_confirmed",
+        "customer_note": "Day 1 预计费用：USD 480，包含机场接机和市区短途用车。"
+      },
       "timeline_items": [
         {
-          "item_id": "day1_depart_boston",
+          "item_id": "day1_arrive_bos",
+          "item_type": "arrival",
+          "title": "Boston Logan Airport 接机",
+          "planned_start_time": "14:20",
+          "planned_end_time": "15:10",
+          "location_name": "Boston Logan International Airport",
+          "drive_time_text": "约 35 分钟",
+          "distance_text": "约 8 miles",
+          "customer_note": "当日接机费用：USD 260。司机信息将在确认后显示。"
+        },
+        {
+          "item_id": "day1_hotel_checkin",
+          "item_type": "hotel",
+          "title": "酒店入住",
+          "planned_start_time": "15:30",
+          "location_name": "The Kendall Hotel",
+          "drive_time_text": "约 20 分钟",
+          "distance_text": "约 5 miles",
+          "customer_note": "当晚住宿费用：USD 260，税费以酒店最终确认单为准。",
+          "address": "350 Main St, Cambridge, MA 02142"
+        },
+        {
+          "item_id": "day1_evening_transfer",
+          "item_type": "transfer",
+          "title": "Cambridge 晚间短途用车",
+          "planned_start_time": "18:00",
+          "planned_end_time": "20:00",
+          "location_name": "Cambridge",
+          "drive_time_text": "约 2 小时服务时长",
+          "distance_text": "市区内短途",
+          "customer_note": "晚间短途用车费用：USD 220。"
+        }
+      ],
+      "hotel": {
+        "name": "The Kendall Hotel",
+        "city": "Cambridge",
+        "check_in_date": "2026-06-05",
+        "check_out_date": "2026-06-07",
+        "address": "350 Main St, Cambridge, MA 02142",
+        "room_type": "Standard Room",
+        "status_text": "待确认",
+        "customer_visible_note": "2 晚住宿预计费用：USD 520，税费以酒店最终确认单为准。"
+      }
+    },
+    {
+      "day_no": 2,
+      "date": "2026-06-06",
+      "weekday": "Sat",
+      "title": "Boston / Cambridge 校园访问",
+      "city": "Boston / Cambridge",
+      "summary": "全天校园访问与顾问协调，含酒店往返接送。",
+      "estimated_departure_time": "08:30",
+      "transport_summary": {
+        "service_type": "charter",
+        "status_text": "待运营确认",
+        "driver_visibility": "hidden_until_confirmed",
+        "customer_note": "Day 2 预计费用：USD 720，包含 8 小时包车与顾问协调。"
+      },
+      "timeline_items": [
+        {
+          "item_id": "day2_hotel_pickup",
+          "item_type": "pickup",
+          "title": "酒店出发",
+          "planned_start_time": "08:30",
+          "location_name": "The Kendall Hotel",
+          "drive_time_text": "约 20 分钟",
+          "distance_text": "约 4 miles",
+          "customer_note": "已计入当日包车费用。"
+        },
+        {
+          "item_id": "day2_campus_visit",
+          "item_type": "visit",
+          "title": "校园访问与顾问陪同",
+          "planned_start_time": "09:30",
+          "planned_end_time": "15:30",
+          "location_name": "Boston / Cambridge",
+          "drive_time_text": "约 6 小时服务时长",
+          "distance_text": "市区内多点",
+          "customer_note": "校园访问与协调费用：USD 720。"
+        },
+        {
+          "item_id": "day2_return_hotel",
+          "item_type": "dropoff",
+          "title": "返回酒店",
+          "planned_start_time": "16:00",
+          "location_name": "The Kendall Hotel",
+          "drive_time_text": "约 25 分钟",
+          "distance_text": "约 6 miles",
+          "customer_note": "如超出 8 小时服务范围，额外时长需运营确认。"
+        }
+      ],
+      "hotel": {
+        "name": "The Kendall Hotel",
+        "city": "Cambridge",
+        "check_in_date": "2026-06-05",
+        "check_out_date": "2026-06-07",
+        "address": "350 Main St, Cambridge, MA 02142",
+        "room_type": "Standard Room",
+        "status_text": "待确认",
+        "customer_visible_note": "第 2 晚住宿已计入酒店合计预计费用 USD 520。"
+      }
+    },
+    {
+      "day_no": 3,
+      "date": "2026-06-07",
+      "weekday": "Sun",
+      "title": "Amherst 访校与返程",
+      "city": "Cambridge / Amherst",
+      "summary": "从 Cambridge 前往 Amherst 访校，结束后返回 Boston。",
+      "estimated_departure_time": "07:45",
+      "transport_summary": {
+        "service_type": "intercity_charter",
+        "status_text": "待运营确认",
+        "driver_visibility": "hidden_until_confirmed",
+        "customer_note": "Day 3 预计费用：USD 880，包含跨城往返用车。"
+      },
+      "timeline_items": [
+        {
+          "item_id": "day3_depart_cambridge",
           "item_type": "departure",
-          "title": "Depart Boston",
-          "planned_start_time": "08:10",
-          "location_name": "Boston"
+          "title": "Cambridge 酒店出发",
+          "planned_start_time": "07:45",
+          "location_name": "The Kendall Hotel",
+          "drive_time_text": "约 1 小时 45 分钟",
+          "distance_text": "约 95 miles",
+          "customer_note": "跨城用车费用已计入 Day 3 预计费用。"
+        },
+        {
+          "item_id": "day3_amherst_visit",
+          "item_type": "visit",
+          "title": "Amherst 校园访问",
+          "planned_start_time": "10:00",
+          "planned_end_time": "13:30",
+          "location_name": "Amherst, MA",
+          "drive_time_text": "约 3.5 小时停留",
+          "distance_text": "校园周边",
+          "customer_note": "顾问协调与现场等待费用：USD 320。"
+        },
+        {
+          "item_id": "day3_return_boston",
+          "item_type": "dropoff",
+          "title": "返回 Boston",
+          "planned_start_time": "14:00",
+          "planned_end_time": "16:10",
+          "location_name": "Boston",
+          "drive_time_text": "约 2 小时 10 分钟",
+          "distance_text": "约 100 miles",
+          "customer_note": "跨城返程用车费用：USD 560。"
         }
       ]
     }
   ],
-  "hotels": [],
-  "documents": []
+  "hotels": [
+    {
+      "hotel_id": "kendall_cambridge",
+      "name": "The Kendall Hotel",
+      "city": "Cambridge",
+      "check_in_date": "2026-06-05",
+      "check_out_date": "2026-06-07",
+      "address": "350 Main St, Cambridge, MA 02142",
+      "room_type": "Standard Room",
+      "status_text": "待确认",
+      "customer_visible_note": "2 晚住宿预计费用：USD 520，税费以酒店最终确认单为准。"
+    }
+  ],
+  "documents": [
+    {
+      "document_id": "fee_summary",
+      "title": "多天费用说明",
+      "document_type": "fee_note",
+      "status_text": "示例",
+      "visible_to_customer": true,
+      "customer_visible_note": "示例总计：Day 1 USD 480 + Day 2 USD 720 + Day 3 USD 880 + 酒店 USD 520。最终金额以顾问确认版本为准。"
+    }
+  ]
 }`;
 
 function safeString(value) {
