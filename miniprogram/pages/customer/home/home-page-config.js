@@ -8,6 +8,7 @@ const customerHomePageConfig = {
     customerSummaryBar: null,
     tripProgress: null,
     progressStrip: null,
+    selectedTripDayNo: 0,
     todayCard: null,
     dailyCharter: null,
     todayDriverCard: null,
@@ -186,7 +187,7 @@ const customerHomePageConfig = {
   },
 
   async loadHome() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, selectedTripDayNo: 0 });
     try {
       if (this.data.tripInviteMode && this.data.tripInviteId) {
         await this.loadTripInviteHome();
@@ -212,6 +213,7 @@ const customerHomePageConfig = {
           customerSummaryBar: null,
           tripProgress: null,
           progressStrip: null,
+          selectedTripDayNo: 0,
           todayCard: null,
           dailyCharter: null,
           todayDriverCard: null,
@@ -422,6 +424,7 @@ const customerHomePageConfig = {
         customerSummaryBar,
         tripProgress,
         progressStrip,
+        selectedTripDayNo: (tripProgress && tripProgress.current_day_no) || 0,
         todayCard,
         dailyCharter,
         todayDriverCard,
@@ -493,6 +496,66 @@ const customerHomePageConfig = {
     this.setData({ homePaneIndex: index });
   },
 
+  toDateKey(value) {
+    const text = String(value || '');
+    const match = text.match(/\d{4}-\d{2}-\d{2}/);
+    return match ? match[0] : '';
+  },
+
+  getTodayDateKey() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
+  },
+
+  resolveInitialTripDayNo(days, preferredDayNo = 0) {
+    const sourceDays = (Array.isArray(days) ? days : [])
+      .map((day, index) => ({
+        dayNo: Number(day.dayNo || day.day_no || index + 1),
+        dateKey: this.toDateKey(day.date),
+      }))
+      .filter((day) => day.dayNo);
+    if (!sourceDays.length) return 0;
+
+    const preferred = Number(preferredDayNo || 0);
+    if (preferred && sourceDays.some((day) => day.dayNo === preferred)) return preferred;
+
+    const todayKey = this.getTodayDateKey();
+    const today = sourceDays.find((day) => day.dateKey && day.dateKey === todayKey);
+    if (today) return today.dayNo;
+    const next = sourceDays.find((day) => day.dateKey && day.dateKey > todayKey);
+    if (next) return next.dayNo;
+    return sourceDays[sourceDays.length - 1].dayNo;
+  },
+
+  decorateTripProgressNodes(nodes, selectedDayNo = 0, currentDayNo = 0) {
+    const todayKey = this.getTodayDateKey();
+    const selected = Number(selectedDayNo || 0);
+    const current = Number(currentDayNo || 0);
+    return (Array.isArray(nodes) ? nodes : []).map((node, index) => {
+      const dayNo = Number(node.day_no || node.dayNo || index + 1);
+      const dateKey = this.toDateKey(node.date);
+      const isPast = Boolean(dateKey && todayKey && dateKey < todayKey);
+      const isToday = Boolean(dateKey && todayKey && dateKey === todayKey);
+      const isSelected = Boolean(selected && dayNo === selected);
+      const rawStatus = ['completed', 'current', 'upcoming'].includes(node.status) ? node.status : 'upcoming';
+      const status = isPast ? 'completed' : ((isToday || (current && dayNo === current)) ? 'current' : rawStatus);
+      return {
+        ...node,
+        day_no: dayNo,
+        status,
+        isPast,
+        isToday,
+        isSelected,
+        selectable: true,
+        statusText: isSelected
+          ? '已选择'
+          : (isPast ? '已过去' : (isToday ? '今天' : (status === 'current' ? '当前' : (status === 'completed' ? '已完成' : '待前往')))),
+      };
+    });
+  },
+
   normalizeCustomerSummaryBar(result = {}) {
     const bar = result.customer_summary_bar || {};
     const profile = result.profile || {};
@@ -552,6 +615,7 @@ const customerHomePageConfig = {
 
     if (nodes.length < 2) return null;
     const currentDayNo = Number((strip && strip.current_day_no) || (result.today_card && result.today_card.day_no) || nodes[0].day_no);
+    const selectedDayNo = this.resolveInitialTripDayNo(nodes, this.data.selectedTripDayNo || currentDayNo);
     let currentIndex = nodes.findIndex((node) => Number(node.day_no || 0) === currentDayNo);
     if (currentIndex < 0) currentIndex = 0;
     nodes = nodes.map((node, index) => ({
@@ -560,12 +624,14 @@ const customerHomePageConfig = {
       statusText: index < currentIndex ? '已完成' : (index === currentIndex ? '当前' : '待前往'),
       location_summary: node.location_summary || '行程同步中',
     }));
+    nodes = this.decorateTripProgressNodes(nodes, selectedDayNo, currentDayNo);
     return {
       ...(strip || {}),
       visible: true,
       mode: 'daily_nodes',
-      current_day_no: currentDayNo,
-      current_node_id: nodes[currentIndex].node_id,
+      current_day_no: selectedDayNo || currentDayNo,
+      actual_current_day_no: currentDayNo,
+      current_node_id: (nodes.find((node) => Number(node.day_no || 0) === Number(selectedDayNo || currentDayNo)) || nodes[currentIndex]).node_id,
       nodes,
     };
   },
@@ -639,7 +705,7 @@ const customerHomePageConfig = {
     const driverVisibility = explicit.driver_visibility || summary.driver_visibility || (driver && (driver.name || driver.phone) ? 'assigned' : 'pending');
     const isAssigned = driverVisibility === 'assigned' && driver;
     return {
-      title: '今日用车',
+      title: '当日用车',
       statusText: isAssigned ? '已分配司机' : (explicit.status_text || summary.status_text || '司机信息待同步'),
       statusClass: isAssigned ? 'confirmed' : 'pending',
       departureTime: this.formatDisplayTime(explicit.departure_time || summary.departure_time || summary.depart_time || todayDay.startTime || '') || '待确认',
@@ -748,7 +814,7 @@ const customerHomePageConfig = {
       ...card,
       visible: true,
       hotel_id: card.hotel_id || card.id || '',
-      name: card.name || card.hotel_name || '今晚住宿',
+      name: card.name || card.hotel_name || '当晚住宿',
       metaText: metaParts.join(' · '),
       arrivalText: card.arrival_time ? `预计 ${this.formatDisplayTime(card.arrival_time)} 抵达` : '抵达时间待同步',
       dateText: card.date_text || [card.check_in_date || '', card.check_out_date || ''].filter(Boolean).join(' - '),
@@ -765,7 +831,7 @@ const customerHomePageConfig = {
     return {
       visible: true,
       hotel_id: hotel.hotel_id || hotel.id || '',
-      name: hotel.name || hotel.hotel_name || '今晚住宿',
+      name: hotel.name || hotel.hotel_name || '当晚住宿',
       group: hotel.group || '',
       brand: hotel.brand || '',
       star_rating: hotel.star_rating || '',
@@ -854,6 +920,175 @@ const customerHomePageConfig = {
     });
   },
 
+  buildTodayCardFromTripDay(day, context = {}) {
+    if (!day) return null;
+    const overview = context.overview || {};
+    const tripNo = context.trip_no || overview.trip_no || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '';
+    const tripId = context.trip_id || overview.trip_id || this.data.tripInviteId || '';
+    const dayNo = Number(day.dayNo || day.day_no || 1);
+    const routeStops = (day.timelineItems || []).slice(0, 3).map((item, index) => ({
+      id: item.id || `${dayNo}-${index}`,
+      time: item.time || '',
+      title: item.title || '行程节点',
+    }));
+    const timelineItems = (day.timelineItems || []).map((item, index) => ({
+      id: item.id || `${dayNo}-${index}`,
+      item_id: item.id || `${dayNo}-${index}`,
+      type: item.type || item.item_type || 'custom',
+      time: item.time || '',
+      title: item.title || '行程节点',
+      location: item.location || item.location_name || '',
+      route: item.route || '',
+      drive_time: item.driveText || item.drive_time_text || '',
+      distance: item.distanceText || item.distance_text || '',
+      traffic_level: item.trafficText || item.traffic_text || '',
+      note: item.note || item.customer_note || '',
+      arrival_estimate: item.arrival_estimate || '',
+      next_stop: item.next_stop || '',
+      latitude: item.latitude || item.lat || item.map_latitude || '',
+      longitude: item.longitude || item.lng || item.map_longitude || '',
+      map_url: item.map_url || '',
+    }));
+    return {
+      trip_id: tripId,
+      trip_no: tripNo,
+      day_no: dayNo,
+      dayNo,
+      dayLabel: tripNo ? `Trip ${tripNo} · Day ${dayNo}` : `Day ${dayNo}`,
+      date: day.date || '',
+      weekday: day.weekday || '',
+      dateRouteText: [day.weekday || '', day.date || '', day.city || overview.city_summary || overview.city_route_text || ''].filter(Boolean).join(' · '),
+      status_text: day.hasTimeConflict ? '待复核' : '已确认',
+      title: day.title || `Day ${dayNo}`,
+      city: day.city || overview.city_summary || overview.city_route_text || '',
+      city_summary: day.city || overview.city_summary || overview.city_route_text || '',
+      sectionTitle: `Day ${dayNo} 行程概览`,
+      service_type: day.transportSummary && day.transportSummary.service_type ? day.transportSummary.service_type : 'charter',
+      startTime: day.startTime || '',
+      depart_time: day.startTime || '',
+      service_window: day.startTime ? { label: `${day.startTime} 出发` } : null,
+      vehicle_summary: day.transportBadge || (day.transportSummary && (day.transportSummary.vehicle_summary || day.transportSummary.vehicle_class)) || '车辆待确认',
+      party_summary: day.transportSummary && day.transportSummary.party_summary ? day.transportSummary.party_summary : '',
+      transport_summary: day.transportSummary || (day.transportBadge ? { title: day.transportBadge } : null),
+      driver_visibility: 'pending',
+      routeStops,
+      timeline_items: timelineItems,
+      destination_cards: timelineItems.map((item, index) => ({
+        ...item,
+        card_id: item.card_id || item.id || `${dayNo}-${index}`,
+        sequence: index + 1,
+        chipLabel: `${item.time || ''} ${item.title || ''}`.trim(),
+      })),
+      nodeCount: (day.timelineItems || []).length,
+      extraNodeCount: Math.max(0, (day.timelineItems || []).length - 3),
+      hotel: day.hotel ? {
+        ...day.hotel,
+        name: day.hotel.name || day.hotel.hotel_name || day.hotel.title || day.hotelBadge || '酒店安排',
+      } : (day.hotelBadge ? { name: day.hotelBadge, arrival_time: '', address: '' } : null),
+      advisor: context.advisor || {},
+    };
+  },
+
+  findHotelForTripDay(day, hotels) {
+    if (!day) return null;
+    if (day.hotel) {
+      return {
+        ...day.hotel,
+        name: day.hotel.name || day.hotel.hotel_name || day.hotel.title || day.hotelBadge || '酒店安排',
+        linkedDayNo: Number(day.hotel.linked_day_no || day.dayNo || day.day_no || 0),
+      };
+    }
+    const dayNo = Number(day.dayNo || day.day_no || 0);
+    const sourceHotels = Array.isArray(hotels) ? hotels : [];
+    return sourceHotels.find((hotel) => Number(hotel.linkedDayNo || hotel.linked_day_no || hotel.day_no || 0) === dayNo)
+      || null;
+  },
+
+  buildTodayItineraryFromTripDay(day, overview = {}) {
+    if (!day) return null;
+    return {
+      date: [day.weekday || '', day.date || ''].filter(Boolean).join(' · '),
+      city: day.city || overview.city_summary || overview.city_route_text || '',
+      title: day.title || `Day ${day.dayNo || day.day_no || 1}`,
+      summary: day.summary || (day.startTime ? `预计出发：${day.startTime}` : ''),
+      items: (day.timelineItems || []).map((item) => ({
+        time: item.time || '',
+        title: item.title || '行程节点',
+        description: [item.location || '', item.driveText || '', item.trafficText || '', item.note || ''].filter(Boolean).join(' · '),
+      })),
+      farland_contact: {
+        name: 'Farland 顾问',
+        phone: this.data.advisorPhone || '',
+      },
+      driver_visibility: 'pending',
+    };
+  },
+
+  buildSelectedHomeDayState(dayNo) {
+    const sourceDays = this.data.tripDayCards && this.data.tripDayCards.length
+      ? this.data.tripDayCards
+      : (this.data.operatorPreviewDays || []);
+    const selectedDayNo = this.resolveInitialTripDayNo(sourceDays, dayNo);
+    const selectedDay = sourceDays.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || sourceDays[0] || null;
+    const overview = (this.data.tripOverview || [])[0] || {};
+    const tripProgress = this.data.tripProgress || this.data.progressStrip || null;
+    const nodes = tripProgress && Array.isArray(tripProgress.nodes)
+      ? this.decorateTripProgressNodes(tripProgress.nodes, selectedDayNo, tripProgress.actual_current_day_no || tripProgress.actualCurrentDayNo || selectedDayNo)
+      : [];
+    const nextProgress = tripProgress ? {
+      ...tripProgress,
+      current_day_no: selectedDayNo,
+      current_node_id: (nodes.find((node) => Number(node.day_no || 0) === selectedDayNo) || nodes[0] || {}).node_id || '',
+      nodes,
+    } : null;
+    const todayCard = selectedDay ? this.buildTodayCardFromTripDay(selectedDay, {
+      trip_id: overview.trip_id || this.data.tripInviteId || '',
+      trip_no: overview.trip_no || '',
+      overview,
+    }) : this.data.todayCard;
+    const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, {}) : this.data.todayDriverCard;
+    if (todayDriverCard && selectedDayNo) {
+      todayDriverCard.title = `Day ${selectedDayNo} 用车`;
+      todayDriverCard.sectionTitle = `Day ${selectedDayNo} 用车`;
+    }
+    const selectedHotel = this.findHotelForTripDay(selectedDay, this.data.hotelCards || []);
+    const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
+      ...selectedHotel,
+      visible: true,
+      hotel_id: selectedHotel.hotel_id || selectedHotel.id,
+      sectionTitle: `Day ${selectedDayNo} 住宿`,
+    }) : null;
+    return {
+      selectedTripDayNo: selectedDayNo,
+      tripProgress: nextProgress,
+      progressStrip: nextProgress,
+      todayCard,
+      todayDriverCard,
+      todayHotelCard,
+      todayItinerary: selectedDay ? this.buildTodayItineraryFromTripDay(selectedDay, overview) : this.data.todayItinerary,
+    };
+  },
+
+  selectTripProgressDay(e) {
+    const dayNo = Number(e.currentTarget.dataset.dayNo || 0);
+    const source = e.currentTarget.dataset.source || 'home';
+    if (!dayNo) return;
+
+    if (source === 'invite') {
+      const trip = this.data.tripInviteTrip;
+      if (!trip || !Array.isArray(trip.days) || !trip.days.length) return;
+      this.setData({
+        tripInviteTrip: this.applySelectedDayToPublishedTrip(trip, dayNo),
+        selectedTripDayNo: dayNo,
+      });
+      return;
+    }
+
+    const nextState = this.buildSelectedHomeDayState(dayNo);
+    if (!nextState || !nextState.selectedTripDayNo) return;
+    this.setData(nextState);
+  },
+
   formatDisplayTime(value) {
     if (!value && value !== 0) return '';
     return String(value)
@@ -914,6 +1149,7 @@ const customerHomePageConfig = {
           tripInviteAutoSaved: Boolean(result.auto_saved),
           tripInviteAlreadySaved: Boolean(result.already_saved),
           tripInviteCanSave: false,
+          selectedTripDayNo: 0,
           needsInviteClaim: false,
         });
         return;
@@ -939,6 +1175,7 @@ const customerHomePageConfig = {
         tripInviteAutoSaved: Boolean(result.auto_saved),
         tripInviteAlreadySaved: Boolean(result.already_saved),
         tripInviteCanSave: Boolean(result.can_save_to_profile),
+        selectedTripDayNo: trip.selectedDayNo || 0,
         tripInviteShowSaveForm: false,
         needsInviteClaim: false,
         profile: {
@@ -962,6 +1199,44 @@ const customerHomePageConfig = {
         tripInviteCanSave: false,
       });
     }
+  },
+
+  applySelectedDayToPublishedTrip(trip, preferredDayNo = 0) {
+    if (!trip || !Array.isArray(trip.days) || !trip.days.length) return trip;
+    const selectedDayNo = this.resolveInitialTripDayNo(trip.days, preferredDayNo || trip.selectedDayNo || 0);
+    const selectedDay = trip.days.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || trip.days[0] || null;
+    const overview = {
+      trip_id: trip.trip_id || trip.external_trip_id || this.data.tripInviteId || '',
+      trip_no: trip.displayTripNo || trip.trip_no || '',
+      city_summary: trip.displayCity || trip.city || '',
+    };
+    const progressNodes = this.decorateTripProgressNodes(
+      trip.progressNodes || [],
+      selectedDayNo,
+      trip.actualCurrentDayNo || trip.currentDayNo || selectedDayNo,
+    );
+    const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, trip) : null;
+    if (todayDriverCard) {
+      todayDriverCard.title = `Day ${selectedDayNo} 用车`;
+      todayDriverCard.sectionTitle = `Day ${selectedDayNo} 用车`;
+    }
+    const selectedHotel = this.findHotelForTripDay(selectedDay, trip.hotels || []);
+    const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
+      ...selectedHotel,
+      visible: true,
+      hotel_id: selectedHotel.hotel_id || selectedHotel.id,
+      sectionTitle: `Day ${selectedDayNo} 住宿`,
+    }) : null;
+
+    return {
+      ...trip,
+      selectedDayNo,
+      currentDayNo: selectedDayNo,
+      progressNodes,
+      todayDriverCard,
+      todayOverviewCard: selectedDay ? this.buildTodayCardFromTripDay(selectedDay, overview) : null,
+      todayHotelCard,
+    };
   },
 
   normalizePublishedTrip(snapshot) {
@@ -1066,7 +1341,8 @@ const customerHomePageConfig = {
         note: flight.customer_note || flight.note || '',
       };
     }).filter(Boolean);
-    const progressNodes = days.map((day, index) => ({
+    const initialDayNo = this.resolveInitialTripDayNo(days);
+    const progressNodes = this.decorateTripProgressNodes(days.map((day, index) => ({
       node_id: `day_${day.dayNo || index + 1}`,
       type: 'trip_day',
       day_no: day.dayNo || index + 1,
@@ -1074,38 +1350,11 @@ const customerHomePageConfig = {
       date: day.date || '',
       weekday: day.weekday || '',
       location_summary: day.city || day.title || '行程同步中',
-      status: index === 0 ? 'current' : 'upcoming',
-      statusText: index === 0 ? '当前' : '待前往',
-    }));
-    const todayDay = days[0] || null;
-    const todayRouteStops = todayDay
-      ? (todayDay.timelineItems || []).slice(0, 3).map((item, index) => ({
-          id: item.id || `today-${index}`,
-          time: item.time || '',
-          title: item.title || '行程节点',
-        }))
-      : [];
-    const todayHotel = todayDay
-      ? (hotels.find((hotel) => Number(hotel.linkedDayNo || 0) === Number(todayDay.dayNo || 0)) || hotels[0] || null)
-      : (hotels[0] || null);
-    const todayDriverCard = this.buildPublishedTripTodayDriverCard(todayDay, snapshot);
-    const todayOverviewCard = todayDay ? {
-      dayNo: todayDay.dayNo,
-      date: todayDay.date || '',
-      weekday: todayDay.weekday || '',
-      title: todayDay.title || `Day ${todayDay.dayNo || 1}`,
-      city: todayDay.city || '',
-      startTime: todayDay.startTime || '',
-      routeStops: todayRouteStops,
-      nodeCount: (todayDay.timelineItems || []).length,
-    } : null;
-    const todayHotelCard = todayHotel ? this.normalizeTodayHotelCard({
-      ...todayHotel,
-      visible: true,
-      hotel_id: todayHotel.id,
-    }) : null;
+      status: Number(day.dayNo || index + 1) === initialDayNo ? 'current' : 'upcoming',
+      statusText: Number(day.dayNo || index + 1) === initialDayNo ? '当前' : '待前往',
+    })), initialDayNo, initialDayNo);
 
-    return {
+    return this.applySelectedDayToPublishedTrip({
       ...snapshot,
       displayTitle: hero.title || snapshot.title || 'Farland 行程',
       displayTripNo: hero.trip_no || snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '',
@@ -1128,10 +1377,13 @@ const customerHomePageConfig = {
       advisorPhone: advisor.phone || '',
       advisorNote: advisor.note || snapshot.advisor_note || '',
       days,
+      selectedDayNo: initialDayNo,
+      currentDayNo: initialDayNo,
+      actualCurrentDayNo: initialDayNo,
       progressNodes,
-      todayDriverCard,
-      todayOverviewCard,
-      todayHotelCard,
+      todayDriverCard: null,
+      todayOverviewCard: null,
+      todayHotelCard: null,
       hotels,
       flights,
       transports: transportSource,
@@ -1139,7 +1391,7 @@ const customerHomePageConfig = {
       hasHotels: Boolean(hotels.length),
       hasFlights: Boolean(flights.length),
       hasTransports: Boolean(transportSource.length),
-    };
+    }, initialDayNo);
   },
 
   applyOperatorCustomerSharePreview(previewPayload) {
@@ -1182,6 +1434,7 @@ const customerHomePageConfig = {
       customerSummaryBar: null,
       tripProgress: null,
       progressStrip: null,
+      selectedTripDayNo: 0,
       todayCard: null,
       dailyCharter: null,
       todayDriverCard: null,
@@ -1242,6 +1495,7 @@ const customerHomePageConfig = {
         points_balance: 0,
         subtitle: '当前页面模拟客户打开分享卡后的真实显示效果。',
       },
+      selectedTripDayNo: trip.selectedDayNo || 0,
       advisorPhone: trip.advisorPhone || '',
     });
     this.scrollToPendingCustomerHomeTarget();
@@ -1279,10 +1533,11 @@ const customerHomePageConfig = {
       customerSummaryBar: previewHome.customerSummaryBar,
       tripProgress: previewHome.tripProgress,
       progressStrip: previewHome.progressStrip,
-      todayCard: null,
+      selectedTripDayNo: previewHome.selectedDayNo || 0,
+      todayCard: previewHome.todayCard,
       dailyCharter: null,
-      todayDriverCard: null,
-      todayHotelCard: null,
+      todayDriverCard: previewHome.todayDriverCard,
+      todayHotelCard: previewHome.todayHotelCard,
       todayItinerary: previewHome.todayItinerary,
       hideModules: {},
       showHomeEmpty: !previewHome.hasContent,
@@ -1410,7 +1665,8 @@ const customerHomePageConfig = {
       service_area: charter.service_area || charter.route || charter.city || '',
       continuity_text: charter.continuity_text || charter.customer_note || charter.note || '',
     }));
-    const today = operatorPreviewDays[0] || null;
+    const selectedDayNo = this.resolveInitialTripDayNo(operatorPreviewDays);
+    const today = operatorPreviewDays.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || operatorPreviewDays[0] || null;
     const advisorName = profileSource.advisor_name || 'Farland 顾问';
     const profileName = previewCustomer.display_name
       || profileSource.display_name
@@ -1445,7 +1701,7 @@ const customerHomePageConfig = {
       statusText: meta.customer_would_see === 'published' ? '已发布' : '运营预览',
       statusClass: meta.customer_would_see === 'published' ? 'confirmed' : 'pending',
     }));
-    const progressNodes = operatorPreviewDays.map((day, index) => ({
+    const progressNodes = this.decorateTripProgressNodes(operatorPreviewDays.map((day, index) => ({
       node_id: `preview-day-${day.dayNo || index + 1}`,
       type: 'trip_day',
       day_no: day.dayNo || index + 1,
@@ -1453,14 +1709,14 @@ const customerHomePageConfig = {
       date: day.date || '',
       weekday: day.weekday || '',
       location_summary: day.city || day.title || '行程同步中',
-      status: index === 0 ? 'current' : 'upcoming',
-      statusText: index === 0 ? '当前' : '待前往',
-    }));
+      status: Number(day.dayNo || index + 1) === selectedDayNo ? 'current' : 'upcoming',
+      statusText: Number(day.dayNo || index + 1) === selectedDayNo ? '当前' : '待前往',
+    })), selectedDayNo, selectedDayNo);
     const tripProgress = progressNodes.length > 1 ? {
       visible: true,
       mode: 'daily_nodes',
-      current_day_no: progressNodes[0].day_no || 1,
-      current_node_id: progressNodes[0].node_id,
+      current_day_no: selectedDayNo || progressNodes[0].day_no || 1,
+      current_node_id: (progressNodes.find((node) => Number(node.day_no || 0) === selectedDayNo) || progressNodes[0]).node_id,
       nodes: progressNodes,
     } : null;
     const customerSummaryBar = {
@@ -1481,6 +1737,24 @@ const customerHomePageConfig = {
       || hasTransport
       || tripOverview.length
     );
+    const selectedTodayCard = today ? this.buildTodayCardFromTripDay(today, {
+      trip_id: meta.trip_id || overview.trip_id || '',
+      trip_no: overview.trip_no || '',
+      overview,
+      advisor: { name: advisorName, phone: profileSource.advisor_phone || '' },
+    }) : null;
+    const selectedDriverCard = today ? this.buildPublishedTripTodayDriverCard(today, {}) : null;
+    if (selectedDriverCard) {
+      selectedDriverCard.title = `Day ${selectedDayNo} 用车`;
+      selectedDriverCard.sectionTitle = `Day ${selectedDayNo} 用车`;
+    }
+    const selectedHotel = this.findHotelForTripDay(today, hotelCards);
+    const selectedHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
+      ...selectedHotel,
+      visible: true,
+      hotel_id: selectedHotel.hotel_id || selectedHotel.id,
+      sectionTitle: `Day ${selectedDayNo} 住宿`,
+    }) : null;
     const firstNode = today && today.timelineItems[0] ? today.timelineItems[0] : null;
     const benefits = Array.isArray(home.benefits) ? home.benefits : [];
 
@@ -1502,6 +1776,10 @@ const customerHomePageConfig = {
       customerSummaryBar,
       tripProgress,
       progressStrip: tripProgress,
+      selectedDayNo,
+      todayCard: selectedTodayCard,
+      todayDriverCard: selectedDriverCard,
+      todayHotelCard: selectedHotelCard,
       todayItinerary,
       nextConfirmed: today ? {
         title: firstNode ? firstNode.title : today.title,

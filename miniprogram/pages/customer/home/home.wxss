@@ -478,7 +478,12 @@
   position: relative;
   flex: 0 0 auto;
   width: 184rpx;
+  min-height: 144rpx;
+  padding: 0 8rpx 10rpx;
+  border-radius: 20rpx;
   text-align: center;
+  box-sizing: border-box;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
 }
 
 .daily-progress-node::before,
@@ -521,6 +526,26 @@
   box-shadow: 0 0 0 10rpx rgba(91, 101, 150, 0.12);
 }
 
+.daily-progress-node.past:not(.selected) .daily-progress-dot,
+.progress-node.past:not(.selected) .progress-dot {
+  background: #F1F3F7;
+  border-color: #D7DCE6;
+}
+
+.daily-progress-node.selected,
+.progress-node.selected,
+.daily-progress-node-hover {
+  background: rgba(91, 101, 150, 0.08);
+  box-shadow: inset 0 0 0 1rpx rgba(91, 101, 150, 0.18);
+}
+
+.daily-progress-node.selected .daily-progress-dot,
+.progress-node.selected .progress-dot {
+  background: #5B6596;
+  border-color: #46507C;
+  box-shadow: 0 0 0 10rpx rgba(91, 101, 150, 0.12);
+}
+
 .daily-progress-label,
 .progress-label {
   margin-top: 12rpx;
@@ -532,6 +557,16 @@
 
 .daily-progress-node.current .daily-progress-label,
 .progress-node.current .progress-label {
+  color: #46507C;
+}
+
+.daily-progress-node.past:not(.selected) .daily-progress-label,
+.progress-node.past:not(.selected) .progress-label {
+  color: #98A2B3;
+}
+
+.daily-progress-node.selected .daily-progress-label,
+.progress-node.selected .progress-label {
   color: #46507C;
 }
 
@@ -549,6 +584,17 @@
 }
 
 .daily-progress-node.current .daily-progress-sub {
+  color: #3F4658;
+  font-weight: 600;
+}
+
+.daily-progress-node.past:not(.selected) .daily-progress-date,
+.daily-progress-node.past:not(.selected) .daily-progress-sub {
+  color: #A7AFBD;
+}
+
+.daily-progress-node.selected .daily-progress-date,
+.daily-progress-node.selected .daily-progress-sub {
   color: #3F4658;
   font-weight: 600;
 }

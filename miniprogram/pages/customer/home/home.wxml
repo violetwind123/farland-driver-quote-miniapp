@@ -77,7 +77,7 @@
         <view class="section-title">行程进度</view>
         <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
           <view class="daily-progress-track">
-            <view wx:for="{{tripInviteTrip.progressNodes}}" wx:key="node_id" class="daily-progress-node {{item.status}}">
+            <view wx:for="{{tripInviteTrip.progressNodes}}" wx:key="node_id" class="daily-progress-node {{item.status}} {{item.isSelected ? 'selected' : ''}} {{item.isPast ? 'past' : ''}}" data-source="invite" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
               <view class="daily-progress-dot"></view>
               <view class="daily-progress-label">{{item.label}}</view>
               <view wx:if="{{item.weekday || item.date}}" class="daily-progress-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
@@ -89,7 +89,7 @@
 
       <view wx:if="{{tripInviteTrip.todayDriverCard}}" class="section-shell driver-shell">
         <view class="section-kicker">用车</view>
-        <view class="section-title">今日用车</view>
+        <view class="section-title">{{tripInviteTrip.todayDriverCard.sectionTitle || '当日用车'}}</view>
         <view class="today-driver-card card-surface">
           <view class="driver-card-head">
             <view>
@@ -110,7 +110,7 @@
 
       <view wx:if="{{tripInviteTrip.todayOverviewCard}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
         <view class="section-kicker">TODAY</view>
-        <view class="section-title">今日行程概览</view>
+        <view class="section-title">{{tripInviteTrip.todayOverviewCard.sectionTitle || '当日行程概览'}}</view>
         <view class="p4-today-card compact card-surface">
           <view class="p4-today-head">
             <view class="p4-today-labels">
@@ -127,16 +127,16 @@
               <view class="p4-summary-stop">{{item.title}}</view>
             </view>
           </view>
-          <view wx:if="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">今日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
+          <view wx:if="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
           <view class="p4-action-row">
-            <button class="p4-action-primary single" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看今日行程</button>
+            <button class="p4-action-primary single" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.day_no || tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看当日行程</button>
           </view>
         </view>
       </view>
 
       <view wx:if="{{tripInviteTrip.todayHotelCard}}" class="section-shell">
         <view class="section-kicker">酒店</view>
-        <view class="section-title">今晚住宿</view>
+        <view class="section-title">{{tripInviteTrip.todayHotelCard.sectionTitle || '当晚住宿'}}</view>
         <view class="hotel-summary-card card-surface" bindtap="openTripInviteHotelDetail">
           <view class="arrangement-title">{{tripInviteTrip.todayHotelCard.name}}</view>
           <view wx:if="{{tripInviteTrip.todayHotelCard.metaText}}" class="hotel-meta">{{tripInviteTrip.todayHotelCard.metaText}}</view>
@@ -206,7 +206,7 @@
                 <view class="section-title">行程进度</view>
                 <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
                   <view class="daily-progress-track">
-                    <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="daily-progress-node {{item.status}}">
+                    <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="daily-progress-node {{item.status}} {{item.isSelected ? 'selected' : ''}} {{item.isPast ? 'past' : ''}}" data-source="home" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
                       <view class="daily-progress-dot"></view>
                       <view class="daily-progress-label">{{item.label}}</view>
                       <view wx:if="{{item.weekday || item.date}}" class="daily-progress-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
@@ -249,7 +249,7 @@
 
               <view wx:if="{{todayCard}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
                 <view class="section-kicker">TODAY</view>
-                <view class="section-title">今日行程概览</view>
+                <view class="section-title">{{todayCard.sectionTitle || '当日行程概览'}}</view>
                 <view class="p4-today-card compact card-surface">
                   <view class="p4-today-head">
                     <view class="p4-today-labels">
@@ -268,10 +268,10 @@
                       <view class="p4-summary-stop">{{item.title}}</view>
                     </view>
                   </view>
-                  <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">今日共 {{todayCard.nodeCount}} 个行程节点</view>
+                  <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
 
                   <view class="p4-action-row">
-                    <button class="p4-action-primary single" bindtap="openTodayDetail">查看今日行程</button>
+                    <button class="p4-action-primary single" bindtap="openTodayDetail">查看当日行程</button>
                   </view>
                 </view>
               </view>
@@ -313,7 +313,7 @@
 
               <view wx:if="{{todayHotelCard}}" id="customer-today-hotel-section" class="section-shell">
                 <view class="section-kicker">酒店</view>
-                <view class="section-title">今晚住宿</view>
+                <view class="section-title">{{todayHotelCard.sectionTitle || '当晚住宿'}}</view>
                 <view class="hotel-summary-card card-surface" bindtap="openHotelDetail">
                   <view class="arrangement-title">{{todayHotelCard.name}}</view>
                   <view wx:if="{{todayHotelCard.metaText}}" class="hotel-meta">{{todayHotelCard.metaText}}</view>
@@ -378,7 +378,7 @@
       <view class="section-title">行程进度</view>
       <scroll-view class="daily-progress-strip card-surface" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
         <view class="daily-progress-track">
-          <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="daily-progress-node {{item.status}}">
+          <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="daily-progress-node {{item.status}} {{item.isSelected ? 'selected' : ''}} {{item.isPast ? 'past' : ''}}" data-source="home" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
             <view class="daily-progress-dot"></view>
             <view class="daily-progress-label">{{item.label}}</view>
             <view wx:if="{{item.weekday || item.date}}" class="daily-progress-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
@@ -421,7 +421,7 @@
 
     <view wx:if="{{!useHomePaneSwiper && !inviteMode && todayCard && !showHomeEmpty}}" id="customer-today-itinerary-section" class="section-shell today-card-shell">
       <view class="section-kicker">TODAY</view>
-      <view class="section-title">今日行程概览</view>
+      <view class="section-title">{{todayCard.sectionTitle || '当日行程概览'}}</view>
       <view class="p4-today-card compact card-surface">
         <view class="p4-today-head">
           <view class="p4-today-labels">
@@ -440,10 +440,10 @@
             <view class="p4-summary-stop">{{item.title}}</view>
           </view>
         </view>
-        <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">今日共 {{todayCard.nodeCount}} 个行程节点</view>
+        <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
 
         <view class="p4-action-row">
-          <button class="p4-action-primary single" bindtap="openTodayDetail">查看今日行程</button>
+          <button class="p4-action-primary single" bindtap="openTodayDetail">查看当日行程</button>
         </view>
       </view>
     </view>
@@ -486,7 +486,7 @@
 
     <view wx:if="{{!useHomePaneSwiper && !inviteMode && !showHomeEmpty && todayHotelCard}}" id="customer-today-hotel-section" class="section-shell">
       <view class="section-kicker">酒店</view>
-      <view class="section-title">今晚住宿</view>
+      <view class="section-title">{{todayHotelCard.sectionTitle || '当晚住宿'}}</view>
       <view wx:if="{{todayHotelCard}}" class="hotel-summary-card card-surface" bindtap="openHotelDetail">
         <view class="arrangement-title">{{todayHotelCard.name}}</view>
         <view wx:if="{{todayHotelCard.metaText}}" class="hotel-meta">{{todayHotelCard.metaText}}</view>
