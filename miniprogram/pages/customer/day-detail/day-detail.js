@@ -240,7 +240,16 @@ Page({
   },
 
   viewFullTrip() {
-    wx.showToast({ title: '完整行程即将开放', icon: 'none' });
+    const app = getApp();
+    if (app.globalData) {
+      app.globalData.customerHomeScrollTarget = 'customer-full-itinerary-section';
+    }
+    wx.switchTab({
+      url: '/pages/customer/home/home',
+      fail: () => {
+        wx.navigateBack({ delta: 1 });
+      },
+    });
   },
 
   backHome() {

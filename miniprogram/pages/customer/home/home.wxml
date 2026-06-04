@@ -71,7 +71,7 @@
         </view>
       </view>
 
-      <view class="section-shell">
+      <view id="customer-full-itinerary-section" class="section-shell">
         <view class="section-kicker">ITINERARY</view>
         <view class="section-title">每日行程</view>
         <view wx:if="{{!tripInviteTrip.hasDays}}" class="today-card-empty">Farland 顾问正在补充每日行程细节。</view>
@@ -331,7 +331,7 @@
       </view>
     </view>
 
-    <view wx:if="{{tripDayCards.length}}" class="section-shell">
+    <view wx:if="{{tripDayCards.length}}" id="customer-full-itinerary-section" class="section-shell">
       <view class="section-kicker">ITINERARY</view>
       <view class="section-title">完整每日行程</view>
       <view class="trip-invite-day-list">
@@ -364,14 +364,14 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !showHomeEmpty && todayHotelCard}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && todayHotelCard}}" id="customer-today-hotel-section" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">今晚住宿</view>
       <view wx:if="{{todayHotelCard}}" class="home-arrangement-card card-surface">
         <view class="arrangement-title">{{todayHotelCard.name}}</view>
         <view class="arrangement-main">{{todayHotelCard.arrivalText}}</view>
         <view class="arrangement-sub">{{todayHotelCard.address || '完整酒店信息将由 Farland 顾问同步。'}}</view>
-        <button class="arrangement-btn secondary" bindtap="viewFullTripPlaceholder">查看酒店信息</button>
+        <button class="arrangement-btn secondary" bindtap="openHotelInfo">查看酒店信息</button>
       </view>
     </view>
 
@@ -440,11 +440,10 @@
       </view>
     </view>
 
-    <view wx:if="{{!inviteMode && !todayCard && !showHomeEmpty}}" class="section-shell">
+    <view wx:if="{{!inviteMode && !showHomeEmpty && hotelCards.length}}" id="customer-hotel-section" class="section-shell">
       <view class="section-kicker">酒店</view>
       <view class="section-title">我的酒店</view>
-      <view wx:if="{{!hotelCards.length}}" class="empty-state">暂无酒店需求。</view>
-      <view wx:else class="stack-list">
+      <view class="stack-list">
         <view wx:for="{{hotelCards}}" wx:key="id" class="stay-card card-surface">
           <view class="stay-head">
             <view class="stay-title">{{item.displayName}}</view>

@@ -111,7 +111,9 @@ Page({
         needsInviteClaim: false,
       });
       this.loadHome();
+      return;
     }
+    this.scrollToPendingCustomerHomeTarget();
   },
 
   decodeQueryValue(value) {
@@ -146,6 +148,33 @@ Page({
     if (!preview || !preview.customer_share_preview) return null;
     delete app.globalData.operatorCustomerSharePreview;
     return preview;
+  },
+
+  consumeCustomerHomeScrollTarget() {
+    const app = getApp();
+    const target = app.globalData && app.globalData.customerHomeScrollTarget;
+    if (!target) return '';
+    delete app.globalData.customerHomeScrollTarget;
+    return target;
+  },
+
+  scrollToPendingCustomerHomeTarget() {
+    const target = this.consumeCustomerHomeScrollTarget();
+    if (!target) return;
+    this.scrollToCustomerHomeSection(target);
+  },
+
+  scrollToCustomerHomeSection(target) {
+    if (!target) return;
+    setTimeout(() => {
+      wx.pageScrollTo({
+        selector: `#${target}`,
+        duration: 300,
+        fail: () => {
+          wx.showToast({ title: '暂无更多信息', icon: 'none' });
+        },
+      });
+    }, 180);
   },
 
   async loadHome() {
@@ -378,6 +407,7 @@ Page({
           : ((todayCard && todayCard.advisor && todayCard.advisor.phone)
             || (todayItinerary && todayItinerary.farland_contact ? todayItinerary.farland_contact.phone : '')),
       });
+      this.scrollToPendingCustomerHomeTarget();
     } catch (error) {
       wx.showToast({ title: '加载失败', icon: 'none' });
       this.setData({ loading: false });
@@ -715,6 +745,7 @@ Page({
         },
         advisorPhone: trip.advisorPhone || '',
       });
+      this.scrollToPendingCustomerHomeTarget();
     } catch (error) {
       console.error('[customer-home] getCustomerTripByInvite failed', error);
       this.setData({
@@ -952,6 +983,7 @@ Page({
       },
       advisorPhone: trip.advisorPhone || '',
     });
+    this.scrollToPendingCustomerHomeTarget();
   },
 
   applyOperatorCustomerHomePreview(previewPayload) {
@@ -1587,6 +1619,13 @@ Page({
     wx.switchTab({ url: '/pages/hotel/request/request' });
   },
 
+  openHotelInfo() {
+    const target = this.data.hotelCards && this.data.hotelCards.length
+      ? 'customer-hotel-section'
+      : 'customer-today-hotel-section';
+    this.scrollToCustomerHomeSection(target);
+  },
+
   goBenefits() {
     wx.navigateTo({ url: '/pages/customer/benefits/benefits' });
   },
@@ -1722,10 +1761,6 @@ Page({
     wx.navigateTo({
       url: `/pages/customer/day-detail/day-detail?trip_id=${encodeURIComponent(detailCard.trip_id || '')}&day_no=${detailCard.day_no}`,
     });
-  },
-
-  viewFullTripPlaceholder() {
-    wx.showToast({ title: '完整行程即将开放', icon: 'none' });
   },
 
   chooseQuote(e) {
