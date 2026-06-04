@@ -521,9 +521,15 @@
 
 .daily-progress-node.current .daily-progress-dot,
 .progress-node.current .progress-dot {
-  background: #5B6596;
-  border-color: #46507C;
-  box-shadow: 0 0 0 10rpx rgba(91, 101, 150, 0.12);
+  background: #12806F;
+  border-color: #0E665A;
+  box-shadow: 0 0 0 10rpx rgba(18, 128, 111, 0.12);
+}
+
+.daily-progress-node.today:not(.selected),
+.progress-node.today:not(.selected) {
+  background: rgba(18, 128, 111, 0.06);
+  box-shadow: inset 0 0 0 1rpx rgba(18, 128, 111, 0.14);
 }
 
 .daily-progress-node.past:not(.selected) .daily-progress-dot,
@@ -557,7 +563,7 @@
 
 .daily-progress-node.current .daily-progress-label,
 .progress-node.current .progress-label {
-  color: #46507C;
+  color: #0E665A;
 }
 
 .daily-progress-node.past:not(.selected) .daily-progress-label,
@@ -584,7 +590,7 @@
 }
 
 .daily-progress-node.current .daily-progress-sub {
-  color: #3F4658;
+  color: #235E54;
   font-weight: 600;
 }
 
