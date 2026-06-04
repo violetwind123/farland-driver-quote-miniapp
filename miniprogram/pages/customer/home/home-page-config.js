@@ -424,7 +424,7 @@ const customerHomePageConfig = {
         customerSummaryBar,
         tripProgress,
         progressStrip,
-        selectedTripDayNo: (tripProgress && tripProgress.current_day_no) || 0,
+        selectedTripDayNo: (tripProgress && (tripProgress.selected_day_no || tripProgress.current_day_no)) || 0,
         todayCard,
         dailyCharter,
         todayDriverCard,
@@ -540,7 +540,8 @@ const customerHomePageConfig = {
       const isToday = Boolean(dateKey && todayKey && dateKey === todayKey);
       const isSelected = Boolean(selected && dayNo === selected);
       const rawStatus = ['completed', 'current', 'upcoming'].includes(node.status) ? node.status : 'upcoming';
-      const status = isPast ? 'completed' : ((isToday || (current && dayNo === current)) ? 'current' : rawStatus);
+      const isCurrentDay = isToday || Boolean(current && dayNo === current);
+      const status = isPast ? 'completed' : (isCurrentDay ? 'current' : (rawStatus === 'completed' ? 'completed' : 'upcoming'));
       return {
         ...node,
         day_no: dayNo,
@@ -548,6 +549,7 @@ const customerHomePageConfig = {
         isPast,
         isToday,
         isSelected,
+        selected: isSelected,
         selectable: true,
         statusText: isSelected
           ? '已选择'
@@ -629,9 +631,10 @@ const customerHomePageConfig = {
       ...(strip || {}),
       visible: true,
       mode: 'daily_nodes',
-      current_day_no: selectedDayNo || currentDayNo,
+      current_day_no: currentDayNo,
+      selected_day_no: selectedDayNo,
       actual_current_day_no: currentDayNo,
-      current_node_id: (nodes.find((node) => Number(node.day_no || 0) === Number(selectedDayNo || currentDayNo)) || nodes[currentIndex]).node_id,
+      current_node_id: (nodes.find((node) => Number(node.day_no || 0) === Number(currentDayNo)) || nodes[currentIndex]).node_id,
       nodes,
     };
   },
@@ -1032,13 +1035,19 @@ const customerHomePageConfig = {
     const selectedDay = sourceDays.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || sourceDays[0] || null;
     const overview = (this.data.tripOverview || [])[0] || {};
     const tripProgress = this.data.tripProgress || this.data.progressStrip || null;
+    const actualCurrentDayNo = Number(
+      (tripProgress && (tripProgress.actual_current_day_no || tripProgress.actualCurrentDayNo || tripProgress.current_day_no))
+      || this.resolveInitialTripDayNo(sourceDays),
+    );
     const nodes = tripProgress && Array.isArray(tripProgress.nodes)
-      ? this.decorateTripProgressNodes(tripProgress.nodes, selectedDayNo, tripProgress.actual_current_day_no || tripProgress.actualCurrentDayNo || selectedDayNo)
+      ? this.decorateTripProgressNodes(tripProgress.nodes, selectedDayNo, actualCurrentDayNo)
       : [];
     const nextProgress = tripProgress ? {
       ...tripProgress,
-      current_day_no: selectedDayNo,
-      current_node_id: (nodes.find((node) => Number(node.day_no || 0) === selectedDayNo) || nodes[0] || {}).node_id || '',
+      current_day_no: actualCurrentDayNo,
+      selected_day_no: selectedDayNo,
+      actual_current_day_no: actualCurrentDayNo,
+      current_node_id: (nodes.find((node) => Number(node.day_no || 0) === actualCurrentDayNo) || nodes[0] || {}).node_id || '',
       nodes,
     } : null;
     const todayCard = selectedDay ? this.buildTodayCardFromTripDay(selectedDay, {
@@ -1204,6 +1213,11 @@ const customerHomePageConfig = {
   applySelectedDayToPublishedTrip(trip, preferredDayNo = 0) {
     if (!trip || !Array.isArray(trip.days) || !trip.days.length) return trip;
     const selectedDayNo = this.resolveInitialTripDayNo(trip.days, preferredDayNo || trip.selectedDayNo || 0);
+    const actualCurrentDayNo = Number(
+      trip.actualCurrentDayNo
+      || trip.actual_current_day_no
+      || this.resolveInitialTripDayNo(trip.days),
+    );
     const selectedDay = trip.days.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || trip.days[0] || null;
     const overview = {
       trip_id: trip.trip_id || trip.external_trip_id || this.data.tripInviteId || '',
@@ -1213,7 +1227,7 @@ const customerHomePageConfig = {
     const progressNodes = this.decorateTripProgressNodes(
       trip.progressNodes || [],
       selectedDayNo,
-      trip.actualCurrentDayNo || trip.currentDayNo || selectedDayNo,
+      actualCurrentDayNo,
     );
     const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, trip) : null;
     if (todayDriverCard) {
@@ -1231,7 +1245,9 @@ const customerHomePageConfig = {
     return {
       ...trip,
       selectedDayNo,
-      currentDayNo: selectedDayNo,
+      selected_day_no: selectedDayNo,
+      currentDayNo: actualCurrentDayNo,
+      actualCurrentDayNo,
       progressNodes,
       todayDriverCard,
       todayOverviewCard: selectedDay ? this.buildTodayCardFromTripDay(selectedDay, overview) : null,
@@ -1665,7 +1681,8 @@ const customerHomePageConfig = {
       service_area: charter.service_area || charter.route || charter.city || '',
       continuity_text: charter.continuity_text || charter.customer_note || charter.note || '',
     }));
-    const selectedDayNo = this.resolveInitialTripDayNo(operatorPreviewDays);
+    const actualCurrentDayNo = this.resolveInitialTripDayNo(operatorPreviewDays);
+    const selectedDayNo = actualCurrentDayNo;
     const today = operatorPreviewDays.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || operatorPreviewDays[0] || null;
     const advisorName = profileSource.advisor_name || 'Farland 顾问';
     const profileName = previewCustomer.display_name
@@ -1709,14 +1726,16 @@ const customerHomePageConfig = {
       date: day.date || '',
       weekday: day.weekday || '',
       location_summary: day.city || day.title || '行程同步中',
-      status: Number(day.dayNo || index + 1) === selectedDayNo ? 'current' : 'upcoming',
-      statusText: Number(day.dayNo || index + 1) === selectedDayNo ? '当前' : '待前往',
-    })), selectedDayNo, selectedDayNo);
+      status: Number(day.dayNo || index + 1) === actualCurrentDayNo ? 'current' : 'upcoming',
+      statusText: Number(day.dayNo || index + 1) === actualCurrentDayNo ? '当前' : '待前往',
+    })), selectedDayNo, actualCurrentDayNo);
     const tripProgress = progressNodes.length > 1 ? {
       visible: true,
       mode: 'daily_nodes',
-      current_day_no: selectedDayNo || progressNodes[0].day_no || 1,
-      current_node_id: (progressNodes.find((node) => Number(node.day_no || 0) === selectedDayNo) || progressNodes[0]).node_id,
+      current_day_no: actualCurrentDayNo || progressNodes[0].day_no || 1,
+      selected_day_no: selectedDayNo || progressNodes[0].day_no || 1,
+      actual_current_day_no: actualCurrentDayNo || progressNodes[0].day_no || 1,
+      current_node_id: (progressNodes.find((node) => Number(node.day_no || 0) === actualCurrentDayNo) || progressNodes[0]).node_id,
       nodes: progressNodes,
     } : null;
     const customerSummaryBar = {
