@@ -21,6 +21,7 @@ Page({
     transferRequests: [],
     primaryTransfer: null,
     transportOrders: [],
+    showTransferRequests: false,
     charterServices: [],
     topBenefits: [],
     advisorPhone: '',
@@ -226,6 +227,7 @@ Page({
           transferRequests: invitedTransfer ? [invitedTransfer] : [],
           primaryTransfer: invitedTransfer || null,
           transportOrders: [],
+          showTransferRequests: Boolean(invitedTransfer),
           charterServices: [],
           advisorPhone: '',
         });
@@ -281,6 +283,7 @@ Page({
           transferRequests: invitedTransfer ? [invitedTransfer] : [],
           primaryTransfer: invitedTransfer || null,
           transportOrders: [],
+          showTransferRequests: Boolean(invitedTransfer),
           charterServices: [],
           advisorPhone: '',
           currentBindMode: 'temporary_invite',
@@ -315,26 +318,30 @@ Page({
       }));
       const tripDayCards = this.normalizeHomeDayCards(result.daily_summary_cards || [], result.itinerary_days || []);
       const flightCards = this.normalizeHomeFlightCards(result.flight_cards || []);
-      const transferRequests = (result.transfer_requests || []).map((request) => ({
-        ...request,
-        pickup_time_text: this.formatDisplayTime(request.pickup_time_text || request.service_date || ''),
-        quoteCount: (request.quotes || []).length,
-        statusClass: request.status === 'assigned' || request.status === 'confirmed'
-          ? 'confirmed'
-          : (request.status === 'quoted' ? 'quoted' : 'pending'),
-        quotes: (request.quotes || []).map((quote) => ({
-          ...quote,
-          feeRateText: `${Math.round((quote.farland_service_fee_rate || 0.1) * 100)}%`,
-          recommendationText: quote.is_recommended ? '推荐' : '',
-          includesText: (quote.includes || []).join(' / '),
-          excludesText: (quote.excludes || []).join(' / '),
-        })),
-      }));
-      const transportOrders = (result.transport_orders || []).map((order) => ({
-        ...order,
-        pickup_time_text: this.formatDisplayTime(order.pickup_time_text || order.pickup_time || ''),
-        statusClass: order.order_status === 'assigned' ? 'confirmed' : 'pending',
-      }));
+      const transferRequests = (result.transfer_requests || [])
+        .filter((request) => (request.service_type || 'transfer') !== 'charter')
+        .map((request) => ({
+          ...request,
+          pickup_time_text: this.formatDisplayTime(request.pickup_time_text || request.service_date || ''),
+          quoteCount: (request.quotes || []).length,
+          statusClass: request.status === 'assigned' || request.status === 'confirmed'
+            ? 'confirmed'
+            : (request.status === 'quoted' ? 'quoted' : 'pending'),
+          quotes: (request.quotes || []).map((quote) => ({
+            ...quote,
+            feeRateText: `${Math.round((quote.farland_service_fee_rate || 0.1) * 100)}%`,
+            recommendationText: quote.is_recommended ? '推荐' : '',
+            includesText: (quote.includes || []).join(' / '),
+            excludesText: (quote.excludes || []).join(' / '),
+          })),
+        }));
+      const transportOrders = (result.transport_orders || [])
+        .filter((order) => (order.service_type || 'transfer') !== 'charter' && !/包车/.test(order.title || ''))
+        .map((order) => ({
+          ...order,
+          pickup_time_text: this.formatDisplayTime(order.pickup_time_text || order.pickup_time || ''),
+          statusClass: order.order_status === 'assigned' ? 'confirmed' : 'pending',
+        }));
       const invitedTransfer = await this.loadInvitedTransferIfNeeded();
       const mergedTransferRequests = invitedTransfer
         ? [invitedTransfer, ...transferRequests.filter((item) => item.request_id !== invitedTransfer.request_id)]
@@ -342,7 +349,6 @@ Page({
       const hasTransport = Boolean(
         mergedTransferRequests.length
         || transportOrders.length
-        || (result.charter_services || []).length,
       );
       const showHomeEmpty = !todayCard
         && !todayItinerary
@@ -401,6 +407,7 @@ Page({
         transferRequests: mergedTransferRequests,
         primaryTransfer: mergedTransferRequests[0] || null,
         transportOrders,
+        showTransferRequests: Boolean(mergedTransferRequests.length || transportOrders.length),
         charterServices: result.charter_services || [],
         advisorPhone: hideModules.advisor_panel
           ? ''
@@ -935,6 +942,7 @@ Page({
       transferRequests: [],
       primaryTransfer: null,
       transportOrders: [],
+      showTransferRequests: false,
       charterServices: [],
       benefits: [],
       topBenefits: [],
@@ -1032,6 +1040,7 @@ Page({
       transferRequests: previewHome.transferRequests,
       primaryTransfer: previewHome.transferRequests[0] || null,
       transportOrders: previewHome.transportOrders,
+      showTransferRequests: Boolean(previewHome.transferRequests.length || previewHome.transportOrders.length),
       charterServices: previewHome.charterServices,
       operatorPreviewDays: previewHome.operatorPreviewDays,
       operatorPreviewFlights: previewHome.operatorPreviewFlights,
@@ -1617,13 +1626,6 @@ Page({
 
   goHotelRequest() {
     wx.switchTab({ url: '/pages/hotel/request/request' });
-  },
-
-  openHotelInfo() {
-    const target = this.data.hotelCards && this.data.hotelCards.length
-      ? 'customer-hotel-section'
-      : 'customer-today-hotel-section';
-    this.scrollToCustomerHomeSection(target);
   },
 
   goBenefits() {

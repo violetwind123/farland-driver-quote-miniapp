@@ -572,6 +572,10 @@ function toTransferRequest(request, quotes, assignedTransport = null, assignedTr
   };
 }
 
+function isStandaloneTransferRequest(request) {
+  return (request && request.service_type ? request.service_type : 'transfer') !== 'charter';
+}
+
 function toDriverDisplay(assignedTransport) {
   if (!hasAssignedTransportDetails(assignedTransport)) return null;
   return {
@@ -1369,13 +1373,14 @@ exports.main = async () => {
     ...transferRequests.filter((request) => {
       return !snapshotTransferRequests.some((item) => item.request_id === request.request_id);
     }),
-  ];
+  ].filter(isStandaloneTransferRequest);
   const primaryAssignedCharter = transferRequests.find((request) => {
     return (request.status === 'assigned' || request.status === 'confirmed')
       && request.service_type === 'charter'
       && hasAssignedTransportDetails(request.assigned_transport);
   });
   const transportOrderSummaries = transferRequests
+    .filter(isStandaloneTransferRequest)
     .map(toTransportOrderSummary)
     .filter(Boolean);
   const firstInvite = invites[0] || {};

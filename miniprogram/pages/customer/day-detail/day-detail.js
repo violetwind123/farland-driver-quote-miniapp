@@ -242,7 +242,7 @@ Page({
   viewFullTrip() {
     const app = getApp();
     if (app.globalData) {
-      app.globalData.customerHomeScrollTarget = 'customer-full-itinerary-section';
+      app.globalData.customerHomeScrollTarget = 'customer-today-itinerary-section';
     }
     wx.switchTab({
       url: '/pages/customer/home/home',
