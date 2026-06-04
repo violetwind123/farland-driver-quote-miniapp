@@ -863,31 +863,27 @@
 }
 
 .segment-connector {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
+  display: grid;
+  gap: 11rpx;
   margin-top: 18rpx;
+  margin-left: -98rpx;
+  width: calc(100% + 38rpx);
   padding: 0 0 4rpx;
 }
 
 .segment-dash {
-  flex: 1 1 auto;
-  min-width: 180rpx;
+  width: 100%;
   border-top: 2rpx dashed rgba(91, 101, 150, 0.30);
-}
-
-.segment-dash:last-child {
-  flex: 0 0 86rpx;
-  min-width: 86rpx;
 }
 
 .segment-meta {
   display: flex;
-  flex: 0 1 auto;
   flex-wrap: wrap;
   align-items: center;
   gap: 10rpx;
   min-width: 0;
+  padding-left: 98rpx;
+  box-sizing: border-box;
   color: #8A91A1;
   font-size: 21rpx;
   line-height: 1.35;
