@@ -14,8 +14,8 @@ function createDefaultPreviewMeta() {
     release_step_title: '客户真实打开仍是等待页',
     release_step_copy: '请先输入正确 trip_id 并点击预览；生成客户草稿并发布后，客户才会看到正式行程。',
     release_step_tip: '发布成功后这里会变成 PUBLISHED CUSTOMER VIEW。',
-    customer_preview_button_text: '查看客户等待页',
-    customer_preview_button_class: 'secondary-wide-btn',
+    customer_preview_button_text: '进入客户看到的页面',
+    customer_preview_button_class: 'primary-wide-btn',
     release_steps: [
       { key: 'preview', label: '1 预览', status: 'pending' },
       { key: 'draft', label: '2 生成草稿', status: 'pending' },
@@ -70,8 +70,8 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: '存在关键警告，暂不能发布',
       release_step_copy: '请先处理 Critical warnings，再重新生成客户草稿。当前客户真实打开只会看到等待页。',
       release_step_tip: '关键警告清空后再点击 Publish After Review。',
-      customer_preview_button_text: '查看客户等待页',
-      customer_preview_button_class: 'secondary-wide-btn',
+      customer_preview_button_text: '进入客户看到的页面',
+      customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
   }
@@ -82,8 +82,8 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: '草稿已可审核，尚未发布',
       release_step_copy: '运营可以审核下方摘要。确认无误后点击 Publish After Review，客户页面才会显示正式行程。',
       release_step_tip: '未发布前客户真实打开仍是等待页。',
-      customer_preview_button_text: '查看客户等待页',
-      customer_preview_button_class: 'secondary-wide-btn',
+      customer_preview_button_text: '进入客户看到的页面',
+      customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
   }
@@ -93,8 +93,8 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
     release_step_title: '客户真实打开仍是等待页',
     release_step_copy: '请确认 Preview Target 已填正确 trip_id，然后按顺序点击 Build Customer Draft 和 Publish After Review。',
     release_step_tip: '未发布草稿不会展示给客户，这是客户数据安全规则。',
-    customer_preview_button_text: '查看客户等待页',
-    customer_preview_button_class: 'secondary-wide-btn',
+    customer_preview_button_text: '进入客户看到的页面',
+    customer_preview_button_class: 'primary-wide-btn',
     release_steps: releaseSteps,
   };
 }
@@ -329,19 +329,6 @@ Page({
       return;
     }
     const meta = this.normalizePreviewMeta(result.preview_meta || this.data.previewMeta || {});
-    if (meta.customer_would_see !== 'published') {
-      const confirmed = await new Promise((resolve) => {
-        wx.showModal({
-          title: '当前仍是等待页',
-          content: '客户真实打开只会看到等待状态。请先 Build Customer Draft，再 Publish After Review。仍要查看等待页吗？',
-          confirmText: '查看等待页',
-          cancelText: '返回发布',
-          success: (res) => resolve(res.confirm),
-          fail: () => resolve(false),
-        });
-      });
-      if (!confirmed) return;
-    }
     const customerSharePreview = result.customer_share_preview || {
       trip_id: meta.trip_id || this.data.tripId || '',
       waiting: meta.customer_would_see !== 'published',

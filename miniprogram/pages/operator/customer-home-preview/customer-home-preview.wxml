@@ -119,8 +119,8 @@
       <button class="secondary-btn" loading="{{building}}" bindtap="buildDraft">Build Customer Draft</button>
       <button class="primary-btn" loading="{{publishing}}" bindtap="publishTrip">Publish After Review</button>
     </view>
-    <button class="{{previewMeta.customer_preview_button_class || 'secondary-wide-btn'}} preview-open-btn" bindtap="openCustomerFacingPreview">
-      {{previewMeta.customer_preview_button_text || '查看客户等待页'}}
+    <button class="{{previewMeta.customer_preview_button_class || 'primary-wide-btn'}} preview-open-btn" bindtap="openCustomerFacingPreview">
+      {{previewMeta.customer_preview_button_text || '进入客户看到的页面'}}
     </button>
     <view wx:if="{{previewMeta.customer_would_see !== 'published'}}" class="release-open-hint">
       当前未发布，客户真实页面只显示等待状态，不显示草稿。
@@ -146,8 +146,8 @@
         <view class="customer-kicker">CUSTOMER VIEW</view>
         <view class="customer-title">这里不是客户真实页面</view>
         <view class="customer-sub">客户真实显示效果请点击下方按钮进入 `我的行程`。该入口会模拟客户打开分享卡，不创建访问记录，不绑定客户。</view>
-        <button class="{{previewMeta.customer_preview_button_class || 'secondary-wide-btn'}}" bindtap="openCustomerFacingPreview">
-          {{previewMeta.customer_preview_button_text || '查看客户等待页'}}
+        <button class="{{previewMeta.customer_preview_button_class || 'primary-wide-btn'}}" bindtap="openCustomerFacingPreview">
+          {{previewMeta.customer_preview_button_text || '进入客户看到的页面'}}
         </button>
       </view>
 
