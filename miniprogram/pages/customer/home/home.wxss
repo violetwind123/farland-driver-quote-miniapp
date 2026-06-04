@@ -863,23 +863,31 @@
 }
 
 .segment-connector {
-  display: grid;
-  gap: 11rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
   margin-top: 18rpx;
   padding: 0 0 4rpx;
 }
 
 .segment-dash {
-  width: 100%;
-  min-width: 420rpx;
+  flex: 1 1 auto;
+  min-width: 180rpx;
   border-top: 2rpx dashed rgba(91, 101, 150, 0.30);
+}
+
+.segment-dash:last-child {
+  flex: 0 0 86rpx;
+  min-width: 86rpx;
 }
 
 .segment-meta {
   display: flex;
+  flex: 0 1 auto;
   flex-wrap: wrap;
   align-items: center;
   gap: 10rpx;
+  min-width: 0;
   color: #8A91A1;
   font-size: 21rpx;
   line-height: 1.35;
