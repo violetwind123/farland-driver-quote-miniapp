@@ -647,30 +647,44 @@ async function loadTripsByCustomerOwnership(customer) {
   return uniqueByTripId(results.flatMap((res) => res.data || []));
 }
 
+function compareCurrentTripRecency(a, b) {
+  const aEnd = toTime(a.end_at || a.date_end || '');
+  const bEnd = toTime(b.end_at || b.date_end || '');
+  const aActive = !aEnd || aEnd >= Date.now() ? 1 : 0;
+  const bActive = !bEnd || bEnd >= Date.now() ? 1 : 0;
+  if (aActive !== bActive) return bActive - aActive;
+  const aUpdated = toTime(a.last_operator_previewed_at || a.updated_at || a.imported_at || a.created_at || a.start_at || '');
+  const bUpdated = toTime(b.last_operator_previewed_at || b.updated_at || b.imported_at || b.created_at || b.start_at || '');
+  return bUpdated - aUpdated;
+}
+
+function compareAccessTrips(a, b) {
+  const aPublished = a.visibility_status === 'published' && hasSnapshot(a.published_snapshot) ? 1 : 0;
+  const bPublished = b.visibility_status === 'published' && hasSnapshot(b.published_snapshot) ? 1 : 0;
+  if (aPublished !== bPublished) return bPublished - aPublished;
+  return compareCurrentTripRecency(a, b);
+}
+
+function compareOwnedPreviewTrips(a, b) {
+  const aUnpublished = a.visibility_status !== 'published' ? 1 : 0;
+  const bUnpublished = b.visibility_status !== 'published' ? 1 : 0;
+  if (aUnpublished !== bUnpublished) return bUnpublished - aUnpublished;
+  return compareCurrentTripRecency(a, b);
+}
+
 async function findCustomerDefaultTrip(customer) {
   const accessRows = await findCustomerAccessRows(customer);
   const tripIds = Array.from(new Set(accessRows.map((access) => access.trip_id).filter(Boolean)));
-  const trips = [];
+  const accessTrips = [];
   for (const tripId of tripIds) {
     const trip = await findTrip(tripId);
-    if (trip) trips.push(trip);
+    if (trip) accessTrips.push(trip);
   }
-  const ownedTrips = await loadTripsByCustomerOwnership(customer);
-  const candidates = uniqueByTripId([...ownedTrips, ...trips]);
-  candidates.sort((a, b) => {
-    const aUnpublished = a.visibility_status !== 'published' ? 1 : 0;
-    const bUnpublished = b.visibility_status !== 'published' ? 1 : 0;
-    if (aUnpublished !== bUnpublished) return bUnpublished - aUnpublished;
-    const aEnd = toTime(a.end_at || a.date_end || '');
-    const bEnd = toTime(b.end_at || b.date_end || '');
-    const aActive = !aEnd || aEnd >= Date.now() ? 1 : 0;
-    const bActive = !bEnd || bEnd >= Date.now() ? 1 : 0;
-    if (aActive !== bActive) return bActive - aActive;
-    const aUpdated = toTime(a.last_operator_previewed_at || a.updated_at || a.imported_at || a.created_at || a.start_at || '');
-    const bUpdated = toTime(b.last_operator_previewed_at || b.updated_at || b.imported_at || b.created_at || b.start_at || '');
-    return bUpdated - aUpdated;
-  });
-  return candidates[0] || null;
+  const resolvedAccessTrips = uniqueByTripId(accessTrips).sort(compareAccessTrips);
+  if (resolvedAccessTrips[0]) return resolvedAccessTrips[0];
+
+  const ownedTrips = (await loadTripsByCustomerOwnership(customer)).sort(compareOwnedPreviewTrips);
+  return ownedTrips[0] || null;
 }
 
 async function loadAssignedTransport(requestId) {

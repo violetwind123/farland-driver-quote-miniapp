@@ -146,8 +146,9 @@ async function loadPreviewStats(user) {
     const trip = await loadTripById(tripId);
     if (trip) trips.push(trip);
   }
+  const resolvedAccessTrips = uniqueByTripId(trips);
   const ownedTrips = await loadTripsByCustomerOwnership(user);
-  const relatedTrips = uniqueByTripId([...trips, ...ownedTrips]);
+  const relatedTrips = uniqueByTripId([...resolvedAccessTrips, ...ownedTrips]);
 
   const nowMs = Date.now();
   const unfinishedTrips = relatedTrips.filter((trip) => {
@@ -156,16 +157,22 @@ async function loadPreviewStats(user) {
     const endMs = new Date(trip.end_at || trip.date_end || '').getTime();
     return Number.isNaN(endMs) || endMs >= nowMs;
   });
+  const activePublishedTrips = resolvedAccessTrips.filter((trip) => trip.visibility_status === 'published');
   const unpublishedTrips = ownedTrips.filter((trip) => trip.visibility_status !== 'published');
   const latestTripAt = maxDate(relatedTrips.map((trip) => trip.updated_at || trip.imported_at || trip.created_at || trip.start_at || trip.date_start || ''));
   const lastPreviewedAt = maxDate(relatedTrips.map((trip) => trip.last_operator_previewed_at || ''));
-  const previewRank = unpublishedTrips.length * 100000
+  const previewRank = resolvedAccessTrips.length * 200000
+    + activePublishedTrips.length * 100000
+    + unpublishedTrips.length * 50000
     + unfinishedTrips.length * 10000
     + (lastPreviewedAt ? 1000 : 0)
     + (latestTripAt ? 100 : 0);
 
   return {
-    active_trip_count: tripIds.length,
+    active_trip_count: resolvedAccessTrips.length,
+    active_access_count: tripIds.length,
+    active_unresolved_count: Math.max(0, tripIds.length - resolvedAccessTrips.length),
+    active_published_trip_count: activePublishedTrips.length,
     unfinished_trip_count: unfinishedTrips.length,
     unpublished_preview_count: unpublishedTrips.length,
     last_previewed_at: lastPreviewedAt,
