@@ -229,12 +229,7 @@ Page({
       preview_meta: meta,
       preview_customer: result.preview_customer || {},
     };
-    app.globalData.operatorCustomerHomePreview = {
-      customer_home: result.customer_home,
-      preview_meta: meta,
-      preview_customer: result.preview_customer || {},
-      preview_access_mode: result.preview_access_mode || this.data.previewMode,
-    };
+    delete app.globalData.operatorCustomerHomePreview;
     wx.switchTab({
       url: '/pages/customer/home/home',
       fail: (error) => {

@@ -150,6 +150,7 @@ Page({
     const preview = app.globalData && app.globalData.operatorCustomerSharePreview;
     if (!preview || !preview.customer_share_preview) return null;
     delete app.globalData.operatorCustomerSharePreview;
+    delete app.globalData.operatorCustomerHomePreview;
     return preview;
   },
 

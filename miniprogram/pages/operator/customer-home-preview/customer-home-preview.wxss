@@ -168,6 +168,40 @@
   margin-top: 18rpx;
 }
 
+.customer-preview-note {
+  padding: 22rpx;
+  border-radius: 22rpx;
+  background: #F7F9FF;
+  border: 1rpx solid rgba(102, 114, 168, 0.14);
+}
+
+.review-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+}
+
+.review-metric {
+  padding: 18rpx 12rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+  text-align: center;
+}
+
+.review-metric-value {
+  color: #1D2433;
+  font-size: 32rpx;
+  line-height: 1.2;
+  font-weight: 780;
+}
+
+.review-metric-label {
+  margin-top: 6rpx;
+  color: #6E7788;
+  font-size: 21rpx;
+  line-height: 1.35;
+}
+
 .guest-card,
 .customer-bar,
 .selected-preview-customer,

@@ -112,26 +112,27 @@
   </view>
 
   <view class="panel customer-preview">
-    <view class="section-title">Customer Home Preview</view>
+    <view class="section-title">客户真实页面入口</view>
     <view wx:if="{{!customerHome}}" class="empty-card">
       <view class="empty-title">暂无预览</view>
-      <view class="empty-sub">输入 trip_id 或从导入页进入后查看客户主页预览。</view>
+      <view class="empty-sub">输入 trip_id 或从导入页进入后，先生成运营审核摘要。</view>
     </view>
 
     <block wx:else>
-      <view class="customer-hero">
-        <view class="customer-kicker">MY FARLAND TRIP</view>
-        <view class="customer-title">{{customerHome.profile.display_name || 'Farland 客户'}}</view>
-        <view class="customer-sub">Advisor: {{customerHome.profile.advisor_name || 'Farland Advisor'}}</view>
+      <view class="customer-preview-note">
+        <view class="customer-kicker">CUSTOMER VIEW</view>
+        <view class="customer-title">这里不是客户真实页面</view>
+        <view class="customer-sub">客户真实显示效果请点击下方按钮进入 `我的行程`。该入口会模拟客户打开分享卡，不创建访问记录，不绑定客户。</view>
+        <button class="primary-wide-btn" bindtap="openCustomerFacingPreview">进入客户看到的页面</button>
       </view>
 
       <view wx:if="{{previewMeta.customer_would_see === 'waiting'}}" class="waiting-card">
         <view class="waiting-title">Farland 顾问正在核对行程</view>
-        <view class="waiting-sub">确认后将在这里显示客户可见版本。</view>
+        <view class="waiting-sub">当前未发布。客户真实打开时只会看到等待状态，不会看到草稿。</view>
       </view>
 
       <view wx:if="{{customerHome.trip_overview.length}}" class="preview-section">
-        <view class="preview-title">行程总览</view>
+        <view class="preview-title">运营审核摘要</view>
         <view wx:for="{{customerHome.trip_overview}}" wx:key="trip_id" class="info-card">
           <view class="info-main">{{item.title}}</view>
           <view class="info-sub">{{item.trip_no}} · {{item.date_range_text}}</view>
@@ -142,94 +143,21 @@
         </view>
       </view>
 
-      <view wx:if="{{customerHome.daily_summary_cards.length}}" class="preview-section">
-        <view class="preview-title">Daily Summary Cards</view>
-        <view wx:for="{{customerHome.daily_summary_cards}}" wx:key="id" class="day-card summary-card">
-          <view class="day-head">
-            <view>
-              <view class="day-label">Day {{item.day_no || index + 1}}</view>
-              <view class="day-title">{{item.title || '当日安排'}}</view>
-            </view>
-            <view class="day-date">{{item.weekday}} {{item.date}}</view>
+      <view class="preview-section">
+        <view class="preview-title">发布数据检查</view>
+        <view class="review-metric-grid">
+          <view class="review-metric">
+            <view class="review-metric-value">{{customerHome.daily_summary_cards.length || customerHome.itinerary_days.length}}</view>
+            <view class="review-metric-label">每日卡片</view>
           </view>
-          <view wx:if="{{item.city}}" class="timeline-sub">{{item.city}}</view>
-          <view wx:if="{{item.start_time_text}}" class="timeline-sub">Start: {{item.start_time_text}}</view>
-          <view wx:if="{{item.highlight_items.length}}" class="summary-highlights">
-            <view wx:for="{{item.highlight_items}}" wx:for-item="highlight" wx:key="*this" class="summary-highlight">{{highlight}}</view>
+          <view class="review-metric">
+            <view class="review-metric-value">{{customerHome.hotel_requests.length}}</view>
+            <view class="review-metric-label">酒店卡片</view>
           </view>
-          <view wx:if="{{item.hotel_badge || item.transport_badge}}" class="timeline-sub">
-            {{item.hotel_badge ? 'Hotel: ' + item.hotel_badge : ''}}{{item.hotel_badge && item.transport_badge ? ' · ' : ''}}{{item.transport_badge ? 'Transport: ' + item.transport_badge : ''}}
+          <view class="review-metric">
+            <view class="review-metric-value">{{customerHome.flight_cards.length}}</view>
+            <view class="review-metric-label">航班卡片</view>
           </view>
-        </view>
-      </view>
-
-      <view wx:if="{{customerHome.today_itinerary}}" class="preview-section">
-        <view class="preview-title">今日 / 即将行程</view>
-        <view class="day-card">
-          <view class="day-head">
-            <view>
-              <view class="day-label">Day {{customerHome.today_itinerary.day_no || 1}}</view>
-              <view class="day-title">{{customerHome.today_itinerary.title || customerHome.today_itinerary.city || '当日安排'}}</view>
-            </view>
-            <view class="day-date">{{customerHome.today_itinerary.date}} {{customerHome.today_itinerary.weekday}}</view>
-          </view>
-        </view>
-      </view>
-
-      <view wx:if="{{customerHome.itinerary_days.length}}" class="preview-section">
-        <view class="preview-title">Day-by-day Schedule</view>
-        <view wx:for="{{customerHome.itinerary_days}}" wx:key="day_no" class="day-card">
-          <view class="day-head">
-            <view>
-              <view class="day-label">Day {{item.day_no || index + 1}}</view>
-              <view class="day-title">{{item.title || item.city || '当日安排'}}</view>
-            </view>
-            <view class="day-date">{{item.date}} {{item.weekday}}</view>
-          </view>
-          <view wx:for="{{item.timeline_items}}" wx:for-item="node" wx:key="item_id" class="timeline-row">
-            <view class="timeline-time">{{node.time || node.planned_start_time || node.planned_arrival_time || '--:--'}}</view>
-            <view>
-              <view class="timeline-title">{{node.title || '行程节点'}}</view>
-              <view wx:if="{{node.location_name || node.address}}" class="timeline-sub">{{node.location_name || node.address}}</view>
-              <view wx:if="{{node.drive_time_text || node.distance_text || node.traffic_text}}" class="timeline-sub">
-                {{node.drive_time_text}}{{node.distance_text ? ' · ' + node.distance_text : ''}}{{node.traffic_text ? ' · ' + node.traffic_text : ''}}
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view wx:if="{{customerHome.hotel_requests.length}}" class="preview-section">
-        <view class="preview-title">Hotel Cards</view>
-        <view wx:for="{{customerHome.hotel_requests}}" wx:key="hotel_id" class="info-card">
-          <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
-          <view class="info-sub">{{item.address || item.date_range_text || item.arrival_time || ''}}</view>
-        </view>
-      </view>
-
-      <view wx:if="{{customerHome.flight_cards.length}}" class="preview-section">
-        <view class="preview-title">Flight Cards</view>
-        <view wx:for="{{customerHome.flight_cards}}" wx:key="flight_id" class="info-card">
-          <view class="info-main">{{item.flight_no || item.flight_number || item.title || '航班安排'}}</view>
-          <view class="info-sub">{{item.from || item.origin || item.departure_airport || ''}}{{item.to || item.destination || item.arrival_airport ? ' → ' + (item.to || item.destination || item.arrival_airport) : ''}}</view>
-          <view class="info-sub">{{item.departure_time || item.depart_at || ''}}{{item.arrival_time || item.arrive_at ? ' - ' + (item.arrival_time || item.arrive_at) : ''}}</view>
-          <view wx:if="{{item.aircraft}}" class="info-sub">{{item.aircraft}}</view>
-        </view>
-      </view>
-
-      <view wx:if="{{customerHome.transfer_requests.length || customerHome.charter_services.length || customerHome.transport_orders.length}}" class="preview-section">
-        <view class="preview-title">Transport / Charter Blocks</view>
-        <view wx:for="{{customerHome.transport_orders}}" wx:key="transport_order_id" class="info-card">
-          <view class="info-main">{{item.driver_name || '已确认司机'}}</view>
-          <view class="info-sub">{{item.vehicle_model || item.vehicle_type || '车辆待同步'}} · {{item.driver_phone || '电话待同步'}}</view>
-        </view>
-        <view wx:for="{{customerHome.transfer_requests}}" wx:key="transfer_id" class="info-card">
-          <view class="info-main">{{item.title || '接送安排'}}</view>
-          <view class="info-sub">{{item.pickup || item.origin || ''}}{{item.dropoff || item.destination ? ' → ' + (item.dropoff || item.destination) : ''}}</view>
-        </view>
-        <view wx:for="{{customerHome.charter_services}}" wx:key="charter_id" class="info-card">
-          <view class="info-main">{{item.title || '包车服务'}}</view>
-          <view class="info-sub">{{item.date_range_text || item.service_area || item.vehicle_class || ''}}</view>
         </view>
       </view>
     </block>
