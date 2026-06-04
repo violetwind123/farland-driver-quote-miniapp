@@ -340,6 +340,7 @@ function normalizeCanonicalTrip(trip, auth, now) {
   const charterServices = Array.isArray(trip.charter_services) ? trip.charter_services : [];
   const itineraryDays = Array.isArray(trip.itinerary_days) ? trip.itinerary_days : [];
   const documents = Array.isArray(trip.documents) ? trip.documents : [];
+  const customer = trip.customer || {};
   const normalizedPayload = {
     schema_version: '1.0.0',
     external_trip_id: trip.external_trip_id,
@@ -360,7 +361,11 @@ function normalizeCanonicalTrip(trip, auth, now) {
     date_start: trip.start_at,
     date_end: trip.end_at,
     summary: trip.summary || '',
-    customer: trip.customer || {},
+    customer,
+    customer_display_name: customer.display_name || customer.name || '',
+    customer_name: customer.name || customer.display_name || '',
+    customer_phone: customer.phone || '',
+    customer_wechat_id: customer.wechat_id || '',
     source: trip.source || { source_type: 'import_json' },
     transfer,
     transfers,
@@ -500,6 +505,10 @@ function mergeTripOwnership(trip, ownership) {
     customer_user_ids: customerUserIds,
     customer_profile_id: trip.customer_profile_id || ownership.customer_profile_id || '',
     customer,
+    customer_display_name: trip.customer_display_name || customer.display_name || customer.name || '',
+    customer_name: trip.customer_name || customer.name || customer.display_name || '',
+    customer_phone: trip.customer_phone || customer.phone || '',
+    customer_wechat_id: trip.customer_wechat_id || customer.wechat_id || '',
   };
 }
 
@@ -512,6 +521,10 @@ function buildTripOwnershipPatch(trip, ownership) {
     customer_user_ids: merged.customer_user_ids || [],
     customer_profile_id: merged.customer_profile_id || '',
     customer: merged.customer || {},
+    customer_display_name: merged.customer_display_name || '',
+    customer_name: merged.customer_name || '',
+    customer_phone: merged.customer_phone || '',
+    customer_wechat_id: merged.customer_wechat_id || '',
   };
 }
 

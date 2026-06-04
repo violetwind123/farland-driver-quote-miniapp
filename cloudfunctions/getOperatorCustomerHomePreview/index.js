@@ -3,7 +3,6 @@ const { requireRole } = require('./lib/auth');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
-const _ = db.command;
 
 const INTERNAL_KEYS = new Set([
   'openid',
@@ -565,22 +564,20 @@ async function loadTripsByCustomerOwnership(customer) {
   if (userId) {
     queries.push({ primary_customer_user_id: userId });
     queries.push({ customer_user_id: userId });
-    queries.push({ customer_user_ids: _.in([userId]) });
+    queries.push({ customer_user_ids: userId });
   }
   if (profileId) {
     queries.push({ customer_profile_id: profileId });
-    queries.push({ 'customer.customer_profile_id': profileId });
   }
   if (wechatId) {
-    queries.push({ 'customer.wechat_id': wechatId });
+    queries.push({ customer_wechat_id: wechatId });
   }
   if (phone) {
-    queries.push({ 'customer.phone': phone });
+    queries.push({ customer_phone: phone });
   }
   names.forEach((name) => {
     queries.push({ customer_display_name: name });
-    queries.push({ 'customer.display_name': name });
-    queries.push({ 'customer.name': name });
+    queries.push({ customer_name: name });
   });
 
   if (!queries.length) return [];
