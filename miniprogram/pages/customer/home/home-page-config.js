@@ -674,13 +674,18 @@ const customerHomePageConfig = {
           vehicle_model: card.vehicle_summary,
         })
       : null;
+    const departureTime = this.formatDisplayTime(card.departure_time || '') || '待确认';
+    const vehicleSummary = card.vehicle_summary || '车辆待确认';
+    const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver });
     return {
       title: '今日用车',
       sectionTitle: '今日用车',
       statusText: isAssigned ? '已分配司机' : '司机信息待同步',
       statusClass: isAssigned ? 'confirmed' : 'pending',
-      departureTime: this.formatDisplayTime(card.departure_time || '') || '待确认',
-      vehicleSummary: card.vehicle_summary || '车辆待确认',
+      departureTime,
+      vehicleSummary,
+      serviceSummaryLine: serviceLines.serviceSummaryLine,
+      driverLine: serviceLines.driverLine,
       partySummary: card.party_summary || '',
       driver,
       helperText: isAssigned ? '' : (card.helper_text || '司机信息将在出发前同步。'),
@@ -708,19 +713,24 @@ const customerHomePageConfig = {
     const driver = this.normalizeAssignedDriver(rawDriver);
     const driverVisibility = explicit.driver_visibility || summary.driver_visibility || (driver && (driver.name || driver.phone) ? 'assigned' : 'pending');
     const isAssigned = driverVisibility === 'assigned' && driver;
+    const departureTime = this.formatDisplayTime(explicit.departure_time || summary.departure_time || summary.depart_time || todayDay.startTime || '') || '待确认';
+    const vehicleSummary = explicit.vehicle_summary
+      || summary.vehicle_summary
+      || summary.vehicle_model
+      || summary.vehicle_class
+      || todayDay.transportBadge
+      || (driver ? driver.vehicleText : '')
+      || '车辆待确认';
+    const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver: isAssigned ? driver : null });
     return {
       title: '今日用车',
       sectionTitle: '今日用车',
       statusText: isAssigned ? '已分配司机' : (explicit.status_text || summary.status_text || '司机信息待同步'),
       statusClass: isAssigned ? 'confirmed' : 'pending',
-      departureTime: this.formatDisplayTime(explicit.departure_time || summary.departure_time || summary.depart_time || todayDay.startTime || '') || '待确认',
-      vehicleSummary: explicit.vehicle_summary
-        || summary.vehicle_summary
-        || summary.vehicle_model
-        || summary.vehicle_class
-        || todayDay.transportBadge
-        || (driver ? driver.vehicleText : '')
-        || '车辆待确认',
+      departureTime,
+      vehicleSummary,
+      serviceSummaryLine: serviceLines.serviceSummaryLine,
+      driverLine: serviceLines.driverLine,
       partySummary: explicit.party_summary || summary.party_summary || '',
       driver: isAssigned ? driver : null,
       helperText: isAssigned ? '' : (explicit.helper_text || summary.helper_text || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
@@ -734,6 +744,22 @@ const customerHomePageConfig = {
     const text = this.formatDisplayTime(value || '');
     const match = String(text).match(/\b([01]?\d|2[0-3]):[0-5]\d\b/);
     return match ? match[0] : String(text).replace(/\s*出发\s*$/, '');
+  },
+
+  buildVehicleServiceLines({ departureTime = '', vehicleSummary = '', driver = null } = {}) {
+    const departure = this.extractTimeForDisplay(departureTime || '');
+    const vehicle = vehicleSummary || '车辆待确认';
+    const serviceSummaryLine = [
+      departure && departure !== '待确认' ? `${departure} 出发` : '',
+      vehicle,
+    ].filter(Boolean).join(' · ') || vehicle;
+    const driverLine = driver && (driver.name || driver.phone)
+      ? [
+          driver.name ? `司机 ${driver.name}` : '',
+          driver.phone || '',
+        ].filter(Boolean).join(' · ')
+      : '';
+    return { serviceSummaryLine, driverLine };
   },
 
   formatDriveTimeMeta(value) {
@@ -870,6 +896,7 @@ const customerHomePageConfig = {
           arrival_time: this.formatDisplayTime(card.hotel.arrival_time || ''),
         }
       : null;
+    const visibleDestinationCards = destinationCards.slice(0, 3);
     return {
       ...card,
       driver_visibility: driverVisibility,
@@ -885,18 +912,27 @@ const customerHomePageConfig = {
       transportStatusText: driverAssigned
         ? '已分配司机'
         : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
-      routeStops: destinationCards.slice(0, 3).map((item) => ({
-        id: item.card_id,
-        time: item.time,
-        title: item.title,
-        legMeta: item.legMeta || '',
-        travelMeta: item.travelMeta || item.travel_meta || null,
-        travel_meta: item.travel_meta || item.travelMeta || null,
-        driveText: item.driveText || '',
-        distanceText: item.distanceText || '',
-        trafficText: item.trafficText || '',
-        trafficLevel: item.trafficLevel || 'unknown',
-      })),
+      routeStops: visibleDestinationCards.map((item, index) => {
+        const nextItem = visibleDestinationCards[index + 1] || null;
+        const connectorTravelMeta = nextItem
+          ? (nextItem.travelMeta || nextItem.travel_meta || null)
+          : null;
+        return {
+          id: item.card_id,
+          time: item.time,
+          title: item.title,
+          subtitle: item.location || item.location_name || item.city || '',
+          legMeta: item.legMeta || '',
+          travelMeta: item.travelMeta || item.travel_meta || null,
+          travel_meta: item.travel_meta || item.travelMeta || null,
+          connectorTravelMeta,
+          connector_travel_meta: connectorTravelMeta,
+          driveText: item.driveText || '',
+          distanceText: item.distanceText || '',
+          trafficText: item.trafficText || '',
+          trafficLevel: item.trafficLevel || 'unknown',
+        };
+      }),
       nodeCount: destinationCards.length,
       extraNodeCount: Math.max(0, destinationCards.length - 3),
       hotel,
@@ -911,13 +947,18 @@ const customerHomePageConfig = {
     const driver = todayCard.driver || null;
     const isAssigned = Boolean(driver);
     const shouldOpenTransfer = Boolean(todayCard.assigned_request_id && todayCard.service_type !== 'charter');
+    const departureTime = todayCard.serviceWindowText || todayCard.depart_time || '待确认';
+    const vehicleSummary = todayCard.vehicle_summary || '车辆待确认';
+    const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver });
     return {
       title: '今日用车',
       sectionTitle: '今日用车',
       statusText: isAssigned ? '已分配司机' : (todayCard.transportStatusText || '司机信息待同步'),
       statusClass: isAssigned ? 'confirmed' : 'pending',
-      departureTime: todayCard.serviceWindowText || todayCard.depart_time || '待确认',
-      vehicleSummary: todayCard.vehicle_summary || '车辆待确认',
+      departureTime,
+      vehicleSummary,
+      serviceSummaryLine: serviceLines.serviceSummaryLine,
+      driverLine: serviceLines.driverLine,
       partySummary: todayCard.party_summary || '',
       driver,
       helperText: isAssigned ? '' : (todayCard.driverPendingText || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
@@ -1048,13 +1089,27 @@ const customerHomePageConfig = {
     const tripNo = context.trip_no || overview.trip_no || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '';
     const tripId = context.trip_id || overview.trip_id || this.data.tripInviteId || '';
     const dayNo = Number(day.dayNo || day.day_no || 1);
-    const routeStops = (day.timelineItems || []).slice(0, 3).map((item, index) => ({
+    const rawTimelineItems = day.timelineItems || [];
+    const routeStopSource = rawTimelineItems.map((item, index) => ({
+      ...this.normalizeRouteLegMeta(item),
       id: item.id || `${dayNo}-${index}`,
       time: item.time || '',
       title: item.title || '行程节点',
-      ...this.normalizeRouteLegMeta(item),
+      subtitle: item.location || item.location_name || item.city || '',
     }));
-    const timelineItems = (day.timelineItems || []).map((item, index) => ({
+    const visibleRouteStops = routeStopSource.slice(0, 3);
+    const routeStops = visibleRouteStops.map((item, index) => {
+      const nextItem = visibleRouteStops[index + 1] || null;
+      const connectorTravelMeta = nextItem
+        ? (nextItem.travelMeta || nextItem.travel_meta || null)
+        : null;
+      return {
+        ...item,
+        connectorTravelMeta,
+        connector_travel_meta: connectorTravelMeta,
+      };
+    });
+    const timelineItems = rawTimelineItems.map((item, index) => ({
       ...this.normalizeRouteLegMeta(item),
       card_id: item.card_id || item.id || `${dayNo}-${index}`,
       card_type: item.card_type || item.cardType || item.type || item.item_type || 'custom',
@@ -1112,8 +1167,8 @@ const customerHomePageConfig = {
         sequence: index + 1,
         chipLabel: `${item.time || ''} ${item.title || ''}`.trim(),
       })),
-      nodeCount: (day.timelineItems || []).length,
-      extraNodeCount: Math.max(0, (day.timelineItems || []).length - 3),
+      nodeCount: rawTimelineItems.length,
+      extraNodeCount: Math.max(0, rawTimelineItems.length - 3),
       hotel: day.hotel ? {
         ...day.hotel,
         name: day.hotel.name || day.hotel.hotel_name || day.hotel.title || day.hotelBadge || '酒店安排',
