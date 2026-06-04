@@ -1487,11 +1487,13 @@ Page({
     return {
       profile: {
         name: profileName,
-        member_level: meta.customer_would_see === 'published' ? '客户视图预览' : '未发布预览',
+        member_level: meta.operator_draft_preview ? '运营草稿预览' : '客户视图预览',
         points_balance: 0,
-        subtitle: meta.customer_would_see === 'published'
+        subtitle: meta.operator_draft_preview
+          ? '该页面仅供运营核对，不会推送给客户。'
+          : meta.customer_would_see === 'published'
           ? '当前为已发布客户版本预览，不会写入客户档案。'
-          : '当前为未发布草稿预览，客户真实打开时仍会看到等待页。',
+          : '当前为客户真实页面预览，不会写入客户档案。',
       },
       benefits,
       topBenefits: benefits.slice(0, 2),

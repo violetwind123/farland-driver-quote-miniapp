@@ -16,8 +16,10 @@
 
   <view wx:elif="{{tripInviteMode}}" class="trip-invite-view">
     <view wx:if="{{operatorCustomerPreviewMode}}" class="operator-preview-banner card-surface">
-      <view class="operator-preview-title">运营预览</view>
-      <view class="operator-preview-copy">运营预览：当前页面模拟客户打开分享卡后的真实显示效果。</view>
+      <view class="operator-preview-title">{{operatorCustomerPreviewMeta.operator_draft_preview ? '运营草稿预览' : '运营预览'}}</view>
+      <view class="operator-preview-copy">
+        {{operatorCustomerPreviewMeta.operator_draft_preview ? '该页面仅供运营核对，不会推送给客户。' : '当前页面模拟客户打开分享卡后的真实显示效果。'}}
+      </view>
     </view>
 
     <view wx:if="{{tripInviteError}}" class="trip-invite-state card-surface">
@@ -150,9 +152,9 @@
 
   <block wx:else>
     <view wx:if="{{operatorCustomerPreviewMode}}" class="operator-preview-banner card-surface">
-      <view class="operator-preview-title">运营预览</view>
+      <view class="operator-preview-title">{{operatorCustomerPreviewMeta.operator_draft_preview ? '运营草稿预览' : '运营预览'}}</view>
       <view class="operator-preview-copy">
-        {{operatorCustomerPreviewMeta.customer_would_see === 'published' ? '当前为已发布客户版本预览。' : '当前为未发布草稿预览，客户真实打开时仍会看到等待页。'}}
+        {{operatorCustomerPreviewMeta.operator_draft_preview ? '该页面仅供运营核对，不会推送给客户。' : '当前为已发布客户版本预览。'}}
       </view>
     </view>
 

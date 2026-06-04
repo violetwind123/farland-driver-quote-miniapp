@@ -119,16 +119,23 @@
       <button class="secondary-btn" loading="{{building}}" bindtap="buildDraft">Build Customer Draft</button>
       <button class="primary-btn" loading="{{publishing}}" bindtap="publishTrip">Publish After Review</button>
     </view>
-    <button class="{{previewMeta.customer_preview_button_class || 'primary-wide-btn'}} preview-open-btn" bindtap="openCustomerFacingPreview">
-      {{previewMeta.customer_preview_button_text || '进入客户看到的页面'}}
-    </button>
+    <view class="preview-action-split">
+      <button class="secondary-wide-btn preview-open-btn" bindtap="openOperatorDraftPreview">查看运营草稿预览</button>
+      <button class="{{previewMeta.customer_preview_button_class || 'primary-wide-btn'}} preview-open-btn" bindtap="openCustomerFacingPreview">
+        {{previewMeta.customer_preview_button_text || '进入客户真实页面'}}
+      </button>
+    </view>
     <view wx:if="{{previewMeta.customer_would_see !== 'published'}}" class="release-open-hint">
-      当前未发布，客户真实页面只显示等待状态，不显示草稿。
+      运营草稿预览会显示 draft 内容；客户真实页面在未发布前只显示等待状态，不显示草稿。
     </view>
     <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
       <view class="share-title">客户分享卡</view>
-      <view class="share-sub">发布成功后才允许创建或复制客户卡。</view>
-      <button class="primary-wide-btn" loading="{{creatingInvite}}" bindtap="createInvite">Create / Copy Customer Card</button>
+      <view class="share-sub">
+        {{selectedCustomer ? '将为当前选中客户写入访问权限，并创建或复用分享链接。' : '未选择客户时只创建或复用分享链接，不写 customer_trip_access。'}}
+      </view>
+      <button class="primary-wide-btn" loading="{{creatingInvite}}" bindtap="createInvite">
+        {{selectedCustomer ? '绑定至客户账户并创建分享链接' : '创建/复制客户分享链接'}}
+      </button>
       <view wx:if="{{invitePath}}" class="invite-path">{{invitePath}}</view>
       <button wx:if="{{invitePath}}" class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
     </view>
@@ -145,9 +152,10 @@
       <view class="customer-preview-note">
         <view class="customer-kicker">CUSTOMER VIEW</view>
         <view class="customer-title">这里不是客户真实页面</view>
-        <view class="customer-sub">客户真实显示效果请点击下方按钮进入 `我的行程`。该入口会模拟客户打开分享卡，不创建访问记录，不绑定客户。</view>
+        <view class="customer-sub">如需审核草稿，点击“查看运营草稿预览”；如需验收客户真实状态，点击“进入客户真实页面”。两个预览入口都不创建访问记录。</view>
+        <button class="secondary-wide-btn" bindtap="openOperatorDraftPreview">查看运营草稿预览</button>
         <button class="{{previewMeta.customer_preview_button_class || 'primary-wide-btn'}}" bindtap="openCustomerFacingPreview">
-          {{previewMeta.customer_preview_button_text || '进入客户看到的页面'}}
+          {{previewMeta.customer_preview_button_text || '进入客户真实页面'}}
         </button>
       </view>
 

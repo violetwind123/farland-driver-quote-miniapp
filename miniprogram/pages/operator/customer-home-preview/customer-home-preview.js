@@ -14,7 +14,7 @@ function createDefaultPreviewMeta() {
     release_step_title: '客户真实打开仍是等待页',
     release_step_copy: '请先输入正确 trip_id 并点击预览；生成客户草稿并发布后，客户才会看到正式行程。',
     release_step_tip: '发布成功后这里会变成 PUBLISHED CUSTOMER VIEW。',
-    customer_preview_button_text: '进入客户看到的页面',
+    customer_preview_button_text: '进入客户真实页面',
     customer_preview_button_class: 'primary-wide-btn',
     release_steps: [
       { key: 'preview', label: '1 预览', status: 'pending' },
@@ -58,7 +58,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
         ? '客户客户端已可查看该行程。可再次进入客户页面核对展示效果。'
         : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并创建或复制客户卡。',
       release_step_tip: delivered ? '如需重新发送，可继续生成或复制客户卡。' : '下一步：Create / Copy Customer Card。',
-      customer_preview_button_text: '进入客户看到的页面',
+      customer_preview_button_text: '进入客户真实页面',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
@@ -70,7 +70,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: '存在关键警告，暂不能发布',
       release_step_copy: '请先处理 Critical warnings，再重新生成客户草稿。当前客户真实打开只会看到等待页。',
       release_step_tip: '关键警告清空后再点击 Publish After Review。',
-      customer_preview_button_text: '进入客户看到的页面',
+      customer_preview_button_text: '进入客户真实页面',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
@@ -82,7 +82,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: '草稿已可审核，尚未发布',
       release_step_copy: '运营可以审核下方摘要。确认无误后点击 Publish After Review，客户页面才会显示正式行程。',
       release_step_tip: '未发布前客户真实打开仍是等待页。',
-      customer_preview_button_text: '进入客户看到的页面',
+      customer_preview_button_text: '进入客户真实页面',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
@@ -93,7 +93,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
     release_step_title: '客户真实打开仍是等待页',
     release_step_copy: '请确认 Preview Target 已填正确 trip_id，然后按顺序点击 Build Customer Draft 和 Publish After Review。',
     release_step_tip: '未发布草稿不会展示给客户，这是客户数据安全规则。',
-    customer_preview_button_text: '进入客户看到的页面',
+    customer_preview_button_text: '进入客户真实页面',
     customer_preview_button_class: 'primary-wide-btn',
     release_steps: releaseSteps,
   };
@@ -208,7 +208,7 @@ Page({
       previewMeta: createDefaultPreviewMeta(),
       invitePath: '',
     });
-    this.loadPreview({ enterCustomerPage: true });
+    this.loadPreview();
   },
 
   async loadPreview(options = {}) {
@@ -320,25 +320,44 @@ Page({
     };
   },
 
-  async openCustomerFacingPreview(previewResult) {
-    const result = previewResult && (previewResult.customer_share_preview || previewResult.customer_home)
+  openOperatorDraftPreview(previewResult) {
+    const result = previewResult && previewResult.customer_home
       ? previewResult
       : this.data.preview;
-    if (!result || (!result.customer_share_preview && !result.customer_home)) {
+    if (!result || !result.customer_home) {
       wx.showToast({ title: '请先生成预览', icon: 'none' });
       return;
     }
     const meta = this.normalizePreviewMeta(result.preview_meta || this.data.previewMeta || {});
-    const customerSharePreview = result.customer_share_preview || {
-      trip_id: meta.trip_id || this.data.tripId || '',
-      waiting: meta.customer_would_see !== 'published',
-      message: 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
-      access_source: 'operator_preview',
-      auto_saved: false,
-      already_saved: false,
-      can_save_to_profile: false,
-      trip: null,
+    const app = getApp();
+    app.globalData.operatorCustomerHomePreview = {
+      customer_home: result.customer_home,
+      preview_meta: {
+        ...meta,
+        operator_draft_preview: true,
+      },
+      preview_customer: result.preview_customer || {},
     };
+    delete app.globalData.operatorCustomerSharePreview;
+    wx.switchTab({
+      url: '/pages/customer/home/home',
+      fail: (error) => {
+        console.error('[customer-home-preview] open draft preview failed', error);
+        wx.showToast({ title: '草稿预览打开失败', icon: 'none' });
+      },
+    });
+  },
+
+  async openCustomerFacingPreview(previewResult) {
+    const result = previewResult && previewResult.customer_share_preview
+      ? previewResult
+      : this.data.preview;
+    if (!result || !result.customer_share_preview) {
+      wx.showToast({ title: '请先生成预览', icon: 'none' });
+      return;
+    }
+    const meta = this.normalizePreviewMeta(result.preview_meta || this.data.previewMeta || {});
+    const customerSharePreview = result.customer_share_preview;
     const app = getApp();
     app.globalData.operatorCustomerSharePreview = {
       customer_share_preview: customerSharePreview,
@@ -437,10 +456,15 @@ Page({
     }
     this.setData({ creatingInvite: true, error: '' });
     try {
+      const selectedCustomer = this.data.previewMode === 'existing_customer' && this.data.selectedCustomer
+        ? this.data.selectedCustomer
+        : null;
       const { result } = await wx.cloud.callFunction({
         name: 'createCustomerTripInvite',
         data: {
           trip_id: this.data.tripId,
+          customer_user_id: selectedCustomer ? (selectedCustomer.customer_user_id || selectedCustomer.user_id || '') : '',
+          bind_mode: selectedCustomer ? 'farland_profile' : 'trip_only',
           expires_in_days: 30,
         },
       });

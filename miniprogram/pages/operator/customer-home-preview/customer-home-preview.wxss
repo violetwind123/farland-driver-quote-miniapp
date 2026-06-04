@@ -133,6 +133,12 @@
   margin-top: 16rpx;
 }
 
+.preview-action-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12rpx;
+}
+
 .text-input {
   min-height: 76rpx;
   box-sizing: border-box;
