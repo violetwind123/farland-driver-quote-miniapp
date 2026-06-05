@@ -30,6 +30,48 @@ const SCHOOL_PROFILE_FALLBACKS = {
     ],
     fit_tags: ['城市型校园', '商科/传媒', '健康科学', '大校资源'],
   },
+  'boston college': {
+    name_en: 'Boston College',
+    name_zh: '波士顿学院',
+    entity_type_text: '私立天主教研究型大学',
+    city: 'Chestnut Hill',
+    state: 'MA',
+    address: '140 Commonwealth Avenue, Chestnut Hill, MA 02467',
+    ranking_badges: [
+      { system: 'Profile', year: 2026, display_text: 'Jesuit Research University' },
+    ],
+    intro_lines: [
+      '波士顿学院位于 Chestnut Hill，校园气质更偏传统学院式，同时离波士顿市区资源不远。',
+      '适合关注商科、人文社科、核心课程和强社区型本科体验的学生重点了解。',
+    ],
+    strengths: [
+      { title: 'Carroll School of Management', desc: '商科、金融、会计和管理方向值得重点观察。' },
+      { title: 'Liberal Arts Core', desc: '核心课程强调通识、人文和伦理基础。' },
+      { title: 'Boston Access', desc: '兼具校园社区和波士顿都市圈资源。' },
+    ],
+    fit_tags: ['波士顿周边', '学院式校园', '商科', '人文社科'],
+  },
+  'babson college': {
+    name_en: 'Babson College',
+    name_zh: '巴布森学院',
+    entity_type_text: '私立商科与创业学院',
+    city: 'Wellesley',
+    state: 'MA',
+    address: '231 Forest Street, Babson Park, MA 02457',
+    ranking_badges: [
+      { system: 'Profile', year: 2026, display_text: 'Entrepreneurship-focused College' },
+    ],
+    intro_lines: [
+      '巴布森学院以创业教育和本科商科体验见长，校园规模不大，节奏更偏实践和项目驱动。',
+      '短停参观时可以重点看校园尺度、商科课程氛围、创业资源和学生项目展示空间。',
+    ],
+    strengths: [
+      { title: 'Entrepreneurship', desc: '创业教育是学校最有辨识度的方向。' },
+      { title: 'Business Foundation', desc: '本科阶段强调商业基础、团队项目和实践决策。' },
+      { title: 'Small Campus', desc: '校园紧凑，适合短时间快速感受学习与生活尺度。' },
+    ],
+    fit_tags: ['创业', '本科商科', '小型校园', '实践导向'],
+  },
 };
 
 Page({

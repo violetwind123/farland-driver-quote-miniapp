@@ -28,10 +28,10 @@ function createDefaultPreviewMeta() {
 const TRIP091_EXAMPLE = {
   trip_id: '2026XBC091',
   title: '091 检测范例',
-  subtitle: '美东访校与城市行程 · 32 张目的地卡',
-  expected_card_count: 32,
-  expected_day_counts: '3 / 3 / 6 / 4 / 3 / 4 / 7 / 2',
-  check_tags: ['一站一卡', '组合景点拆分', 'Google Maps 已复核'],
+  subtitle: '美东访校与城市行程 · 33 张目的地卡',
+  expected_card_count: 33,
+  expected_day_counts: '4 / 3 / 6 / 4 / 3 / 4 / 7 / 2',
+  check_tags: ['一站一卡', '组合景点拆分', 'Google + Waze 已复核'],
 };
 
 function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, delivered, tripId }) {

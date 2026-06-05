@@ -512,20 +512,23 @@ const customerHomePageConfig = {
     const driverName = source.name || source.driver_name || source.display_name || '';
     const phone = source.phone || source.driver_phone || '';
     const vehicleModel = source.vehicle_model || '';
+    const vehicleColor = source.vehicle_color || '';
     const vehicleType = source.vehicle_type || source.vehicle_class || '';
     const plateNumber = source.plate_number || '';
-    if (!driverName && !phone && !vehicleModel && !vehicleType && !plateNumber) return null;
+    if (!driverName && !phone && !vehicleModel && !vehicleType && !vehicleColor && !plateNumber) return null;
+    const vehicleText = [vehicleModel || vehicleType, vehicleColor, plateNumber].filter(Boolean).join(' · ') || '车辆待确认';
     return {
       name: driverName,
       phone,
       vehicle_model: vehicleModel,
+      vehicle_color: vehicleColor,
       vehicle_type: vehicleType,
       plate_number: plateNumber,
       meeting_point: source.meeting_point || '',
-      vehicleText: vehicleModel || vehicleType || '车辆待确认',
+      vehicleText,
       detailLine: [
         driverName ? `司机：${driverName}` : '',
-        vehicleModel || vehicleType ? `车辆：${vehicleModel || vehicleType}` : '',
+        vehicleText ? `车辆：${vehicleText}` : '',
         phone ? `电话：${phone}` : '',
       ].filter(Boolean).join(' · '),
     };
@@ -750,6 +753,7 @@ const customerHomePageConfig = {
     const departureTime = this.formatDisplayTime(card.departure_time || '') || '待确认';
     const vehicleSummary = card.vehicle_summary || '车辆待确认';
     const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver });
+    const pickup = card.pickup || card.pickup_address || '';
     return {
       title: '今日用车',
       sectionTitle: '今日用车',
@@ -759,6 +763,7 @@ const customerHomePageConfig = {
       vehicleSummary,
       serviceSummaryLine: serviceLines.serviceSummaryLine,
       driverLine: serviceLines.driverLine,
+      pickupLine: pickup ? `上车点：${pickup}` : '',
       partySummary: card.party_summary || '',
       driver,
       helperText: isAssigned ? '' : (card.helper_text || '司机信息将在出发前同步。'),
@@ -780,6 +785,7 @@ const customerHomePageConfig = {
         name: explicit.driver_name || summary.driver_name || '',
         phone: explicit.driver_phone || summary.driver_phone || '',
         vehicle_model: explicit.vehicle_model || summary.vehicle_model || explicit.vehicle_summary || summary.vehicle_summary || '',
+        vehicle_color: explicit.vehicle_color || summary.vehicle_color || '',
         vehicle_type: explicit.vehicle_type || summary.vehicle_type || summary.vehicle_class || '',
         plate_number: explicit.plate_number || summary.plate_number || '',
       };
@@ -795,6 +801,7 @@ const customerHomePageConfig = {
       || (driver ? driver.vehicleText : '')
       || '车辆待确认';
     const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver: isAssigned ? driver : null });
+    const pickup = explicit.pickup || explicit.pickup_address || summary.pickup || summary.pickup_address || '';
     return {
       title: '今日用车',
       sectionTitle: '今日用车',
@@ -804,6 +811,7 @@ const customerHomePageConfig = {
       vehicleSummary,
       serviceSummaryLine: serviceLines.serviceSummaryLine,
       driverLine: serviceLines.driverLine,
+      pickupLine: pickup ? `上车点：${pickup}` : '',
       partySummary: explicit.party_summary || summary.party_summary || '',
       driver: isAssigned ? driver : null,
       helperText: isAssigned ? '' : (explicit.helper_text || summary.helper_text || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
@@ -879,15 +887,15 @@ const customerHomePageConfig = {
   formatTrafficText(value, level) {
     const raw = String(value || '').trim();
     if (raw) {
-      if (/^good$/i.test(raw)) return 'Good';
-      if (/^moderate$/i.test(raw)) return 'Moderate';
-      if (/^heavy$/i.test(raw)) return 'Heavy';
-      if (/^unknown$/i.test(raw)) return 'Unknown';
+      if (/^good$/i.test(raw)) return '通畅';
+      if (/^moderate$/i.test(raw)) return '车流适中';
+      if (/^heavy$/i.test(raw)) return '拥堵';
+      if (/^unknown$/i.test(raw)) return '';
       return raw;
     }
-    if (level === 'good') return 'Good';
-    if (level === 'moderate') return 'Moderate';
-    if (level === 'heavy') return 'Heavy';
+    if (level === 'good') return '通畅';
+    if (level === 'moderate') return '车流适中';
+    if (level === 'heavy') return '拥堵';
     return '';
   },
 
@@ -1027,6 +1035,16 @@ const customerHomePageConfig = {
     return meta && meta.hasContent ? meta : null;
   },
 
+  getDayPickupText(day = {}) {
+    const summary = day.transportSummary || day.transport_summary || day.transport || {};
+    return day.pickupAddress
+      || day.pickup_address
+      || day.pickup
+      || summary.pickup_address
+      || summary.pickup
+      || '';
+  },
+
   normalizeTodayCard(card) {
     if (!card) return null;
     const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
@@ -1076,7 +1094,8 @@ const customerHomePageConfig = {
           arrival_time: this.formatDisplayTime(card.hotel.arrival_time || ''),
         }
       : null;
-    const visibleDestinationCards = destinationCards.slice(0, 3);
+    const maxVisibleDestinationCards = destinationCards.length <= 4 ? destinationCards.length : 3;
+    const visibleDestinationCards = destinationCards.slice(0, maxVisibleDestinationCards);
     return {
       ...card,
       driver_visibility: driverVisibility,
@@ -1092,14 +1111,23 @@ const customerHomePageConfig = {
       transportStatusText: driverAssigned
         ? '已分配司机'
         : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
-      routeStops: visibleDestinationCards.map((item, index) => {
-        const nextItem = visibleDestinationCards[index + 1] || null;
+      routeStops: [
+        ...(this.getDayPickupText(card) ? [{
+          id: `${card.day_no || card.dayNo || 'today'}-departure`,
+          time: departureTime || serviceWindowText || '',
+          title: '上车出发',
+          subtitle: this.getDayPickupText(card),
+          isDeparture: true,
+        }] : []),
+        ...visibleDestinationCards,
+      ].map((item, index, visibleItems) => {
+        const nextItem = visibleItems[index + 1] || null;
         const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
         return {
-          id: item.card_id,
+          id: item.card_id || item.id,
           time: item.time,
           title: item.title,
-          subtitle: item.location || item.location_name || item.city || '',
+          subtitle: item.subtitle || item.location || item.location_name || item.city || '',
           legMeta: item.legMeta || '',
           travelMeta: item.travelMeta || item.travel_meta || null,
           travel_meta: item.travel_meta || item.travelMeta || null,
@@ -1112,7 +1140,7 @@ const customerHomePageConfig = {
         };
       }),
       nodeCount: destinationCards.length,
-      extraNodeCount: Math.max(0, destinationCards.length - 3),
+      extraNodeCount: Math.max(0, destinationCards.length - maxVisibleDestinationCards),
       hotel,
       advisor: card.advisor || {},
       driver: driverAssigned ? normalizedDriver : null,
@@ -1276,7 +1304,17 @@ const customerHomePageConfig = {
       title: item.title || '行程节点',
       subtitle: item.location || item.location_name || item.city || '',
     }));
-    const visibleRouteStops = routeStopSource.slice(0, 3);
+    const maxVisibleDestinationStops = routeStopSource.length <= 4 ? routeStopSource.length : 3;
+    const visibleRouteStops = [
+      ...(this.getDayPickupText(day) ? [{
+        id: `${dayNo}-departure`,
+        time: this.extractTimeForDisplay(day.startTime || ''),
+        title: '上车出发',
+        subtitle: this.getDayPickupText(day),
+        isDeparture: true,
+      }] : []),
+      ...routeStopSource.slice(0, maxVisibleDestinationStops),
+    ];
     const routeStops = visibleRouteStops.map((item, index) => {
       const nextItem = visibleRouteStops[index + 1] || null;
       const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
@@ -1352,7 +1390,7 @@ const customerHomePageConfig = {
         chipLabel: `${item.time || ''} ${item.title || ''}`.trim(),
       })),
       nodeCount: rawTimelineItems.length,
-      extraNodeCount: Math.max(0, rawTimelineItems.length - 3),
+      extraNodeCount: Math.max(0, rawTimelineItems.length - maxVisibleDestinationStops),
       hotel: day.hotel ? {
         ...day.hotel,
         name: day.hotel.name || day.hotel.hotel_name || day.hotel.title || day.hotelBadge || '酒店安排',
@@ -2260,6 +2298,7 @@ const customerHomePageConfig = {
       city: summaryCard.city || day.city || '',
       summary: day.summary || '',
       startTime: this.formatDisplayTime(summaryCard.start_time_text || day.start_time_text || day.estimated_departure_time || day.displayed_start_time || day.start_time || ''),
+      pickupAddress: day.pickup_address || day.pickup || (day.transport_summary && (day.transport_summary.pickup_address || day.transport_summary.pickup)) || '',
       hotel: day.hotel || null,
       hotelBadge: hotelName,
       transportSummary: day.transport_summary || null,

@@ -7,7 +7,7 @@ async function writeAuditLog(db, data) {
   });
 }
 
-const VERIFIED_AT = '2026-06-04';
+const VERIFIED_AT = '2026-06-05';
 const TRIP_NO = '2026XBC091';
 
 const INTERNAL_KEYS = new Set([
@@ -33,13 +33,28 @@ const UI_FLAGS = {
   show_driver: false,
 };
 
-const GOOGLE_MAPS_ROUTE_CHECKED_AT = '2026-06-04';
-const GOOGLE_MAPS_ROUTE_CHECK_MODE = 'google_maps_preview_leave_now';
+const TRIP091_DAY1_PICKUP = {
+  pickup_time: '10:00',
+  pickup_address: '284 Mattison Drive, Concord, MA 01742',
+};
+
+const TRIP091_CONFIRMED_DRIVER = {
+  driver_name: '林飞航',
+  driver_phone: '9298059888',
+  vehicle_model: '2025 Sienna XLE 7座',
+  vehicle_color: '黑色',
+  plate_number: 'LUM5388',
+  vehicle_summary: '2025 Sienna XLE 7座 · 黑色 · LUM5388',
+};
+
+const GOOGLE_MAPS_ROUTE_CHECKED_AT = '2026-06-05';
+const GOOGLE_MAPS_ROUTE_CHECK_MODE = 'google_maps_and_waze_live_map_leave_now';
 
 const MAP_ROUTE_CHECKS = {
-  day1_bu: { drive_time_text: '0:16', distance_text: '3.4mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '0:20', source_distance_text: '3.1mi', source_traffic_text: 'Moderate', maps_duration_text: '16 min', maps_distance_text: '3.4 mi', maps_route_text: 'Storrow Dr', maps_duration_minutes: 16, maps_delta_minutes: 4, maps_review_status: 'ok_within_tolerance' },
-  day1_amherst: { drive_time_text: '1:50', distance_text: '91.6mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '2:15', source_distance_text: '92.7mi', source_traffic_text: 'Moderate', maps_duration_text: '1 hr 50 min', maps_distance_text: '91.6 mi', maps_route_text: 'I-90 W', maps_duration_minutes: 110, maps_delta_minutes: 25, maps_review_status: 'source_conservative_or_slack' },
-  day1_hotel: { drive_time_text: '1:41', distance_text: '87.1mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '2:20', source_distance_text: '87.8mi', source_traffic_text: 'Heavy', maps_duration_text: '1 hr 41 min', maps_distance_text: '87.1 mi', maps_route_text: 'I-90 E', maps_duration_minutes: 101, maps_delta_minutes: 39, maps_review_status: 'source_conservative_or_slack' },
+  day1_boston_college: { drive_time_text: '0:45', distance_text: '22.2mi', traffic_text: 'Moderate', traffic_level: 'moderate', source_drive_time_text: '0:30-0:40', source_distance_text: '22.2mi', source_traffic_text: 'Group confirmed 10:00 departure, conservative 10:45 BC arrival', maps_duration_text: '28 min', maps_distance_text: '21.1 mi', maps_route_text: 'MA-2 E, I-95 S and MA-9 E/Boston - Worcester Tpke', maps_duration_minutes: 28, maps_delta_minutes: 17, maps_review_status: 'source_conservative_or_slack', waze_duration_text: '32 min', waze_distance_text: '21.9 miles', waze_route_text: 'I-95 S; Boylston St Newton', waze_duration_minutes: 32 },
+  day1_babson: { drive_time_text: '0:35', distance_text: '8.5mi', traffic_text: 'Good', traffic_level: 'good', source_drive_time_text: '0:35', source_distance_text: '8.5mi', source_traffic_text: 'Group schedule buffer from 11:25 BC departure to 12:00 Babson arrival', maps_duration_text: '14 min', maps_distance_text: '7.0 mi', maps_route_text: 'Boylston Rd', maps_duration_minutes: 14, maps_delta_minutes: 21, maps_review_status: 'source_conservative_or_slack', waze_duration_text: '18 min', waze_distance_text: '8.5 miles', waze_route_text: 'Hammond Pond Pkwy, Boylston St Newton', waze_duration_minutes: 18 },
+  day1_amherst: { drive_time_text: '2:10', distance_text: '89.9mi', traffic_text: 'Moderate', traffic_level: 'moderate', source_drive_time_text: '2:10', source_distance_text: '89.9mi', source_traffic_text: 'Group target before 15:00; conservative 14:30 arrival', maps_duration_text: '1 hr 37 min', maps_distance_text: '89.9 mi', maps_route_text: 'I-90 W', maps_duration_minutes: 97, maps_delta_minutes: 33, maps_review_status: 'source_conservative_or_slack', waze_duration_text: '1h 38m', waze_distance_text: '83.5 miles', waze_route_text: 'I-90 W - Mass Pike', waze_duration_minutes: 98 },
+  day1_hotel: { drive_time_text: '2:15', distance_text: '86.9mi', traffic_text: 'Moderate', traffic_level: 'moderate', source_drive_time_text: '2:15', source_distance_text: '86.9mi', source_traffic_text: 'After Amherst self-guided visit; conservative hotel arrival buffer', maps_duration_text: '1 hr 42 min', maps_distance_text: '86.2 mi', maps_route_text: 'I-90 E', maps_duration_minutes: 102, maps_delta_minutes: 33, maps_review_status: 'source_conservative_or_slack', waze_duration_text: '1h 48m', waze_distance_text: '86.9 miles', waze_route_text: 'I-90 E - Mass Pike; SR-146 S', waze_duration_minutes: 108 },
   day2_brown: { drive_time_text: '0:06', distance_text: '1.1mi', traffic_text: 'Good', traffic_level: 'maps_current', source_drive_time_text: '0:10', source_distance_text: '0.9mi', source_traffic_text: 'Good', maps_duration_text: '6 min', maps_distance_text: '1.1 mi', maps_route_text: 'Canal St and Waterman St', maps_duration_minutes: 6, maps_delta_minutes: 4, maps_review_status: 'ok_within_tolerance' },
   day2_yale: { drive_time_text: '1:45', distance_text: '103mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '2:15', source_distance_text: '104.6mi', source_traffic_text: 'Moderate', maps_duration_text: '1 hr 45 min', maps_distance_text: '103 mi', maps_route_text: 'I-95 S', maps_duration_minutes: 105, maps_delta_minutes: 30, maps_review_status: 'source_conservative_or_slack' },
   day2_hotel: { drive_time_text: '0:19', distance_text: '16.2mi', traffic_text: 'Good', traffic_level: 'maps_current', source_drive_time_text: '0:25', source_distance_text: '16.3mi', source_traffic_text: 'Good', maps_duration_text: '19 min', maps_distance_text: '16.2 mi', maps_route_text: 'I-91 N', maps_duration_minutes: 19, maps_delta_minutes: 6, maps_review_status: 'ok_within_tolerance' },
@@ -63,7 +78,8 @@ const MAP_ROUTE_CHECKS = {
 };
 
 const CARD_ROUTE_CHECK_IDS = {
-  '091_day1_boston_university': 'day1_bu',
+  '091_day1_boston_college': 'day1_boston_college',
+  '091_day1_babson_college': 'day1_babson',
   '091_day1_amherst_college': 'day1_amherst',
   '091_day1_renaissance_providence': 'day1_hotel',
   '091_day2_brown_university': 'day2_brown',
@@ -124,6 +140,14 @@ const SOURCES = {
   bu: [
     ref('Boston University Facts and Rankings', 'https://www.bu.edu/admissions/why-bu/facts-and-rankings'),
     ref('Boston University About', 'https://www.bu.edu/about/'),
+  ],
+  boston_college: [
+    ref('Boston College About', 'https://www.bc.edu/bc-web/about.html'),
+    ref('Boston College Office of Undergraduate Admission', 'https://www.bc.edu/bc-web/admission.html'),
+  ],
+  babson: [
+    ref('Babson College About', 'https://www.babson.edu/about/'),
+    ref('Babson College Undergraduate Admission', 'https://www.babson.edu/admission/undergraduate-school/'),
   ],
   amherst: [
     ref('Amherst College Fast Facts', 'https://www.amherst.edu/about/facts'),
@@ -245,6 +269,50 @@ const ENTITIES = {
     ],
     fit_tags: ['城市型校园', '研究型大学', '商科/传媒', '健康科学'],
     source_refs: SOURCES.bu,
+  },
+  boston_college: {
+    entity_type: 'school',
+    entity_subtype: 'private_jesuit_research_university',
+    name_en: 'Boston College',
+    name_zh: '波士顿学院',
+    entity_type_text: '私立天主教研究型大学',
+    city: 'Chestnut Hill',
+    state: 'MA',
+    address: '140 Commonwealth Avenue, Chestnut Hill, MA 02467',
+    ranking_badges: [{ system: 'Profile', year: 2026, display_text: 'Jesuit Research University' }],
+    intro_lines: [
+      '波士顿学院位于 Chestnut Hill，校园气质更偏传统学院式，同时离波士顿市区资源不远。',
+      '访校时可以重点观察校园社区、核心课程氛围、商科与人文社科资源，以及学生生活的凝聚力。',
+    ],
+    strengths: [
+      { title: 'Carroll School of Management', desc: '商科、金融、会计和管理方向是家长和学生常重点比较的资源。' },
+      { title: 'Liberal Arts Core', desc: '核心课程强调人文、伦理和跨学科基础，适合重视本科通识训练的学生。' },
+      { title: 'Boston Access', desc: '靠近波士顿都市圈，兼具校园社区和城市实习、医疗、金融资源。' },
+    ],
+    fit_tags: ['波士顿周边', '学院式校园', '商科', '人文社科'],
+    source_refs: SOURCES.boston_college,
+  },
+  babson_college: {
+    entity_type: 'school',
+    entity_subtype: 'private_business_college',
+    name_en: 'Babson College',
+    name_zh: '巴布森学院',
+    entity_type_text: '私立商科与创业学院',
+    city: 'Wellesley',
+    state: 'MA',
+    address: '231 Forest Street, Babson Park, MA 02457',
+    ranking_badges: [{ system: 'Profile', year: 2026, display_text: 'Entrepreneurship-focused College' }],
+    intro_lines: [
+      '巴布森学院以创业教育和本科商科体验见长，校园规模不大，节奏更偏实践和项目驱动。',
+      '短停参观时可以重点看校园尺度、商科课程氛围、创业资源和学生项目展示空间。',
+    ],
+    strengths: [
+      { title: 'Entrepreneurship', desc: '创业教育是学校最有辨识度的方向，适合有商业实践兴趣的学生。' },
+      { title: 'Business Foundation', desc: '本科阶段围绕商业基础、团队项目和实践决策训练展开。' },
+      { title: 'Small Campus', desc: '校园紧凑，适合短时间快速感受学习氛围和生活尺度。' },
+    ],
+    fit_tags: ['创业', '本科商科', '小型校园', '实践导向'],
+    source_refs: SOURCES.babson,
   },
   amherst_college: {
     entity_type: 'school',
@@ -758,13 +826,15 @@ const DAYS = [
     day_no: 1,
     date: '2026-06-05',
     weekday: 'Fri',
-    day_title: 'Boston / Amherst / Providence',
-    route_label: 'Boston / Amherst / Providence',
-    departure_time: '08:10',
+    day_title: 'Concord / Boston College / Babson / Amherst / Providence',
+    route_label: 'Concord / Boston College / Babson / Amherst / Providence',
+    departure_time: '10:00',
+    pickup_address: TRIP091_DAY1_PICKUP.pickup_address,
     cards: [
-      { card_id: '091_day1_boston_university', card_type: 'school_visit_card', entity_key: 'boston_university', arrival_time: '08:30', appointment_time: '09:30' },
-      { card_id: '091_day1_amherst_college', card_type: 'school_visit_card', entity_key: 'amherst_college', arrival_time: '13:45', appointment_time: '' },
-      { card_id: '091_day1_renaissance_providence', card_type: 'hotel_arrival_card', entity_key: 'renaissance_providence', arrival_time: '18:05', stay_id: 'stay_renaissance_providence_day1' },
+      { card_id: '091_day1_boston_college', card_type: 'school_visit_card', entity_key: 'boston_college', arrival_time: '10:45', appointment_time: '', start_time: '10:45', end_time: '11:25', customer_note: '10:00 从 284 Mattison Drive 出发；BC 预计参观约 40 分钟。' },
+      { card_id: '091_day1_babson_college', card_type: 'school_visit_card', entity_key: 'babson_college', arrival_time: '12:00', appointment_time: '', start_time: '12:00', end_time: '12:20', customer_note: '短停参观约 20-30 分钟；午餐建议提前准备车上简餐。' },
+      { card_id: '091_day1_amherst_college', card_type: 'school_visit_card', entity_key: 'amherst_college', arrival_time: '14:30', appointment_time: '15:00', start_time: '14:30', end_time: '16:30', customer_note: '客户群确认 15:00 前抵达 Amherst 即可，自主参观约 2 小时。' },
+      { card_id: '091_day1_renaissance_providence', card_type: 'hotel_arrival_card', entity_key: 'renaissance_providence', arrival_time: '18:45', stay_id: 'stay_renaissance_providence_day1' },
     ],
   },
   {
@@ -928,6 +998,10 @@ function defaultTravelSnapshot(snapshot = {}) {
     'maps_review_status',
     'maps_checked_at',
     'maps_check_mode',
+    'waze_duration_text',
+    'waze_distance_text',
+    'waze_route_text',
+    'waze_duration_minutes',
   ].forEach((key) => {
     if (snapshot[key] !== undefined && snapshot[key] !== '') {
       normalized[key] = snapshot[key];
@@ -1037,7 +1111,7 @@ function buildLegacyCardFields(card, profile, display, timeSnapshot) {
     type,
     item_type: type,
     typeText: TYPE_TEXT[card.card_type] || '行程',
-    time: timeSnapshot.appointment_time || timeSnapshot.arrival_time || timeSnapshot.start_time || '',
+    time: timeSnapshot.arrival_time || timeSnapshot.appointment_time || timeSnapshot.start_time || '',
     arrival_estimate: timeSnapshot.arrival_time || '',
     title,
     subtitle,
@@ -1047,7 +1121,7 @@ function buildLegacyCardFields(card, profile, display, timeSnapshot) {
     distance: '',
     traffic_level: '',
     detailLine: detailParts.filter(Boolean).join(' · '),
-    note: noteLines.join(' '),
+    note: card.customer_note || noteLines.join(' '),
     next_stop: '',
     linked_entity_type: profile ? profile.entity_type : '',
     linked_entity_id: card.entity_key || '',
@@ -1091,6 +1165,7 @@ function buildCard(card, day, index, totalCount) {
       ? 'verified_with_online_sources'
       : 'needs_source_review',
     ...buildLegacyCardFields(card, profile, displaySnapshot, timeSnapshot),
+    customer_note: card.customer_note || '',
   };
 }
 
@@ -1116,11 +1191,44 @@ function buildHotelStay(stay) {
   };
 }
 
+function buildDayTransportSummary(day) {
+  const isConfirmedDay1 = day.day_no === 1;
+  const confirmed = isConfirmedDay1 ? TRIP091_CONFIRMED_DRIVER : {};
+  return {
+    type: 'charter',
+    title: '今日包车服务',
+    status_text: isConfirmedDay1 ? '车辆与司机已确认' : '车辆已确认，司机信息待同步',
+    departure_time: day.departure_time,
+    depart_time: day.departure_time,
+    pickup_time: day.departure_time,
+    pickup: day.pickup_address || '',
+    pickup_address: day.pickup_address || '',
+    vehicle_summary: confirmed.vehicle_summary || 'Toyota Sienna 或同级',
+    vehicle_model: confirmed.vehicle_model || '',
+    vehicle_color: confirmed.vehicle_color || '',
+    plate_number: confirmed.plate_number || '',
+    driver_visibility: isConfirmedDay1 ? 'assigned' : 'pending',
+    driver_name: confirmed.driver_name || '',
+    driver_phone: confirmed.driver_phone || '',
+    driver: isConfirmedDay1 ? {
+      name: confirmed.driver_name,
+      driver_name: confirmed.driver_name,
+      phone: confirmed.driver_phone,
+      driver_phone: confirmed.driver_phone,
+      vehicle_model: confirmed.vehicle_model,
+      vehicle_color: confirmed.vehicle_color,
+      plate_number: confirmed.plate_number,
+    } : null,
+    helper_text: isConfirmedDay1 ? '上车地点以客户群确认为准。' : '司机信息确认后会同步到这里；如需调整请在客户群沟通。',
+  };
+}
+
 function buildDay(day) {
   const cards = day.cards.map((card, index) => buildCard(card, day, index, day.cards.length));
   const hotelStay = findHotelStayForDay(day.day_no);
   const hotelProfile = hotelStay ? ENTITIES[hotelStay.entity_key] : null;
   const hotelCard = cards.find((card) => card.card_type === 'hotel_arrival_card') || null;
+  const transportSummary = buildDayTransportSummary(day);
   const timelineItems = cards.map((card) => ({
     ...card,
     item_id: card.card_id,
@@ -1138,6 +1246,7 @@ function buildDay(day) {
     city: day.route_label,
     city_summary: day.route_label,
     route_label: day.route_label,
+    pickup_address: day.pickup_address || '',
     departure_time: day.departure_time,
     estimated_departure_time: day.departure_time,
     start_time_text: day.departure_time,
@@ -1169,14 +1278,7 @@ function buildDay(day) {
       status_text: '已同步',
       note: hotelProfile.intro_lines ? hotelProfile.intro_lines[0] : '',
     } : null,
-    transport_summary: {
-      type: 'charter',
-      title: '今日包车服务',
-      status_text: '车辆已确认，司机信息待同步',
-      departure_time: day.departure_time,
-      vehicle_summary: 'Toyota Sienna 或同级',
-      party_summary: '',
-    },
+    transport_summary: transportSummary,
   };
 }
 
@@ -1219,6 +1321,7 @@ function buildTodayOverviewCard(day) {
 }
 
 function buildDailyCharterSummary(day) {
+  const transportSummary = buildDayTransportSummary(day);
   return {
     id: `091_day${day.day_no}_daily_charter_summary`,
     card_type: 'daily_charter_summary',
@@ -1228,8 +1331,15 @@ function buildDailyCharterSummary(day) {
     title: '今日包车服务',
     departure_time: day.departure_time,
     service_window: { start_time: day.departure_time, end_time: '', label: `${day.departure_time} 出发` },
-    status_text: '车辆已确认，司机信息待同步',
-    vehicle_summary: 'Toyota Sienna 或同级',
+    status_text: transportSummary.status_text,
+    vehicle_summary: transportSummary.vehicle_summary,
+    driver_visibility: transportSummary.driver_visibility,
+    driver: transportSummary.driver,
+    driver_name: transportSummary.driver_name,
+    driver_phone: transportSummary.driver_phone,
+    plate_number: transportSummary.plate_number,
+    pickup: transportSummary.pickup,
+    pickup_address: transportSummary.pickup_address,
   };
 }
 
@@ -1269,7 +1379,7 @@ function buildTrip091CardSystem(trip = {}) {
     city: 'Boston / New York / Philadelphia / Washington DC / Chicago',
     country: 'US',
     timezone: 'America/New_York',
-    start_at: trip.start_at || '2026-06-05T08:10:00-04:00',
+    start_at: trip.start_at || '2026-06-05T10:00:00-04:00',
     end_at: trip.end_at || '2026-06-12T16:30:00-05:00',
     summary: '8 天美东访校、城市观光、博物馆、酒店与航班行程。',
     customer: stripCustomerUnsafe(trip.customer || {}),
@@ -1295,7 +1405,7 @@ function buildTrip091CardSystem(trip = {}) {
       trip_no: TRIP_NO,
       title: '2026XBC091 美东访校与城市行程',
       date_range_text: '2026-06-05 - 2026-06-12',
-      city_route_text: 'Boston / Amherst / Providence / New Haven / New York / Philadelphia / Washington DC / Chicago',
+      city_route_text: 'Concord / Boston College / Babson / Amherst / Providence / New Haven / New York / Philadelphia / Washington DC / Chicago',
       days_count: 8,
       hotels_count: hotelStays.length,
       flights_count: 1,
@@ -1316,11 +1426,26 @@ function buildTrip091CardSystem(trip = {}) {
       visible: true,
       card_type: 'today_driver_card',
       title: '今日用车',
-      status: 'pending',
-      status_text: '司机信息待同步',
+      status: 'assigned',
+      status_text: '已分配司机',
+      driver_visibility: 'assigned',
       departure_time: firstDay ? firstDay.departure_time : '',
-      vehicle_summary: 'Toyota Sienna 或同级',
-      helper_text: '司机信息将在 Farland 完成确认后同步。',
+      pickup: TRIP091_DAY1_PICKUP.pickup_address,
+      pickup_address: TRIP091_DAY1_PICKUP.pickup_address,
+      driver_name: TRIP091_CONFIRMED_DRIVER.driver_name,
+      driver_phone: TRIP091_CONFIRMED_DRIVER.driver_phone,
+      vehicle_model: TRIP091_CONFIRMED_DRIVER.vehicle_model,
+      vehicle_color: TRIP091_CONFIRMED_DRIVER.vehicle_color,
+      plate_number: TRIP091_CONFIRMED_DRIVER.plate_number,
+      vehicle_summary: TRIP091_CONFIRMED_DRIVER.vehicle_summary,
+      driver: {
+        name: TRIP091_CONFIRMED_DRIVER.driver_name,
+        phone: TRIP091_CONFIRMED_DRIVER.driver_phone,
+        vehicle_model: TRIP091_CONFIRMED_DRIVER.vehicle_model,
+        vehicle_color: TRIP091_CONFIRMED_DRIVER.vehicle_color,
+        plate_number: TRIP091_CONFIRMED_DRIVER.plate_number,
+      },
+      helper_text: '上车地点以客户群确认为准。',
     },
     today_overview_cards: todayOverviewCards,
     daily_summary_cards: dailySummaryCards,
@@ -1394,7 +1519,7 @@ function validateTrip091CardSystem(snapshot) {
     ? snapshot.destination_cards
     : days.flatMap((day) => day.destination_cards || day.cards || []);
   const counts = days.map((day) => (day.destination_cards || day.cards || []).length);
-  const expectedCounts = [3, 3, 6, 4, 3, 4, 7, 2];
+  const expectedCounts = [4, 3, 6, 4, 3, 4, 7, 2];
   const warnings = cards.filter((card) => card.time_snapshot && card.time_snapshot.time_warning_text).map((card) => card.card_id);
   const missingSchema = cards.filter((card) => !card.card_id || !card.card_type || !card.time_snapshot || !card.display_snapshot || !card.travel_snapshot || !card.ui_flags);
   const uiLeaks = cards.filter((card) => card.ui_flags && (card.ui_flags.show_route || card.ui_flags.show_travel_meta || card.ui_flags.show_contact_advisor || card.ui_flags.show_driver));
@@ -1407,7 +1532,7 @@ function validateTrip091CardSystem(snapshot) {
   }, {});
   return {
     total_destination_cards: cards.length,
-    expected_total_destination_cards: 32,
+    expected_total_destination_cards: 33,
     day_counts: counts,
     expected_day_counts: expectedCounts,
     by_type: byType,
@@ -1419,7 +1544,7 @@ function validateTrip091CardSystem(snapshot) {
     maps_risk_card_ids: mapsRiskCards.map((card) => card.card_id),
     maps_conservative_card_count: cards.filter((card) => card.travel_snapshot && card.travel_snapshot.maps_review_status === 'source_conservative_or_slack').length,
     source_ref_missing_count: cards.filter((card) => !['meeting_card', 'flight_card'].includes(card.card_type) && !(card.source_refs && card.source_refs.length)).length,
-    valid: cards.length === 32
+    valid: cards.length === 33
       && counts.join(',') === expectedCounts.join(',')
       && missingSchema.length === 0
       && uiLeaks.length === 0

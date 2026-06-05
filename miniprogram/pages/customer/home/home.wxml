@@ -95,6 +95,7 @@
               <view class="driver-summary-line">{{tripInviteTrip.todayDriverCard.serviceSummaryLine || tripInviteTrip.todayDriverCard.vehicleSummary}}</view>
               <view wx:if="{{tripInviteTrip.todayDriverCard.driverLine}}" class="driver-summary-sub">{{tripInviteTrip.todayDriverCard.driverLine}}</view>
               <view wx:elif="{{tripInviteTrip.todayDriverCard.helperText}}" class="driver-summary-sub">{{tripInviteTrip.todayDriverCard.helperText}}</view>
+              <view wx:if="{{tripInviteTrip.todayDriverCard.pickupLine}}" class="driver-summary-sub">{{tripInviteTrip.todayDriverCard.pickupLine}}</view>
             </view>
             <view class="status-chip {{tripInviteTrip.todayDriverCard.statusClass}}">{{tripInviteTrip.todayDriverCard.statusText}}</view>
           </view>
@@ -236,6 +237,7 @@
                       <view class="driver-summary-line">{{todayDriverCard.serviceSummaryLine || todayDriverCard.vehicleSummary}}</view>
                       <view wx:if="{{todayDriverCard.driverLine}}" class="driver-summary-sub">{{todayDriverCard.driverLine}}</view>
                       <view wx:elif="{{todayDriverCard.helperText}}" class="driver-summary-sub">{{todayDriverCard.helperText}}</view>
+                      <view wx:if="{{todayDriverCard.pickupLine}}" class="driver-summary-sub">{{todayDriverCard.pickupLine}}</view>
                     </view>
                     <view class="status-chip {{todayDriverCard.statusClass}}">{{todayDriverCard.statusText}}</view>
                   </view>
@@ -409,6 +411,7 @@
             <view class="driver-summary-line">{{todayDriverCard.serviceSummaryLine || todayDriverCard.vehicleSummary}}</view>
             <view wx:if="{{todayDriverCard.driverLine}}" class="driver-summary-sub">{{todayDriverCard.driverLine}}</view>
             <view wx:elif="{{todayDriverCard.helperText}}" class="driver-summary-sub">{{todayDriverCard.helperText}}</view>
+            <view wx:if="{{todayDriverCard.pickupLine}}" class="driver-summary-sub">{{todayDriverCard.pickupLine}}</view>
           </view>
           <view class="status-chip {{todayDriverCard.statusClass}}">{{todayDriverCard.statusText}}</view>
         </view>
