@@ -878,6 +878,7 @@ const customerHomePageConfig = {
   normalizeTrafficLevel(value) {
     const text = String(value || '').trim().toLowerCase();
     if (!text) return 'unknown';
+    if (/walk|walking|foot|pedestrian|步行|徒步/.test(text)) return 'walk';
     if (/good|smooth|light|clear|顺畅|良好/.test(text)) return 'good';
     if (/moderate|medium|normal|适中|一般/.test(text)) return 'moderate';
     if (/heavy|congest|busy|slow|拥堵|缓慢/.test(text)) return 'heavy';
@@ -887,6 +888,7 @@ const customerHomePageConfig = {
   formatTrafficText(value, level) {
     const raw = String(value || '').trim();
     if (raw) {
+      if (/^(walk|walking|foot|pedestrian)$/i.test(raw) || raw === '步行') return '步行';
       if (/^good$/i.test(raw)) return '通畅';
       if (/^moderate$/i.test(raw)) return '车流适中';
       if (/^heavy$/i.test(raw)) return '拥堵';
@@ -896,6 +898,7 @@ const customerHomePageConfig = {
     if (level === 'good') return '通畅';
     if (level === 'moderate') return '车流适中';
     if (level === 'heavy') return '拥堵';
+    if (level === 'walk') return '步行';
     return '';
   },
 
@@ -1030,7 +1033,9 @@ const customerHomePageConfig = {
     if (!item) return null;
     const currentGroup = item.parent_group_id || item.parentGroupId || '';
     const previousGroup = previousItem ? (previousItem.parent_group_id || previousItem.parentGroupId || '') : '';
-    if (currentGroup && previousGroup && currentGroup === previousGroup) return null;
+    const currentRouteCheck = item.route_check_id || item.routeCheckId || '';
+    const previousRouteCheck = previousItem ? (previousItem.route_check_id || previousItem.routeCheckId || '') : '';
+    if (currentGroup && previousGroup && currentGroup === previousGroup && currentRouteCheck === previousRouteCheck) return null;
     const meta = item.travelMeta || item.travel_meta || null;
     return meta && meta.hasContent ? meta : null;
   },
@@ -1094,6 +1099,14 @@ const customerHomePageConfig = {
           arrival_time: this.formatDisplayTime(card.hotel.arrival_time || ''),
         }
       : null;
+    const pickupText = this.getDayPickupText(card);
+    const departureRouteStops = pickupText || departureTime || serviceWindowText ? [{
+      id: `${card.day_no || card.dayNo || 'today'}-departure`,
+      time: departureTime || serviceWindowText || '',
+      title: '上车出发',
+      subtitle: pickupText || '预计出发',
+      isDeparture: true,
+    }] : [];
     const maxVisibleDestinationCards = destinationCards.length <= 4 ? destinationCards.length : 3;
     const visibleDestinationCards = destinationCards.slice(0, maxVisibleDestinationCards);
     return {
@@ -1112,13 +1125,7 @@ const customerHomePageConfig = {
         ? '已分配司机'
         : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
       routeStops: [
-        ...(this.getDayPickupText(card) ? [{
-          id: `${card.day_no || card.dayNo || 'today'}-departure`,
-          time: departureTime || serviceWindowText || '',
-          title: '上车出发',
-          subtitle: this.getDayPickupText(card),
-          isDeparture: true,
-        }] : []),
+        ...departureRouteStops,
         ...visibleDestinationCards,
       ].map((item, index, visibleItems) => {
         const nextItem = visibleItems[index + 1] || null;
@@ -1304,15 +1311,18 @@ const customerHomePageConfig = {
       title: item.title || '行程节点',
       subtitle: item.location || item.location_name || item.city || '',
     }));
+    const pickupText = this.getDayPickupText(day);
+    const departureTime = this.extractTimeForDisplay(day.startTime || '');
+    const departureRouteStops = pickupText || departureTime ? [{
+      id: `${dayNo}-departure`,
+      time: departureTime,
+      title: '上车出发',
+      subtitle: pickupText || '预计出发',
+      isDeparture: true,
+    }] : [];
     const maxVisibleDestinationStops = routeStopSource.length <= 4 ? routeStopSource.length : 3;
     const visibleRouteStops = [
-      ...(this.getDayPickupText(day) ? [{
-        id: `${dayNo}-departure`,
-        time: this.extractTimeForDisplay(day.startTime || ''),
-        title: '上车出发',
-        subtitle: this.getDayPickupText(day),
-        isDeparture: true,
-      }] : []),
+      ...departureRouteStops,
       ...routeStopSource.slice(0, maxVisibleDestinationStops),
     ];
     const routeStops = visibleRouteStops.map((item, index) => {

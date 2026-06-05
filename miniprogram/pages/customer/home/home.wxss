@@ -1056,6 +1056,11 @@
   background: #FFF1E6;
 }
 
+.traffic-walk {
+  color: #285C7A;
+  background: rgba(125, 211, 252, 0.18);
+}
+
 .traffic-unknown {
   color: #667085;
   background: #F2F4F7;

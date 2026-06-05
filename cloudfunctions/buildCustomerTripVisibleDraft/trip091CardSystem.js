@@ -58,9 +58,12 @@ const MAP_ROUTE_CHECKS = {
   day2_brown: { drive_time_text: '0:06', distance_text: '1.1mi', traffic_text: 'Good', traffic_level: 'maps_current', source_drive_time_text: '0:10', source_distance_text: '0.9mi', source_traffic_text: 'Good', maps_duration_text: '6 min', maps_distance_text: '1.1 mi', maps_route_text: 'Canal St and Waterman St', maps_duration_minutes: 6, maps_delta_minutes: 4, maps_review_status: 'ok_within_tolerance' },
   day2_yale: { drive_time_text: '1:45', distance_text: '103mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '2:15', source_distance_text: '104.6mi', source_traffic_text: 'Moderate', maps_duration_text: '1 hr 45 min', maps_distance_text: '103 mi', maps_route_text: 'I-95 S', maps_duration_minutes: 105, maps_delta_minutes: 30, maps_review_status: 'source_conservative_or_slack' },
   day2_hotel: { drive_time_text: '0:19', distance_text: '16.2mi', traffic_text: 'Good', traffic_level: 'maps_current', source_drive_time_text: '0:25', source_distance_text: '16.3mi', source_traffic_text: 'Good', maps_duration_text: '19 min', maps_distance_text: '16.2 mi', maps_route_text: 'I-91 N', maps_duration_minutes: 19, maps_delta_minutes: 6, maps_review_status: 'ok_within_tolerance' },
-  day3_midtown: { drive_time_text: '1:49', distance_text: '92.2mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '2:30', source_distance_text: '92mi', source_traffic_text: 'Moderate', maps_duration_text: '1 hr 49 min', maps_distance_text: '92.2 mi', maps_route_text: 'I-95 S', maps_duration_minutes: 109, maps_delta_minutes: 41, maps_review_status: 'source_conservative_or_slack' },
-  day3_parks: { drive_time_text: '0:09', distance_text: '1.3mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:20', source_distance_text: '1.5mi', source_traffic_text: 'Heavy', maps_duration_text: '9 min', maps_distance_text: '1.3 mi', maps_route_text: '8th Ave and W 59th St/Central Park S', maps_duration_minutes: 9, maps_delta_minutes: 11, maps_review_status: 'ok_within_tolerance' },
-  day3_hotel: { drive_time_text: '0:03', distance_text: '0.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:15', source_distance_text: '0.9mi', source_traffic_text: 'Heavy', maps_duration_text: '3 min', maps_distance_text: '0.4 mile', maps_route_text: '6th Ave/Ave of the Americas and W 47th St', maps_duration_minutes: 3, maps_delta_minutes: 12, maps_review_status: 'ok_within_tolerance' },
+  day3_midtown: { drive_time_text: '1:49', distance_text: '92.2mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '2:30', source_distance_text: '92mi', source_traffic_text: 'Moderate', maps_duration_text: '1 hr 49 min', maps_distance_text: '92.2 mi', maps_route_text: 'I-95 S', maps_duration_minutes: 109, maps_delta_minutes: 41, maps_review_status: 'source_conservative_or_slack', transport_mode: 'drive', travel_mode: 'drive' },
+  day3_times_square_to_rockefeller_walk: { drive_time_text: '0:12', distance_text: '0.6mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:12', source_distance_text: '0.6mi', source_traffic_text: 'walkable midtown segment', maps_duration_text: '12 min walk', maps_distance_text: '0.6 mi', maps_route_text: 'Times Square → Rockefeller Center', maps_duration_minutes: 12, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_rockefeller_to_fifth_walk: { drive_time_text: '0:04', distance_text: '0.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:04', source_distance_text: '0.2mi', source_traffic_text: 'same midtown block', maps_duration_text: '4 min walk', maps_distance_text: '0.2 mi', maps_route_text: 'Rockefeller Center → Fifth Avenue', maps_duration_minutes: 4, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_fifth_to_central_park_walk: { drive_time_text: '0:14', distance_text: '0.7mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:14', source_distance_text: '0.7mi', source_traffic_text: 'walkable Fifth Avenue segment', maps_duration_text: '14 min walk', maps_distance_text: '0.7 mi', maps_route_text: 'Fifth Avenue → Central Park South', maps_duration_minutes: 14, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_central_park_to_bryant_walk: { drive_time_text: '0:24', distance_text: '1.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:24', source_distance_text: '1.2mi', source_traffic_text: 'walkable midtown return segment', maps_duration_text: '24 min walk', maps_distance_text: '1.2 mi', maps_route_text: 'Central Park South → Bryant Park', maps_duration_minutes: 24, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_hotel: { drive_time_text: '0:03', distance_text: '0.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:15', source_distance_text: '0.9mi', source_traffic_text: 'Heavy', maps_duration_text: '3 min', maps_distance_text: '0.4 mile', maps_route_text: '6th Ave/Ave of the Americas and W 47th St', maps_duration_minutes: 3, maps_delta_minutes: 12, maps_review_status: 'ok_within_tolerance', transport_mode: 'drive', travel_mode: 'drive' },
   day4_nyu: { drive_time_text: '0:18', distance_text: '2.6mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:35', source_distance_text: '2.8mi', source_traffic_text: 'Heavy', maps_duration_text: '18 min', maps_distance_text: '2.6 mi', maps_route_text: '7th Ave', maps_duration_minutes: 18, maps_delta_minutes: 17, maps_review_status: 'ok_within_tolerance' },
   day4_columbia: { drive_time_text: '0:40', distance_text: '6.8mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:40', source_distance_text: '6.6mi', source_traffic_text: 'Heavy', maps_duration_text: '40 min', maps_distance_text: '6.8 mi', maps_route_text: 'Madison Ave', maps_duration_minutes: 40, maps_delta_minutes: 0, maps_review_status: 'ok_within_tolerance' },
   day4_hotel: { drive_time_text: '0:25', distance_text: '6.7mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:40', source_distance_text: '5mi', source_traffic_text: 'Heavy', maps_duration_text: '25 min', maps_distance_text: '6.7 mi', maps_route_text: 'NY-9A S', maps_duration_minutes: 25, maps_delta_minutes: 15, maps_review_status: 'ok_within_tolerance' },
@@ -68,10 +71,15 @@ const MAP_ROUTE_CHECKS = {
   day5_swarthmore: { drive_time_text: '0:25', distance_text: '15.5mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '0:35', source_distance_text: '10.5mi', source_traffic_text: 'Moderate', maps_duration_text: '25 min', maps_distance_text: '15.5 mi', maps_route_text: 'I-95 S', maps_duration_minutes: 25, maps_delta_minutes: 10, maps_review_status: 'ok_within_tolerance' },
   day5_hotel: { drive_time_text: '0:24', distance_text: '19.2mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:50', source_distance_text: '17.2mi', source_traffic_text: 'Heavy', maps_duration_text: '24 min', maps_distance_text: '19.2 mi', maps_route_text: 'I-476 N', maps_duration_minutes: 24, maps_delta_minutes: 26, maps_review_status: 'source_conservative_or_slack' },
   day6_georgetown: { drive_time_text: '2:38', distance_text: '150mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '3:45', source_distance_text: '147mi', source_traffic_text: 'Heavy', maps_duration_text: '2 hr 38 min', maps_distance_text: '150 mi', maps_route_text: 'I-95 S', maps_duration_minutes: 158, maps_delta_minutes: 67, maps_review_status: 'source_conservative_or_slack' },
-  day6_museums: { drive_time_text: '0:11', distance_text: '3.3mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '0:20', source_distance_text: '3.7mi', source_traffic_text: 'Moderate', maps_duration_text: '11 min', maps_distance_text: '3.3 mi', maps_route_text: 'Constitution Ave. NW', maps_duration_minutes: 11, maps_delta_minutes: 9, maps_review_status: 'ok_within_tolerance' },
+  day6_museums: { drive_time_text: '0:11', distance_text: '3.3mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '0:20', source_distance_text: '3.7mi', source_traffic_text: 'Moderate', maps_duration_text: '11 min', maps_distance_text: '3.3 mi', maps_route_text: 'Constitution Ave. NW', maps_duration_minutes: 11, maps_delta_minutes: 9, maps_review_status: 'ok_within_tolerance', transport_mode: 'drive', travel_mode: 'drive' },
+  day6_natural_history_to_air_space_walk: { drive_time_text: '0:12', distance_text: '0.6mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:12', source_distance_text: '0.6mi', source_traffic_text: 'Smithsonian National Mall walking segment', maps_duration_text: '12 min walk', maps_distance_text: '0.6 mi', maps_route_text: 'National Museum of Natural History → National Air and Space Museum', maps_duration_minutes: 12, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
   day6_hotel: { drive_time_text: '0:20', distance_text: '5.8mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:20', source_distance_text: '4.3mi', source_traffic_text: 'Heavy', maps_duration_text: '20 min', maps_distance_text: '5.8 mi', maps_route_text: 'Independence Ave SW and Rock Creek and Potomac Pkwy NW', maps_duration_minutes: 20, maps_delta_minutes: 0, maps_review_status: 'ok_within_tolerance' },
-  day7_monuments: { drive_time_text: '0:16', distance_text: '3.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:25', source_distance_text: '3mi', source_traffic_text: 'Heavy', maps_duration_text: '16 min', maps_distance_text: '3.4 mi', maps_route_text: 'Massachusetts Ave NW', maps_duration_minutes: 16, maps_delta_minutes: 9, maps_review_status: 'ok_within_tolerance' },
-  day7_capitol_hill: { drive_time_text: '0:14', distance_text: '3.2mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:25', source_distance_text: '2.6mi', source_traffic_text: 'Heavy', maps_duration_text: '14 min', maps_distance_text: '3.2 mi', maps_route_text: 'Independence Ave SW', maps_duration_minutes: 14, maps_delta_minutes: 11, maps_review_status: 'ok_within_tolerance' },
+  day7_monuments: { drive_time_text: '0:16', distance_text: '3.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:25', source_distance_text: '3mi', source_traffic_text: 'Heavy', maps_duration_text: '16 min', maps_distance_text: '3.4 mi', maps_route_text: 'Massachusetts Ave NW', maps_duration_minutes: 16, maps_delta_minutes: 9, maps_review_status: 'ok_within_tolerance', transport_mode: 'drive', travel_mode: 'drive' },
+  day7_white_house_to_lincoln_walk: { drive_time_text: '0:25', distance_text: '1.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:25', source_distance_text: '1.2mi', source_traffic_text: 'National Mall walking segment', maps_duration_text: '25 min walk', maps_distance_text: '1.2 mi', maps_route_text: 'The White House → Lincoln Memorial', maps_duration_minutes: 25, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
+  day7_lincoln_to_us_capitol_walk: { drive_time_text: '0:50', distance_text: '2.5mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:50', source_distance_text: '2.5mi', source_traffic_text: 'long scenic National Mall walk', maps_duration_text: '50 min walk', maps_distance_text: '2.5 mi', maps_route_text: 'Lincoln Memorial → U.S. Capitol via National Mall', maps_duration_minutes: 50, maps_delta_minutes: 0, maps_review_status: 'walking_route_long_but_scenic', transport_mode: 'walk', travel_mode: 'walk' },
+  day7_us_capitol_to_capitol_hill_walk: { drive_time_text: '0:05', distance_text: '0.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:05', source_distance_text: '0.2mi', source_traffic_text: 'same Capitol Hill area', maps_duration_text: '5 min walk', maps_distance_text: '0.2 mi', maps_route_text: 'U.S. Capitol → Capitol Hill', maps_duration_minutes: 5, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
+  day7_capitol_hill_to_library_walk: { drive_time_text: '0:06', distance_text: '0.3mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:06', source_distance_text: '0.3mi', source_traffic_text: 'same Capitol Hill area', maps_duration_text: '6 min walk', maps_distance_text: '0.3 mi', maps_route_text: 'Capitol Hill → Library of Congress', maps_duration_minutes: 6, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
+  day7_library_to_supreme_walk: { drive_time_text: '0:04', distance_text: '0.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:04', source_distance_text: '0.2mi', source_traffic_text: 'same Capitol Hill area', maps_duration_text: '4 min walk', maps_distance_text: '0.2 mi', maps_route_text: 'Library of Congress → Supreme Court exterior', maps_duration_minutes: 4, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
   day7_hotel: { drive_time_text: '0:23', distance_text: '6.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:30', source_distance_text: '5.1mi', source_traffic_text: 'Heavy', maps_duration_text: '23 min', maps_distance_text: '6.4 mi', maps_route_text: 'Independence Ave SE and Rock Creek and Potomac Pkwy NW', maps_duration_minutes: 23, maps_delta_minutes: 7, maps_review_status: 'ok_within_tolerance' },
   day8_iad: { drive_time_text: '0:32', distance_text: '23.9mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '1:00', source_distance_text: '27.6mi', source_traffic_text: 'Moderate', maps_duration_text: '32 min', maps_distance_text: '23.9 mi', maps_route_text: 'I-66 W and Dulles Access Rd', maps_duration_minutes: 32, maps_delta_minutes: 28, maps_review_status: 'source_conservative_or_slack' },
   day8_hotel: { drive_time_text: '0:35', distance_text: '26.0mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '1:10', source_distance_text: '22.6mi', source_traffic_text: 'Heavy', maps_duration_text: '35 min', maps_distance_text: '26.0 mi', maps_route_text: 'I-90 E', maps_duration_minutes: 35, maps_delta_minutes: 35, maps_review_status: 'source_conservative_or_slack' },
@@ -86,10 +94,10 @@ const CARD_ROUTE_CHECK_IDS = {
   '091_day2_yale_university': 'day2_yale',
   '091_day2_hilton_wallingford': 'day2_hotel',
   '091_day3_times_square': 'day3_midtown',
-  '091_day3_rockefeller_center': 'day3_midtown',
-  '091_day3_fifth_avenue': 'day3_midtown',
-  '091_day3_central_park': 'day3_parks',
-  '091_day3_bryant_park': 'day3_parks',
+  '091_day3_rockefeller_center': 'day3_times_square_to_rockefeller_walk',
+  '091_day3_fifth_avenue': 'day3_rockefeller_to_fifth_walk',
+  '091_day3_central_park': 'day3_fifth_to_central_park_walk',
+  '091_day3_bryant_park': 'day3_central_park_to_bryant_walk',
   '091_day3_riu_manhattan': 'day3_hotel',
   '091_day4_new_york_university': 'day4_nyu',
   '091_day4_columbia_university': 'day4_columbia',
@@ -99,14 +107,14 @@ const CARD_ROUTE_CHECK_IDS = {
   '091_day5_hyatt_king_of_prussia': 'day5_hotel',
   '091_day6_georgetown_university': 'day6_georgetown',
   '091_day6_natural_history_museum': 'day6_museums',
-  '091_day6_air_space_museum': 'day6_museums',
+  '091_day6_air_space_museum': 'day6_natural_history_to_air_space_walk',
   '091_day6_glover_georgetown': 'day6_hotel',
   '091_day7_white_house': 'day7_monuments',
-  '091_day7_us_capitol': 'day7_monuments',
-  '091_day7_lincoln_memorial': 'day7_monuments',
-  '091_day7_capitol_hill': 'day7_capitol_hill',
-  '091_day7_library_of_congress': 'day7_capitol_hill',
-  '091_day7_supreme_court_exterior': 'day7_capitol_hill',
+  '091_day7_lincoln_memorial': 'day7_white_house_to_lincoln_walk',
+  '091_day7_us_capitol': 'day7_lincoln_to_us_capitol_walk',
+  '091_day7_capitol_hill': 'day7_us_capitol_to_capitol_hill_walk',
+  '091_day7_library_of_congress': 'day7_capitol_hill_to_library_walk',
+  '091_day7_supreme_court_exterior': 'day7_library_to_supreme_walk',
   '091_day7_glover_georgetown': 'day7_hotel',
   '091_day8_ua2331_iad_ord': 'day8_iad',
   '091_day8_study_chicago': 'day8_hotel',
@@ -858,11 +866,11 @@ const DAYS = [
     route_label: 'New York Midtown / Parks',
     departure_time: '07:50',
     cards: [
-      { card_id: '091_day3_times_square', card_type: 'landmark_card', entity_key: 'times_square', arrival_time: '10:20', appointment_time: '10:00', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 1, travel_snapshot: { drive_time_text: '2:30', distance_text: '92.00mi', traffic_text: 'Moderate', traffic_level: 'moderate' } },
-      { card_id: '091_day3_rockefeller_center', card_type: 'landmark_card', entity_key: 'rockefeller_center', arrival_time: '10:20', appointment_time: '10:00', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 2, travel_snapshot: { drive_time_text: '2:30', distance_text: '92.00mi', traffic_text: 'Moderate', traffic_level: 'moderate' } },
-      { card_id: '091_day3_fifth_avenue', card_type: 'landmark_card', entity_key: 'fifth_avenue', arrival_time: '10:20', appointment_time: '10:00', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 3, travel_snapshot: { drive_time_text: '2:30', distance_text: '92.00mi', traffic_text: 'Moderate', traffic_level: 'moderate' } },
-      { card_id: '091_day3_central_park', card_type: 'landmark_card', entity_key: 'central_park', arrival_time: '12:20', appointment_time: '14:00', parent_group_id: 'day3_park_group', parent_group_title: '中央公园 / 布莱恩特公园', group_sequence: 1 },
-      { card_id: '091_day3_bryant_park', card_type: 'landmark_card', entity_key: 'bryant_park', arrival_time: '12:20', appointment_time: '14:00', parent_group_id: 'day3_park_group', parent_group_title: '中央公园 / 布莱恩特公园', group_sequence: 2 },
+      { card_id: '091_day3_times_square', card_type: 'landmark_card', entity_key: 'times_square', arrival_time: '10:20', appointment_time: '10:20', end_time: '10:45', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 1 },
+      { card_id: '091_day3_rockefeller_center', card_type: 'landmark_card', entity_key: 'rockefeller_center', arrival_time: '10:57', appointment_time: '10:57', end_time: '11:20', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 2 },
+      { card_id: '091_day3_fifth_avenue', card_type: 'landmark_card', entity_key: 'fifth_avenue', arrival_time: '11:24', appointment_time: '11:24', end_time: '11:45', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 3 },
+      { card_id: '091_day3_central_park', card_type: 'landmark_card', entity_key: 'central_park', arrival_time: '12:00', appointment_time: '12:00', end_time: '13:35', parent_group_id: 'day3_park_group', parent_group_title: '中央公园 / 布莱恩特公园', group_sequence: 1 },
+      { card_id: '091_day3_bryant_park', card_type: 'landmark_card', entity_key: 'bryant_park', arrival_time: '13:59', appointment_time: '13:59', end_time: '14:20', parent_group_id: 'day3_park_group', parent_group_title: '中央公园 / 布莱恩特公园', group_sequence: 2 },
       { card_id: '091_day3_riu_manhattan', card_type: 'hotel_arrival_card', entity_key: 'riu_manhattan', arrival_time: '18:00', parent_group_id: 'hotel_stay_riu_day3_day4', parent_group_title: 'Riu Plaza Manhattan Times Square 连住', group_sequence: 1, stay_id: 'stay_riu_manhattan_day3_day4' },
     ],
   },
@@ -902,8 +910,8 @@ const DAYS = [
     departure_time: '05:30',
     cards: [
       { card_id: '091_day6_georgetown_university', card_type: 'school_visit_card', entity_key: 'georgetown_university', arrival_time: '09:15', appointment_time: '09:30' },
-      { card_id: '091_day6_natural_history_museum', card_type: 'museum_card', entity_key: 'natural_history_museum', arrival_time: '13:30', appointment_time: '14:00', parent_group_id: 'day6_museum_group', parent_group_title: '国家自然历史博物馆 / 国家航空航天博物馆', group_sequence: 1 },
-      { card_id: '091_day6_air_space_museum', card_type: 'museum_card', entity_key: 'air_space_museum', arrival_time: '13:30', appointment_time: '14:00', parent_group_id: 'day6_museum_group', parent_group_title: '国家自然历史博物馆 / 国家航空航天博物馆', group_sequence: 2 },
+      { card_id: '091_day6_natural_history_museum', card_type: 'museum_card', entity_key: 'natural_history_museum', arrival_time: '13:30', appointment_time: '13:30', end_time: '15:00', parent_group_id: 'day6_museum_group', parent_group_title: '国家自然历史博物馆 / 国家航空航天博物馆', group_sequence: 1 },
+      { card_id: '091_day6_air_space_museum', card_type: 'museum_card', entity_key: 'air_space_museum', arrival_time: '15:12', appointment_time: '15:12', end_time: '17:20', parent_group_id: 'day6_museum_group', parent_group_title: '国家自然历史博物馆 / 国家航空航天博物馆', group_sequence: 2 },
       { card_id: '091_day6_glover_georgetown', card_type: 'hotel_arrival_card', entity_key: 'glover_georgetown', arrival_time: '18:00', parent_group_id: 'hotel_stay_glover_day6_day7', parent_group_title: 'Glover Park Hotel Georgetown 连住', group_sequence: 1, stay_id: 'stay_glover_georgetown_day6_day7' },
     ],
   },
@@ -915,12 +923,12 @@ const DAYS = [
     route_label: 'White House / Capitol / Library of Congress',
     departure_time: '09:20',
     cards: [
-      { card_id: '091_day7_white_house', card_type: 'landmark_card', entity_key: 'white_house', arrival_time: '09:45', appointment_time: '10:00', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 国会大厦 / 林肯纪念堂', group_sequence: 1 },
-      { card_id: '091_day7_us_capitol', card_type: 'landmark_card', entity_key: 'us_capitol', arrival_time: '09:45', appointment_time: '10:00', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 国会大厦 / 林肯纪念堂', group_sequence: 2 },
-      { card_id: '091_day7_lincoln_memorial', card_type: 'landmark_card', entity_key: 'lincoln_memorial', arrival_time: '09:45', appointment_time: '10:00', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 国会大厦 / 林肯纪念堂', group_sequence: 3 },
-      { card_id: '091_day7_capitol_hill', card_type: 'landmark_card', entity_key: 'capitol_hill', arrival_time: '12:40', appointment_time: '14:00', parent_group_id: 'day7_capitol_hill_group', parent_group_title: '国会山 / 国会图书馆 / 最高法院外景', group_sequence: 1 },
-      { card_id: '091_day7_library_of_congress', card_type: 'landmark_card', entity_key: 'library_of_congress', arrival_time: '12:40', appointment_time: '14:00', parent_group_id: 'day7_capitol_hill_group', parent_group_title: '国会山 / 国会图书馆 / 最高法院外景', group_sequence: 2 },
-      { card_id: '091_day7_supreme_court_exterior', card_type: 'landmark_card', entity_key: 'supreme_court_exterior', arrival_time: '12:40', appointment_time: '14:00', parent_group_id: 'day7_capitol_hill_group', parent_group_title: '国会山 / 国会图书馆 / 最高法院外景', group_sequence: 3 },
+      { card_id: '091_day7_white_house', card_type: 'landmark_card', entity_key: 'white_house', arrival_time: '09:45', appointment_time: '10:00', end_time: '10:20', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 林肯纪念堂 / 国会大厦', group_sequence: 1 },
+      { card_id: '091_day7_lincoln_memorial', card_type: 'landmark_card', entity_key: 'lincoln_memorial', arrival_time: '10:45', appointment_time: '10:45', end_time: '11:15', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 林肯纪念堂 / 国会大厦', group_sequence: 2 },
+      { card_id: '091_day7_us_capitol', card_type: 'landmark_card', entity_key: 'us_capitol', arrival_time: '12:05', appointment_time: '12:05', end_time: '12:35', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 林肯纪念堂 / 国会大厦', group_sequence: 3 },
+      { card_id: '091_day7_capitol_hill', card_type: 'landmark_card', entity_key: 'capitol_hill', arrival_time: '12:40', appointment_time: '12:40', end_time: '13:00', parent_group_id: 'day7_capitol_hill_group', parent_group_title: '国会山 / 国会图书馆 / 最高法院外景', group_sequence: 1 },
+      { card_id: '091_day7_library_of_congress', card_type: 'landmark_card', entity_key: 'library_of_congress', arrival_time: '13:06', appointment_time: '13:06', end_time: '13:35', parent_group_id: 'day7_capitol_hill_group', parent_group_title: '国会山 / 国会图书馆 / 最高法院外景', group_sequence: 2 },
+      { card_id: '091_day7_supreme_court_exterior', card_type: 'landmark_card', entity_key: 'supreme_court_exterior', arrival_time: '13:39', appointment_time: '13:39', end_time: '14:00', parent_group_id: 'day7_capitol_hill_group', parent_group_title: '国会山 / 国会图书馆 / 最高法院外景', group_sequence: 3 },
       { card_id: '091_day7_glover_georgetown', card_type: 'hotel_arrival_card', entity_key: 'glover_georgetown', arrival_time: '16:30', parent_group_id: 'hotel_stay_glover_day6_day7', parent_group_title: 'Glover Park Hotel Georgetown 连住', group_sequence: 2, stay_id: 'stay_glover_georgetown_day6_day7' },
     ],
   },
@@ -998,6 +1006,11 @@ function defaultTravelSnapshot(snapshot = {}) {
     'maps_review_status',
     'maps_checked_at',
     'maps_check_mode',
+    'travel_mode',
+    'transport_mode',
+    'segment_mode',
+    'mode_text',
+    'transport_mode_text',
     'waze_duration_text',
     'waze_distance_text',
     'waze_route_text',
@@ -1007,6 +1020,16 @@ function defaultTravelSnapshot(snapshot = {}) {
       normalized[key] = snapshot[key];
     }
   });
+  const inferredMode = normalized.travel_mode || normalized.transport_mode || normalized.segment_mode
+    || (normalized.traffic_level === 'walk' || /walk|步行/i.test(normalized.maps_duration_text || '') ? 'walk' : '')
+    || (normalized.maps_duration_text || normalized.drive_time_text ? 'drive' : '');
+  if (inferredMode) {
+    normalized.travel_mode = normalized.travel_mode || inferredMode;
+    normalized.transport_mode = normalized.transport_mode || inferredMode;
+    normalized.segment_mode = normalized.segment_mode || inferredMode;
+    normalized.mode_text = normalized.mode_text || (inferredMode === 'walk' ? '步行' : '驾车');
+    normalized.transport_mode_text = normalized.transport_mode_text || normalized.mode_text;
+  }
   return normalized;
 }
 
@@ -1551,10 +1574,7 @@ function validateTrip091CardSystem(snapshot) {
       && routeCheckMissing.length === 0
       && mapsCheckMissing.length === 0
       && mapsRiskCards.length === 0
-      && warnings.includes('091_day2_yale_university')
-      && warnings.includes('091_day3_times_square')
-      && warnings.includes('091_day3_rockefeller_center')
-      && warnings.includes('091_day3_fifth_avenue'),
+      && warnings.includes('091_day2_yale_university'),
   };
 }
 
