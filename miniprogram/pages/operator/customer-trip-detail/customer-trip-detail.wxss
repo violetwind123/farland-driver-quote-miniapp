@@ -268,17 +268,6 @@
   word-break: break-word;
 }
 
-.invite-path {
-  margin-top: 14rpx;
-  padding: 14rpx;
-  border-radius: 14rpx;
-  background: #FFFFFF;
-  color: #253554;
-  font-size: 22rpx;
-  line-height: 1.5;
-  word-break: break-all;
-}
-
 .invite-sub {
   margin-top: 10rpx;
   color: #6672A8;

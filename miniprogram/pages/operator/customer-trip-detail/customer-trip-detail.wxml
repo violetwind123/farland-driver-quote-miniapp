@@ -79,8 +79,8 @@
         <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
       </view>
       <block wx:else>
-        <view class="share-note">生成后可复制路径，通过顾问卡片发送给客户。</view>
-        <button class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createTripInvite">生成客户分享卡</button>
+        <view class="share-note">先准备客户分享卡，准备好后直接通过微信转发给客户。</view>
+        <button wx:if="{{!invitePath}}" class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createTripInvite">准备客户分享卡</button>
         <view wx:if="{{invitePath}}" class="invite-box">
           <view class="invite-row">
             <view class="invite-label">invite_code</view>
@@ -90,9 +90,8 @@
             <view class="invite-label">expires_at</view>
             <view class="invite-value">{{inviteExpiresAt}}</view>
           </view>
-          <view class="invite-path">{{invitePath}}</view>
-          <view wx:if="{{inviteReused}}" class="invite-sub">已复用当前有效分享卡。</view>
-          <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
+          <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
+          <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户分享卡</button>
         </view>
       </block>
     </view>

@@ -533,15 +533,25 @@
   line-height: 1.45;
 }
 
-.invite-path {
+.invite-ready-box {
   margin-top: 14rpx;
   padding: 14rpx;
   border-radius: 14rpx;
   background: #F7F9FF;
+}
+
+.invite-ready-title {
   color: #253554;
+  font-size: 24rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.invite-ready-sub {
+  margin-top: 8rpx;
+  color: #6E7788;
   font-size: 22rpx;
-  line-height: 1.5;
-  word-break: break-all;
+  line-height: 1.45;
 }
 
 .share-title {

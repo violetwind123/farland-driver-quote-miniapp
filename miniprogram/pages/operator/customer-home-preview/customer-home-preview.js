@@ -65,8 +65,8 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: delivered ? '已推送客户端' : '已发布客户可见版本',
       release_step_copy: delivered
         ? '客户客户端已可查看该行程。可再次进入客户页面核对展示效果。'
-        : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并创建或复制客户卡。',
-      release_step_tip: delivered ? '如需重新发送，可继续生成或复制客户卡。' : '下一步：Create / Copy Customer Card。',
+        : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并准备客户卡直接微信转发。',
+      release_step_tip: delivered ? '如需重新发送，可继续准备并转发客户卡。' : '下一步：准备并转发客户卡。',
       customer_preview_button_text: '进入客户真实页面',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
@@ -130,6 +130,7 @@ Page({
     invitePath: '',
     inviteCode: '',
     inviteExpiresAt: '',
+    inviteReused: false,
     trip091Example: TRIP091_EXAMPLE,
   },
 
@@ -156,6 +157,9 @@ Page({
       customerHome: null,
       previewMeta: createDefaultPreviewMeta(),
       invitePath: '',
+      inviteCode: '',
+      inviteExpiresAt: '',
+      inviteReused: false,
     });
   },
 
@@ -175,6 +179,7 @@ Page({
       invitePath: '',
       inviteCode: '',
       inviteExpiresAt: '',
+      inviteReused: false,
       error: '',
     }, () => this.loadPreview());
   },
@@ -275,6 +280,7 @@ Page({
         invitePath: '',
         inviteCode: '',
         inviteExpiresAt: '',
+        inviteReused: false,
       });
       if (enterCustomerPage) {
         this.openCustomerFacingPreview(result);
@@ -477,7 +483,13 @@ Page({
         wx.showToast({ title: '发布失败', icon: 'none' });
         return;
       }
-      this.setData({ publishing: false, invitePath: '', inviteCode: '', inviteExpiresAt: '' });
+      this.setData({
+        publishing: false,
+        invitePath: '',
+        inviteCode: '',
+        inviteExpiresAt: '',
+        inviteReused: false,
+      });
       wx.showToast({ title: '已发布', icon: 'success' });
       this.loadPreview();
     } catch (error) {
@@ -520,6 +532,7 @@ Page({
         invitePath: result.share_path || result.path || '',
         inviteCode: result.invite_code || '',
         inviteExpiresAt: result.expires_at || '',
+        inviteReused: Boolean(result.reused),
       });
       wx.showToast({ title: result.reused ? '已复用分享卡' : '分享卡已生成', icon: 'success' });
     } catch (error) {
@@ -529,14 +542,36 @@ Page({
     }
   },
 
-  copyInvitePath() {
-    if (!this.data.invitePath) {
-      wx.showToast({ title: '请先生成分享卡', icon: 'none' });
-      return;
+  buildTripInviteShare() {
+    const { invitePath, customerHome, previewMeta, tripId } = this.data;
+    if (!invitePath) {
+      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      return {
+        title: 'Farland 行程',
+        path: 'pages/customer/home/home',
+      };
     }
-    wx.setClipboardData({
-      data: this.data.invitePath,
-      success: () => wx.showToast({ title: '已复制客户路径', icon: 'success' }),
-    });
+    const overview = customerHome && Array.isArray(customerHome.trip_overview)
+      ? (customerHome.trip_overview[0] || {})
+      : {};
+    const titleBase = overview.title || 'Farland 行程';
+    const tripNo = overview.trip_no
+      || (previewMeta && (previewMeta.external_trip_id || previewMeta.trip_id))
+      || tripId
+      || '';
+    return {
+      title: tripNo ? `${titleBase}｜${tripNo}` : titleBase,
+      path: invitePath.replace(/^\//, ''),
+    };
+  },
+
+  onTripInviteShareTap() {
+    if (!this.data.invitePath) {
+      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+    }
+  },
+
+  onShareAppMessage() {
+    return this.buildTripInviteShare();
   },
 });

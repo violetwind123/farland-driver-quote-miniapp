@@ -147,13 +147,17 @@
     <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
       <view class="share-title">客户分享卡</view>
       <view class="share-sub">
-        {{selectedCustomer ? '将为当前选中客户写入访问权限，并创建或复用分享链接。' : '未选择客户时只创建或复用分享链接，不写 customer_trip_access。'}}
+        {{selectedCustomer ? '将为当前选中客户写入访问权限；准备好后直接微信转发。' : '未选择客户时只准备临时客户分享卡，不写 customer_trip_access。'}}
       </view>
-      <button class="primary-wide-btn" loading="{{creatingInvite}}" bindtap="createInvite">
-        {{selectedCustomer ? '绑定至客户账户并创建分享链接' : '创建/复制客户分享链接'}}
+      <button wx:if="{{!invitePath}}" class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createInvite">
+        {{selectedCustomer ? '绑定账户并准备分享卡' : '准备客户分享卡'}}
       </button>
-      <view wx:if="{{invitePath}}" class="invite-path">{{invitePath}}</view>
-      <button wx:if="{{invitePath}}" class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
+      <view wx:else class="invite-ready-box">
+        <view class="invite-ready-title">分享卡已准备</view>
+        <view class="invite-ready-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接通过微信转发给客户。'}}</view>
+        <view wx:if="{{inviteExpiresAt}}" class="invite-ready-sub">有效期至 {{inviteExpiresAt}}</view>
+        <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户分享卡</button>
+      </view>
     </view>
   </view>
 

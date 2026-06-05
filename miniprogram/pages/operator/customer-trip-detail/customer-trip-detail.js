@@ -332,15 +332,36 @@ Page({
     }
   },
 
-  copyInvitePath() {
-    if (!this.data.invitePath) {
-      wx.showToast({ title: '请先生成分享卡', icon: 'none' });
-      return;
+  buildTripInviteShare() {
+    const { invitePath, publishedSnapshot, activeSnapshot, preview, tripId } = this.data;
+    if (!invitePath) {
+      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      return {
+        title: 'Farland 行程',
+        path: 'pages/customer/home/home',
+      };
     }
-    wx.setClipboardData({
-      data: this.data.invitePath,
-      success: () => wx.showToast({ title: '已复制客户路径', icon: 'success' }),
-    });
+    const snapshot = publishedSnapshot || activeSnapshot || {};
+    const titleBase = snapshot.display_title || snapshot.title || 'Farland 行程';
+    const tripNo = snapshot.display_trip_no
+      || snapshot.trip_no
+      || (preview && (preview.external_trip_id || preview.trip_id))
+      || tripId
+      || '';
+    return {
+      title: tripNo ? `${titleBase}｜${tripNo}` : titleBase,
+      path: invitePath.replace(/^\//, ''),
+    };
+  },
+
+  onTripInviteShareTap() {
+    if (!this.data.invitePath) {
+      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+    }
+  },
+
+  onShareAppMessage() {
+    return this.buildTripInviteShare();
   },
 
   refreshPreview() {
