@@ -66,6 +66,7 @@ const customerHomePageConfig = {
     operatorPreviewDays: [],
     operatorPreviewFlights: [],
     hideModules: {},
+    phoneDateKey: '',
   },
 
   onLoad(options = {}) {
@@ -121,6 +122,7 @@ const customerHomePageConfig = {
       this.loadHome();
       return;
     }
+    this.refreshPhoneLocalTripDaySelection();
     this.scrollToPendingCustomerHomeTarget();
   },
 
@@ -313,17 +315,6 @@ const customerHomePageConfig = {
         return;
       }
       const hideModules = result.hide_modules || {};
-      const customerSummaryBar = this.normalizeCustomerSummaryBar(result);
-      const tripProgress = this.normalizeDailyProgress(result.trip_progress || result.progress_strip || null, result);
-      const progressStrip = tripProgress;
-      const dailyCharter = this.normalizeDailyCharter(result.daily_charter || null);
-      const todayCard = this.normalizeTodayCard((dailyCharter && dailyCharter.today_card) || result.today_card || null);
-      const hasCharterContract = Boolean(result.daily_charter || result.today_driver_card || result.hide_modules);
-      const todayDriverCard = hasCharterContract
-        ? this.normalizeTodayDriverCard(result.today_driver_card || null)
-        : this.buildTodayDriverCard(todayCard);
-      const todayHotelCard = this.normalizeTodayHotelCard(result.today_hotel_card || null) || this.buildTodayHotelCard(todayCard);
-      const todayItinerary = this.normalizeTodayItinerary(result.today_itinerary || null);
       const tripOverview = (result.trip_overview || []).map((item) => ({
         ...item,
         statusText: item.status === 'pending' ? 'Farland 确认中' : '已确认',
@@ -340,6 +331,59 @@ const customerHomePageConfig = {
           : 'Farland 顾问正在确认酒店与房型',
       }));
       const tripDayCards = this.normalizeHomeDayCards(result.daily_summary_cards || [], result.itinerary_days || []);
+      const customerSummaryBar = this.normalizeCustomerSummaryBar(result);
+      const tripProgress = this.normalizeDailyProgress(result.trip_progress || result.progress_strip || null, result);
+      const progressStrip = tripProgress;
+      const selectedTripDayNo = (tripProgress && (tripProgress.selected_day_no || tripProgress.current_day_no))
+        || this.resolveInitialTripDayNo(tripDayCards);
+      const selectedTripDay = tripDayCards.find((day) => Number(day.dayNo || day.day_no || 0) === Number(selectedTripDayNo))
+        || tripDayCards[0]
+        || null;
+      const activeTripOverview = tripOverview[0] || {};
+      const phoneLocalTodayCard = selectedTripDay ? this.buildTodayCardFromTripDay(selectedTripDay, {
+        trip_id: activeTripOverview.trip_id || '',
+        trip_no: activeTripOverview.trip_no || '',
+        overview: activeTripOverview,
+      }) : null;
+      const serverDailyCharter = this.normalizeDailyCharter(result.daily_charter || null);
+      const todayCard = this.normalizeTodayCard(
+        phoneLocalTodayCard
+        || (serverDailyCharter && serverDailyCharter.today_card)
+        || result.today_card
+        || null,
+      );
+      const dailyCharter = todayCard ? this.normalizeDailyCharter({
+        ...(serverDailyCharter || {}),
+        visible: true,
+        service_type: todayCard.service_type || 'charter',
+        service_window_label: todayCard.serviceWindowText || todayCard.depart_time || '',
+        vehicle_summary: todayCard.vehicle_summary || '',
+        party_summary: todayCard.party_summary || '',
+        driver_visibility: todayCard.driver_visibility || 'pending',
+        driver: todayCard.driver || null,
+        destination_cards: todayCard.destination_cards || [],
+        today_card: todayCard,
+      }) : serverDailyCharter;
+      const hasCharterContract = Boolean(result.daily_charter || result.today_driver_card || result.hide_modules || selectedTripDay);
+      let todayDriverCard = selectedTripDay
+        ? this.buildPublishedTripTodayDriverCard(selectedTripDay, {})
+        : (hasCharterContract
+          ? this.normalizeTodayDriverCard(result.today_driver_card || null)
+          : this.buildTodayDriverCard(todayCard));
+      if (todayDriverCard && selectedTripDay) {
+        todayDriverCard.title = '今日用车';
+        todayDriverCard.sectionTitle = '今日用车';
+      }
+      const selectedHotel = this.findHotelForTripDay(selectedTripDay, hotelCards);
+      const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
+        ...selectedHotel,
+        visible: true,
+        hotel_id: selectedHotel.hotel_id || selectedHotel.id,
+        sectionTitle: '今晚住宿',
+      }) : (this.normalizeTodayHotelCard(result.today_hotel_card || null) || this.buildTodayHotelCard(todayCard));
+      const todayItinerary = selectedTripDay
+        ? this.buildTodayItineraryFromTripDay(selectedTripDay, activeTripOverview)
+        : this.normalizeTodayItinerary(result.today_itinerary || null);
       const flightCards = this.normalizeHomeFlightCards(result.flight_cards || []);
       const transferRequests = (result.transfer_requests || [])
         .filter((request) => (request.service_type || 'transfer') !== 'charter')
@@ -424,7 +468,8 @@ const customerHomePageConfig = {
         customerSummaryBar,
         tripProgress,
         progressStrip,
-        selectedTripDayNo: (tripProgress && (tripProgress.selected_day_no || tripProgress.current_day_no)) || 0,
+        selectedTripDayNo,
+        phoneDateKey: this.getTodayDateKey(),
         todayCard,
         dailyCharter,
         todayDriverCard,
@@ -507,6 +552,33 @@ const customerHomePageConfig = {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     return `${now.getFullYear()}-${month}-${day}`;
+  },
+
+  refreshPhoneLocalTripDaySelection() {
+    const phoneDateKey = this.getTodayDateKey();
+    if (this.data.phoneDateKey === phoneDateKey) return;
+
+    if (this.data.tripInviteMode && this.data.tripInviteTrip && Array.isArray(this.data.tripInviteTrip.days) && this.data.tripInviteTrip.days.length) {
+      const trip = this.applySelectedDayToPublishedTrip(this.data.tripInviteTrip, 0);
+      this.setData({
+        phoneDateKey,
+        tripInviteTrip: trip,
+        selectedTripDayNo: trip.selectedDayNo || trip.selected_day_no || 0,
+      });
+      return;
+    }
+
+    const hasTripDays = Array.isArray(this.data.tripDayCards) && this.data.tripDayCards.length;
+    if (hasTripDays) {
+      const nextState = this.buildSelectedHomeDayState(0);
+      this.setData({
+        ...nextState,
+        phoneDateKey,
+      });
+      return;
+    }
+
+    this.setData({ phoneDateKey });
   },
 
   resolveInitialTripDayNo(days, preferredDayNo = 0) {
@@ -616,7 +688,8 @@ const customerHomePageConfig = {
     }
 
     if (nodes.length < 2) return null;
-    const currentDayNo = Number((strip && strip.current_day_no) || (result.today_card && result.today_card.day_no) || nodes[0].day_no);
+    const fallbackCurrentDayNo = Number((strip && strip.current_day_no) || (result.today_card && result.today_card.day_no) || nodes[0].day_no);
+    const currentDayNo = this.resolveInitialTripDayNo(nodes) || fallbackCurrentDayNo;
     const selectedDayNo = this.resolveInitialTripDayNo(nodes, this.data.selectedTripDayNo || currentDayNo);
     let currentIndex = nodes.findIndex((node) => Number(node.day_no || 0) === currentDayNo);
     if (currentIndex < 0) currentIndex = 0;
@@ -1451,6 +1524,7 @@ const customerHomePageConfig = {
           tripInviteAlreadySaved: Boolean(result.already_saved),
           tripInviteCanSave: false,
           selectedTripDayNo: 0,
+          phoneDateKey: this.getTodayDateKey(),
           needsInviteClaim: false,
         });
         return;
@@ -1477,6 +1551,7 @@ const customerHomePageConfig = {
         tripInviteAlreadySaved: Boolean(result.already_saved),
         tripInviteCanSave: Boolean(result.can_save_to_profile),
         selectedTripDayNo: trip.selectedDayNo || 0,
+        phoneDateKey: this.getTodayDateKey(),
         tripInviteShowSaveForm: false,
         needsInviteClaim: false,
         profile: {
@@ -1804,6 +1879,7 @@ const customerHomePageConfig = {
         subtitle: '当前页面模拟客户打开分享卡后的真实显示效果。',
       },
       selectedTripDayNo: trip.selectedDayNo || 0,
+      phoneDateKey: this.getTodayDateKey(),
       advisorPhone: trip.advisorPhone || '',
     });
     this.scrollToPendingCustomerHomeTarget();
@@ -1842,6 +1918,7 @@ const customerHomePageConfig = {
       tripProgress: previewHome.tripProgress,
       progressStrip: previewHome.progressStrip,
       selectedTripDayNo: previewHome.selectedDayNo || 0,
+      phoneDateKey: this.getTodayDateKey(),
       todayCard: previewHome.todayCard,
       dailyCharter: null,
       todayDriverCard: previewHome.todayDriverCard,
