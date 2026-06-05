@@ -5,7 +5,7 @@ const path = require('path');
 const {
   buildTrip091CardSystem,
   validateTrip091CardSystem,
-} = require('../cloudfunctions/buildCustomerTripVisibleDraft/lib/trip091CardSystem');
+} = require('../cloudfunctions/buildCustomerTripVisibleDraft/trip091CardSystem');
 
 const outputPath = process.argv[2] || path.join('/tmp', '2026XBC091-draft_snapshot.json');
 const snapshot = buildTrip091CardSystem({

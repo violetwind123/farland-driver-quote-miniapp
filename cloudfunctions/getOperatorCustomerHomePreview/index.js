@@ -1,5 +1,5 @@
 const cloud = require('wx-server-sdk');
-const { requireRole } = require('./lib/auth');
+const { requireRole } = require('./auth');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -184,14 +184,9 @@ function normalizeDay(day, index) {
   const estimatedRaw = firstText([day.estimated_departure_time_raw, day.estimated_departure_time, day.depart_time]);
   const startTimeText = firstText([day.estimated_departure_time, day.estimated_departure_time_raw, day.displayed_start_time, day.displayed_start_time_raw, day.start_time]);
   return sanitizeCustomerObject({
+    ...day,
     day_no: day.day_no || index + 1,
-    date: day.date || '',
-    weekday: day.weekday || '',
     title: day.title || `Day ${day.day_no || index + 1}`,
-    city: day.city || '',
-    summary: day.summary || '',
-    displayed_start_time: day.displayed_start_time || '',
-    estimated_departure_time: day.estimated_departure_time || '',
     displayed_start_time_raw: displayedRaw,
     estimated_departure_time_raw: estimatedRaw,
     start_time_text: startTimeText,

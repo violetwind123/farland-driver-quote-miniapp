@@ -379,11 +379,27 @@ Page({
       wx.showToast({ title: '请输入 trip_id', icon: 'none' });
       return;
     }
+    const tripId = (this.data.tripId || '').trim();
+    const isTrip091 = tripId === '2026XBC091'
+      || tripId === 'bf757c4c6a2054f800350a925147b32e'
+      || (this.data.previewMeta && (
+        this.data.previewMeta.trip_no === '2026XBC091'
+        || this.data.previewMeta.external_trip_id === '2026XBC091'
+      ));
+    const buildPayload = { trip_id: tripId };
+    if (isTrip091) {
+      Object.assign(buildPayload, {
+        trip_no: '2026XBC091',
+        external_trip_id: '2026XBC091',
+        publish_now: true,
+        review_note: '091 route-checked snapshot refresh 2026-06-05',
+      });
+    }
     this.setData({ building: true, error: '' });
     try {
       const { result } = await wx.cloud.callFunction({
         name: 'buildCustomerTripVisibleDraft',
-        data: { trip_id: this.data.tripId },
+        data: buildPayload,
       });
       if (!result || !result.success) {
         this.setData({ building: false, error: (result && result.message) || '生成草稿失败' });
@@ -391,7 +407,7 @@ Page({
         return;
       }
       this.setData({ building: false });
-      wx.showToast({ title: '草稿已生成', icon: 'success' });
+      wx.showToast({ title: result.published_now ? '091已刷新发布' : '草稿已生成', icon: 'success' });
       this.loadPreview();
     } catch (error) {
       console.error('[customer-home-preview] build draft failed', error);

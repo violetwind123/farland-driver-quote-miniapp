@@ -1,9 +1,17 @@
 const cloud = require('wx-server-sdk');
-const { requireRole } = require('./lib/auth');
-const { writeAuditLog } = require('./lib/audit');
+const { requireRole } = require('./auth');
+const { writeAuditLog } = require('./trip091CardSystem');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+
+const TRIP091_TARGET_DOC_ID = 'bf757c4c6a2054f800350a925147b32e';
+const TRIP091_NO = '2026XBC091';
+const TRIP091_BACKUP_COLLECTION = 'audit_logs';
+const TRIP091_RESOLVED_WARNING_CODES = new Set([
+  'missing_drive_time',
+  'missing_distance',
+]);
 
 const INTERNAL_KEYS = [
   'openid',
@@ -70,6 +78,99 @@ function firstText(values) {
 
 function makeId(prefix, value, index) {
   return firstText([value]).replace(/[^a-zA-Z0-9_-]/g, '_') || `${prefix}_${index + 1}`;
+}
+
+function isStrictTrip091Target(trip) {
+  return Boolean(
+    trip
+      && trip._id === TRIP091_TARGET_DOC_ID
+      && safeString(trip.trip_no).trim() === TRIP091_NO
+      && safeString(trip.external_trip_id).trim() === TRIP091_NO
+  );
+}
+
+function validateTrip091WriteSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    return { valid: false, reason: 'empty_snapshot' };
+  }
+  if (JSON.stringify(snapshot).includes('2026FEEDEMO01')) {
+    return { valid: false, reason: 'demo_trip_reference_detected' };
+  }
+  const cards = Array.isArray(snapshot.destination_cards) ? snapshot.destination_cards : [];
+  const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+  const dayCounts = days.map((day) => {
+    const dayCards = Array.isArray(day.destination_cards) ? day.destination_cards : (Array.isArray(day.cards) ? day.cards : []);
+    return dayCards.length;
+  });
+  const expectedDayCounts = [3, 3, 6, 4, 3, 4, 7, 2];
+  const nonMeetingMissingRoute = cards.filter((card) => {
+    if (card.card_type === 'meeting_card') return false;
+    const travel = card.travel_snapshot || {};
+    return !card.route_check_id
+      || !travel.drive_time_text
+      || !travel.distance_text
+      || !travel.traffic_text
+      || !travel.maps_duration_text
+      || !travel.maps_distance_text
+      || !travel.maps_checked_at
+      || !travel.maps_review_status;
+  });
+  const groupCounts = {
+    day3_midtown_group: cards.filter((card) => card.parent_group_id === 'day3_midtown_group').length,
+    day3_park_group: cards.filter((card) => card.parent_group_id === 'day3_park_group').length,
+    day6_museum_group: cards.filter((card) => card.parent_group_id === 'day6_museum_group').length,
+    day7_monuments_group: cards.filter((card) => card.parent_group_id === 'day7_monuments_group').length,
+    day7_capitol_hill_group: cards.filter((card) => card.parent_group_id === 'day7_capitol_hill_group').length,
+  };
+  const validGroups = groupCounts.day3_midtown_group === 3
+    && groupCounts.day3_park_group === 2
+    && groupCounts.day6_museum_group === 2
+    && groupCounts.day7_monuments_group === 3
+    && groupCounts.day7_capitol_hill_group === 3;
+  const generatorValidation = snapshot.card_system_validation || {};
+  const valid = cards.length === 32
+    && dayCounts.join(',') === expectedDayCounts.join(',')
+    && nonMeetingMissingRoute.length === 0
+    && validGroups
+    && generatorValidation.valid === true;
+
+  return {
+    valid,
+    reason: valid ? '' : 'trip091_snapshot_guardrail_failed',
+    destination_cards_count: cards.length,
+    day_counts: dayCounts,
+    expected_day_counts: expectedDayCounts,
+    non_meeting_missing_route_count: nonMeetingMissingRoute.length,
+    group_counts: groupCounts,
+    generator_validation_valid: generatorValidation.valid === true,
+  };
+}
+
+function resolveTrip091WarningCodes(codes, validation) {
+  if (!validation || validation.valid !== true || validation.non_meeting_missing_route_count !== 0) {
+    return codes;
+  }
+  return codes.filter((code) => !TRIP091_RESOLVED_WARNING_CODES.has(code));
+}
+
+async function backupTrip091OriginalDoc(trip, now, validation) {
+  const backupRes = await db.collection(TRIP091_BACKUP_COLLECTION).add({
+    data: {
+      source_collection: 'customer_trips',
+      source_doc_id: trip._id,
+      action: 'customer_trip_091_original_doc_backup',
+      target_type: 'customer_trip',
+      target_id: trip._id,
+      trip_no: trip.trip_no,
+      external_trip_id: trip.external_trip_id,
+      backup_reason: 'before_091_snapshot_refresh',
+      backed_up_at: now,
+      created_at: now,
+      snapshot_validation: validation,
+      original_doc: trip,
+    },
+  });
+  return backupRes && backupRes._id ? backupRes._id : '';
 }
 
 function buildDateText(start, end) {
@@ -1976,9 +2077,43 @@ exports.main = async (event = {}) => {
   const warningCodes = unique(findWarningCodes(trip));
   const criticalWarningCodes = Array.isArray(trip.critical_warning_codes) ? trip.critical_warning_codes : [];
   const useTrip091CardSystem = trip091CardSystem.isTrip091(trip);
+  if (useTrip091CardSystem && !isStrictTrip091Target(trip)) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'TRIP_091_GUARDRAIL_FAILED',
+      message: '091 刷新仅允许指定客户行程文档',
+      target_doc_id: TRIP091_TARGET_DOC_ID,
+    };
+  }
+
   const draftSnapshot = useTrip091CardSystem
     ? trip091CardSystem.buildTrip091CardSystem(trip)
     : normalizeSnapshotV2(trip);
+  const trip091SnapshotValidation = useTrip091CardSystem ? validateTrip091WriteSnapshot(draftSnapshot) : null;
+  if (useTrip091CardSystem && !trip091SnapshotValidation.valid) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'TRIP_091_SNAPSHOT_GUARDRAIL_FAILED',
+      message: '091 快照校验未通过，已阻止写入',
+      validation: trip091SnapshotValidation,
+    };
+  }
+  const shouldPublishNow = Boolean(useTrip091CardSystem && (event.publish_now === true || event.publish_after_build === true));
+  if (shouldPublishNow && criticalWarningCodes.length) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'CRITICAL_WARNINGS_REMAIN',
+      message: '存在关键警告，不能发布',
+      trip_id: trip.trip_id || trip.external_trip_id || tripId,
+      critical_warning_codes: criticalWarningCodes,
+    };
+  }
+  const effectiveWarningCodes = useTrip091CardSystem
+    ? resolveTrip091WarningCodes(warningCodes, trip091SnapshotValidation)
+    : warningCodes;
   const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
   const nextReviewStatus = trip.published_version > 0 ? 'needs_review' : 'pending_review';
   const wasDiscarded =
@@ -1987,21 +2122,47 @@ exports.main = async (event = {}) => {
     trip.visibility_status === 'discarded';
   const nextStatus = wasDiscarded ? 'active' : (trip.status || 'active');
   const nextVisibilityStatus = wasDiscarded ? 'hidden' : (trip.visibility_status || 'hidden');
+  const trip091BackupId = useTrip091CardSystem
+    ? await backupTrip091OriginalDoc(trip, now, trip091SnapshotValidation)
+    : '';
+  if (useTrip091CardSystem && !trip091BackupId) {
+    return {
+      success: false,
+      code: 500,
+      error_code: 'TRIP_091_BACKUP_FAILED',
+      message: '091 原文档备份失败，已阻止写入',
+    };
+  }
+  const updateData = {
+    trip_id: canonicalTripId,
+    external_trip_id: trip.external_trip_id || canonicalTripId,
+    draft_snapshot: draftSnapshot,
+    warning_codes: effectiveWarningCodes,
+    critical_warning_codes: criticalWarningCodes,
+    status: nextStatus,
+    review_status: nextReviewStatus,
+    visibility_status: nextVisibilityStatus,
+    updated_by: auth.user._id,
+    updated_by_openid: auth.openid,
+    updated_at: now,
+  };
+  if (shouldPublishNow) {
+    const nextVersion = Number(trip.published_version || 0) + 1;
+    updateData.published_snapshot = draftSnapshot;
+    updateData.published_version = nextVersion;
+    updateData.review_status = 'approved';
+    updateData.visibility_status = 'published';
+    updateData.reviewed_by = auth.user._id;
+    updateData.reviewed_by_openid = auth.openid;
+    updateData.reviewed_at = now;
+    updateData.published_by = auth.user._id;
+    updateData.published_by_openid = auth.openid;
+    updateData.published_at = now;
+    updateData.review_note = safeString(event.review_note).trim() || '091 snapshot refreshed with route-checked destination cards';
+  }
 
   await db.collection('customer_trips').doc(trip._id).update({
-    data: {
-      trip_id: canonicalTripId,
-      external_trip_id: trip.external_trip_id || canonicalTripId,
-      draft_snapshot: draftSnapshot,
-      warning_codes: warningCodes,
-      critical_warning_codes: criticalWarningCodes,
-      status: nextStatus,
-      review_status: nextReviewStatus,
-      visibility_status: nextVisibilityStatus,
-      updated_by: auth.user._id,
-      updated_by_openid: auth.openid,
-      updated_at: now,
-    },
+    data: updateData,
   });
 
   await writeAuditLog(db, {
@@ -2014,8 +2175,11 @@ exports.main = async (event = {}) => {
     detail: {
       trip_id: canonicalTripId,
       external_trip_id: trip.external_trip_id || '',
-      warning_codes: warningCodes,
+      warning_codes: effectiveWarningCodes,
       critical_warning_codes: criticalWarningCodes,
+      trip091_backup_id: trip091BackupId,
+      trip091_snapshot_validation: trip091SnapshotValidation,
+      published_now: shouldPublishNow,
     },
     created_at: now,
   }).catch(() => null);
@@ -2026,10 +2190,15 @@ exports.main = async (event = {}) => {
     trip_id: canonicalTripId,
     external_trip_id: trip.external_trip_id || canonicalTripId,
     status: nextStatus,
-    review_status: nextReviewStatus,
-    visibility_status: nextVisibilityStatus,
-    warning_codes: warningCodes,
+    review_status: updateData.review_status,
+    visibility_status: updateData.visibility_status,
+    warning_codes: effectiveWarningCodes,
     critical_warning_codes: criticalWarningCodes,
+    trip091_backup_id: trip091BackupId,
+    trip091_snapshot_validation: trip091SnapshotValidation,
+    published_now: shouldPublishNow,
+    published_version: updateData.published_version || trip.published_version || 0,
+    published_at: updateData.published_at || trip.published_at || '',
     draft_snapshot: draftSnapshot,
   };
 };
