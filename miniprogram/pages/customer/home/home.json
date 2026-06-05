@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "我的行程"
+  "navigationBarTitleText": "我的行程",
+  "navigationBarBackgroundColor": "#5B6596",
+  "navigationBarTextStyle": "white"
 }

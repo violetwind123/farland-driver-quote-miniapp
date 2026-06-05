@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "今日行程",
+  "navigationBarBackgroundColor": "#5B6596",
+  "navigationBarTextStyle": "white",
   "usingComponents": {
     "school-visit-card": "/components/school-visit-card/school-visit-card"
   }
