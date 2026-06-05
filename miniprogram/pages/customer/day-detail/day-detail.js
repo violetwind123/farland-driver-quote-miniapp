@@ -294,6 +294,7 @@ Page({
   normalizeSchoolVisitCard(card, dayCard = {}) {
     const displaySnapshot = this.normalizeSchoolDisplaySnapshot(card);
     const timeSnapshot = this.normalizeSchoolTimeSnapshot(card, dayCard);
+    const timeItems = this.buildTimeItems(card.card_type || 'school_visit_card', timeSnapshot);
     const uiFlags = this.normalizeUiFlags(card);
     return {
       ...card,
@@ -306,8 +307,9 @@ Page({
       show_travel_meta: uiFlags.show_travel_meta,
       display_snapshot: displaySnapshot,
       time_snapshot: timeSnapshot,
+      timeItems,
       title: displaySnapshot.name_en || displaySnapshot.name_zh || card.title || '学校访问',
-      chipText: `${timeSnapshot.appointment_time || card.time || ''} ${displaySnapshot.name_en || displaySnapshot.name_zh || card.title || '访校'}`.trim(),
+      chipText: `${timeSnapshot.arrival_time || timeSnapshot.appointment_time || timeSnapshot.start_time || card.time || ''} ${displaySnapshot.name_en || displaySnapshot.name_zh || card.title || '访校'}`.trim(),
     };
   },
 
@@ -367,7 +369,7 @@ Page({
     const introLines = this.normalizeIntroLines(displaySnapshot.intro_lines, card.note || card.description || '');
     const tags = this.getStructuredTags(cardType, displaySnapshot);
     const detailItems = this.buildStructuredDetailItems(cardType, card, displaySnapshot, timeSnapshot, dayCard);
-    const timeItems = this.buildTimeItems(cardType, timeSnapshot);
+    const timeItems = this.buildTimeItems(cardType, timeSnapshot, displaySnapshot);
     return {
       ...card,
       card_type: cardType,
@@ -455,8 +457,9 @@ Page({
     const departureTime = this.extractDisplayTime(snapshot.departure_time || card.departure_time || dayCard.depart_time || dayCard.serviceWindowText || '');
     const arrivalTime = this.extractDisplayTime(snapshot.arrival_time || card.arrival_estimate || card.planned_arrival_time || card.arrival_time || '');
     const appointmentTime = this.extractDisplayTime(snapshot.appointment_time || card.appointment_time || card.planned_start_time || '');
-    const startTime = this.extractDisplayTime(snapshot.start_time || card.start_time || card.time || '');
-    const endTime = this.extractDisplayTime(snapshot.end_time || card.end_time || '');
+    const startTimeFallback = arrivalTime ? '' : (card.time || '');
+    const startTime = this.extractDisplayTime(snapshot.start_time || card.start_time || startTimeFallback);
+    const endTime = this.extractDisplayTime(snapshot.end_time || card.end_time || card.planned_end_time || '');
     const arrivalMinutes = this.toMinutes(arrivalTime);
     const appointmentMinutes = this.toMinutes(appointmentTime);
     const warningText = snapshot.time_warning_text
@@ -584,15 +587,16 @@ Page({
     return '适合关注';
   },
 
-  buildTimeItems(cardType, timeSnapshot) {
-    const arrivalLabel = cardType === 'flight_card' || cardType === 'flight' ? '抵达机场' : '到达';
+  buildTimeItems(cardType, timeSnapshot, displaySnapshot = {}) {
+    const isFlight = cardType === 'flight_card' || cardType === 'flight';
+    const flightDepartureTime = isFlight ? (displaySnapshot.takeoff_time || displaySnapshot.departure_time || '') : '';
+    const appointmentTime = timeSnapshot.appointment_time || timeSnapshot.start_time || flightDepartureTime || '';
+    const leaveTime = timeSnapshot.end_time || flightDepartureTime || '';
     return [
-      { label: '出发', value: timeSnapshot.departure_time || '' },
-      { label: arrivalLabel, value: timeSnapshot.arrival_time || '' },
-      { label: '预约', value: timeSnapshot.appointment_time || '' },
-      { label: '时间', value: !timeSnapshot.appointment_time ? (timeSnapshot.start_time || '') : '' },
-      { label: '结束', value: timeSnapshot.end_time || '' },
-    ].filter((item) => item.value);
+      { label: '预计到达', value: timeSnapshot.arrival_time || '待同步' },
+      { label: '预约时间', value: appointmentTime || '待同步' },
+      { label: '预计离开', value: leaveTime || '待同步' },
+    ];
   },
 
   composeTravelMetaLine(card = {}) {
@@ -631,8 +635,10 @@ Page({
     const snapshot = card.time_snapshot || card.timeSnapshot || {};
     const departureTime = this.extractDisplayTime(snapshot.departure_time || dayCard.depart_time || dayCard.serviceWindowText || '');
     const arrivalTime = this.extractDisplayTime(snapshot.arrival_time || card.arrival_estimate || card.planned_arrival_time || '');
-    const appointmentTime = this.extractDisplayTime(snapshot.appointment_time || card.appointment_time || card.planned_start_time || card.time || '');
-    const hasTime = Boolean(departureTime || arrivalTime || appointmentTime);
+    const appointmentTime = this.extractDisplayTime(snapshot.appointment_time || card.appointment_time || card.planned_start_time || '');
+    const startTime = this.extractDisplayTime(snapshot.start_time || card.start_time || '');
+    const endTime = this.extractDisplayTime(snapshot.end_time || card.end_time || card.planned_end_time || '');
+    const hasTime = Boolean(departureTime || arrivalTime || appointmentTime || startTime || endTime);
     const arrivalMinutes = this.toMinutes(arrivalTime);
     const appointmentMinutes = this.toMinutes(appointmentTime);
     const warningText = snapshot.time_warning_text
@@ -641,6 +647,8 @@ Page({
       departure_time: departureTime,
       arrival_time: arrivalTime,
       appointment_time: appointmentTime,
+      start_time: startTime,
+      end_time: endTime,
       time_warning_text: warningText,
       has_time: hasTime,
     };

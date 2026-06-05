@@ -201,7 +201,11 @@
 }
 
 .time-warning {
-  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 10rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(245, 158, 11, 0.12);
   color: #B54708;
   font-size: 21rpx;
   line-height: 1.3;

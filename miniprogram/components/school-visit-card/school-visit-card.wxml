@@ -47,19 +47,11 @@
     </view>
   </view>
 
-  <view wx:if="{{card.time_snapshot.has_time}}" class="time-footer">
-    <view wx:if="{{card.time_snapshot.departure_time}}" class="time-item">
-      <view class="time-label">出发</view>
-      <view class="time-value">{{card.time_snapshot.departure_time}}</view>
+  <view wx:if="{{card.timeItems && card.timeItems.length}}" class="time-footer">
+    <view wx:for="{{card.timeItems}}" wx:key="label" wx:for-item="timeItem" class="time-item">
+      <view class="time-label">{{timeItem.label}}</view>
+      <view class="time-value">{{timeItem.value}}</view>
     </view>
-    <view wx:if="{{card.time_snapshot.arrival_time}}" class="time-item">
-      <view class="time-label">到达</view>
-      <view class="time-value">{{card.time_snapshot.arrival_time}}</view>
-    </view>
-    <view wx:if="{{card.time_snapshot.appointment_time}}" class="time-item">
-      <view class="time-label">预约</view>
-      <view class="time-value">{{card.time_snapshot.appointment_time}}</view>
-    </view>
-    <view wx:if="{{card.time_snapshot.time_warning_text}}" class="time-warning">{{card.time_snapshot.time_warning_text}}</view>
   </view>
+  <view wx:if="{{card.time_snapshot.time_warning_text}}" class="time-warning">{{card.time_snapshot.time_warning_text}}</view>
 </view>
