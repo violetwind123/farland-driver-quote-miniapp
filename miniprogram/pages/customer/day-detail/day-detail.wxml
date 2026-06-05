@@ -12,6 +12,44 @@
     <swiper-item wx:for="{{cards}}" wx:key="card_id">
       <school-visit-card wx:if="{{item.isSchoolVisitCard}}" card="{{item}}" />
 
+      <view wx:elif="{{item.isInfoCard}}" class="destination-card info-card">
+        <view class="info-card-head">
+          <view class="card-index">第 {{item.sequence}} 站 / 共 {{item.total_count || cards.length}} 站</view>
+          <view class="card-type">{{item.typeText}}</view>
+        </view>
+
+        <view class="info-title">{{item.primaryName || item.title}}</view>
+        <view wx:if="{{item.secondaryName || item.subtitle}}" class="info-subtitle">{{item.secondaryName || item.subtitle}}</view>
+        <view wx:if="{{item.metaLine}}" class="info-meta">{{item.metaLine}}</view>
+
+        <view wx:if="{{item.detailItems && item.detailItems.length}}" class="info-detail-grid">
+          <view wx:for="{{item.detailItems}}" wx:key="label" wx:for-item="detail" class="info-detail-item">
+            <view class="detail-label">{{detail.label}}</view>
+            <view class="detail-value compact">{{detail.value}}</view>
+          </view>
+        </view>
+
+        <view wx:if="{{item.introLines && item.introLines.length}}" class="info-section">
+          <view class="detail-label">{{item.sectionLabel || '说明'}}</view>
+          <view wx:for="{{item.introLines}}" wx:key="*this" wx:for-item="line" class="info-copy">{{line}}</view>
+        </view>
+
+        <view wx:if="{{item.tags && item.tags.length}}" class="info-section">
+          <view class="detail-label">{{item.tagLabel || '关注点'}}</view>
+          <view class="tag-row">
+            <view wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag" class="info-tag">{{tag}}</view>
+          </view>
+        </view>
+
+        <view wx:if="{{item.timeItems && item.timeItems.length}}" class="time-footer">
+          <view wx:for="{{item.timeItems}}" wx:key="label" wx:for-item="timeItem" class="time-cell">
+            <view class="time-label">{{timeItem.label}}</view>
+            <view class="time-value">{{timeItem.value}}</view>
+          </view>
+        </view>
+        <view wx:if="{{item.timeWarningText}}" class="time-warning">{{item.timeWarningText}}</view>
+      </view>
+
       <view wx:else class="destination-card">
         <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
         <view class="card-type">{{item.typeText}}</view>
@@ -23,7 +61,7 @@
           <view class="detail-value">{{item.location}}</view>
         </view>
 
-        <view wx:if="{{item.route}}" class="detail-block">
+        <view wx:if="{{item.show_route && item.route}}" class="detail-block">
           <view class="detail-label">路线</view>
           <view class="detail-value">{{item.route}}</view>
         </view>
@@ -33,7 +71,7 @@
           <view class="detail-value">{{item.arrival_estimate}}</view>
         </view>
 
-        <view wx:if="{{item.detailLine}}" class="detail-block">
+        <view wx:if="{{item.show_travel_meta && item.detailLine}}" class="detail-block">
           <view class="detail-label">{{item.type === 'hotel' ? '酒店信息' : '路段预估'}}</view>
           <view class="detail-value">{{item.detailLine}}</view>
         </view>

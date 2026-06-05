@@ -161,21 +161,32 @@ Page({
   },
 
   normalizeDestinationCard(item, index) {
-    const type = item.type || item.item_type || item.card_type || 'custom';
-    const time = this.formatDisplayTime(item.time || '');
+    const cardType = item.card_type || item.cardType || item.item_type || item.type || 'custom';
+    const type = item.type || item.item_type || cardType || 'custom';
+    const isStructured = this.isStructuredDestinationCardType({ card_type: cardType, type });
+    const hasExplicitUiFlags = this.hasExplicitUiFlags(item);
+    const uiFlags = this.normalizeUiFlags(item);
+    const timeSnapshot = this.normalizeTimeSnapshot(item);
+    const time = this.formatDisplayTime(item.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || '');
     const latitude = Number(item.latitude || item.lat || item.map_latitude || 0);
     const longitude = Number(item.longitude || item.lng || item.map_longitude || 0);
+    const rawTravelLine = this.composeTravelMetaLine(item);
+    const showRoute = hasExplicitUiFlags ? uiFlags.show_route : (!isStructured && Boolean(item.route));
+    const showTravelMeta = hasExplicitUiFlags ? uiFlags.show_travel_meta : (!isStructured && Boolean(item.legMeta || item.detailLine || rawTravelLine));
     return {
       ...item,
       type,
-      card_type: item.card_type || item.cardType || type,
+      card_type: cardType,
+      ui_flags: uiFlags,
       time,
       arrival_estimate: this.formatDisplayTime(item.arrival_estimate || item.planned_arrival_time || ''),
       card_id: item.card_id || item.item_id || item.id || `${item.time || 'node'}-${index}`,
       sequence: item.sequence || index + 1,
-      typeText: this.typeText(type),
+      typeText: this.typeText(cardType || type),
       chipText: `${time || ''} ${this.shortTitle(item.title || '')}`.trim(),
-      detailLine: item.legMeta || [item.drive_time, item.distance, item.traffic_level].filter(Boolean).join(' · '),
+      show_route: showRoute,
+      show_travel_meta: showTravelMeta,
+      detailLine: showTravelMeta ? (item.legMeta || item.detailLine || rawTravelLine) : '',
       latitude,
       longitude,
       map_url: item.map_url || '',
@@ -191,24 +202,66 @@ Page({
         sequence: index + 1,
         total_count: totalCount,
       };
-      return this.isSchoolVisitCard(next) ? this.normalizeSchoolVisitCard(next, dayCard) : next;
+      return this.normalizeCardForDisplay(next, dayCard);
     });
+  },
+
+  normalizeCardForDisplay(card, dayCard = {}) {
+    if (this.isSchoolVisitCard(card)) return this.normalizeSchoolVisitCard(card, dayCard);
+    if (this.isStructuredDestinationCardType(card)) return this.normalizeStructuredDestinationCard(card, dayCard);
+    return card;
+  },
+
+  hasExplicitUiFlags(card = {}) {
+    return Boolean(card.ui_flags || card.uiFlags);
+  },
+
+  normalizeUiFlags(card = {}) {
+    const source = card.ui_flags || card.uiFlags || {};
+    return {
+      show_route: source.show_route === true,
+      show_travel_meta: source.show_travel_meta === true,
+      show_contact_advisor: source.show_contact_advisor === true,
+      show_driver: source.show_driver === true,
+    };
+  },
+
+  isStructuredDestinationCardType(card = {}) {
+    const type = String(card.card_type || card.cardType || card.type || card.item_type || '').trim();
+    return [
+      'school_visit_card',
+      'landmark_card',
+      'museum_card',
+      'meeting_card',
+      'flight_card',
+      'hotel_arrival_card',
+      'custom_activity_card',
+      'landmark',
+      'museum',
+      'meeting',
+      'flight',
+      'hotel_arrival',
+    ].includes(type);
   },
 
   isSchoolVisitCard(card) {
     const type = card.card_type || card.type || card.item_type || '';
-    return type === 'school_visit' || type === 'campus';
+    return type === 'school_visit_card' || type === 'school_visit' || type === 'campus';
   },
 
   normalizeSchoolVisitCard(card, dayCard = {}) {
     const displaySnapshot = this.normalizeSchoolDisplaySnapshot(card);
     const timeSnapshot = this.normalizeSchoolTimeSnapshot(card, dayCard);
+    const uiFlags = this.normalizeUiFlags(card);
     return {
       ...card,
-      card_type: 'school_visit',
+      card_type: card.card_type || 'school_visit_card',
       type: 'school_visit',
       typeText: '访校',
       isSchoolVisitCard: true,
+      ui_flags: uiFlags,
+      show_route: uiFlags.show_route,
+      show_travel_meta: uiFlags.show_travel_meta,
       display_snapshot: displaySnapshot,
       time_snapshot: timeSnapshot,
       title: displaySnapshot.name_en || displaySnapshot.name_zh || card.title || '学校访问',
@@ -262,6 +315,265 @@ Page({
     };
   },
 
+  normalizeStructuredDestinationCard(card, dayCard = {}) {
+    const cardType = card.card_type || card.cardType || card.type || card.item_type || 'custom_activity_card';
+    const displaySnapshot = this.normalizeDisplaySnapshot(card);
+    const timeSnapshot = this.normalizeTimeSnapshot(card, dayCard);
+    const uiFlags = this.normalizeUiFlags(card);
+    const primaryName = this.getStructuredPrimaryName(cardType, card, displaySnapshot);
+    const secondaryName = this.getStructuredSecondaryName(cardType, card, displaySnapshot, primaryName);
+    const introLines = this.normalizeIntroLines(displaySnapshot.intro_lines, card.note || card.description || '');
+    const tags = this.getStructuredTags(cardType, displaySnapshot);
+    const detailItems = this.buildStructuredDetailItems(cardType, card, displaySnapshot, timeSnapshot, dayCard);
+    const timeItems = this.buildTimeItems(cardType, timeSnapshot);
+    return {
+      ...card,
+      card_type: cardType,
+      typeText: this.typeText(cardType),
+      isInfoCard: true,
+      ui_flags: uiFlags,
+      show_route: uiFlags.show_route,
+      show_travel_meta: uiFlags.show_travel_meta,
+      display_snapshot: displaySnapshot,
+      time_snapshot: timeSnapshot,
+      primaryName,
+      secondaryName,
+      metaLine: this.buildStructuredMetaLine(cardType, displaySnapshot),
+      sectionLabel: this.getStructuredSectionLabel(cardType),
+      introLines,
+      tagLabel: this.getStructuredTagLabel(cardType),
+      tags,
+      detailItems,
+      timeItems,
+      timeWarningText: timeSnapshot.time_warning_text || '',
+      title: primaryName || card.title || '行程节点',
+      subtitle: secondaryName || card.subtitle || '',
+      time: card.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || '',
+      chipText: `${card.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || ''} ${primaryName || card.title || ''}`.trim(),
+    };
+  },
+
+  normalizeDisplaySnapshot(card = {}) {
+    const snapshot = card.display_snapshot || card.displaySnapshot || {};
+    const city = snapshot.city || card.city || '';
+    const state = snapshot.state || card.state || '';
+    const area = snapshot.area || card.area || '';
+    const nameEn = snapshot.name_en || snapshot.name || card.name_en || card.subtitle || card.title || '';
+    const nameZh = snapshot.name_zh || card.name_zh || card.title || nameEn;
+    return {
+      ...snapshot,
+      name_en: nameEn,
+      name_zh: nameZh,
+      entity_type_text: snapshot.entity_type_text || snapshot.landmark_type || snapshot.museum_group || card.entity_type_text || '',
+      city,
+      state,
+      area,
+      location_text: snapshot.location_text || [city, area || state].filter(Boolean).join(' · ') || card.location || '',
+      address: snapshot.address || card.address || card.location || '',
+      group: snapshot.group || card.group || '',
+      brand: snapshot.brand || card.brand || '',
+      star_rating: snapshot.star_rating || card.star_rating || '',
+      landmark_type: snapshot.landmark_type || snapshot.entity_type_text || '',
+      museum_group: snapshot.museum_group || snapshot.group || '',
+      intro_lines: this.normalizeIntroLines(snapshot.intro_lines, card.note || card.description || ''),
+      fit_tags: this.normalizeList(snapshot.fit_tags || card.fit_tags, 5),
+      highlight_tags: this.normalizeList(snapshot.highlight_tags || card.highlight_tags || snapshot.fit_tags || card.fit_tags, 5),
+    };
+  },
+
+  normalizeList(values, limit = 4) {
+    let list = [];
+    if (Array.isArray(values)) {
+      list = values.map((item) => {
+        if (typeof item === 'string') return item;
+        return item.display_text || item.title || item.label || item.name || '';
+      });
+    } else if (typeof values === 'string') {
+      list = values.split(/[、,，/|]/g);
+    }
+    return list.map((item) => String(item || '').trim()).filter(Boolean).slice(0, limit);
+  },
+
+  normalizeIntroLines(values, fallbackText = '') {
+    if (Array.isArray(values)) {
+      const lines = values.map((item) => String(item || '').trim()).filter(Boolean);
+      if (lines.length) return lines.slice(0, 2);
+    }
+    const text = String(fallbackText || '').trim();
+    if (!text) return [];
+    return text
+      .split(/\s*(?:\n|。)\s*/g)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 2);
+  },
+
+  normalizeTimeSnapshot(card = {}, dayCard = {}) {
+    const snapshot = card.time_snapshot || card.timeSnapshot || {};
+    const departureTime = this.extractDisplayTime(snapshot.departure_time || card.departure_time || dayCard.depart_time || dayCard.serviceWindowText || '');
+    const arrivalTime = this.extractDisplayTime(snapshot.arrival_time || card.arrival_estimate || card.planned_arrival_time || card.arrival_time || '');
+    const appointmentTime = this.extractDisplayTime(snapshot.appointment_time || card.appointment_time || card.planned_start_time || '');
+    const startTime = this.extractDisplayTime(snapshot.start_time || card.start_time || card.time || '');
+    const endTime = this.extractDisplayTime(snapshot.end_time || card.end_time || '');
+    const arrivalMinutes = this.toMinutes(arrivalTime);
+    const appointmentMinutes = this.toMinutes(appointmentTime);
+    const warningText = snapshot.time_warning_text
+      || (arrivalMinutes !== null && appointmentMinutes !== null && arrivalMinutes > appointmentMinutes ? '时间待复核' : '');
+    return {
+      departure_time: departureTime,
+      arrival_time: arrivalTime,
+      appointment_time: appointmentTime,
+      start_time: startTime,
+      end_time: endTime,
+      time_warning_text: warningText,
+      has_time: Boolean(departureTime || arrivalTime || appointmentTime || startTime || endTime),
+    };
+  },
+
+  getStructuredPrimaryName(cardType, card, displaySnapshot) {
+    if (cardType === 'flight_card' || cardType === 'flight') {
+      return displaySnapshot.flight_no || this.extractFlightNumber(card.title || displaySnapshot.name_en || '') || card.title || '航班安排';
+    }
+    if (cardType === 'meeting_card' || cardType === 'meeting') {
+      return displaySnapshot.name_zh || card.title || '会面安排';
+    }
+    return displaySnapshot.name_zh || card.title || displaySnapshot.name_en || '行程节点';
+  },
+
+  getStructuredSecondaryName(cardType, card, displaySnapshot, primaryName) {
+    if (cardType === 'flight_card' || cardType === 'flight') {
+      return displaySnapshot.route || card.route || '';
+    }
+    const secondary = displaySnapshot.name_en || card.subtitle || '';
+    return secondary && secondary !== primaryName ? secondary : '';
+  },
+
+  extractFlightNumber(value) {
+    const match = String(value || '').match(/\b[A-Z]{2}\d{2,4}\b/);
+    return match ? match[0] : '';
+  },
+
+  buildStructuredMetaLine(cardType, displaySnapshot) {
+    if (cardType === 'hotel_arrival_card' || cardType === 'hotel_arrival') {
+      return this.uniqueJoin([
+        displaySnapshot.group,
+        displaySnapshot.brand,
+        displaySnapshot.star_rating ? `${displaySnapshot.star_rating}星` : '',
+        displaySnapshot.location_text,
+      ]);
+    }
+    if (cardType === 'museum_card' || cardType === 'museum') {
+      return this.uniqueJoin([
+        displaySnapshot.location_text,
+        displaySnapshot.museum_group || displaySnapshot.group,
+        displaySnapshot.entity_type_text,
+      ]);
+    }
+    if (cardType === 'meeting_card' || cardType === 'meeting') {
+      return this.uniqueJoin([displaySnapshot.entity_type_text || '会面 / 预约', displaySnapshot.location_text]);
+    }
+    if (cardType === 'flight_card' || cardType === 'flight') {
+      return this.uniqueJoin([
+        displaySnapshot.departure_airport && displaySnapshot.arrival_airport ? `${displaySnapshot.departure_airport} → ${displaySnapshot.arrival_airport}` : '',
+        displaySnapshot.aircraft,
+      ]);
+    }
+    return this.uniqueJoin([displaySnapshot.location_text, displaySnapshot.entity_type_text || displaySnapshot.landmark_type]);
+  },
+
+  buildStructuredDetailItems(cardType, card, displaySnapshot, timeSnapshot, dayCard = {}) {
+    if (cardType === 'flight_card' || cardType === 'flight') {
+      return [
+        { label: '起飞', value: displaySnapshot.takeoff_time || displaySnapshot.departure_time || '' },
+        { label: '到达', value: displaySnapshot.landing_time || displaySnapshot.arrival_time || '' },
+        { label: '机型', value: displaySnapshot.aircraft || '' },
+      ].filter((item) => item.value);
+    }
+    if (cardType === 'hotel_arrival_card' || cardType === 'hotel_arrival') {
+      const hotel = this.matchDayHotel(card, displaySnapshot, dayCard);
+      return [
+        { label: '城市', value: displaySnapshot.location_text || this.uniqueJoin([displaySnapshot.city, displaySnapshot.state]) },
+        { label: '地址', value: displaySnapshot.address || card.location || (hotel && hotel.address) || '' },
+        { label: '入住', value: card.check_in_date || displaySnapshot.check_in_date || (hotel && hotel.check_in_date) || '' },
+        { label: '退房', value: card.check_out_date || displaySnapshot.check_out_date || (hotel && hotel.check_out_date) || '' },
+        { label: '预计抵达', value: timeSnapshot.arrival_time || card.arrival_estimate || '' },
+        { label: '房型', value: card.room_summary || card.room_type || (hotel && (hotel.room_summary || hotel.room_type)) || '' },
+        { label: '确认号', value: card.confirmation_no || (hotel && hotel.confirmation_no) || '' },
+      ].filter((item) => item.value);
+    }
+    if (cardType === 'meeting_card' || cardType === 'meeting') {
+      return [
+        { label: '类型', value: displaySnapshot.entity_type_text || '会面 / 预约' },
+        { label: '时间', value: timeSnapshot.start_time || card.time || displaySnapshot.location_text || '待同步' },
+      ].filter((item) => item.value);
+    }
+    return [];
+  },
+
+  matchDayHotel(card, displaySnapshot, dayCard = {}) {
+    const hotel = dayCard.hotel || null;
+    if (!hotel) return null;
+    const cardStayId = card.hotel_stay_id || card.stay_id || '';
+    if (cardStayId && (hotel.stay_id === cardStayId || hotel.hotel_id === cardStayId)) return hotel;
+    const cardName = displaySnapshot.name_zh || displaySnapshot.name_en || card.title || '';
+    const hotelName = hotel.name || hotel.hotel_name || hotel.title || '';
+    return cardName && hotelName && cardName === hotelName ? hotel : null;
+  },
+
+  getStructuredTags(cardType, displaySnapshot) {
+    const values = cardType === 'landmark_card' || cardType === 'landmark' || cardType === 'museum_card' || cardType === 'museum'
+      ? (displaySnapshot.highlight_tags && displaySnapshot.highlight_tags.length ? displaySnapshot.highlight_tags : displaySnapshot.fit_tags)
+      : displaySnapshot.fit_tags;
+    return this.normalizeList(values, 5);
+  },
+
+  getStructuredSectionLabel(cardType) {
+    if (cardType === 'hotel_arrival_card' || cardType === 'hotel_arrival') return '入住信息';
+    if (cardType === 'meeting_card' || cardType === 'meeting') return '说明';
+    if (cardType === 'flight_card' || cardType === 'flight') return '航班信息';
+    return '看点';
+  },
+
+  getStructuredTagLabel(cardType) {
+    if (cardType === 'museum_card' || cardType === 'museum') return '推荐关注';
+    if (cardType === 'meeting_card' || cardType === 'meeting') return '提醒';
+    if (cardType === 'hotel_arrival_card' || cardType === 'hotel_arrival') return '住宿标签';
+    if (cardType === 'flight_card' || cardType === 'flight') return '航班标签';
+    return '适合关注';
+  },
+
+  buildTimeItems(cardType, timeSnapshot) {
+    const arrivalLabel = cardType === 'flight_card' || cardType === 'flight' ? '抵达机场' : '到达';
+    return [
+      { label: '出发', value: timeSnapshot.departure_time || '' },
+      { label: arrivalLabel, value: timeSnapshot.arrival_time || '' },
+      { label: '预约', value: timeSnapshot.appointment_time || '' },
+      { label: '时间', value: !timeSnapshot.appointment_time ? (timeSnapshot.start_time || '') : '' },
+      { label: '结束', value: timeSnapshot.end_time || '' },
+    ].filter((item) => item.value);
+  },
+
+  composeTravelMetaLine(card = {}) {
+    const snapshot = card.travel_snapshot || card.travelSnapshot || {};
+    return [
+      card.drive_time || card.drive_time_text || snapshot.drive_time_text || snapshot.maps_duration_text || '',
+      card.distance || card.distance_text || snapshot.distance_text || snapshot.maps_distance_text || '',
+      card.traffic_level || card.traffic_text || snapshot.traffic_text || '',
+    ].filter(Boolean).join(' · ');
+  },
+
+  uniqueJoin(values = []) {
+    const seen = {};
+    return values
+      .map((value) => String(value || '').trim())
+      .filter((value) => {
+        if (!value || seen[value]) return false;
+        seen[value] = true;
+        return true;
+      })
+      .join(' · ');
+  },
+
   findSchoolProfileFallback(card, snapshot = {}) {
     const keys = [
       snapshot.name_en,
@@ -308,9 +620,10 @@ Page({
     if (!hotel) return cards;
     const hotelName = hotel.name || hotel.hotel_name || hotel.title || '';
     const hasHotelCard = cards.some((card) => {
-      const type = card.type || card.item_type || '';
+      const type = card.type || card.item_type || card.card_type || '';
       return type === 'hotel'
         || type === 'hotel_arrival'
+        || type === 'hotel_arrival_card'
         || (hotelName && card.title === hotelName);
     });
     if (hasHotelCard) {
@@ -398,6 +711,15 @@ Page({
       meal: '餐饮',
       hotel: '酒店',
       hotel_arrival: '酒店抵达',
+      school_visit_card: '访校',
+      landmark: '景点',
+      landmark_card: '景点',
+      museum: '博物馆',
+      museum_card: '博物馆',
+      meeting: '会面',
+      meeting_card: '会面',
+      flight_card: '航班',
+      hotel_arrival_card: '酒店',
       flight: '航班',
       free_time: '自由时间',
       custom: '行程节点',
