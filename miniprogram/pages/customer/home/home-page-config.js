@@ -1018,9 +1018,13 @@ const customerHomePageConfig = {
     return true;
   },
 
-  getConnectorTravelMeta(item = {}) {
-    if (!item || !this.shouldExposeTravelMeta(item)) return null;
-    return item.travelMeta || item.travel_meta || null;
+  getConnectorTravelMeta(item = {}, previousItem = null) {
+    if (!item) return null;
+    const currentGroup = item.parent_group_id || item.parentGroupId || '';
+    const previousGroup = previousItem ? (previousItem.parent_group_id || previousItem.parentGroupId || '') : '';
+    if (currentGroup && previousGroup && currentGroup === previousGroup) return null;
+    const meta = item.travelMeta || item.travel_meta || null;
+    return meta && meta.hasContent ? meta : null;
   },
 
   normalizeTodayCard(card) {
@@ -1090,7 +1094,7 @@ const customerHomePageConfig = {
         : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
       routeStops: visibleDestinationCards.map((item, index) => {
         const nextItem = visibleDestinationCards[index + 1] || null;
-        const connectorTravelMeta = this.getConnectorTravelMeta(nextItem);
+        const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
         return {
           id: item.card_id,
           time: item.time,
@@ -1275,7 +1279,7 @@ const customerHomePageConfig = {
     const visibleRouteStops = routeStopSource.slice(0, 3);
     const routeStops = visibleRouteStops.map((item, index) => {
       const nextItem = visibleRouteStops[index + 1] || null;
-      const connectorTravelMeta = this.getConnectorTravelMeta(nextItem);
+      const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
       return {
         ...item,
         connectorTravelMeta,
