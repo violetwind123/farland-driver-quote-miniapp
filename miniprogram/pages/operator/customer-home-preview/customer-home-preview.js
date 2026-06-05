@@ -25,6 +25,15 @@ function createDefaultPreviewMeta() {
   };
 }
 
+const TRIP091_EXAMPLE = {
+  trip_id: '2026XBC091',
+  title: '091 检测范例',
+  subtitle: '美东访校与城市行程 · 32 张目的地卡',
+  expected_card_count: 32,
+  expected_day_counts: '3 / 3 / 6 / 4 / 3 / 4 / 7 / 2',
+  check_tags: ['一站一卡', '组合景点拆分', 'Google Maps 已复核'],
+};
+
 function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, delivered, tripId }) {
   const published = customerWouldSee === 'published';
   const hasPreview = Boolean(tripId);
@@ -121,6 +130,7 @@ Page({
     invitePath: '',
     inviteCode: '',
     inviteExpiresAt: '',
+    trip091Example: TRIP091_EXAMPLE,
   },
 
   onLoad(options = {}) {
@@ -151,6 +161,22 @@ Page({
 
   onReviewNoteInput(e) {
     this.setData({ reviewNote: e.detail.value || '' });
+  },
+
+  useTrip091Example() {
+    this.setData({
+      tripId: TRIP091_EXAMPLE.trip_id,
+      requestId: '',
+      previewMode: 'temporary_guest',
+      selectedCustomer: null,
+      preview: null,
+      customerHome: null,
+      previewMeta: createDefaultPreviewMeta(),
+      invitePath: '',
+      inviteCode: '',
+      inviteExpiresAt: '',
+      error: '',
+    }, () => this.loadPreview());
   },
 
   async loadCustomers() {

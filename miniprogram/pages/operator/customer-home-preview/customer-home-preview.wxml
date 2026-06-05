@@ -20,6 +20,22 @@
       <button class="mini-btn" loading="{{loading}}" bindtap="loadPreview">预览</button>
     </view>
 
+    <view class="example-card">
+      <view class="example-copy">
+        <view class="example-kicker">检测范例</view>
+        <view class="example-title">{{trip091Example.trip_id}} · {{trip091Example.title}}</view>
+        <view class="example-sub">{{trip091Example.subtitle}}</view>
+        <view class="example-metrics">
+          <view class="example-metric">{{trip091Example.expected_card_count}} cards</view>
+          <view class="example-metric">Day counts {{trip091Example.expected_day_counts}}</view>
+        </view>
+        <view class="example-tags">
+          <view wx:for="{{trip091Example.check_tags}}" wx:key="*this" class="example-tag">{{item}}</view>
+        </view>
+      </view>
+      <button class="example-btn" loading="{{loading}}" bindtap="useTrip091Example">载入 091</button>
+    </view>
+
     <view class="selector-row">
       <view class="guest-card {{previewMode === 'temporary_guest' ? 'active' : ''}}" bindtap="selectTemporaryGuest">
         <view class="customer-name">Temporary Guest Preview</view>
