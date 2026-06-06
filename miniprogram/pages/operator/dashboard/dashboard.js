@@ -59,6 +59,10 @@ Page({
     wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
   },
 
+  openTripManagement() {
+    wx.navigateTo({ url: '/pages/operator/trip-management/trip-management' });
+  },
+
   openCustomerHomePreview() {
     wx.navigateTo({
       url: '/pages/operator/customer-home-preview/customer-home-preview?preview_access_mode=temporary_guest',

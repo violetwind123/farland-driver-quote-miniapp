@@ -9,6 +9,7 @@
     "pages/customer/benefits/benefits",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
+    "pages/operator/trip-management/trip-management",
     "pages/operator/request-hall/request-hall",
     "pages/operator/customer-import/customer-import",
     "pages/operator/customer-home-preview/customer-home-preview",
