@@ -33,6 +33,14 @@
       <view class="chevron">›</view>
     </view>
 
+    <view class="utility-card trip-management-entry" bindtap="openTripManagement">
+      <view>
+        <view class="utility-title">行程管理</view>
+        <view class="utility-desc">导入、审核、发布客户行程，并发送每日评价卡。</view>
+      </view>
+      <view class="chevron">›</view>
+    </view>
+
     <view class="utility-card" bindtap="openCustomerImport">
       <view>
         <view class="utility-title">导入客户行程</view>
