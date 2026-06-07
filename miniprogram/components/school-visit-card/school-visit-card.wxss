@@ -1,7 +1,7 @@
 .school-visit-card {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 92rpx);
+  height: calc(100vh - 142rpx);
   margin: 0 10rpx;
   padding: 32rpx;
   box-sizing: border-box;
@@ -42,8 +42,32 @@
   text-align: center;
 }
 
+.card-status {
+  flex: 0 0 auto;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.card-status.past {
+  color: #8A91A1;
+  background: #F1F3F7;
+}
+
+.card-status.current {
+  color: #5B6596;
+  background: rgba(91, 101, 150, 0.12);
+}
+
+.card-status.upcoming {
+  color: #667085;
+  background: #F7F8FC;
+}
+
 .school-title-block {
-  margin-top: 30rpx;
+  margin-top: 24rpx;
 }
 
 .school-name-en {
@@ -172,32 +196,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10rpx;
+  gap: 12rpx;
   margin-top: auto;
-  padding: 16rpx 18rpx;
-  border-radius: 22rpx;
-  background: #F7F8FC;
+  padding-top: 18rpx;
+  border-top: 1rpx solid rgba(31, 36, 51, 0.08);
 }
 
-.time-item {
+.time-cell {
   flex: 1 1 0;
   min-width: 0;
-  text-align: center;
+  padding: 14rpx 16rpx;
+  border-radius: 18rpx;
+  background: #F8FAFC;
 }
 
 .time-label {
   color: #8A91A1;
-  font-size: 20rpx;
+  font-size: 21rpx;
   line-height: 1.2;
-  font-weight: 700;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .time-value {
   margin-top: 6rpx;
   color: #1D2433;
-  font-size: 27rpx;
-  line-height: 1.2;
+  font-size: 28rpx;
+  line-height: 1.15;
   font-weight: 780;
+  white-space: nowrap;
 }
 
 .time-warning {

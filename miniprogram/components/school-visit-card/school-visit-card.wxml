@@ -1,7 +1,8 @@
 <view class="school-visit-card">
   <view class="card-top">
     <view class="card-index">第 {{card.sequence}} 站 / 共 {{card.total_count}} 站</view>
-    <view class="card-type-pill">访校</view>
+    <view wx:if="{{card.timeStatusText}}" class="card-status {{card.time_status}}">{{card.timeStatusText}}</view>
+    <view wx:else class="card-type-pill">访校</view>
   </view>
 
   <view class="school-title-block">
@@ -48,7 +49,7 @@
   </view>
 
   <view wx:if="{{card.timeItems && card.timeItems.length}}" class="time-footer">
-    <view wx:for="{{card.timeItems}}" wx:key="label" wx:for-item="timeItem" class="time-item">
+    <view wx:for="{{card.timeItems}}" wx:key="label" wx:for-item="timeItem" class="time-cell">
       <view class="time-label">{{timeItem.label}}</view>
       <view class="time-value">{{timeItem.value}}</view>
     </view>

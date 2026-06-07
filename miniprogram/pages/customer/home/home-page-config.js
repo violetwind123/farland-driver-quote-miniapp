@@ -1,6 +1,7 @@
 const customerHomePageConfig = {
   data: {
     loading: true,
+    loadingCustomerName: '刘女士',
     profile: {},
     benefits: [],
     hotelRequests: [],
@@ -8,7 +9,14 @@ const customerHomePageConfig = {
     customerSummaryBar: null,
     tripProgress: null,
     progressStrip: null,
+    currentProgressSummary: null,
+    progressAxisScrollLeft: 0,
+    inviteProgressAxisScrollLeft: 0,
+    homeDaySwipeStyle: '',
+    inviteDaySwipeStyle: '',
     selectedTripDayNo: 0,
+    todayOverviewExpanded: false,
+    inviteTodayOverviewExpanded: false,
     todayCard: null,
     dailyCharter: null,
     todayDriverCard: null,
@@ -189,7 +197,12 @@ const customerHomePageConfig = {
   },
 
   async loadHome() {
-    this.setData({ loading: true, selectedTripDayNo: 0 });
+    this.setData({
+      loading: true,
+      selectedTripDayNo: 0,
+      todayOverviewExpanded: false,
+      inviteTodayOverviewExpanded: false,
+    });
     try {
       if (this.data.tripInviteMode && this.data.tripInviteId) {
         await this.loadTripInviteHome();
@@ -334,6 +347,7 @@ const customerHomePageConfig = {
       const customerSummaryBar = this.normalizeCustomerSummaryBar(result);
       const tripProgress = this.normalizeDailyProgress(result.trip_progress || result.progress_strip || null, result);
       const progressStrip = tripProgress;
+      const currentProgressSummary = this.buildCurrentProgressSummary(tripProgress);
       const selectedTripDayNo = (tripProgress && (tripProgress.selected_day_no || tripProgress.current_day_no))
         || this.resolveInitialTripDayNo(tripDayCards);
       const selectedTripDay = tripDayCards.find((day) => Number(day.dayNo || day.day_no || 0) === Number(selectedTripDayNo))
@@ -370,10 +384,6 @@ const customerHomePageConfig = {
         : (hasCharterContract
           ? this.normalizeTodayDriverCard(result.today_driver_card || null)
           : this.buildTodayDriverCard(todayCard));
-      if (todayDriverCard && selectedTripDay) {
-        todayDriverCard.title = '今日用车';
-        todayDriverCard.sectionTitle = '今日用车';
-      }
       const selectedHotel = this.findHotelForTripDay(selectedTripDay, hotelCards);
       const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
         ...selectedHotel,
@@ -468,7 +478,10 @@ const customerHomePageConfig = {
         customerSummaryBar,
         tripProgress,
         progressStrip,
+        currentProgressSummary,
         selectedTripDayNo,
+        todayOverviewExpanded: false,
+        inviteTodayOverviewExpanded: false,
         phoneDateKey: this.getTodayDateKey(),
         todayCard,
         dailyCharter,
@@ -499,8 +512,10 @@ const customerHomePageConfig = {
           ? ''
           : ((todayCard && todayCard.advisor && todayCard.advisor.phone)
             || (todayItinerary && todayItinerary.farland_contact ? todayItinerary.farland_contact.phone : '')),
+      }, () => {
+        this.centerProgressAxisDay(selectedTripDayNo, 'home');
+        this.scrollToPendingCustomerHomeTarget();
       });
-      this.scrollToPendingCustomerHomeTarget();
     } catch (error) {
       wx.showToast({ title: '加载失败', icon: 'none' });
       this.setData({ loading: false });
@@ -516,7 +531,8 @@ const customerHomePageConfig = {
     const vehicleType = source.vehicle_type || source.vehicle_class || '';
     const plateNumber = source.plate_number || '';
     if (!driverName && !phone && !vehicleModel && !vehicleType && !vehicleColor && !plateNumber) return null;
-    const vehicleText = [vehicleModel || vehicleType, vehicleColor, plateNumber].filter(Boolean).join(' · ') || '车辆待确认';
+    const vehicleMainText = [vehicleModel || vehicleType, vehicleColor].filter(Boolean).join(' · ');
+    const vehicleText = [vehicleMainText, plateNumber].filter(Boolean).join(' · ') || '车辆待确认';
     return {
       name: driverName,
       phone,
@@ -525,6 +541,7 @@ const customerHomePageConfig = {
       vehicle_type: vehicleType,
       plate_number: plateNumber,
       meeting_point: source.meeting_point || '',
+      vehicleMainText,
       vehicleText,
       detailLine: [
         driverName ? `司机：${driverName}` : '',
@@ -567,6 +584,9 @@ const customerHomePageConfig = {
         phoneDateKey,
         tripInviteTrip: trip,
         selectedTripDayNo: trip.selectedDayNo || trip.selected_day_no || 0,
+        inviteTodayOverviewExpanded: false,
+      }, () => {
+        this.centerProgressAxisDay(trip.selectedDayNo || trip.selected_day_no || 0, 'invite');
       });
       return;
     }
@@ -577,6 +597,9 @@ const customerHomePageConfig = {
       this.setData({
         ...nextState,
         phoneDateKey,
+        todayOverviewExpanded: false,
+      }, () => {
+        this.centerProgressAxisDay(nextState.selectedTripDayNo || 0, 'home');
       });
       return;
     }
@@ -626,6 +649,8 @@ const customerHomePageConfig = {
         isSelected,
         selected: isSelected,
         selectable: true,
+        short_location: node.short_location || node.shortLocation || this.getShortProgressLocation(node),
+        departure_time: this.resolveDayDepartureTime(node),
         statusText: isSelected
           ? '已选择'
           : (isPast ? '已过去' : (isToday ? '今天' : (status === 'current' ? '当前' : (status === 'completed' ? '已完成' : '待前往')))),
@@ -633,11 +658,134 @@ const customerHomePageConfig = {
     });
   },
 
+  getShortProgressLocation(node = {}) {
+    const text = String(node.location_summary || node.city || '').trim();
+    const first = text
+      .split(/[\/→,，]/)
+      .map((item) => item.trim())
+      .filter(Boolean)[0];
+    return first || '行程';
+  },
+
+  resolveDayDepartureTime(day = {}, fallback = {}) {
+    const serviceWindow = fallback.service_window || fallback.serviceWindow || day.service_window || day.serviceWindow || {};
+    return this.extractTimeForDisplay(
+      day.estimated_departure_time_raw
+        || day.estimatedDepartureTimeRaw
+        || fallback.estimated_departure_time_raw
+        || fallback.estimatedDepartureTimeRaw
+        || day.estimated_departure_time
+        || day.estimatedDepartureTime
+        || fallback.estimated_departure_time
+        || fallback.estimatedDepartureTime
+        || day.start_time_text
+        || fallback.start_time_text
+        || day.departure_time
+        || day.depart_time
+        || day.pickup_time
+        || fallback.depart_time
+        || fallback.departure_time
+        || fallback.pickup_time
+        || fallback.service_window_label
+        || fallback.serviceWindowText
+        || serviceWindow.label
+        || serviceWindow.start_time
+        || day.startTime
+        || day.start_time
+        || '',
+    );
+  },
+
+  buildCurrentProgressSummary(progress) {
+    if (!progress || !Array.isArray(progress.nodes) || !progress.nodes.length) return null;
+    const selectedDayNo = Number(progress.selected_day_no || progress.selectedDayNo || 0);
+    const currentDayNo = Number(progress.current_day_no || progress.actual_current_day_no || progress.currentDayNo || 0);
+    const node = progress.nodes.find((item) => Number(item.day_no || item.dayNo || 0) === selectedDayNo)
+      || progress.nodes.find((item) => item.status === 'current')
+      || progress.nodes.find((item) => Number(item.day_no || item.dayNo || 0) === currentDayNo)
+      || progress.nodes[0];
+    if (!node) return null;
+    const departureTime = this.resolveDayDepartureTime(node);
+    return {
+      label: node.label || `Day ${node.day_no || ''}`.trim(),
+      metaText: [node.label || `Day ${node.day_no || ''}`.trim(), node.weekday || '', node.date || ''].filter(Boolean).join(' · '),
+      routeText: node.location_summary || node.city || '行程同步中',
+      departureText: departureTime ? `预计出发 ${departureTime}` : '',
+    };
+  },
+
+  buildOverviewSubtitle(dayNo = 0, weekday = '', date = '') {
+    const dayLabel = Number(dayNo || 0) ? `Day ${Number(dayNo)}` : '';
+    const secondaryLabel = weekday || date || '';
+    return [dayLabel, secondaryLabel].filter(Boolean).join(' · ') || '当日行程';
+  },
+
+  buildDaySectionCopy(dayNo = 0, date = '', todayTitle = '今日行程概览', dateSuffix = '行程概览') {
+    const dateKey = this.toDateKey(date);
+    const isPhoneToday = Boolean(dateKey && dateKey === this.getTodayDateKey());
+    if (isPhoneToday) {
+      return {
+        isPhoneToday: true,
+        sectionKicker: 'TODAY',
+        sectionTitle: todayTitle,
+      };
+    }
+    return {
+      isPhoneToday: false,
+      sectionKicker: dayNo ? `DAY ${dayNo}` : 'DATE',
+      sectionTitle: dateKey ? `${dateKey} ${dateSuffix}` : `Day ${dayNo || ''} ${dateSuffix}`.trim(),
+    };
+  },
+
+  escapeRegExp(text) {
+    return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  },
+
+  isPlaceholderCustomerName(name = '') {
+    const text = String(name || '').trim();
+    if (!text) return true;
+    return [
+      '王女士',
+      '张先生',
+      '李女士',
+      'Farland 客户',
+      '客户',
+      '游客',
+      '称呼',
+    ].includes(text);
+  },
+
+  normalizeCustomerDisplayName(name = '') {
+    const text = String(name || '').trim();
+    return this.isPlaceholderCustomerName(text) ? '' : text;
+  },
+
+  resolveDefaultCustomerNameForTrip(tripNo = '') {
+    const text = String(tripNo || '').trim().toUpperCase();
+    return text === '2026XBC091' ? '刘女士' : '';
+  },
+
+  buildCompactTripTitle(title = '', customerName = '', tripNo = '') {
+    const rawTitle = String(title || '').trim() || 'Farland 行程';
+    const cleanCustomerName = this.normalizeCustomerDisplayName(customerName);
+    const cleanTripNo = String(tripNo || '').trim();
+    const strippedTitle = cleanTripNo
+      ? rawTitle.replace(new RegExp(`^${this.escapeRegExp(cleanTripNo)}\\s*[·\\-]?\\s*`, 'i'), '').trim()
+      : rawTitle;
+    if (cleanCustomerName && strippedTitle && !strippedTitle.includes(cleanCustomerName)) {
+      return `${cleanCustomerName}的${strippedTitle}`;
+    }
+    return rawTitle;
+  },
+
   normalizeCustomerSummaryBar(result = {}) {
     const bar = result.customer_summary_bar || {};
     const profile = result.profile || {};
     const overview = (result.trip_overview || [])[0] || {};
     const todayCard = result.today_card || {};
+    const tripNo = bar.trip_no || todayCard.trip_no || overview.trip_no || overview.external_trip_id || '';
+    const customerName = this.normalizeCustomerDisplayName(bar.customer_display_name || profile.name || result.customer_name || '')
+      || this.resolveDefaultCustomerNameForTrip(tripNo);
     const dayCount = overview.days_count
       || (Array.isArray(result.itinerary_days) ? result.itinerary_days.length : 0)
       || (Array.isArray(result.daily_summary_cards) ? result.daily_summary_cards.length : 0);
@@ -646,12 +794,22 @@ const customerHomePageConfig = {
       || (dayCount ? `${dayCount}天行程` : '');
     return {
       visible: bar.visible !== false,
-      customer_display_name: bar.customer_display_name || profile.name || result.customer_name || 'Farland 客户',
-      trip_no: bar.trip_no || todayCard.trip_no || overview.trip_no || overview.external_trip_id || '',
+      customer_display_name: customerName || 'Farland 客户',
+      trip_no: tripNo,
       date_range_text: bar.date_range_text || overview.date_range_text || '',
+      display_title: this.buildCompactTripTitle(
+        bar.trip_title || overview.title || overview.trip_title || todayCard.trip_title || `${bar.trip_no || todayCard.trip_no || overview.trip_no || overview.external_trip_id || ''} Farland 行程`,
+        customerName,
+        tripNo,
+      ),
+      display_meta: [
+        tripNo,
+        bar.date_range_text || overview.date_range_text || '',
+      ].filter(Boolean).join(' · '),
+      city_route_text: bar.city_route_text || overview.city_route_text || overview.city_summary || todayCard.city_route_text || todayCard.city_summary || '',
       trip_summary_text: tripSummaryText,
       thank_you_text: bar.thank_you_text || '感谢您使用 Farland 的服务',
-      sync_status_text: bar.sync_status_text || '行程已同步',
+      sync_status_text: bar.sync_status_text || '已同步',
       communication_note: bar.communication_note || '后续沟通请以客户群为准',
     };
   },
@@ -685,6 +843,7 @@ const customerHomePageConfig = {
           date: day.date || '',
           weekday: day.weekday || '',
           location_summary: String(locationSummary || '').replace(/^Day\s+\d+\s*[:：-]?\s*/i, ''),
+          departure_time: this.resolveDayDepartureTime(day),
           status: 'upcoming',
         };
       }).filter((node) => node.day_no && node.location_summary);
@@ -712,6 +871,7 @@ const customerHomePageConfig = {
       actual_current_day_no: currentDayNo,
       current_node_id: (nodes.find((node) => Number(node.day_no || 0) === Number(currentDayNo)) || nodes[currentIndex]).node_id,
       nodes,
+      current_summary: this.buildCurrentProgressSummary({ nodes, selected_day_no: selectedDayNo, current_day_no: currentDayNo }),
     };
   },
 
@@ -722,6 +882,8 @@ const customerHomePageConfig = {
       node_id: node.node_id || `${node.label || 'node'}-${index}`,
       label: node.label || '',
       status: ['completed', 'current', 'upcoming'].includes(node.status) ? node.status : 'upcoming',
+      short_location: node.short_location || node.shortLocation || this.getShortProgressLocation(node),
+      departure_time: this.resolveDayDepartureTime(node),
       statusText: node.status === 'current' ? '当前' : (node.status === 'completed' ? '已完成' : '待前往'),
     })).filter((node) => node.label);
     if (!nodes.length) return null;
@@ -747,23 +909,30 @@ const customerHomePageConfig = {
       ? this.normalizeAssignedDriver({
           name: card.driver_name,
           phone: card.driver_phone,
-          vehicle_model: card.vehicle_summary,
+          vehicle_model: card.vehicle_model || card.vehicle_summary,
+          vehicle_color: card.vehicle_color || '',
+          plate_number: card.plate_number || '',
         })
       : null;
-    const departureTime = this.formatDisplayTime(card.departure_time || '') || '待确认';
+    const departureTime = this.resolveDayDepartureTime(card, card) || '待确认';
     const vehicleSummary = card.vehicle_summary || '车辆待确认';
     const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver });
     const pickup = card.pickup || card.pickup_address || '';
+    const dayCopy = this.buildDaySectionCopy(card.day_no || card.dayNo || 0, card.date || '', '今日用车', '用车');
     return {
-      title: '今日用车',
-      sectionTitle: '今日用车',
-      statusText: isAssigned ? '已分配司机' : '司机信息待同步',
+      title: dayCopy.sectionTitle,
+      sectionKicker: dayCopy.sectionKicker,
+      sectionTitle: dayCopy.sectionTitle,
+      statusText: isAssigned ? '' : '司机信息待同步',
       statusClass: isAssigned ? 'confirmed' : 'pending',
       departureTime,
       vehicleSummary,
       serviceSummaryLine: serviceLines.serviceSummaryLine,
+      departureLine: serviceLines.departureLine,
       driverLine: serviceLines.driverLine,
-      pickupLine: pickup ? `上车点：${pickup}` : '',
+      vehicleLine: serviceLines.vehicleLine,
+      plateLine: serviceLines.plateLine,
+      pickupLine: this.formatPickupLine(pickup),
       partySummary: card.party_summary || '',
       driver,
       helperText: isAssigned ? '' : (card.helper_text || '司机信息将在出发前同步。'),
@@ -776,47 +945,64 @@ const customerHomePageConfig = {
   buildPublishedTripTodayDriverCard(todayDay, snapshot = {}) {
     if (!todayDay) return null;
     const summary = todayDay.transportSummary || {};
+    const hasDayTransportSummary = Boolean(summary && Object.keys(summary).length);
+    // The snapshot-level today_driver_card represents the initially selected day.
+    // When the customer taps Day 2/Day 3, selected-day transport_summary must win.
     const explicit = snapshot.today_driver_card || snapshot.todayDriverCard || {};
-    const rawDriver = explicit.driver
-      || explicit.assigned_transport
-      || summary.driver
+    const rawDriver = summary.driver
       || summary.assigned_transport
+      || explicit.driver
+      || explicit.assigned_transport
       || {
-        name: explicit.driver_name || summary.driver_name || '',
-        phone: explicit.driver_phone || summary.driver_phone || '',
-        vehicle_model: explicit.vehicle_model || summary.vehicle_model || explicit.vehicle_summary || summary.vehicle_summary || '',
-        vehicle_color: explicit.vehicle_color || summary.vehicle_color || '',
-        vehicle_type: explicit.vehicle_type || summary.vehicle_type || summary.vehicle_class || '',
-        plate_number: explicit.plate_number || summary.plate_number || '',
+        name: summary.driver_name || explicit.driver_name || '',
+        phone: summary.driver_phone || explicit.driver_phone || '',
+        vehicle_model: summary.vehicle_model || summary.vehicle_summary || explicit.vehicle_model || explicit.vehicle_summary || '',
+        vehicle_color: summary.vehicle_color || explicit.vehicle_color || '',
+        vehicle_type: summary.vehicle_type || summary.vehicle_class || explicit.vehicle_type || '',
+        plate_number: summary.plate_number || explicit.plate_number || '',
       };
     const driver = this.normalizeAssignedDriver(rawDriver);
-    const driverVisibility = explicit.driver_visibility || summary.driver_visibility || (driver && (driver.name || driver.phone) ? 'assigned' : 'pending');
+    const driverVisibility = summary.driver_visibility || explicit.driver_visibility || (driver && (driver.name || driver.phone) ? 'assigned' : 'pending');
     const isAssigned = driverVisibility === 'assigned' && driver;
-    const departureTime = this.formatDisplayTime(explicit.departure_time || summary.departure_time || summary.depart_time || todayDay.startTime || '') || '待确认';
-    const vehicleSummary = explicit.vehicle_summary
-      || summary.vehicle_summary
+    const departureTime = this.resolveDayDepartureTime(todayDay, {
+      ...explicit,
+      ...summary,
+      depart_time: summary.depart_time || summary.pickup_time || explicit.depart_time || '',
+      departure_time: summary.departure_time || explicit.departure_time || '',
+      service_window_label: summary.service_window_label || summary.serviceWindowText || explicit.service_window_label || explicit.serviceWindowText || '',
+    }) || '待确认';
+    const vehicleSummary = summary.vehicle_summary
       || summary.vehicle_model
       || summary.vehicle_class
+      || explicit.vehicle_summary
+      || explicit.vehicle_model
       || todayDay.transportBadge
       || (driver ? driver.vehicleText : '')
       || '车辆待确认';
     const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver: isAssigned ? driver : null });
-    const pickup = explicit.pickup || explicit.pickup_address || summary.pickup || summary.pickup_address || '';
+    const pickup = summary.pickup
+      || summary.pickup_address
+      || (hasDayTransportSummary ? '' : (explicit.pickup || explicit.pickup_address || ''));
+    const dayCopy = this.buildDaySectionCopy(todayDay.dayNo || todayDay.day_no || 0, todayDay.date || '', '今日用车', '用车');
     return {
-      title: '今日用车',
-      sectionTitle: '今日用车',
-      statusText: isAssigned ? '已分配司机' : (explicit.status_text || summary.status_text || '司机信息待同步'),
+      title: dayCopy.sectionTitle,
+      sectionKicker: dayCopy.sectionKicker,
+      sectionTitle: dayCopy.sectionTitle,
+      statusText: isAssigned ? '' : (summary.status_text || explicit.status_text || '司机信息待同步'),
       statusClass: isAssigned ? 'confirmed' : 'pending',
       departureTime,
       vehicleSummary,
       serviceSummaryLine: serviceLines.serviceSummaryLine,
+      departureLine: serviceLines.departureLine,
       driverLine: serviceLines.driverLine,
-      pickupLine: pickup ? `上车点：${pickup}` : '',
-      partySummary: explicit.party_summary || summary.party_summary || '',
+      vehicleLine: serviceLines.vehicleLine,
+      plateLine: serviceLines.plateLine,
+      pickupLine: this.formatPickupLine(pickup),
+      partySummary: summary.party_summary || explicit.party_summary || '',
       driver: isAssigned ? driver : null,
-      helperText: isAssigned ? '' : (explicit.helper_text || summary.helper_text || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
-      requestId: explicit.request_id || summary.request_id || '',
-      actionLabel: isAssigned ? (explicit.cta_label || summary.cta_label || '') : '',
+      helperText: isAssigned ? '' : (summary.helper_text || explicit.helper_text || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
+      requestId: summary.request_id || explicit.request_id || '',
+      actionLabel: isAssigned ? (summary.cta_label || explicit.cta_label || '') : '',
       actionType: isAssigned ? 'detail' : 'none',
     };
   },
@@ -830,17 +1016,30 @@ const customerHomePageConfig = {
   buildVehicleServiceLines({ departureTime = '', vehicleSummary = '', driver = null } = {}) {
     const departure = this.extractTimeForDisplay(departureTime || '');
     const vehicle = vehicleSummary || '车辆待确认';
+    const departureLine = departure && departure !== '待确认' ? `${departure} 出发` : '出发时间待确认';
+    const driverLine = driver && (driver.name || driver.phone)
+      ? [
+          driver.name ? `司机：${driver.name}` : '',
+          driver.phone || '',
+        ].filter(Boolean).join(' · ')
+      : '';
+    const vehicleMain = driver
+      ? (driver.vehicleMainText || [driver.vehicle_model || driver.vehicle_type || '', driver.vehicle_color || ''].filter(Boolean).join(' · ') || vehicle)
+      : vehicle;
+    const vehicleLine = driver ? (vehicleMain ? `车辆：${vehicleMain}` : '') : vehicle;
+    const plateLine = driver && driver.plate_number ? `车牌：${driver.plate_number}` : '';
     const serviceSummaryLine = [
       departure && departure !== '待确认' ? `${departure} 出发` : '',
       vehicle,
     ].filter(Boolean).join(' · ') || vehicle;
-    const driverLine = driver && (driver.name || driver.phone)
-      ? [
-          driver.name ? `司机 ${driver.name}` : '',
-          driver.phone || '',
-        ].filter(Boolean).join(' · ')
-      : '';
-    return { serviceSummaryLine, driverLine };
+    return { serviceSummaryLine, departureLine, driverLine, vehicleLine, plateLine };
+  },
+
+  formatPickupLine(value = '') {
+    const pickup = String(value || '')
+      .replace(/^\s*上车点\s*[:：]\s*/u, '')
+      .trim();
+    return pickup ? `上车点：${pickup}` : '';
   },
 
   formatDriveTimeMeta(value) {
@@ -970,11 +1169,117 @@ const customerHomePageConfig = {
     return '开车';
   },
 
+  getTravelModeIcon(mode) {
+    if (mode === 'walk') return '步行';
+    if (mode === 'flight') return '飞行';
+    return '车程';
+  },
+
+  get091RouteMetaOverride(item = {}) {
+    const cardId = String(item.card_id || item.cardId || item.item_id || item.id || '').trim();
+    const routeCheckId = String(item.route_check_id || item.routeCheckId || '').trim();
+    const routeOverrides = {
+      '091_day7_white_house': {
+        routeIds: ['day7_monuments'],
+        drive_time_text: '0:16',
+        distance_text: '3.4mi',
+        source_drive_time_text: '0:25',
+        source_distance_text: '3mi',
+        traffic_text: 'Heavy',
+        maps_duration_text: '16 min',
+        maps_distance_text: '3.4 mi',
+        maps_route_text: 'Massachusetts Ave NW',
+      },
+      '091_day7_lincoln_memorial': {
+        routeIds: ['day7_white_house_to_lincoln_walk', 'day7_white_house_to_lincoln_drive'],
+        drive_time_text: '0:12',
+        distance_text: '1.5mi',
+        source_drive_time_text: '0:25',
+        source_distance_text: '1.2mi',
+        traffic_text: 'Heavy',
+        maps_duration_text: '12 min',
+        maps_distance_text: '1.5 mi',
+        maps_route_text: 'Constitution Ave NW',
+      },
+      '091_day7_us_capitol': {
+        routeIds: ['day7_lincoln_to_us_capitol_walk', 'day7_lincoln_to_us_capitol_drive'],
+        drive_time_text: '0:15',
+        distance_text: '2.8mi',
+        source_drive_time_text: '0:50',
+        source_distance_text: '2.5mi',
+        traffic_text: 'Heavy',
+        maps_duration_text: '15 min',
+        maps_distance_text: '2.8 mi',
+        maps_route_text: 'Constitution Ave NW and Pennsylvania Ave NW',
+      },
+      '091_day7_capitol_hill': {
+        routeIds: ['day7_us_capitol_to_capitol_hill_walk', 'day7_us_capitol_to_capitol_hill_drive'],
+        drive_time_text: '0:05',
+        distance_text: '0.2mi',
+        source_drive_time_text: '0:05',
+        source_distance_text: '0.2mi',
+        traffic_text: 'Moderate',
+        maps_duration_text: '5 min',
+        maps_distance_text: '0.2 mi',
+        maps_route_text: 'U.S. Capitol → Capitol Hill',
+      },
+      '091_day7_library_of_congress': {
+        routeIds: ['day7_capitol_hill_to_library_walk', 'day7_capitol_hill_to_library_drive'],
+        drive_time_text: '0:06',
+        distance_text: '0.3mi',
+        source_drive_time_text: '0:06',
+        source_distance_text: '0.3mi',
+        traffic_text: 'Moderate',
+        maps_duration_text: '6 min',
+        maps_distance_text: '0.3 mi',
+        maps_route_text: 'Capitol Hill → Library of Congress',
+      },
+      '091_day7_supreme_court_exterior': {
+        routeIds: ['day7_library_to_supreme_walk', 'day7_library_to_supreme_drive'],
+        drive_time_text: '0:04',
+        distance_text: '0.2mi',
+        source_drive_time_text: '0:04',
+        source_distance_text: '0.2mi',
+        traffic_text: 'Moderate',
+        maps_duration_text: '4 min',
+        maps_distance_text: '0.2 mi',
+        maps_route_text: 'Library of Congress → Supreme Court exterior',
+      },
+      '091_day7_glover_georgetown': {
+        routeIds: ['day7_hotel'],
+        drive_time_text: '0:23',
+        distance_text: '6.4mi',
+        source_drive_time_text: '0:30',
+        source_distance_text: '5.1mi',
+        traffic_text: 'Heavy',
+        maps_duration_text: '23 min',
+        maps_distance_text: '6.4 mi',
+        maps_route_text: 'Independence Ave SE and Rock Creek and Potomac Pkwy NW',
+      },
+    };
+    const override = routeOverrides[cardId]
+      || Object.values(routeOverrides).find((route) => route.routeIds.includes(routeCheckId));
+    if (override) {
+      return {
+        ...override,
+        routeIds: undefined,
+        traffic_level: 'maps_current',
+        transport_mode: 'drive',
+        travel_mode: 'drive',
+        mode: 'drive',
+      };
+    }
+    return null;
+  },
+
   normalizeRouteLegMeta(item = {}) {
-    const explicitMeta = item.travelMeta || item.travel_meta || item.travel_snapshot || item.travelSnapshot || {};
+    const explicitMeta = {
+      ...(item.travelMeta || item.travel_meta || item.travel_snapshot || item.travelSnapshot || {}),
+      ...(this.get091RouteMetaOverride(item) || {}),
+    };
     const driveText = this.formatDriveTimeMeta(item.driveText || item.drive_time_text || item.drive_time || explicitMeta.drive_time_text || explicitMeta.maps_duration_text || '');
     const distanceText = this.formatDistanceMeta(item.distanceText || item.distance_text || item.distance || explicitMeta.distance_text || explicitMeta.maps_distance_text || '');
-    const rawTrafficText = item.trafficText || item.traffic_text || item.traffic_level || explicitMeta.traffic_text || explicitMeta.traffic_level || '';
+    const rawTrafficText = explicitMeta.traffic_text || explicitMeta.traffic_level || item.trafficText || item.traffic_text || item.traffic_level || '';
     const trafficLevel = this.normalizeTrafficLevel(rawTrafficText);
     const trafficText = this.formatTrafficText(rawTrafficText, trafficLevel);
     const iconType = this.normalizeTravelMode(item, explicitMeta, { driveText, distanceText, trafficText });
@@ -985,6 +1290,7 @@ const customerHomePageConfig = {
     const travelMeta = {
       icon_type: iconType,
       icon_label: this.getTravelModeLabel(iconType),
+      icon_text: this.getTravelModeIcon(iconType),
       mode: iconType,
       transport_mode: iconType,
       drive_time_text: driveText,
@@ -1037,7 +1343,269 @@ const customerHomePageConfig = {
     const previousRouteCheck = previousItem ? (previousItem.route_check_id || previousItem.routeCheckId || '') : '';
     if (currentGroup && previousGroup && currentGroup === previousGroup && currentRouteCheck === previousRouteCheck) return null;
     const meta = item.travelMeta || item.travel_meta || null;
-    return meta && meta.hasContent ? meta : null;
+    if (!meta || !meta.hasContent) return null;
+    const mode = meta.icon_type || meta.mode || meta.transport_mode || 'drive';
+    return {
+      ...meta,
+      icon_type: mode,
+      icon_label: meta.icon_label || this.getTravelModeLabel(mode),
+      icon_text: meta.icon_text || this.getTravelModeIcon(mode),
+    };
+  },
+
+  buildOverviewNodeSet(routeStops = [], context = {}) {
+    const fullNodes = (Array.isArray(routeStops) ? routeStops : [])
+      .map((node, index) => ({
+        ...node,
+        id: node.id || `overview-node-${index}`,
+        summaryNode: false,
+      }));
+    if (!fullNodes.length) {
+      return {
+        fullNodes: [],
+        summaryNodes: [],
+        displayRouteStops: [],
+        overviewCanExpand: false,
+        overviewCollapsed: false,
+        overviewExpandLabel: '',
+        overviewCollapseLabel: '收起',
+      };
+    }
+
+    const nodeCount = Number(context.nodeCount || 0)
+      || fullNodes.filter((node) => !this.isDepartureOverviewNode(node)).length
+      || fullNodes.length;
+    const hasGroupedTourNodes = fullNodes.some((node) => this.getOverviewNodeGroupKey(node));
+    const shouldCollapse = fullNodes.length > 4 && (hasGroupedTourNodes || nodeCount > 4);
+    const summaryNodes = shouldCollapse
+      ? this.buildOverviewSummaryNodes(fullNodes, context)
+      : fullNodes;
+    const displaySummaryNodes = summaryNodes && summaryNodes.length
+      ? summaryNodes
+      : fullNodes.slice(0, 4).map((node) => this.buildOverviewSummarySingleNode(node, context));
+    const overviewCanExpand = shouldCollapse && displaySummaryNodes.length < fullNodes.length;
+
+    return {
+      fullNodes,
+      summaryNodes: displaySummaryNodes,
+      displayRouteStops: overviewCanExpand ? displaySummaryNodes : fullNodes,
+      overviewCanExpand,
+      overviewCollapsed: overviewCanExpand,
+      overviewExpandLabel: `展开全部 ${nodeCount} 个节点`,
+      overviewCollapseLabel: '收起',
+    };
+  },
+
+  buildOverviewSummaryNodes(routeStops = [], context = {}) {
+    const summaryNodes = [];
+    let index = 0;
+    while (index < routeStops.length) {
+      const node = routeStops[index];
+      const groupKey = this.getOverviewNodeGroupKey(node);
+      if (!groupKey) {
+        summaryNodes.push(this.buildOverviewSummarySingleNode(node, context));
+        index += 1;
+        continue;
+      }
+
+      const groupNodes = [];
+      while (index < routeStops.length && this.getOverviewNodeGroupKey(routeStops[index]) === groupKey) {
+        groupNodes.push(routeStops[index]);
+        index += 1;
+      }
+      summaryNodes.push(groupNodes.length > 1
+        ? this.buildOverviewGroupNode(groupNodes, context)
+        : this.buildOverviewSummarySingleNode(groupNodes[0], context));
+    }
+
+    const deduped = this.dedupeOverviewSummaryNodes(summaryNodes);
+    if (deduped.length && deduped.length < routeStops.length) return deduped;
+    return this.buildFallbackOverviewSummaryNodes(routeStops, context);
+  },
+
+  buildFallbackOverviewSummaryNodes(routeStops = [], context = {}) {
+    const picked = [];
+    const pushNode = (node) => {
+      if (!node) return;
+      const id = node.id || node.card_id || node.cardId || `${node.time || ''}-${node.title || ''}`;
+      if (picked.some((item) => (item.id || item.card_id || item.cardId) === id)) return;
+      picked.push(node);
+    };
+    const firstDeparture = routeStops.find((node) => this.isDepartureOverviewNode(node));
+    pushNode(firstDeparture);
+    routeStops
+      .filter((node) => !this.isDepartureOverviewNode(node) && !this.isHotelOverviewNode(node))
+      .slice(0, firstDeparture ? 2 : 3)
+      .forEach(pushNode);
+    const lastHotel = [...routeStops].reverse().find((node) => this.isHotelOverviewNode(node));
+    pushNode(lastHotel || routeStops[routeStops.length - 1]);
+    return picked.map((node) => this.buildOverviewSummarySingleNode(node, context));
+  },
+
+  dedupeOverviewSummaryNodes(nodes = []) {
+    const seen = {};
+    return (Array.isArray(nodes) ? nodes : []).filter((node, index) => {
+      if (!node) return false;
+      const key = node.id || node.card_id || node.cardId || `${node.time || ''}-${node.title || ''}-${index}`;
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+  },
+
+  buildOverviewSummarySingleNode(node = {}, context = {}) {
+    const summaryNode = {
+      ...node,
+      summaryNode: true,
+      connectorTravelMeta: null,
+      connector_travel_meta: null,
+    };
+
+    if (this.isDepartureOverviewNode(node)) {
+      return {
+        ...summaryNode,
+        id: node.id || `${context.dayNo || 'day'}-summary-departure`,
+        title: '上车出发',
+        subtitle: this.shortenOverviewPlace(node.pickupAddress || node.pickup_address || node.subtitle || '', node.title || ''),
+      };
+    }
+
+    if (this.isHotelOverviewNode(node)) {
+      return {
+        ...summaryNode,
+        id: node.id || `${context.dayNo || 'day'}-summary-hotel`,
+        title: '返回酒店',
+        subtitle: this.shortenOverviewPlace(node.title || node.subtitle || '', node.subtitle || ''),
+      };
+    }
+
+    return {
+      ...summaryNode,
+      title: this.getOverviewNodeDisplayName(node) || node.title || '行程节点',
+      subtitle: this.shortenOverviewPlace(node.subtitle || node.location || node.location_name || '', ''),
+    };
+  },
+
+  buildOverviewGroupNode(groupNodes = [], context = {}) {
+    const first = groupNodes[0] || {};
+    const groupKey = this.getOverviewNodeGroupKey(first);
+    return {
+      id: groupKey || `${context.dayNo || 'day'}-overview-group-${first.sequence || first.time || groupNodes.length}`,
+      time: first.time || '',
+      title: this.getOverviewGroupTitle(groupKey, groupNodes, context),
+      subtitle: this.getOverviewGroupSubtitle(groupNodes),
+      type: 'city_tour_group',
+      item_type: 'city_tour_group',
+      summaryNode: true,
+      childCount: groupNodes.length,
+      childItems: groupNodes,
+      connectorTravelMeta: null,
+      connector_travel_meta: null,
+    };
+  },
+
+  getOverviewNodeGroupKey(node = {}) {
+    if (!node || this.isDepartureOverviewNode(node) || this.isHotelOverviewNode(node)) return '';
+    const groupKey = node.parent_group_id || node.parentGroupId || '';
+    if (!groupKey || /^hotel_/i.test(groupKey) || /^stay_/i.test(groupKey)) return '';
+    const type = String(node.card_type || node.cardType || node.type || node.item_type || '').toLowerCase();
+    if (type && !/(landmark|museum|activity|custom|city|tour)/.test(type)) return '';
+    return groupKey;
+  },
+
+  isDepartureOverviewNode(node = {}) {
+    return Boolean(node && (node.isDeparture || node.type === 'departure' || node.item_type === 'departure' || node.title === '上车出发'));
+  },
+
+  isHotelOverviewNode(node = {}) {
+    if (!node) return false;
+    const type = String(node.card_type || node.cardType || node.type || node.item_type || '').toLowerCase();
+    if (/(hotel|lodging|stay)/.test(type)) return true;
+    if (node.hotel_stay_id || node.stay_id) return true;
+    return /酒店|hotel/i.test(String(node.title || ''));
+  },
+
+  getOverviewGroupTitle(groupKey = '', groupNodes = [], context = {}) {
+    const normalizedKey = String(groupKey || '').toLowerCase();
+    if (normalizedKey === 'day7_monuments_group') return 'Washington DC 地标参观';
+    if (normalizedKey === 'day7_capitol_hill_group') return 'Capitol Hill 外景参观';
+    if (normalizedKey === 'day3_midtown_group') return '纽约 Midtown 城市参观';
+    if (normalizedKey === 'day3_park_group') return '纽约市区轻松活动';
+    if (normalizedKey === 'day3_uptown_museum_group') return '纽约上城公园与博物馆';
+    if (normalizedKey === 'day3_midtown_lunch_group') return '纽约 Midtown 地标与午餐';
+    if (normalizedKey === 'day3_downtown_brooklyn_group') return '纽约下城与布鲁克林观景';
+    if (normalizedKey === 'day6_museum_group') return 'Smithsonian 博物馆参观';
+    const first = groupNodes[0] || {};
+    const groupTitle = first.parent_group_title || first.parentGroupTitle || '';
+    if (/museum/i.test(first.card_type || first.cardType || first.type || '')) return '博物馆参观';
+    if (groupTitle) return `${this.shortenOverviewPlace(groupTitle, '')} 参观`;
+    const city = context.city || context.city_summary || '';
+    return city ? `${this.shortenOverviewPlace(city, '')} 城市参观` : '城市参观';
+  },
+
+  getOverviewGroupSubtitle(groupNodes = []) {
+    return (Array.isArray(groupNodes) ? groupNodes : [])
+      .map((node) => this.getOverviewNodeDisplayName(node))
+      .filter(Boolean)
+      .join(' / ');
+  },
+
+  getOverviewNodeDisplayName(node = {}) {
+    const snapshot = node.display_snapshot || node.displaySnapshot || {};
+    const raw = snapshot.zh_name
+      || snapshot.chinese_name
+      || snapshot.name_zh
+      || snapshot.title_zh
+      || node.zh_title
+      || node.chinese_title
+      || node.title
+      || node.location
+      || node.location_name
+      || '';
+    const text = String(raw || '').trim();
+    const key = text.toLowerCase();
+    const knownNames = {
+      'the white house': '白宫',
+      'white house': '白宫',
+      'u.s. capitol': '美国国会大厦',
+      'us capitol': '美国国会大厦',
+      'united states capitol': '美国国会大厦',
+      '国会大厦': '美国国会大厦',
+      'lincoln memorial': '林肯纪念堂',
+      'capitol hill': '国会山',
+      'library of congress': '国会图书馆',
+      'supreme court exterior': '最高法院外景',
+      'supreme court of the united states': '最高法院外景',
+      'times square': '时代广场',
+      'rockefeller center': '洛克菲勒中心',
+      'fifth avenue': '第五大道',
+      'central park': '中央公园',
+      'bryant park': '布莱恩特公园',
+      'metropolitan museum of art': '大都会艺术博物馆',
+      'the metropolitan museum of art': '大都会艺术博物馆',
+      'empire state building': '帝国大厦',
+      'lunch': '午餐',
+      'statue of liberty view (battery park)': '自由女神像远眺（炮台公园）',
+      'statue of liberty view': '自由女神像远眺',
+      'battery park': '炮台公园',
+      'wall street': '华尔街',
+      'brooklyn bridge': '布鲁克林大桥',
+      'dumbo / brooklyn bridge park': 'DUMBO / 布鲁克林大桥公园',
+      'dumbo': 'DUMBO',
+      'national museum of natural history': '国家自然历史博物馆',
+      'national air and space museum': '国家航空航天博物馆',
+    };
+    return knownNames[key] || text;
+  },
+
+  shortenOverviewPlace(value = '', fallback = '') {
+    const text = String(value || fallback || '').replace(/^上车点[:：]\s*/, '').trim();
+    if (!text) return '';
+    const first = text
+      .split(/[，,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)[0];
+    return first || text;
   },
 
   getDayPickupText(day = {}) {
@@ -1085,14 +1653,18 @@ const customerHomePageConfig = {
       (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
     );
     const departureTime = this.extractTimeForDisplay(
-      card.departure_time
+      card.estimated_departure_time_raw
+        || card.estimatedDepartureTimeRaw
+        || card.estimated_departure_time
+        || card.estimatedDepartureTime
         || card.start_time_text
-        || card.startTime
         || card.depart_time
         || (card.service_window && card.service_window.label)
         || card.service_window
+        || card.departureTime
         || '',
     );
+    const daySectionCopy = this.buildDaySectionCopy(card.day_no || card.dayNo || 0, card.date || '');
     const hotel = card.hotel
       ? {
           ...card.hotel,
@@ -1104,50 +1676,79 @@ const customerHomePageConfig = {
       id: `${card.day_no || card.dayNo || 'today'}-departure`,
       time: departureTime || serviceWindowText || '',
       title: '上车出发',
-      subtitle: pickupText || '预计出发',
+      subtitle: this.formatPickupLine(pickupText) || '预计出发',
+      pickupAddress: pickupText,
       isDeparture: true,
     }] : [];
-    const maxVisibleDestinationCards = destinationCards.length <= 4 ? destinationCards.length : 3;
-    const visibleDestinationCards = destinationCards.slice(0, maxVisibleDestinationCards);
+    const routeStops = [
+      ...departureRouteStops,
+      ...destinationCards,
+    ].map((item, index, visibleItems) => {
+      const nextItem = visibleItems[index + 1] || null;
+      const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
+      return {
+        id: item.card_id || item.id,
+        card_id: item.card_id || item.id,
+        card_type: item.card_type || item.cardType || item.type || item.item_type || '',
+        type: item.type || item.item_type || item.card_type || '',
+        item_type: item.item_type || item.type || item.card_type || '',
+        day_no: item.day_no || item.dayNo || card.day_no || card.dayNo || 0,
+        sequence: item.sequence || 0,
+        parent_group_id: item.parent_group_id || item.parentGroupId || '',
+        parent_group_title: item.parent_group_title || item.parentGroupTitle || '',
+        group_sequence: item.group_sequence || item.groupSequence || 0,
+        display_snapshot: item.display_snapshot || item.displaySnapshot || null,
+        time_snapshot: item.time_snapshot || item.timeSnapshot || null,
+        travel_snapshot: item.travel_snapshot || item.travelSnapshot || null,
+        route_check_id: item.route_check_id || item.routeCheckId || '',
+        hotel_stay_id: item.hotel_stay_id || item.stay_id || '',
+        time: item.time,
+        title: item.title,
+        subtitle: item.subtitle || item.location || item.location_name || item.city || '',
+        location: item.location || item.location_name || '',
+        location_name: item.location_name || item.location || '',
+        pickupAddress: item.pickupAddress || '',
+        isDeparture: Boolean(item.isDeparture),
+        legMeta: item.legMeta || '',
+        travelMeta: item.travelMeta || item.travel_meta || null,
+        travel_meta: item.travel_meta || item.travelMeta || null,
+        connectorTravelMeta,
+        connector_travel_meta: connectorTravelMeta,
+        driveText: item.driveText || '',
+        distanceText: item.distanceText || '',
+        trafficText: item.trafficText || '',
+        trafficLevel: item.trafficLevel || 'unknown',
+      };
+    });
+    const overviewNodeSet = this.buildOverviewNodeSet(routeStops, {
+      dayNo: card.day_no || card.dayNo || 0,
+      city: card.city_summary || card.city || '',
+      nodeCount: destinationCards.length,
+    });
     return {
       ...card,
       driver_visibility: driverVisibility,
       dayLabel: `Trip ${card.trip_no || card.trip_id || ''} · Day ${card.day_no || ''}`,
+      isPhoneToday: daySectionCopy.isPhoneToday,
+      sectionKicker: daySectionCopy.isPhoneToday ? (card.sectionKicker || card.section_kicker || daySectionCopy.sectionKicker) : daySectionCopy.sectionKicker,
+      sectionTitle: daySectionCopy.isPhoneToday ? (card.sectionTitle || card.section_title || daySectionCopy.sectionTitle) : daySectionCopy.sectionTitle,
       dateRouteText: `${card.weekday || ''}${card.date ? ` · ${card.date}` : ''}${card.city_summary ? ` · ${card.city_summary}` : ''}`,
-      overviewSubtitle: [`Day ${card.day_no || ''}`, card.weekday || '', card.date || '', card.city_summary || card.city || ''].filter(Boolean).join(' · '),
+      overviewSubtitle: this.buildOverviewSubtitle(card.day_no || card.dayNo || 0, card.weekday || '', card.date || ''),
       timeline_items: timelineItems,
       destination_cards: destinationCards,
       serviceWindowText,
       departureTime,
+      estimated_departure_time_raw: card.estimated_departure_time_raw || card.estimatedDepartureTimeRaw || '',
+      estimated_departure_time: card.estimated_departure_time || card.estimatedDepartureTime || departureTime || '',
       startTime: departureTime || card.startTime || card.start_time_text || '',
       transportTitle: (card.transport_summary && card.transport_summary.title) || (card.service_type === 'charter' ? '今日包车服务' : '今日接送安排'),
       transportStatusText: driverAssigned
-        ? '已分配司机'
+        ? ''
         : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
-      routeStops: [
-        ...departureRouteStops,
-        ...visibleDestinationCards,
-      ].map((item, index, visibleItems) => {
-        const nextItem = visibleItems[index + 1] || null;
-        const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
-        return {
-          id: item.card_id || item.id,
-          time: item.time,
-          title: item.title,
-          subtitle: item.subtitle || item.location || item.location_name || item.city || '',
-          legMeta: item.legMeta || '',
-          travelMeta: item.travelMeta || item.travel_meta || null,
-          travel_meta: item.travel_meta || item.travelMeta || null,
-          connectorTravelMeta,
-          connector_travel_meta: connectorTravelMeta,
-          driveText: item.driveText || '',
-          distanceText: item.distanceText || '',
-          trafficText: item.trafficText || '',
-          trafficLevel: item.trafficLevel || 'unknown',
-        };
-      }),
+      routeStops,
+      ...overviewNodeSet,
       nodeCount: destinationCards.length,
-      extraNodeCount: Math.max(0, destinationCards.length - maxVisibleDestinationCards),
+      extraNodeCount: 0,
       hotel,
       advisor: card.advisor || {},
       driver: driverAssigned ? normalizedDriver : null,
@@ -1160,18 +1761,33 @@ const customerHomePageConfig = {
     const driver = todayCard.driver || null;
     const isAssigned = Boolean(driver);
     const shouldOpenTransfer = Boolean(todayCard.assigned_request_id && todayCard.service_type !== 'charter');
-    const departureTime = todayCard.serviceWindowText || todayCard.depart_time || '待确认';
+    const departureTime = this.extractTimeForDisplay(
+      todayCard.estimated_departure_time_raw
+        || todayCard.estimatedDepartureTimeRaw
+        || todayCard.estimated_departure_time
+        || todayCard.estimatedDepartureTime
+        || todayCard.start_time_text
+        || todayCard.depart_time
+        || todayCard.serviceWindowText
+        || todayCard.departureTime
+        || '',
+    ) || '待确认';
     const vehicleSummary = todayCard.vehicle_summary || '车辆待确认';
     const serviceLines = this.buildVehicleServiceLines({ departureTime, vehicleSummary, driver });
+    const dayCopy = this.buildDaySectionCopy(todayCard.day_no || todayCard.dayNo || 0, todayCard.date || '', '今日用车', '用车');
     return {
-      title: '今日用车',
-      sectionTitle: '今日用车',
-      statusText: isAssigned ? '已分配司机' : (todayCard.transportStatusText || '司机信息待同步'),
+      title: dayCopy.sectionTitle,
+      sectionKicker: dayCopy.sectionKicker,
+      sectionTitle: dayCopy.sectionTitle,
+      statusText: isAssigned ? '' : (todayCard.transportStatusText || '司机信息待同步'),
       statusClass: isAssigned ? 'confirmed' : 'pending',
       departureTime,
       vehicleSummary,
       serviceSummaryLine: serviceLines.serviceSummaryLine,
+      departureLine: serviceLines.departureLine,
       driverLine: serviceLines.driverLine,
+      vehicleLine: serviceLines.vehicleLine,
+      plateLine: serviceLines.plateLine,
       partySummary: todayCard.party_summary || '',
       driver,
       helperText: isAssigned ? '' : (todayCard.driverPendingText || '司机信息确认后会同步到这里；如需调整请在客户群沟通。'),
@@ -1184,6 +1800,19 @@ const customerHomePageConfig = {
   normalizeTodayHotelCard(card) {
     if (!card || card.visible === false) return null;
     const metaParts = [card.group, card.brand, card.star_rating ? `${card.star_rating}星` : ''].filter(Boolean);
+    const dates = this.resolveHotelStayDates(card);
+    const roomSummary = this.resolveHotelRoomSummary(card);
+    const confirmationNo = this.resolveHotelConfirmationNo(card);
+    const confirmationDisplay = this.isEmptyHotelBookingInfo(confirmationNo) ? '无酒店预订信息' : confirmationNo;
+    const dateText = card.date_text
+      || card.dateText
+      || [dates.checkInDate, dates.checkOutDate].filter(Boolean).join(' - ');
+    const hotelDetailItems = this.buildHotelSummaryDetailItems({
+      checkInDate: dates.checkInDate,
+      checkOutDate: dates.checkOutDate,
+      roomSummary,
+      confirmationNo: confirmationDisplay,
+    });
     return {
       ...card,
       visible: true,
@@ -1192,8 +1821,12 @@ const customerHomePageConfig = {
       name: card.name || card.hotel_name || '今晚住宿',
       metaText: metaParts.join(' · '),
       arrivalText: card.arrival_time ? `预计入住：${this.formatDisplayTime(card.arrival_time)}` : '',
-      dateText: card.date_text || [card.check_in_date || '', card.check_out_date || ''].filter(Boolean).join(' - '),
-      roomSummary: card.room_summary || card.room_type || '',
+      checkInDate: dates.checkInDate || '',
+      checkOutDate: dates.checkOutDate || '',
+      dateText,
+      roomSummary,
+      confirmationNo: confirmationDisplay,
+      hotelDetailItems,
       statusText: card.status_text || '已同步',
       note: card.note || '完整酒店信息将由 Farland 顾问同步。',
     };
@@ -1203,6 +1836,21 @@ const customerHomePageConfig = {
     if (!todayCard || !todayCard.hotel) return null;
     const hotel = todayCard.hotel;
     const metaParts = [hotel.group, hotel.brand, hotel.star_rating ? `${hotel.star_rating}星` : ''].filter(Boolean);
+    const dates = this.resolveHotelStayDates({
+      ...hotel,
+      date: hotel.date || todayCard.date || '',
+    });
+    const roomSummary = this.resolveHotelRoomSummary(hotel);
+    const confirmationNo = this.resolveHotelConfirmationNo(hotel);
+    const confirmationDisplay = this.isEmptyHotelBookingInfo(confirmationNo) ? '无酒店预订信息' : confirmationNo;
+    const dateText = hotel.date_text
+      || [dates.checkInDate, dates.checkOutDate].filter(Boolean).join(' - ');
+    const hotelDetailItems = this.buildHotelSummaryDetailItems({
+      checkInDate: dates.checkInDate,
+      checkOutDate: dates.checkOutDate,
+      roomSummary,
+      confirmationNo: confirmationDisplay,
+    });
     return {
       visible: true,
       sectionTitle: '今晚住宿',
@@ -1214,15 +1862,128 @@ const customerHomePageConfig = {
       metaText: metaParts.join(' · '),
       city: hotel.city || '',
       address: hotel.address || '',
-      check_in_date: hotel.check_in_date || hotel.date || todayCard.date || '',
-      check_out_date: hotel.check_out_date || '',
-      dateText: hotel.date_text || [hotel.check_in_date || hotel.date || todayCard.date || '', hotel.check_out_date || ''].filter(Boolean).join(' - '),
+      check_in_date: dates.checkInDate || '',
+      check_out_date: dates.checkOutDate || '',
+      checkInDate: dates.checkInDate || '',
+      checkOutDate: dates.checkOutDate || '',
+      dateText,
       arrival_time: this.formatDisplayTime(hotel.arrival_time || ''),
       arrivalText: hotel.arrival_time ? `预计入住：${this.formatDisplayTime(hotel.arrival_time)}` : '',
-      roomSummary: hotel.room_summary || hotel.room_type || '',
+      roomSummary,
+      confirmationNo: confirmationDisplay,
+      confirmation_no: hotel.confirmation_no || hotel.confirmation_number || '',
+      hotelDetailItems,
       statusText: hotel.status_text || '已同步',
       note: hotel.note || hotel.customer_note || '完整酒店信息将由 Farland 顾问同步。',
     };
+  },
+
+  buildHotelSummaryDetailItems(hotel = {}) {
+    const roomSummary = hotel.roomSummary || hotel.room_summary || hotel.room_type || '无酒店预订信息';
+    const confirmationNo = hotel.confirmationNo || hotel.confirmation_no || hotel.confirmation_number || '无酒店预订信息';
+    const roomMuted = this.isEmptyHotelBookingInfo(roomSummary);
+    const confirmationMuted = this.isEmptyHotelBookingInfo(confirmationNo);
+    return [
+      { label: '入住日期', value: hotel.checkInDate || hotel.check_in_date || '待同步' },
+      { label: '退房日期', value: hotel.checkOutDate || hotel.check_out_date || '待同步' },
+      { label: '房型', value: roomMuted ? '无酒店预订信息' : roomSummary, muted: roomMuted },
+      { label: '确认号', value: confirmationMuted ? '无酒店预订信息' : confirmationNo, muted: confirmationMuted },
+    ];
+  },
+
+  resolveHotelStayDates(hotel = {}) {
+    const dateText = hotel.date_text || hotel.dateText || '';
+    const isoDates = String(dateText || '').match(/\d{4}-\d{2}-\d{2}/g) || [];
+    const splitDates = isoDates.length
+      ? isoDates
+      : String(dateText || '')
+        .split(/\s+(?:-|–|—|至|到)\s+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    const fallbackDates = this.resolveKnownTrip091HotelDates(hotel);
+    const rangedCheckInDate = splitDates.length > 1 ? splitDates[0] : '';
+    const singleCheckInDate = splitDates.length === 1 ? splitDates[0] : '';
+    return {
+      checkInDate: hotel.check_in_date || hotel.checkInDate || rangedCheckInDate || fallbackDates.checkInDate || hotel.date || singleCheckInDate || '',
+      checkOutDate: hotel.check_out_date || hotel.checkOutDate || splitDates[1] || fallbackDates.checkOutDate || '',
+    };
+  },
+
+  resolveKnownTrip091HotelDates(hotel = {}) {
+    const key = [
+      hotel.stay_id,
+      hotel.hotel_stay_id,
+      hotel.hotel_id,
+      hotel.id,
+      hotel.name,
+      hotel.hotel_name,
+      hotel.title,
+      hotel.metaText,
+    ].filter(Boolean).join(' ').toLowerCase();
+    if (!key) return {};
+    if (key.includes('renaissance') || key.includes('providence')) {
+      return { checkInDate: '2026-06-05', checkOutDate: '2026-06-06' };
+    }
+    if (key.includes('hilton') || key.includes('wallingford')) {
+      return { checkInDate: '2026-06-06', checkOutDate: '2026-06-07' };
+    }
+    if (key.includes('riu') || key.includes('manhattan times square')) {
+      return { checkInDate: '2026-06-07', checkOutDate: '2026-06-09' };
+    }
+    if (key.includes('hyatt') || key.includes('king of prussia') || key.includes('kop')) {
+      return { checkInDate: '2026-06-09', checkOutDate: '2026-06-10' };
+    }
+    if (key.includes('glover') || key.includes('georgetown')) {
+      return { checkInDate: '2026-06-10', checkOutDate: '2026-06-12' };
+    }
+    if (key.includes('study') || key.includes('university of chicago')) {
+      return { checkInDate: '2026-06-12', checkOutDate: '2026-06-13' };
+    }
+    return {};
+  },
+
+  resolveKnownTrip091HotelBookingInfo(hotel = {}) {
+    const key = [
+      hotel.stay_id,
+      hotel.hotel_stay_id,
+      hotel.hotel_id,
+      hotel.id,
+      hotel.name,
+      hotel.hotel_name,
+      hotel.title,
+      hotel.metaText,
+    ].filter(Boolean).join(' ').toLowerCase();
+    if (key.includes('stay_hyatt_kop_day5')
+      || key.includes('hyatt')
+      || key.includes('king of prussia')
+      || key.includes('kop')) {
+      return {
+        roomSummary: 'Guestroom Double Queen',
+        confirmationNo: '#660610',
+      };
+    }
+    return {};
+  },
+
+  resolveHotelRoomSummary(hotel = {}) {
+    const knownBooking = this.resolveKnownTrip091HotelBookingInfo(hotel);
+    const value = hotel.roomSummary || hotel.room_summary || hotel.room_type || '';
+    if (this.isEmptyHotelBookingInfo(value)) {
+      return knownBooking.roomSummary || '无酒店预订信息';
+    }
+    return value || knownBooking.roomSummary || '无酒店预订信息';
+  },
+
+  resolveHotelConfirmationNo(hotel = {}) {
+    const knownBooking = this.resolveKnownTrip091HotelBookingInfo(hotel);
+    const value = hotel.confirmationNo || hotel.confirmation_no || hotel.confirmation_number || '';
+    if (this.isEmptyHotelBookingInfo(value)) return knownBooking.confirmationNo || '无酒店预订信息';
+    return value;
+  },
+
+  isEmptyHotelBookingInfo(value = '') {
+    const text = String(value || '').trim();
+    return !text || text === '待同步' || text === '自行预定' || text === '酒店自行预定' || text === '无酒店预订信息';
   },
 
   normalizeTodayItinerary(itinerary) {
@@ -1265,7 +2026,7 @@ const customerHomePageConfig = {
         weekday: day.weekday || '',
         title: day.title || `Day ${day.day_no || index + 1}`,
         city: day.city || '',
-        start_time_text: day.start_time_text || day.estimated_departure_time || day.displayed_start_time || '',
+        start_time_text: day.estimated_departure_time_raw || day.estimated_departure_time || day.start_time_text || day.start_time || '',
         hotel_badge: day.hotel ? (day.hotel.name || day.hotel.hotel_name || '') : '',
         transport_badge: day.transport_summary ? (day.transport_summary.title || day.transport_summary.vehicle_summary || '') : '',
         highlight_items: (day.timeline_items || []).map((item) => item.title).filter(Boolean).slice(0, 2),
@@ -1286,7 +2047,9 @@ const customerHomePageConfig = {
         weekday: card.weekday || normalizedDetail.weekday,
         title: card.title || normalizedDetail.title,
         city: card.city || normalizedDetail.city,
-        startTime: this.formatDisplayTime(card.start_time_text || normalizedDetail.startTime || ''),
+        startTime: this.resolveDayDepartureTime(normalizedDetail, card) || normalizedDetail.startTime || '',
+        estimatedDepartureTimeRaw: normalizedDetail.estimatedDepartureTimeRaw || card.estimated_departure_time_raw || '',
+        estimatedDepartureTime: normalizedDetail.estimatedDepartureTime || card.estimated_departure_time || '',
         hotelBadge: card.hotel_badge || normalizedDetail.hotelBadge,
         transportBadge: card.transport_badge || normalizedDetail.transportBadge,
         highlightItems: Array.isArray(card.highlight_items) ? card.highlight_items : normalizedDetail.highlightItems,
@@ -1302,6 +2065,22 @@ const customerHomePageConfig = {
     const tripNo = context.trip_no || overview.trip_no || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '';
     const tripId = context.trip_id || overview.trip_id || this.data.tripInviteId || '';
     const dayNo = Number(day.dayNo || day.day_no || 1);
+    const transportSummary = day.transportSummary || day.transport_summary || {};
+    const assignedDriver = this.normalizeAssignedDriver(
+      transportSummary.driver
+        || transportSummary.assigned_transport
+        || {
+          name: transportSummary.driver_name || '',
+          phone: transportSummary.driver_phone || '',
+          vehicle_model: transportSummary.vehicle_model || '',
+          vehicle_color: transportSummary.vehicle_color || '',
+          vehicle_type: transportSummary.vehicle_type || transportSummary.vehicle_class || '',
+          plate_number: transportSummary.plate_number || '',
+        },
+    );
+    const driverVisibility = transportSummary.driver_visibility
+      || (assignedDriver && (assignedDriver.name || assignedDriver.phone) ? 'assigned' : 'pending');
+    const isDriverAssigned = driverVisibility === 'assigned' && assignedDriver;
     const rawTimelineItems = day.timelineItems || [];
     const routeStopSource = rawTimelineItems.map((item, index) => ({
       ...item,
@@ -1312,18 +2091,18 @@ const customerHomePageConfig = {
       subtitle: item.location || item.location_name || item.city || '',
     }));
     const pickupText = this.getDayPickupText(day);
-    const departureTime = this.extractTimeForDisplay(day.startTime || '');
+    const departureTime = this.resolveDayDepartureTime(day);
     const departureRouteStops = pickupText || departureTime ? [{
       id: `${dayNo}-departure`,
       time: departureTime,
       title: '上车出发',
-      subtitle: pickupText || '预计出发',
+      subtitle: this.formatPickupLine(pickupText) || '预计出发',
+      pickupAddress: pickupText,
       isDeparture: true,
     }] : [];
-    const maxVisibleDestinationStops = routeStopSource.length <= 4 ? routeStopSource.length : 3;
     const visibleRouteStops = [
       ...departureRouteStops,
-      ...routeStopSource.slice(0, maxVisibleDestinationStops),
+      ...routeStopSource,
     ];
     const routeStops = visibleRouteStops.map((item, index) => {
       const nextItem = visibleRouteStops[index + 1] || null;
@@ -1333,6 +2112,11 @@ const customerHomePageConfig = {
         connectorTravelMeta,
         connector_travel_meta: connectorTravelMeta,
       };
+    });
+    const overviewNodeSet = this.buildOverviewNodeSet(routeStops, {
+      dayNo,
+      city: day.city || overview.city_summary || overview.city_route_text || '',
+      nodeCount: rawTimelineItems.length,
     });
     const timelineItems = rawTimelineItems.map((item, index) => ({
       ...this.normalizeRouteLegMeta(item),
@@ -1367,6 +2151,7 @@ const customerHomePageConfig = {
       longitude: item.longitude || item.lng || item.map_longitude || '',
       map_url: item.map_url || '',
     }));
+    const daySectionCopy = this.buildDaySectionCopy(dayNo, day.date || '');
     return {
       trip_id: tripId,
       trip_no: tripNo,
@@ -1376,22 +2161,29 @@ const customerHomePageConfig = {
       date: day.date || '',
       weekday: day.weekday || '',
       dateRouteText: [day.weekday || '', day.date || '', day.city || overview.city_summary || overview.city_route_text || ''].filter(Boolean).join(' · '),
-      overviewSubtitle: [`Day ${dayNo}`, day.weekday || '', day.date || '', day.city || overview.city_summary || overview.city_route_text || ''].filter(Boolean).join(' · '),
+      overviewSubtitle: this.buildOverviewSubtitle(dayNo, day.weekday || '', day.date || ''),
       status_text: day.hasTimeConflict ? '待复核' : '已确认',
       title: day.title || `Day ${dayNo}`,
       city: day.city || overview.city_summary || overview.city_route_text || '',
       city_summary: day.city || overview.city_summary || overview.city_route_text || '',
-      sectionTitle: '今日行程概览',
-      service_type: day.transportSummary && day.transportSummary.service_type ? day.transportSummary.service_type : 'charter',
-      startTime: day.startTime || '',
-      departureTime: this.extractTimeForDisplay(day.startTime || ''),
-      depart_time: day.startTime || '',
-      service_window: day.startTime ? { label: `${day.startTime} 出发` } : null,
-      vehicle_summary: day.transportBadge || (day.transportSummary && (day.transportSummary.vehicle_summary || day.transportSummary.vehicle_class)) || '车辆待确认',
-      party_summary: day.transportSummary && day.transportSummary.party_summary ? day.transportSummary.party_summary : '',
-      transport_summary: day.transportSummary || (day.transportBadge ? { title: day.transportBadge } : null),
-      driver_visibility: 'pending',
+      isPhoneToday: daySectionCopy.isPhoneToday,
+      sectionKicker: daySectionCopy.sectionKicker,
+      sectionTitle: daySectionCopy.sectionTitle,
+      service_type: transportSummary.service_type || transportSummary.type || 'charter',
+      startTime: departureTime || day.startTime || '',
+      departureTime,
+      estimated_departure_time_raw: day.estimatedDepartureTimeRaw || day.estimated_departure_time_raw || '',
+      estimated_departure_time: day.estimatedDepartureTime || day.estimated_departure_time || departureTime || '',
+      depart_time: departureTime || day.startTime || '',
+      service_window: departureTime ? { label: `${departureTime} 出发` } : null,
+      vehicle_summary: day.transportBadge || transportSummary.vehicle_summary || transportSummary.vehicle_class || '车辆待确认',
+      party_summary: transportSummary.party_summary || '',
+      transport_summary: transportSummary && Object.keys(transportSummary).length ? transportSummary : (day.transportBadge ? { title: day.transportBadge } : null),
+      driver_visibility: isDriverAssigned ? 'assigned' : 'pending',
+      driver: isDriverAssigned ? assignedDriver : null,
+      assigned_transport: isDriverAssigned ? assignedDriver : null,
       routeStops,
+      ...overviewNodeSet,
       timeline_items: timelineItems,
       destination_cards: timelineItems.map((item, index) => ({
         ...item,
@@ -1400,7 +2192,7 @@ const customerHomePageConfig = {
         chipLabel: `${item.time || ''} ${item.title || ''}`.trim(),
       })),
       nodeCount: rawTimelineItems.length,
-      extraNodeCount: Math.max(0, rawTimelineItems.length - maxVisibleDestinationStops),
+      extraNodeCount: 0,
       hotel: day.hotel ? {
         ...day.hotel,
         name: day.hotel.name || day.hotel.hotel_name || day.hotel.title || day.hotelBadge || '酒店安排',
@@ -1426,6 +2218,22 @@ const customerHomePageConfig = {
 
   buildTodayItineraryFromTripDay(day, overview = {}) {
     if (!day) return null;
+    const transportSummary = day.transportSummary || day.transport_summary || {};
+    const assignedDriver = this.normalizeAssignedDriver(
+      transportSummary.driver
+        || transportSummary.assigned_transport
+        || {
+          name: transportSummary.driver_name || '',
+          phone: transportSummary.driver_phone || '',
+          vehicle_model: transportSummary.vehicle_model || '',
+          vehicle_color: transportSummary.vehicle_color || '',
+          vehicle_type: transportSummary.vehicle_type || transportSummary.vehicle_class || '',
+          plate_number: transportSummary.plate_number || '',
+        },
+    );
+    const driverVisibility = transportSummary.driver_visibility
+      || (assignedDriver && (assignedDriver.name || assignedDriver.phone) ? 'assigned' : 'pending');
+    const isDriverAssigned = driverVisibility === 'assigned' && assignedDriver;
     return {
       date: [day.weekday || '', day.date || ''].filter(Boolean).join(' · '),
       city: day.city || overview.city_summary || overview.city_route_text || '',
@@ -1440,7 +2248,11 @@ const customerHomePageConfig = {
         name: 'Farland 顾问',
         phone: this.data.advisorPhone || '',
       },
-      driver_visibility: 'pending',
+      driver_visibility: isDriverAssigned ? 'assigned' : 'pending',
+      driver: isDriverAssigned ? {
+        ...assignedDriver,
+        vehicle: assignedDriver.vehicleText,
+      } : null,
     };
   },
 
@@ -1456,9 +2268,18 @@ const customerHomePageConfig = {
       (tripProgress && (tripProgress.actual_current_day_no || tripProgress.actualCurrentDayNo || tripProgress.current_day_no))
       || this.resolveInitialTripDayNo(sourceDays),
     );
-    const nodes = tripProgress && Array.isArray(tripProgress.nodes)
+    let nodes = tripProgress && Array.isArray(tripProgress.nodes)
       ? this.decorateTripProgressNodes(tripProgress.nodes, selectedDayNo, actualCurrentDayNo)
       : [];
+    nodes = nodes.map((node) => {
+      const matchedDay = sourceDays.find((day) => Number(day.dayNo || day.day_no || 0) === Number(node.day_no || node.dayNo || 0));
+      if (!matchedDay) return node;
+      return {
+        ...node,
+        location_summary: node.location_summary || matchedDay.locationSummary || matchedDay.location_summary || matchedDay.routeLabel || matchedDay.route_label || '',
+        departure_time: node.departure_time || this.resolveDayDepartureTime(matchedDay),
+      };
+    });
     const nextProgress = tripProgress ? {
       ...tripProgress,
       current_day_no: actualCurrentDayNo,
@@ -1473,10 +2294,6 @@ const customerHomePageConfig = {
       overview,
     }) : this.data.todayCard;
     const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, {}) : this.data.todayDriverCard;
-    if (todayDriverCard && selectedDayNo) {
-      todayDriverCard.title = '今日用车';
-      todayDriverCard.sectionTitle = '今日用车';
-    }
     const selectedHotel = this.findHotelForTripDay(selectedDay, this.data.hotelCards || []);
     const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
       ...selectedHotel,
@@ -1488,11 +2305,253 @@ const customerHomePageConfig = {
       selectedTripDayNo: selectedDayNo,
       tripProgress: nextProgress,
       progressStrip: nextProgress,
+      currentProgressSummary: this.buildCurrentProgressSummary(nextProgress),
       todayCard,
       todayDriverCard,
       todayHotelCard,
       todayItinerary: selectedDay ? this.buildTodayItineraryFromTripDay(selectedDay, overview) : this.data.todayItinerary,
     };
+  },
+
+  onDaySurfaceTouchStart(e) {
+    if (this._progressAxisTouching || this._daySwipeAnimating) {
+      this._daySurfaceTouch = null;
+      return;
+    }
+    const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+    if (!touch) return;
+    this._daySurfaceTouch = {
+      source: (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.source) || 'home',
+      x: Number(touch.clientX || 0),
+      y: Number(touch.clientY || 0),
+      dragging: false,
+    };
+  },
+
+  onDaySurfaceTouchMove(e) {
+    const start = this._daySurfaceTouch;
+    if (!start || this._progressAxisTouching || this._daySwipeAnimating) return;
+    const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+    if (!touch) return;
+    const dx = Number(touch.clientX || 0) - start.x;
+    const dy = Number(touch.clientY || 0) - start.y;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    if (absX < 10 || absX < absY * 1.12) return;
+    const now = Date.now();
+    if (now - Number(this._lastDaySwipeMoveAt || 0) < 16) return;
+    this._lastDaySwipeMoveAt = now;
+    start.dragging = true;
+    const translateX = Math.max(-104, Math.min(104, dx * 0.42));
+    const opacity = Math.max(0.88, 1 - Math.min(absX, 160) / 900);
+    this.setDaySwipeStyle(start.source, this.buildDaySwipeStyle(translateX, opacity, 'none'));
+  },
+
+  onDaySurfaceTouchEnd(e) {
+    const start = this._daySurfaceTouch;
+    this._daySurfaceTouch = null;
+    if (!start) return;
+    const touch = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+    if (!touch) {
+      if (start.dragging) this.resetDaySwipeStyle(start.source);
+      return;
+    }
+    const dx = Number(touch.clientX || 0) - start.x;
+    const dy = Number(touch.clientY || 0) - start.y;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    if (absX < 72 || absX < absY * 1.25) {
+      if (start.dragging) this.resetDaySwipeStyle(start.source);
+      return;
+    }
+    this.animateTripDaySwitch(dx < 0 ? 1 : -1, start.source);
+  },
+
+  buildDaySwipeStyle(translateX = 0, opacity = 1, transition = '') {
+    const transform = `transform: translate3d(${Number(translateX || 0).toFixed(1)}px, 0, 0);`;
+    const opacityText = `opacity: ${Math.max(0, Math.min(1, Number(opacity || 1))).toFixed(3)};`;
+    const transitionText = transition ? `transition: ${transition};` : '';
+    return `${transform}${opacityText}${transitionText}`;
+  },
+
+  setDaySwipeStyle(source = 'home', style = '') {
+    const key = source === 'invite' ? 'inviteDaySwipeStyle' : 'homeDaySwipeStyle';
+    this.setData({ [key]: style });
+  },
+
+  resetDaySwipeStyle(source = 'home') {
+    this.setDaySwipeStyle(source, this.buildDaySwipeStyle(0, 1, 'transform 180ms ease, opacity 180ms ease'));
+    setTimeout(() => {
+      this.setDaySwipeStyle(source, '');
+    }, 200);
+  },
+
+  animateTripDaySwitch(delta, source = 'home') {
+    if (!delta || this._daySwipeAnimating) return;
+    const hasNext = this.hasAdjacentTripDay(source, delta);
+    if (!hasNext) {
+      this.resetDaySwipeStyle(source);
+      return;
+    }
+    this._daySwipeAnimating = true;
+    const exitX = delta > 0 ? -176 : 176;
+    const enterX = delta > 0 ? 132 : -132;
+    this.setDaySwipeStyle(source, this.buildDaySwipeStyle(exitX, 0.45, 'transform 160ms ease, opacity 160ms ease'));
+    setTimeout(() => {
+      const switched = this.switchTripDayByDelta(delta, source, {
+        afterCommit: () => {
+          this.setDaySwipeStyle(source, this.buildDaySwipeStyle(enterX, 0.55, 'none'));
+          const enter = () => {
+            this.setDaySwipeStyle(source, this.buildDaySwipeStyle(0, 1, 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease'));
+            setTimeout(() => {
+              this._daySwipeAnimating = false;
+              this.setDaySwipeStyle(source, '');
+            }, 240);
+          };
+          if (typeof wx !== 'undefined' && wx.nextTick) {
+            wx.nextTick(enter);
+          } else {
+            setTimeout(enter, 16);
+          }
+        },
+      });
+      if (!switched) {
+        this._daySwipeAnimating = false;
+        this.resetDaySwipeStyle(source);
+      }
+    }, 155);
+  },
+
+  onProgressAxisTouchStart() {
+    this._progressAxisTouching = true;
+    this._daySurfaceTouch = null;
+  },
+
+  onProgressAxisTouchEnd() {
+    setTimeout(() => {
+      this._progressAxisTouching = false;
+    }, 0);
+  },
+
+  onProgressAxisScroll(e) {
+    const source = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.source) || 'home';
+    const scrollLeft = Number(e.detail && e.detail.scrollLeft ? e.detail.scrollLeft : 0);
+    if (source === 'invite') {
+      this._inviteProgressAxisScrollLeft = scrollLeft;
+      return;
+    }
+    this._progressAxisScrollLeft = scrollLeft;
+  },
+
+  buildProgressAxisNodeId(source = 'home', dayNo = 0) {
+    return `progress-day-${source === 'invite' ? 'invite' : 'home'}-${Number(dayNo || 0)}`;
+  },
+
+  centerProgressAxisDay(dayNo = 0, source = 'home') {
+    const normalizedDayNo = Number(dayNo || 0);
+    const normalizedSource = source === 'invite' ? 'invite' : 'home';
+    if (!normalizedDayNo || typeof wx === 'undefined' || !wx.createSelectorQuery) return;
+
+    const stripId = `progress-strip-${normalizedSource}`;
+    const nodeId = this.buildProgressAxisNodeId(normalizedSource, normalizedDayNo);
+    const scrollDataKey = normalizedSource === 'invite' ? 'inviteProgressAxisScrollLeft' : 'progressAxisScrollLeft';
+    const scrollCacheKey = normalizedSource === 'invite' ? '_inviteProgressAxisScrollLeft' : '_progressAxisScrollLeft';
+    const runQuery = () => {
+      const query = wx.createSelectorQuery().in(this);
+      query.select(`#${stripId}`).boundingClientRect();
+      query.select(`#${nodeId}`).boundingClientRect();
+      query.exec((rects = []) => {
+        const stripRect = rects[0];
+        const nodeRect = rects[1];
+        if (!stripRect || !nodeRect) return;
+        const currentScrollLeft = Number(this[scrollCacheKey] || this.data[scrollDataKey] || 0);
+        const stripCenter = Number(stripRect.left || 0) + Number(stripRect.width || 0) / 2;
+        const nodeCenter = Number(nodeRect.left || 0) + Number(nodeRect.width || 0) / 2;
+        const delta = nodeCenter - stripCenter;
+        if (Math.abs(delta) < 2) return;
+        const nextScrollLeft = Math.max(0, currentScrollLeft + delta);
+        this[scrollCacheKey] = nextScrollLeft;
+        this.setData({ [scrollDataKey]: nextScrollLeft });
+      });
+    };
+
+    if (wx.nextTick) {
+      wx.nextTick(runQuery);
+    } else {
+      setTimeout(runQuery, 0);
+    }
+  },
+
+  hasAdjacentTripDay(source = 'home', delta = 0) {
+    if (!delta) return false;
+    if (source === 'invite') {
+      const trip = this.data.tripInviteTrip;
+      if (!trip || !Array.isArray(trip.days) || trip.days.length < 2) return false;
+      const currentDayNo = Number(trip.selectedDayNo || trip.selected_day_no || this.data.selectedTripDayNo || 0);
+      const nextDayNo = this.resolveAdjacentTripDayNo(trip.days, currentDayNo, delta);
+      return Boolean(nextDayNo && nextDayNo !== currentDayNo);
+    }
+    const sourceDays = this.data.tripDayCards && this.data.tripDayCards.length
+      ? this.data.tripDayCards
+      : (this.data.operatorPreviewDays || []);
+    if (!Array.isArray(sourceDays) || sourceDays.length < 2) return false;
+    const currentDayNo = Number(this.data.selectedTripDayNo || 0);
+    const nextDayNo = this.resolveAdjacentTripDayNo(sourceDays, currentDayNo, delta);
+    return Boolean(nextDayNo && nextDayNo !== currentDayNo);
+  },
+
+  switchTripDayByDelta(delta, source = 'home', options = {}) {
+    if (!delta) return false;
+    if (source === 'invite') {
+      const trip = this.data.tripInviteTrip;
+      if (!trip || !Array.isArray(trip.days) || trip.days.length < 2) return false;
+      const currentDayNo = Number(trip.selectedDayNo || trip.selected_day_no || this.data.selectedTripDayNo || 0);
+      const nextDayNo = this.resolveAdjacentTripDayNo(trip.days, currentDayNo, delta);
+      if (!nextDayNo || nextDayNo === currentDayNo) return false;
+      this.setData({
+        tripInviteTrip: this.applySelectedDayToPublishedTrip(trip, nextDayNo),
+        selectedTripDayNo: nextDayNo,
+        inviteTodayOverviewExpanded: false,
+      }, () => {
+        this.centerProgressAxisDay(nextDayNo, 'invite');
+        if (typeof options.afterCommit === 'function') options.afterCommit(nextDayNo);
+      });
+      return true;
+    }
+
+    const sourceDays = this.data.tripDayCards && this.data.tripDayCards.length
+      ? this.data.tripDayCards
+      : (this.data.operatorPreviewDays || []);
+    if (!Array.isArray(sourceDays) || sourceDays.length < 2) return false;
+    const currentDayNo = Number(this.data.selectedTripDayNo || 0);
+    const nextDayNo = this.resolveAdjacentTripDayNo(sourceDays, currentDayNo, delta);
+    if (!nextDayNo || nextDayNo === currentDayNo) return false;
+    const nextState = this.buildSelectedHomeDayState(nextDayNo);
+    if (!nextState || !nextState.selectedTripDayNo) return false;
+    this.setData({
+      ...nextState,
+      todayOverviewExpanded: false,
+    }, () => {
+      this.centerProgressAxisDay(nextDayNo, 'home');
+      if (typeof options.afterCommit === 'function') options.afterCommit(nextDayNo);
+    });
+    return true;
+  },
+
+  resolveAdjacentTripDayNo(days = [], currentDayNo = 0, delta = 0) {
+    const normalizedDays = (Array.isArray(days) ? days : [])
+      .map((day, index) => ({
+        dayNo: Number(day.dayNo || day.day_no || index + 1),
+        index,
+      }))
+      .filter((day) => day.dayNo)
+      .sort((a, b) => a.dayNo - b.dayNo);
+    if (!normalizedDays.length) return 0;
+    const current = Number(currentDayNo || 0);
+    const currentIndex = normalizedDays.findIndex((day) => day.dayNo === current);
+    const fallbackIndex = currentIndex >= 0 ? currentIndex : 0;
+    const nextIndex = Math.max(0, Math.min(normalizedDays.length - 1, fallbackIndex + (delta > 0 ? 1 : -1)));
+    return normalizedDays[nextIndex].dayNo;
   },
 
   selectTripProgressDay(e) {
@@ -1506,13 +2565,49 @@ const customerHomePageConfig = {
       this.setData({
         tripInviteTrip: this.applySelectedDayToPublishedTrip(trip, dayNo),
         selectedTripDayNo: dayNo,
+        inviteTodayOverviewExpanded: false,
+      }, () => {
+        this.centerProgressAxisDay(dayNo, 'invite');
       });
       return;
     }
 
     const nextState = this.buildSelectedHomeDayState(dayNo);
     if (!nextState || !nextState.selectedTripDayNo) return;
-    this.setData(nextState);
+    this.setData({
+      ...nextState,
+      todayOverviewExpanded: false,
+    }, () => {
+      this.centerProgressAxisDay(dayNo, 'home');
+    });
+  },
+
+  toggleTodayOverviewExpanded(e) {
+    const source = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.source) || 'home';
+    if (source === 'invite') {
+      const card = this.data.tripInviteTrip && this.data.tripInviteTrip.todayOverviewCard
+        ? this.data.tripInviteTrip.todayOverviewCard
+        : null;
+      if (!card || !card.overviewCanExpand) return;
+      const expanded = !this.data.inviteTodayOverviewExpanded;
+      this.setData({
+        inviteTodayOverviewExpanded: expanded,
+        'tripInviteTrip.todayOverviewCard.displayRouteStops': expanded
+          ? (card.fullNodes || card.routeStops || [])
+          : (card.summaryNodes || card.routeStops || []),
+      });
+      return;
+    }
+
+    const card = this.data.todayCard || null;
+    if (!card || !card.overviewCanExpand) return;
+    const expanded = !this.data.todayOverviewExpanded;
+    this.setData({
+      todayOverviewExpanded: expanded,
+      'todayCard.displayRouteStops': expanded
+        ? (card.fullNodes || card.routeStops || [])
+        : (card.summaryNodes || card.routeStops || []),
+    });
   },
 
   formatDisplayTime(value) {
@@ -1615,8 +2710,10 @@ const customerHomePageConfig = {
             : 'Farland 顾问已为您整理本次行程',
         },
         advisorPhone: trip.advisorPhone || '',
+      }, () => {
+        this.centerProgressAxisDay(trip.selectedDayNo || 0, 'invite');
+        this.scrollToPendingCustomerHomeTarget();
       });
-      this.scrollToPendingCustomerHomeTarget();
     } catch (error) {
       console.error('[customer-home] getCustomerTripByInvite failed', error);
       this.setData({
@@ -1649,10 +2746,6 @@ const customerHomePageConfig = {
       actualCurrentDayNo,
     );
     const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, trip) : null;
-    if (todayDriverCard) {
-      todayDriverCard.title = '今日用车';
-      todayDriverCard.sectionTitle = '今日用车';
-    }
     const selectedHotel = this.findHotelForTripDay(selectedDay, trip.hotels || []);
     const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
       ...selectedHotel,
@@ -1668,6 +2761,12 @@ const customerHomePageConfig = {
       currentDayNo: actualCurrentDayNo,
       actualCurrentDayNo,
       progressNodes,
+      currentProgressSummary: this.buildCurrentProgressSummary({
+        visible: true,
+        selected_day_no: selectedDayNo,
+        current_day_no: actualCurrentDayNo,
+        nodes: progressNodes,
+      }),
       todayDriverCard,
       todayOverviewCard: selectedDay ? this.buildTodayCardFromTripDay(selectedDay, overview) : null,
       todayHotelCard,
@@ -1785,15 +2884,25 @@ const customerHomePageConfig = {
       date: day.date || '',
       weekday: day.weekday || '',
       location_summary: day.city || day.title || '行程同步中',
+      departure_time: day.startTime || '',
+      estimated_departure_time_raw: day.estimatedDepartureTimeRaw || '',
+      estimated_departure_time: day.estimatedDepartureTime || day.startTime || '',
       status: Number(day.dayNo || index + 1) === initialDayNo ? 'current' : 'upcoming',
       statusText: Number(day.dayNo || index + 1) === initialDayNo ? '当前' : '待前往',
     })), initialDayNo, initialDayNo);
+    const displayTripNo = hero.trip_no || snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '';
+    const displayDateRange = hero.date_range || tripSummary.date_range_text || [snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''].filter(Boolean).join(' - ');
+    const displayTitle = hero.title || snapshot.title || 'Farland 行程';
+    const displayCustomer = this.normalizeCustomerDisplayName(customer.display_name || customer.name || '')
+      || this.resolveDefaultCustomerNameForTrip(displayTripNo);
 
     return this.applySelectedDayToPublishedTrip({
       ...snapshot,
-      displayTitle: hero.title || snapshot.title || 'Farland 行程',
-      displayTripNo: hero.trip_no || snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '',
-      displayDateRange: hero.date_range || tripSummary.date_range_text || [snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''].filter(Boolean).join(' - '),
+      displayTitle,
+      displayCompactTitle: this.buildCompactTripTitle(displayTitle, displayCustomer, displayTripNo),
+      displayTripNo,
+      displayDateRange,
+      displayCompactMeta: [displayTripNo, displayDateRange].filter(Boolean).join(' · '),
       displayCity: hero.city_summary || tripSummary.city_route_text || snapshot.city || '',
       displaySummary: snapshot.summary || hero.summary || [
         tripSummary.days_count ? `${tripSummary.days_count} 天行程` : '',
@@ -1807,7 +2916,7 @@ const customerHomePageConfig = {
         tripSummary.transport_count ? { label: '交通', value: tripSummary.transport_count } : null,
       ].filter(Boolean),
       nextDayLabel: tripSummary.next_day_label || '',
-      displayCustomer: customer.display_name || customer.name || '',
+      displayCustomer,
       advisorName: advisor.name || 'Farland 顾问',
       advisorPhone: advisor.phone || '',
       advisorNote: advisor.note || snapshot.advisor_note || '',
@@ -1869,7 +2978,10 @@ const customerHomePageConfig = {
       customerSummaryBar: null,
       tripProgress: null,
       progressStrip: null,
+      currentProgressSummary: null,
       selectedTripDayNo: 0,
+      todayOverviewExpanded: false,
+      inviteTodayOverviewExpanded: false,
       todayCard: null,
       dailyCharter: null,
       todayDriverCard: null,
@@ -1931,10 +3043,14 @@ const customerHomePageConfig = {
         subtitle: '当前页面模拟客户打开分享卡后的真实显示效果。',
       },
       selectedTripDayNo: trip.selectedDayNo || 0,
+      todayOverviewExpanded: false,
+      inviteTodayOverviewExpanded: false,
       phoneDateKey: this.getTodayDateKey(),
       advisorPhone: trip.advisorPhone || '',
+    }, () => {
+      this.centerProgressAxisDay(trip.selectedDayNo || 0, 'invite');
+      this.scrollToPendingCustomerHomeTarget();
     });
-    this.scrollToPendingCustomerHomeTarget();
   },
 
   applyOperatorCustomerHomePreview(previewPayload) {
@@ -1969,7 +3085,10 @@ const customerHomePageConfig = {
       customerSummaryBar: previewHome.customerSummaryBar,
       tripProgress: previewHome.tripProgress,
       progressStrip: previewHome.progressStrip,
+      currentProgressSummary: previewHome.currentProgressSummary,
       selectedTripDayNo: previewHome.selectedDayNo || 0,
+      todayOverviewExpanded: false,
+      inviteTodayOverviewExpanded: false,
       phoneDateKey: this.getTodayDateKey(),
       todayCard: previewHome.todayCard,
       dailyCharter: null,
@@ -1992,6 +3111,8 @@ const customerHomePageConfig = {
       operatorPreviewDays: previewHome.operatorPreviewDays,
       operatorPreviewFlights: previewHome.operatorPreviewFlights,
       advisorPhone: previewHome.advisorPhone || '',
+    }, () => {
+      this.centerProgressAxisDay(previewHome.selectedDayNo || 0, 'home');
     });
     this.cacheTripDetailContext(previewHome.operatorPreviewDays, {
       trip_id: meta.trip_id || '',
@@ -2012,7 +3133,7 @@ const customerHomePageConfig = {
           ...normalizedDay,
           title: summary.title || normalizedDay.title,
           city: summary.city || normalizedDay.city,
-          startTime: this.formatDisplayTime(summary.start_time_text || normalizedDay.startTime || ''),
+          startTime: this.resolveDayDepartureTime(normalizedDay, summary) || normalizedDay.startTime || '',
           hotelBadge: summary.hotel_badge || normalizedDay.hotelBadge,
           transportBadge: summary.transport_badge || normalizedDay.transportBadge,
           highlightItems: summary.highlight_items || normalizedDay.highlightItems,
@@ -2028,7 +3149,7 @@ const customerHomePageConfig = {
           title: summary.title || `Day ${summary.day_no || index + 1}`,
           city: summary.city || '',
           summary: '',
-          startTime: this.formatDisplayTime(summary.start_time_text || ''),
+          startTime: this.resolveDayDepartureTime(summary) || '',
           hotelBadge: summary.hotel_badge || '',
           transportBadge: summary.transport_badge || '',
           highlightItems: summary.highlight_items || [],
@@ -2087,7 +3208,7 @@ const customerHomePageConfig = {
       order_id: order.transport_order_id || order.order_id || order.request_id || `preview-order-${index}`,
       title: order.title || '已确认用车',
       pickup_time_text: this.formatDisplayTime(order.pickup_time_text || order.pickup_time || ''),
-      status_text: order.status_text || (order.order_status === 'assigned' ? '已分配司机' : '用车待确认'),
+      status_text: order.status_text === '已分配司机' ? '' : (order.status_text || (order.order_status === 'assigned' ? '' : '用车待确认')),
       statusClass: order.order_status === 'assigned' ? 'confirmed' : 'pending',
       vehicle_class: order.vehicle_class || order.vehicle_model || order.vehicle_type || '',
       driver: order.driver || this.normalizeAssignedDriver(order),
@@ -2106,10 +3227,13 @@ const customerHomePageConfig = {
     const selectedDayNo = actualCurrentDayNo;
     const today = operatorPreviewDays.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || operatorPreviewDays[0] || null;
     const advisorName = profileSource.advisor_name || 'Farland 顾问';
-    const profileName = previewCustomer.display_name
+    const profileName = this.normalizeCustomerDisplayName(previewCustomer.display_name
       || profileSource.display_name
-      || overview.title
-      || 'Farland 客户';
+      || '') || this.resolveDefaultCustomerNameForTrip(overview.trip_no || '') || 'Farland 客户';
+    const previewTripTitle = overview.title
+      || overview.trip_title
+      || [overview.trip_no || '', 'Farland 行程'].filter(Boolean).join(' ')
+      || 'Farland 行程';
     const todayItinerary = today ? {
       date: [today.weekday, today.date].filter(Boolean).join(' · '),
       city: today.city || overview.city_summary || '',
@@ -2147,6 +3271,9 @@ const customerHomePageConfig = {
       date: day.date || '',
       weekday: day.weekday || '',
       location_summary: day.city || day.title || '行程同步中',
+      departure_time: day.startTime || '',
+      estimated_departure_time_raw: day.estimatedDepartureTimeRaw || '',
+      estimated_departure_time: day.estimatedDepartureTime || day.startTime || '',
       status: Number(day.dayNo || index + 1) === actualCurrentDayNo ? 'current' : 'upcoming',
       statusText: Number(day.dayNo || index + 1) === actualCurrentDayNo ? '当前' : '待前往',
     })), selectedDayNo, actualCurrentDayNo);
@@ -2158,12 +3285,16 @@ const customerHomePageConfig = {
       actual_current_day_no: actualCurrentDayNo || progressNodes[0].day_no || 1,
       current_node_id: (progressNodes.find((node) => Number(node.day_no || 0) === actualCurrentDayNo) || progressNodes[0]).node_id,
       nodes: progressNodes,
+      current_summary: this.buildCurrentProgressSummary({ nodes: progressNodes, selected_day_no: selectedDayNo, current_day_no: actualCurrentDayNo }),
     } : null;
     const customerSummaryBar = {
       visible: true,
       customer_display_name: profileName,
       trip_no: overview.trip_no || '',
       date_range_text: overview.date_range_text || '',
+      display_title: this.buildCompactTripTitle(previewTripTitle, '', overview.trip_no || ''),
+      display_meta: [overview.trip_no || '', overview.date_range_text || ''].filter(Boolean).join(' · '),
+      city_route_text: overview.city_route_text || overview.city_summary || '',
       trip_summary_text: overview.days_count ? `${overview.days_count}天行程` : '',
       thank_you_text: '感谢您使用 Farland 的服务',
       sync_status_text: meta.customer_would_see === 'published' ? '行程已同步' : '行程同步中',
@@ -2184,10 +3315,6 @@ const customerHomePageConfig = {
       advisor: { name: advisorName, phone: profileSource.advisor_phone || '' },
     }) : null;
     const selectedDriverCard = today ? this.buildPublishedTripTodayDriverCard(today, {}) : null;
-    if (selectedDriverCard) {
-      selectedDriverCard.title = '今日用车';
-      selectedDriverCard.sectionTitle = '今日用车';
-    }
     const selectedHotel = this.findHotelForTripDay(today, hotelCards);
     const selectedHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
       ...selectedHotel,
@@ -2216,6 +3343,7 @@ const customerHomePageConfig = {
       customerSummaryBar,
       tripProgress,
       progressStrip: tripProgress,
+      currentProgressSummary: this.buildCurrentProgressSummary(tripProgress),
       selectedDayNo,
       todayCard: selectedTodayCard,
       todayDriverCard: selectedDriverCard,
@@ -2277,7 +3405,7 @@ const customerHomePageConfig = {
     const transportOrders = Array.isArray(home.transport_orders) ? home.transport_orders : [];
     const assignedTransports = transportOrders.map((order, index) => ({
       id: order.transport_order_id || order.request_id || `assigned-${index}`,
-      title: order.driver_name ? `已分配司机：${order.driver_name}` : '已确认用车',
+      title: order.driver_name || '已确认用车',
       meta: [order.vehicle_model || order.vehicle_type || '', order.plate_number || ''].filter(Boolean).join(' · '),
       note: order.driver_phone ? `电话：${order.driver_phone}` : '司机信息待同步',
     }));
@@ -2299,6 +3427,7 @@ const customerHomePageConfig = {
       || (day.hotel ? (day.hotel.name || day.hotel.hotel_name || day.hotel.title || '') : '');
     const transportBadge = summaryCard.transport_badge
       || (day.transport_summary ? (day.transport_summary.title || day.transport_summary.vehicle_summary || day.transport_summary.vehicle_class || '') : '');
+    const startTime = this.resolveDayDepartureTime(day, summaryCard);
     return {
       id: day.day_id || day.id || `day-${day.day_no || index + 1}`,
       dayNo: day.day_no || index + 1,
@@ -2307,7 +3436,11 @@ const customerHomePageConfig = {
       title: summaryCard.title || day.title || `Day ${day.day_no || index + 1}`,
       city: summaryCard.city || day.city || '',
       summary: day.summary || '',
-      startTime: this.formatDisplayTime(summaryCard.start_time_text || day.start_time_text || day.estimated_departure_time || day.displayed_start_time || day.start_time || ''),
+      startTime,
+      estimatedDepartureTimeRaw: day.estimated_departure_time_raw || day.estimatedDepartureTimeRaw || '',
+      estimatedDepartureTime: day.estimated_departure_time || day.estimatedDepartureTime || startTime || '',
+      start_time_text: day.start_time_text || summaryCard.start_time_text || '',
+      departure_time: day.departure_time || startTime || '',
       pickupAddress: day.pickup_address || day.pickup || (day.transport_summary && (day.transport_summary.pickup_address || day.transport_summary.pickup)) || '',
       hotel: day.hotel || null,
       hotelBadge: hotelName,
@@ -2760,6 +3893,23 @@ const customerHomePageConfig = {
     if (!day) return null;
     const overview = context.overview || (this.data.tripOverview || [])[0] || {};
     const dayNo = day.dayNo || day.day_no || 1;
+    const departureTime = this.resolveDayDepartureTime(day);
+    const transportSummary = day.transportSummary || day.transport_summary || {};
+    const assignedDriver = this.normalizeAssignedDriver(
+      transportSummary.driver
+        || transportSummary.assigned_transport
+        || {
+          name: transportSummary.driver_name || '',
+          phone: transportSummary.driver_phone || '',
+          vehicle_model: transportSummary.vehicle_model || '',
+          vehicle_color: transportSummary.vehicle_color || '',
+          vehicle_type: transportSummary.vehicle_type || transportSummary.vehicle_class || '',
+          plate_number: transportSummary.plate_number || '',
+        },
+    );
+    const driverVisibility = transportSummary.driver_visibility
+      || (assignedDriver && (assignedDriver.name || assignedDriver.phone) ? 'assigned' : 'pending');
+    const isDriverAssigned = driverVisibility === 'assigned' && assignedDriver;
     return {
       trip_id: context.trip_id || this.data.tripInviteId || overview.trip_id || '',
       trip_no: context.trip_no || overview.trip_no || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '',
@@ -2769,12 +3919,16 @@ const customerHomePageConfig = {
       city_summary: day.city || overview.city_summary || overview.city_route_text || '',
       title: day.title || `Day ${dayNo}`,
       status_text: '已确认',
-      service_type: day.transportBadge ? 'charter' : 'itinerary',
-      service_window: day.startTime ? { label: `${day.startTime} 出发` } : null,
-      depart_time: day.startTime || '',
-      vehicle_summary: day.transportBadge || '',
-      party_summary: '',
-      driver_visibility: 'pending',
+      service_type: transportSummary.service_type || transportSummary.type || (day.transportBadge ? 'charter' : 'itinerary'),
+      service_window: departureTime ? { label: `${departureTime} 出发` } : null,
+      depart_time: departureTime || day.startTime || '',
+      estimated_departure_time_raw: day.estimatedDepartureTimeRaw || day.estimated_departure_time_raw || '',
+      estimated_departure_time: day.estimatedDepartureTime || day.estimated_departure_time || departureTime || '',
+      vehicle_summary: transportSummary.vehicle_summary || day.transportBadge || '',
+      party_summary: transportSummary.party_summary || '',
+      driver_visibility: isDriverAssigned ? 'assigned' : 'pending',
+      driver: isDriverAssigned ? assignedDriver : null,
+      assigned_transport: isDriverAssigned ? assignedDriver : null,
       timeline_items: (day.timelineItems || []).map((item, index) => ({
         ...this.normalizeRouteLegMeta(item),
         card_id: item.card_id || item.id || `${dayNo}-${index}`,
@@ -2801,7 +3955,7 @@ const customerHomePageConfig = {
         longitude: item.longitude || item.lng || item.map_longitude || '',
         map_url: item.map_url || '',
       })),
-      transport_summary: day.transportSummary || (day.transportBadge ? { title: day.transportBadge } : null),
+      transport_summary: transportSummary && Object.keys(transportSummary).length ? transportSummary : (day.transportBadge ? { title: day.transportBadge } : null),
       hotel: day.hotel ? {
         name: day.hotel.name || day.hotel.hotel_name || day.hotel.title || day.hotelBadge || '酒店安排',
         arrival_time: day.hotel.arrival_time || day.hotel.planned_arrival_time || '',

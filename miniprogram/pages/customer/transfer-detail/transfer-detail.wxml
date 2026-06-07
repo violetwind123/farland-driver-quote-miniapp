@@ -14,7 +14,7 @@
         <view wx:else class="profile-save-form">
           <input
             class="profile-save-input"
-            placeholder="称呼，例如：王女士"
+            placeholder="称呼，例如：刘女士"
             value="{{profileSaveName}}"
             bindinput="onProfileSaveNameInput"
           />

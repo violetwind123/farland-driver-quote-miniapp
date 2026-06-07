@@ -1,20 +1,30 @@
 <view class="day-page">
   <view wx:if="{{!todayCard || !cards.length}}" class="empty-state">暂无今日行程卡片，Farland 顾问正在为您确认安排。</view>
 
+  <view wx:if="{{todayCard && cards.length > 1 && !hasSwipedDayCards}}" class="swipe-hint">
+    <text class="swipe-hint-icon">↔</text>
+    <text>左右滑动查看今日行程</text>
+  </view>
+
   <swiper
-    wx:else
+    wx:if="{{todayCard && cards.length}}"
     class="destination-swiper"
     current="{{currentIndex}}"
-    previous-margin="28rpx"
-    next-margin="28rpx"
+    previous-margin="24rpx"
+    next-margin="34rpx"
     bindchange="onSwiperChange"
   >
-    <swiper-item wx:for="{{cards}}" wx:key="card_id">
-      <school-visit-card wx:if="{{item.isSchoolVisitCard}}" card="{{item}}" />
+    <swiper-item wx:for="{{cards}}" wx:key="card_id" class="destination-swiper-item {{item.time_status}}">
+      <view wx:if="{{item.isSchoolVisitCard}}" class="school-visit-card-shell {{item.time_status}}">
+        <school-visit-card card="{{item}}" />
+      </view>
 
-      <view wx:elif="{{item.isInfoCard}}" class="destination-card info-card">
+      <view wx:elif="{{item.isInfoCard}}" class="destination-card info-card {{item.time_status}}">
         <view class="info-card-head">
-          <view class="card-index">第 {{item.sequence}} 站 / 共 {{item.total_count || cards.length}} 站</view>
+          <view class="card-topline">
+            <view class="card-index">第 {{item.sequence}} 站 / 共 {{item.total_count || cards.length}} 站</view>
+            <view class="card-status {{item.time_status}}">{{item.timeStatusText}}</view>
+          </view>
           <view class="card-type">{{item.typeText}}</view>
         </view>
 
@@ -23,9 +33,16 @@
         <view wx:if="{{item.metaLine}}" class="info-meta">{{item.metaLine}}</view>
 
         <view wx:if="{{item.detailItems && item.detailItems.length}}" class="info-detail-grid">
-          <view wx:for="{{item.detailItems}}" wx:key="label" wx:for-item="detail" class="info-detail-item">
+          <view wx:for="{{item.detailItems}}" wx:key="label" wx:for-item="detail" class="info-detail-item {{detail.fullRow ? 'full-row' : ''}} {{detail.muted ? 'muted' : ''}}">
             <view class="detail-label">{{detail.label}}</view>
             <view class="detail-value compact">{{detail.value}}</view>
+          </view>
+        </view>
+
+        <view wx:if="{{item.plainDetailItems && item.plainDetailItems.length}}" class="plain-detail-list">
+          <view wx:for="{{item.plainDetailItems}}" wx:key="label" wx:for-item="detail" class="plain-detail-row">
+            <view class="plain-detail-label">{{detail.label}}</view>
+            <view class="plain-detail-value">{{detail.value}}</view>
           </view>
         </view>
 
@@ -50,8 +67,11 @@
         <view wx:if="{{item.timeWarningText}}" class="time-warning">{{item.timeWarningText}}</view>
       </view>
 
-      <view wx:else class="destination-card">
-        <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
+      <view wx:else class="destination-card {{item.time_status}}">
+        <view class="card-topline">
+          <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
+          <view class="card-status {{item.time_status}}">{{item.timeStatusText}}</view>
+        </view>
         <view class="card-type">{{item.typeText}}</view>
         <view wx:if="{{item.time}}" class="card-time">{{item.time}}</view>
         <view class="card-title">{{item.title}}</view>
@@ -78,6 +98,13 @@
 
         <view wx:if="{{item.note}}" class="detail-note">{{item.note}}</view>
         <view wx:if="{{item.next_stop}}" class="detail-next">下一站：{{item.next_stop}}</view>
+
+        <view wx:if="{{item.timeItems && item.timeItems.length}}" class="time-footer">
+          <view wx:for="{{item.timeItems}}" wx:key="label" wx:for-item="timeItem" class="time-cell">
+            <view class="time-label">{{timeItem.label}}</view>
+            <view class="time-value">{{timeItem.value}}</view>
+          </view>
+        </view>
       </view>
     </swiper-item>
   </swiper>

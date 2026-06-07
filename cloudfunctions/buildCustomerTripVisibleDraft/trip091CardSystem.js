@@ -47,6 +47,11 @@ const TRIP091_CONFIRMED_DRIVER = {
   vehicle_summary: '2025 Sienna XLE 7座 · 黑色 · LUM5388',
 };
 
+const TRIP091_CUSTOMER = {
+  name: '刘女士',
+  display_name: '刘女士',
+};
+
 const GOOGLE_MAPS_ROUTE_CHECKED_AT = '2026-06-05';
 const GOOGLE_MAPS_ROUTE_CHECK_MODE = 'google_maps_and_waze_live_map_leave_now';
 
@@ -64,6 +69,15 @@ const MAP_ROUTE_CHECKS = {
   day3_fifth_to_central_park_walk: { drive_time_text: '0:14', distance_text: '0.7mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:14', source_distance_text: '0.7mi', source_traffic_text: 'walkable Fifth Avenue segment', maps_duration_text: '14 min walk', maps_distance_text: '0.7 mi', maps_route_text: 'Fifth Avenue → Central Park South', maps_duration_minutes: 14, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
   day3_central_park_to_bryant_walk: { drive_time_text: '0:24', distance_text: '1.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:24', source_distance_text: '1.2mi', source_traffic_text: 'walkable midtown return segment', maps_duration_text: '24 min walk', maps_distance_text: '1.2 mi', maps_route_text: 'Central Park South → Bryant Park', maps_duration_minutes: 24, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
   day3_hotel: { drive_time_text: '0:03', distance_text: '0.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:15', source_distance_text: '0.9mi', source_traffic_text: 'Heavy', maps_duration_text: '3 min', maps_distance_text: '0.4 mile', maps_route_text: '6th Ave/Ave of the Americas and W 47th St', maps_duration_minutes: 3, maps_delta_minutes: 12, maps_review_status: 'ok_within_tolerance', transport_mode: 'drive', travel_mode: 'drive' },
+  day3_central_park_from_wallingford: { drive_time_text: '2:10', distance_text: '92.0mi', traffic_text: 'Moderate', traffic_level: 'moderate', source_drive_time_text: '2:10', source_distance_text: '92mi', source_traffic_text: 'Client updated Day 3 timeline: 10:00 Central Park start', maps_duration_text: '2 hr 10 min', maps_distance_text: '92 mi', maps_route_text: 'Hilton Garden Inn Wallingford/Meriden → Central Park', maps_duration_minutes: 130, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'drive', travel_mode: 'drive' },
+  day3_central_park_to_met_walk: { drive_time_text: '0:05', distance_text: '0.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:05', source_distance_text: '0.2mi', source_traffic_text: 'Client timeline allows 5 min transfer', maps_duration_text: '5 min walk', maps_distance_text: '0.2 mi', maps_route_text: 'Central Park → Metropolitan Museum of Art', maps_duration_minutes: 5, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_met_to_empire_drive: { drive_time_text: '0:30', distance_text: '3.0mi', traffic_text: 'Heavy', traffic_level: 'heavy', source_drive_time_text: '0:30', source_distance_text: '3.0mi', source_traffic_text: 'Client timeline: 12:30 Met departure, 13:00 Empire State arrival', maps_duration_text: '30 min', maps_distance_text: '3.0 mi', maps_route_text: 'Metropolitan Museum of Art → Empire State Building', maps_duration_minutes: 30, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'drive', travel_mode: 'drive' },
+  day3_empire_to_lunch_walk: { drive_time_text: '0:00', distance_text: '附近', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:00', source_distance_text: 'nearby', source_traffic_text: 'Lunch scheduled immediately after Empire State Building', maps_duration_text: 'nearby', maps_distance_text: 'nearby', maps_route_text: 'Empire State Building → Lunch', maps_duration_minutes: 0, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_lunch_to_battery_drive: { drive_time_text: '0:30', distance_text: '5.0mi', traffic_text: 'Heavy', traffic_level: 'heavy', source_drive_time_text: '0:30', source_distance_text: '5.0mi', source_traffic_text: 'Client timeline: 14:15 lunch departure, 14:45 Battery Park arrival', maps_duration_text: '30 min', maps_distance_text: '5.0 mi', maps_route_text: 'Lunch → Battery Park', maps_duration_minutes: 30, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'drive', travel_mode: 'drive' },
+  day3_battery_to_wall_walk: { drive_time_text: '0:00', distance_text: '0.4mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:00', source_distance_text: '0.4mi', source_traffic_text: 'Lower Manhattan nearby segment in client timeline', maps_duration_text: 'nearby walk', maps_distance_text: '0.4 mi', maps_route_text: 'Battery Park → Wall Street', maps_duration_minutes: 0, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_wall_to_brooklyn_bridge_walk: { drive_time_text: '0:00', distance_text: '0.6mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:00', source_distance_text: '0.6mi', source_traffic_text: 'Lower Manhattan nearby segment in client timeline', maps_duration_text: 'nearby walk', maps_distance_text: '0.6 mi', maps_route_text: 'Wall Street → Brooklyn Bridge', maps_duration_minutes: 0, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_brooklyn_bridge_to_dumbo_walk: { drive_time_text: '0:00', distance_text: '0.8mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:00', source_distance_text: '0.8mi', source_traffic_text: 'Brooklyn Bridge / DUMBO nearby segment in client timeline', maps_duration_text: 'nearby walk', maps_distance_text: '0.8 mi', maps_route_text: 'Brooklyn Bridge → DUMBO / Brooklyn Bridge Park', maps_duration_minutes: 0, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'walk', travel_mode: 'walk' },
+  day3_dumbo_to_hotel: { drive_time_text: '1:00', distance_text: '9.0mi', traffic_text: 'Heavy', traffic_level: 'heavy', source_drive_time_text: '1:00', source_distance_text: '9.0mi', source_traffic_text: 'After 17:30 DUMBO / Brooklyn Bridge Park', maps_duration_text: '1 hr', maps_distance_text: '9.0 mi', maps_route_text: 'DUMBO / Brooklyn Bridge Park → Riu Plaza Manhattan Times Square', maps_duration_minutes: 60, maps_delta_minutes: 0, maps_review_status: 'client_schedule_update_pending_maps_recheck', transport_mode: 'drive', travel_mode: 'drive' },
   day4_nyu: { drive_time_text: '0:18', distance_text: '2.6mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:35', source_distance_text: '2.8mi', source_traffic_text: 'Heavy', maps_duration_text: '18 min', maps_distance_text: '2.6 mi', maps_route_text: '7th Ave', maps_duration_minutes: 18, maps_delta_minutes: 17, maps_review_status: 'ok_within_tolerance' },
   day4_columbia: { drive_time_text: '0:40', distance_text: '6.8mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:40', source_distance_text: '6.6mi', source_traffic_text: 'Heavy', maps_duration_text: '40 min', maps_distance_text: '6.8 mi', maps_route_text: 'Madison Ave', maps_duration_minutes: 40, maps_delta_minutes: 0, maps_review_status: 'ok_within_tolerance' },
   day4_hotel: { drive_time_text: '0:25', distance_text: '6.7mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:40', source_distance_text: '5mi', source_traffic_text: 'Heavy', maps_duration_text: '25 min', maps_distance_text: '6.7 mi', maps_route_text: 'NY-9A S', maps_duration_minutes: 25, maps_delta_minutes: 15, maps_review_status: 'ok_within_tolerance' },
@@ -75,12 +89,12 @@ const MAP_ROUTE_CHECKS = {
   day6_natural_history_to_air_space_walk: { drive_time_text: '0:12', distance_text: '0.6mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:12', source_distance_text: '0.6mi', source_traffic_text: 'Smithsonian National Mall walking segment', maps_duration_text: '12 min walk', maps_distance_text: '0.6 mi', maps_route_text: 'National Museum of Natural History → National Air and Space Museum', maps_duration_minutes: 12, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
   day6_hotel: { drive_time_text: '0:20', distance_text: '5.8mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:20', source_distance_text: '4.3mi', source_traffic_text: 'Heavy', maps_duration_text: '20 min', maps_distance_text: '5.8 mi', maps_route_text: 'Independence Ave SW and Rock Creek and Potomac Pkwy NW', maps_duration_minutes: 20, maps_delta_minutes: 0, maps_review_status: 'ok_within_tolerance' },
   day7_monuments: { drive_time_text: '0:16', distance_text: '3.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:25', source_distance_text: '3mi', source_traffic_text: 'Heavy', maps_duration_text: '16 min', maps_distance_text: '3.4 mi', maps_route_text: 'Massachusetts Ave NW', maps_duration_minutes: 16, maps_delta_minutes: 9, maps_review_status: 'ok_within_tolerance', transport_mode: 'drive', travel_mode: 'drive' },
-  day7_white_house_to_lincoln_walk: { drive_time_text: '0:25', distance_text: '1.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:25', source_distance_text: '1.2mi', source_traffic_text: 'National Mall walking segment', maps_duration_text: '25 min walk', maps_distance_text: '1.2 mi', maps_route_text: 'The White House → Lincoln Memorial', maps_duration_minutes: 25, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
-  day7_lincoln_to_us_capitol_walk: { drive_time_text: '0:50', distance_text: '2.5mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:50', source_distance_text: '2.5mi', source_traffic_text: 'long scenic National Mall walk', maps_duration_text: '50 min walk', maps_distance_text: '2.5 mi', maps_route_text: 'Lincoln Memorial → U.S. Capitol via National Mall', maps_duration_minutes: 50, maps_delta_minutes: 0, maps_review_status: 'walking_route_long_but_scenic', transport_mode: 'walk', travel_mode: 'walk' },
-  day7_us_capitol_to_capitol_hill_walk: { drive_time_text: '0:05', distance_text: '0.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:05', source_distance_text: '0.2mi', source_traffic_text: 'same Capitol Hill area', maps_duration_text: '5 min walk', maps_distance_text: '0.2 mi', maps_route_text: 'U.S. Capitol → Capitol Hill', maps_duration_minutes: 5, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
-  day7_capitol_hill_to_library_walk: { drive_time_text: '0:06', distance_text: '0.3mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:06', source_distance_text: '0.3mi', source_traffic_text: 'same Capitol Hill area', maps_duration_text: '6 min walk', maps_distance_text: '0.3 mi', maps_route_text: 'Capitol Hill → Library of Congress', maps_duration_minutes: 6, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
-  day7_library_to_supreme_walk: { drive_time_text: '0:04', distance_text: '0.2mi', traffic_text: '步行', traffic_level: 'walk', source_drive_time_text: '0:04', source_distance_text: '0.2mi', source_traffic_text: 'same Capitol Hill area', maps_duration_text: '4 min walk', maps_distance_text: '0.2 mi', maps_route_text: 'Library of Congress → Supreme Court exterior', maps_duration_minutes: 4, maps_delta_minutes: 0, maps_review_status: 'walking_route_reviewed', transport_mode: 'walk', travel_mode: 'walk' },
-  day7_hotel: { drive_time_text: '0:23', distance_text: '6.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:30', source_distance_text: '5.1mi', source_traffic_text: 'Heavy', maps_duration_text: '23 min', maps_distance_text: '6.4 mi', maps_route_text: 'Independence Ave SE and Rock Creek and Potomac Pkwy NW', maps_duration_minutes: 23, maps_delta_minutes: 7, maps_review_status: 'ok_within_tolerance' },
+  day7_white_house_to_lincoln_drive: { drive_time_text: '0:12', distance_text: '1.5mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:25', source_distance_text: '1.2mi', source_traffic_text: 'National Mall segment; customer-facing charter page should show vehicle transfer', maps_duration_text: '12 min', maps_distance_text: '1.5 mi', maps_route_text: 'Constitution Ave NW', maps_duration_minutes: 12, maps_delta_minutes: 13, maps_review_status: 'route_mode_corrected_to_drive', transport_mode: 'drive', travel_mode: 'drive' },
+  day7_lincoln_to_us_capitol_drive: { drive_time_text: '0:15', distance_text: '2.8mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:50', source_distance_text: '2.5mi', source_traffic_text: 'National Mall scenic segment; customer-facing charter page should show vehicle transfer', maps_duration_text: '15 min', maps_distance_text: '2.8 mi', maps_route_text: 'Constitution Ave NW and Pennsylvania Ave NW', maps_duration_minutes: 15, maps_delta_minutes: 35, maps_review_status: 'route_mode_corrected_to_drive', transport_mode: 'drive', travel_mode: 'drive' },
+  day7_us_capitol_to_capitol_hill_drive: { drive_time_text: '0:05', distance_text: '0.2mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '0:05', source_distance_text: '0.2mi', source_traffic_text: 'same Capitol Hill area; customer-facing charter page should show vehicle transfer', maps_duration_text: '5 min', maps_distance_text: '0.2 mi', maps_route_text: 'U.S. Capitol → Capitol Hill', maps_duration_minutes: 5, maps_delta_minutes: 0, maps_review_status: 'route_mode_corrected_to_drive', transport_mode: 'drive', travel_mode: 'drive' },
+  day7_capitol_hill_to_library_drive: { drive_time_text: '0:06', distance_text: '0.3mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '0:06', source_distance_text: '0.3mi', source_traffic_text: 'same Capitol Hill area; customer-facing charter page should show vehicle transfer', maps_duration_text: '6 min', maps_distance_text: '0.3 mi', maps_route_text: 'Capitol Hill → Library of Congress', maps_duration_minutes: 6, maps_delta_minutes: 0, maps_review_status: 'route_mode_corrected_to_drive', transport_mode: 'drive', travel_mode: 'drive' },
+  day7_library_to_supreme_drive: { drive_time_text: '0:04', distance_text: '0.2mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '0:04', source_distance_text: '0.2mi', source_traffic_text: 'same Capitol Hill area; customer-facing charter page should show vehicle transfer', maps_duration_text: '4 min', maps_distance_text: '0.2 mi', maps_route_text: 'Library of Congress → Supreme Court exterior', maps_duration_minutes: 4, maps_delta_minutes: 0, maps_review_status: 'route_mode_corrected_to_drive', transport_mode: 'drive', travel_mode: 'drive' },
+  day7_hotel: { drive_time_text: '0:23', distance_text: '6.4mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '0:30', source_distance_text: '5.1mi', source_traffic_text: 'Heavy', maps_duration_text: '23 min', maps_distance_text: '6.4 mi', maps_route_text: 'Independence Ave SE and Rock Creek and Potomac Pkwy NW', maps_duration_minutes: 23, maps_delta_minutes: 7, maps_review_status: 'ok_within_tolerance', transport_mode: 'drive', travel_mode: 'drive' },
   day8_iad: { drive_time_text: '0:32', distance_text: '23.9mi', traffic_text: 'Moderate', traffic_level: 'maps_current', source_drive_time_text: '1:00', source_distance_text: '27.6mi', source_traffic_text: 'Moderate', maps_duration_text: '32 min', maps_distance_text: '23.9 mi', maps_route_text: 'I-66 W and Dulles Access Rd', maps_duration_minutes: 32, maps_delta_minutes: 28, maps_review_status: 'source_conservative_or_slack' },
   day8_hotel: { drive_time_text: '0:35', distance_text: '26.0mi', traffic_text: 'Heavy', traffic_level: 'maps_current', source_drive_time_text: '1:10', source_distance_text: '22.6mi', source_traffic_text: 'Heavy', maps_duration_text: '35 min', maps_distance_text: '26.0 mi', maps_route_text: 'I-90 E', maps_duration_minutes: 35, maps_delta_minutes: 35, maps_review_status: 'source_conservative_or_slack' },
 };
@@ -96,9 +110,16 @@ const CARD_ROUTE_CHECK_IDS = {
   '091_day3_times_square': 'day3_midtown',
   '091_day3_rockefeller_center': 'day3_times_square_to_rockefeller_walk',
   '091_day3_fifth_avenue': 'day3_rockefeller_to_fifth_walk',
-  '091_day3_central_park': 'day3_fifth_to_central_park_walk',
+  '091_day3_central_park': 'day3_central_park_from_wallingford',
+  '091_day3_met_museum': 'day3_central_park_to_met_walk',
+  '091_day3_empire_state_building': 'day3_met_to_empire_drive',
+  '091_day3_lunch': 'day3_empire_to_lunch_walk',
+  '091_day3_battery_park_liberty_view': 'day3_lunch_to_battery_drive',
+  '091_day3_wall_street': 'day3_battery_to_wall_walk',
+  '091_day3_brooklyn_bridge': 'day3_wall_to_brooklyn_bridge_walk',
+  '091_day3_dumbo_brooklyn_bridge_park': 'day3_brooklyn_bridge_to_dumbo_walk',
   '091_day3_bryant_park': 'day3_central_park_to_bryant_walk',
-  '091_day3_riu_manhattan': 'day3_hotel',
+  '091_day3_riu_manhattan': 'day3_dumbo_to_hotel',
   '091_day4_new_york_university': 'day4_nyu',
   '091_day4_columbia_university': 'day4_columbia',
   '091_day4_riu_manhattan': 'day4_hotel',
@@ -110,11 +131,11 @@ const CARD_ROUTE_CHECK_IDS = {
   '091_day6_air_space_museum': 'day6_natural_history_to_air_space_walk',
   '091_day6_glover_georgetown': 'day6_hotel',
   '091_day7_white_house': 'day7_monuments',
-  '091_day7_lincoln_memorial': 'day7_white_house_to_lincoln_walk',
-  '091_day7_us_capitol': 'day7_lincoln_to_us_capitol_walk',
-  '091_day7_capitol_hill': 'day7_us_capitol_to_capitol_hill_walk',
-  '091_day7_library_of_congress': 'day7_capitol_hill_to_library_walk',
-  '091_day7_supreme_court_exterior': 'day7_library_to_supreme_walk',
+  '091_day7_lincoln_memorial': 'day7_white_house_to_lincoln_drive',
+  '091_day7_us_capitol': 'day7_lincoln_to_us_capitol_drive',
+  '091_day7_capitol_hill': 'day7_us_capitol_to_capitol_hill_drive',
+  '091_day7_library_of_congress': 'day7_capitol_hill_to_library_drive',
+  '091_day7_supreme_court_exterior': 'day7_library_to_supreme_drive',
   '091_day7_glover_georgetown': 'day7_hotel',
   '091_day8_ua2331_iad_ord': 'day8_iad',
   '091_day8_study_chicago': 'day8_hotel',
@@ -204,6 +225,24 @@ const SOURCES = {
   ],
   bryant_park: [
     ref('NYC Parks Bryant Park', 'https://www.nycgovparks.org/parks/bryant-park'),
+  ],
+  met_museum: [
+    ref('The Metropolitan Museum of Art', 'https://www.metmuseum.org/'),
+  ],
+  empire_state: [
+    ref('Empire State Building', 'https://www.esbnyc.com/'),
+  ],
+  battery_park: [
+    ref('NYC Parks The Battery', 'https://www.nycgovparks.org/parks/battery-park'),
+  ],
+  wall_street: [
+    ref('NYC Tourism Wall Street', 'https://www.nyctourism.com/places/wall-street/'),
+  ],
+  brooklyn_bridge: [
+    ref('NYC DOT Brooklyn Bridge', 'https://www.nyc.gov/html/dot/html/infrastructure/brooklyn-bridge.shtml'),
+  ],
+  dumbo_brooklyn_bridge_park: [
+    ref('Brooklyn Bridge Park', 'https://brooklynbridgepark.org/'),
   ],
   white_house: [
     ref('White House Visit', 'https://www.whitehouse.gov/visit/'),
@@ -578,6 +617,103 @@ const ENTITIES = {
     highlight_tags: ['中城公园', '公共空间', '纽约公共图书馆', '城市休憩'],
     source_refs: SOURCES.bryant_park,
   },
+  met_museum: {
+    entity_type: 'museum',
+    entity_subtype: 'art_museum',
+    name_en: 'Metropolitan Museum of Art',
+    name_zh: '大都会艺术博物馆',
+    city: 'New York',
+    area: 'Upper East Side',
+    address: '1000 Fifth Avenue, New York, NY 10028',
+    museum_group: 'The Met',
+    landmark_type: '博物馆 / 艺术',
+    intro_lines: [
+      '大都会艺术博物馆是纽约代表性艺术博物馆，馆藏覆盖古典艺术、亚洲艺术、欧洲绘画、服饰与装饰艺术等方向。',
+      '短时间参观建议优先锁定一到两个展区，重点感受馆藏规模、建筑空间和纽约博物馆文化。',
+    ],
+    highlight_tags: ['艺术博物馆', '世界文明', '纽约文化', '馆藏'],
+    source_refs: SOURCES.met_museum,
+  },
+  empire_state_building: {
+    entity_type: 'landmark',
+    entity_subtype: 'observation_deck',
+    name_en: 'Empire State Building',
+    name_zh: '帝国大厦',
+    city: 'New York',
+    area: 'Midtown Manhattan',
+    address: '20 W 34th Street, New York, NY 10001',
+    landmark_type: '城市地标 / 观景建筑',
+    intro_lines: [
+      '帝国大厦是纽约天际线的经典符号，Art Deco 建筑语言和观景体验都很有辨识度。',
+      '这一站适合观察曼哈顿中城的城市尺度、历史高层建筑和纽约旅游地标运营。',
+    ],
+    highlight_tags: ['纽约天际线', 'Art Deco', '观景', '城市地标'],
+    source_refs: SOURCES.empire_state,
+  },
+  battery_park_liberty_view: {
+    entity_type: 'landmark',
+    entity_subtype: 'waterfront_park',
+    name_en: 'Statue of Liberty View (Battery Park)',
+    name_zh: '自由女神像远眺（炮台公园）',
+    city: 'New York',
+    area: 'Lower Manhattan',
+    address: 'The Battery, New York, NY 10004',
+    landmark_type: '滨水公园 / 城市观景',
+    intro_lines: [
+      '炮台公园位于曼哈顿南端，可远眺纽约港和自由女神像，是理解纽约移民历史与港口城市身份的好位置。',
+      '如果当天不登岛，这里适合作为轻量观景点，结合下城金融区和滨水步道一起安排。',
+    ],
+    highlight_tags: ['自由女神像远眺', '纽约港', '滨水公园', '移民历史'],
+    source_refs: SOURCES.battery_park,
+  },
+  wall_street: {
+    entity_type: 'landmark',
+    entity_subtype: 'financial_district',
+    name_en: 'Wall Street',
+    name_zh: '华尔街',
+    city: 'New York',
+    area: 'Financial District',
+    address: 'Wall Street, New York, NY 10005',
+    landmark_type: '金融街区 / 城市地标',
+    intro_lines: [
+      '华尔街是纽约金融区的代表街道，证券交易、银行建筑和下城街网共同构成城市商业历史的一部分。',
+      '这一站适合把金融行业、历史建筑和曼哈顿下城街区肌理放在一起观察。',
+    ],
+    highlight_tags: ['金融区', '城市历史', '纽约证券交易所周边', '下城'],
+    source_refs: SOURCES.wall_street,
+  },
+  brooklyn_bridge: {
+    entity_type: 'landmark',
+    entity_subtype: 'historic_bridge',
+    name_en: 'Brooklyn Bridge',
+    name_zh: '布鲁克林大桥',
+    city: 'New York',
+    area: 'Lower Manhattan / Brooklyn',
+    address: 'Brooklyn Bridge, New York, NY 10038',
+    landmark_type: '历史桥梁 / 城市地标',
+    intro_lines: [
+      '布鲁克林大桥连接曼哈顿和布鲁克林，是纽约工程史和城市景观中非常经典的地标。',
+      '访客可以关注桥体结构、步行层视野，以及曼哈顿天际线与东河滨水空间的关系。',
+    ],
+    highlight_tags: ['历史桥梁', '城市工程', '天际线', '东河'],
+    source_refs: SOURCES.brooklyn_bridge,
+  },
+  dumbo_brooklyn_bridge_park: {
+    entity_type: 'landmark',
+    entity_subtype: 'waterfront_district',
+    name_en: 'DUMBO / Brooklyn Bridge Park',
+    name_zh: 'DUMBO / 布鲁克林大桥公园',
+    city: 'New York',
+    area: 'Brooklyn Waterfront',
+    address: 'DUMBO, Brooklyn, NY 11201',
+    landmark_type: '滨水街区 / 城市公园',
+    intro_lines: [
+      'DUMBO 和布鲁克林大桥公园是纽约经典滨水观景区，可以看到曼哈顿天际线、东河和桥梁景观。',
+      '这里适合轻松收尾城市观光，也方便拍摄布鲁克林街区、滨水公园和城市夜景的过渡画面。',
+    ],
+    highlight_tags: ['滨水景观', '布鲁克林', '天际线', '城市摄影'],
+    source_refs: SOURCES.dumbo_brooklyn_bridge_park,
+  },
   white_house: {
     entity_type: 'landmark',
     entity_subtype: 'government_landmark',
@@ -636,10 +772,10 @@ const ENTITIES = {
     address: 'Capitol Hill, Washington, DC',
     landmark_type: '历史街区 / 政府区',
     intro_lines: [
-      '国会山既是美国立法机构所在区域，也是由历史住宅、办公楼、图书馆和法院组成的可步行街区。',
+      '国会山既是美国立法机构所在区域，也是由历史住宅、办公楼、图书馆和法院组成的历史街区。',
       '这一站适合把政治建筑群、城市街区和华盛顿日常工作节奏放在一起观察。',
     ],
-    highlight_tags: ['政府区', '历史街区', '城市步行', '国会周边'],
+    highlight_tags: ['政府区', '历史街区', '政府建筑群', '国会周边'],
     source_refs: SOURCES.capitol_hill,
   },
   library_of_congress: {
@@ -821,12 +957,12 @@ const ENTITIES = {
 };
 
 const HOTEL_STAYS = [
-  { stay_id: 'stay_renaissance_providence_day1', entity_key: 'renaissance_providence', linked_day_nos: [1], check_in_date: '2026-06-05', check_out_date: '2026-06-06' },
-  { stay_id: 'stay_hilton_wallingford_day2', entity_key: 'hilton_wallingford', linked_day_nos: [2], check_in_date: '2026-06-06', check_out_date: '2026-06-07' },
-  { stay_id: 'stay_riu_manhattan_day3_day4', entity_key: 'riu_manhattan', linked_day_nos: [3, 4], check_in_date: '2026-06-07', check_out_date: '2026-06-09' },
-  { stay_id: 'stay_hyatt_kop_day5', entity_key: 'hyatt_kop', linked_day_nos: [5], check_in_date: '2026-06-09', check_out_date: '2026-06-10' },
-  { stay_id: 'stay_glover_georgetown_day6_day7', entity_key: 'glover_georgetown', linked_day_nos: [6, 7], check_in_date: '2026-06-10', check_out_date: '2026-06-12' },
-  { stay_id: 'stay_study_chicago_day8', entity_key: 'study_chicago', linked_day_nos: [8], check_in_date: '2026-06-12', check_out_date: '' },
+  { stay_id: 'stay_renaissance_providence_day1', entity_key: 'renaissance_providence', linked_day_nos: [1], check_in_date: '2026-06-05', check_out_date: '2026-06-06', confirmation_no: '无酒店预订信息' },
+  { stay_id: 'stay_hilton_wallingford_day2', entity_key: 'hilton_wallingford', linked_day_nos: [2], check_in_date: '2026-06-06', check_out_date: '2026-06-07', confirmation_no: '无酒店预订信息' },
+  { stay_id: 'stay_riu_manhattan_day3_day4', entity_key: 'riu_manhattan', linked_day_nos: [3, 4], check_in_date: '2026-06-07', check_out_date: '2026-06-09', confirmation_no: '无酒店预订信息' },
+  { stay_id: 'stay_hyatt_kop_day5', entity_key: 'hyatt_kop', linked_day_nos: [5], check_in_date: '2026-06-09', check_out_date: '2026-06-10', room_summary: 'Guestroom Double Queen', confirmation_no: '#660610' },
+  { stay_id: 'stay_glover_georgetown_day6_day7', entity_key: 'glover_georgetown', linked_day_nos: [6, 7], check_in_date: '2026-06-10', check_out_date: '2026-06-12', confirmation_no: '无酒店预订信息' },
+  { stay_id: 'stay_study_chicago_day8', entity_key: 'study_chicago', linked_day_nos: [8], check_in_date: '2026-06-12', check_out_date: '2026-06-13', confirmation_no: '无酒店预订信息' },
 ];
 
 const DAYS = [
@@ -839,9 +975,9 @@ const DAYS = [
     departure_time: '10:00',
     pickup_address: TRIP091_DAY1_PICKUP.pickup_address,
     cards: [
-      { card_id: '091_day1_boston_college', card_type: 'school_visit_card', entity_key: 'boston_college', arrival_time: '10:45', appointment_time: '', start_time: '10:45', end_time: '11:25', customer_note: '10:00 从 284 Mattison Drive 出发；BC 预计参观约 40 分钟。' },
-      { card_id: '091_day1_babson_college', card_type: 'school_visit_card', entity_key: 'babson_college', arrival_time: '12:00', appointment_time: '', start_time: '12:00', end_time: '12:20', customer_note: '短停参观约 20-30 分钟；午餐建议提前准备车上简餐。' },
-      { card_id: '091_day1_amherst_college', card_type: 'school_visit_card', entity_key: 'amherst_college', arrival_time: '14:30', appointment_time: '15:00', start_time: '14:30', end_time: '16:30', customer_note: '客户群确认 15:00 前抵达 Amherst 即可，自主参观约 2 小时。' },
+      { card_id: '091_day1_boston_college', card_type: 'school_visit_card', entity_key: 'boston_college', visit_mode: 'self_tour', arrival_time: '10:45', appointment_time: 'Self Tour', start_time: '10:45', end_time: '11:15', customer_note: '10:00 从 284 Mattison Drive 出发；BC 预计参观约 40 分钟。' },
+      { card_id: '091_day1_babson_college', card_type: 'school_visit_card', entity_key: 'babson_college', visit_mode: 'self_tour', arrival_time: '12:00', appointment_time: 'Self Tour', start_time: '12:00', end_time: '12:30', customer_note: '自行参观约 30 分钟；午餐建议提前准备车上简餐。' },
+      { card_id: '091_day1_amherst_college', card_type: 'school_visit_card', entity_key: 'amherst_college', visit_mode: 'self_tour', arrival_time: '14:30', appointment_time: 'Self Tour', start_time: '14:30', end_time: '15:00', customer_note: '客户群确认 15:00 前抵达 Amherst 即可，自主参观约 2 小时。' },
       { card_id: '091_day1_renaissance_providence', card_type: 'hotel_arrival_card', entity_key: 'renaissance_providence', arrival_time: '18:45', stay_id: 'stay_renaissance_providence_day1' },
     ],
   },
@@ -852,9 +988,10 @@ const DAYS = [
     day_title: 'Providence / New Haven / Wallingford',
     route_label: 'Providence / New Haven / Wallingford',
     departure_time: '09:35',
+    pickup_address: 'Renaissance Providence Downtown Hotel, 5 Avenue of the Arts, Providence, RI 02903',
     cards: [
-      { card_id: '091_day2_brown_university', card_type: 'school_visit_card', entity_key: 'brown_university', arrival_time: '09:45', appointment_time: '10:00' },
-      { card_id: '091_day2_yale_university', card_type: 'school_visit_card', entity_key: 'yale_university', arrival_time: '14:15', appointment_time: '14:00' },
+      { card_id: '091_day2_brown_university', card_type: 'school_visit_card', entity_key: 'brown_university', visit_mode: 'self_tour', arrival_time: '09:45', appointment_time: 'Self Tour', end_time: '10:15' },
+      { card_id: '091_day2_yale_university', card_type: 'school_visit_card', entity_key: 'yale_university', visit_mode: 'self_tour', arrival_time: '14:15', appointment_time: 'Self Tour', end_time: '14:45' },
       { card_id: '091_day2_hilton_wallingford', card_type: 'hotel_arrival_card', entity_key: 'hilton_wallingford', arrival_time: '18:00', stay_id: 'stay_hilton_wallingford_day2' },
     ],
   },
@@ -862,16 +999,20 @@ const DAYS = [
     day_no: 3,
     date: '2026-06-07',
     weekday: 'Sun',
-    day_title: 'New York Midtown / Parks',
-    route_label: 'New York Midtown / Parks',
+    day_title: 'New York City Highlights',
+    route_label: 'New York / Lower Manhattan / Brooklyn',
     departure_time: '07:50',
+    pickup_address: 'Hilton Garden Inn Wallingford/Meriden, 1181 Barnes Road, Wallingford, CT 06492',
     cards: [
-      { card_id: '091_day3_times_square', card_type: 'landmark_card', entity_key: 'times_square', arrival_time: '10:20', appointment_time: '10:20', end_time: '10:45', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 1 },
-      { card_id: '091_day3_rockefeller_center', card_type: 'landmark_card', entity_key: 'rockefeller_center', arrival_time: '10:57', appointment_time: '10:57', end_time: '11:20', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 2 },
-      { card_id: '091_day3_fifth_avenue', card_type: 'landmark_card', entity_key: 'fifth_avenue', arrival_time: '11:24', appointment_time: '11:24', end_time: '11:45', parent_group_id: 'day3_midtown_group', parent_group_title: '时代广场 / 洛克菲勒中心 / 第五大道', group_sequence: 3 },
-      { card_id: '091_day3_central_park', card_type: 'landmark_card', entity_key: 'central_park', arrival_time: '12:00', appointment_time: '12:00', end_time: '13:35', parent_group_id: 'day3_park_group', parent_group_title: '中央公园 / 布莱恩特公园', group_sequence: 1 },
-      { card_id: '091_day3_bryant_park', card_type: 'landmark_card', entity_key: 'bryant_park', arrival_time: '13:59', appointment_time: '13:59', end_time: '14:20', parent_group_id: 'day3_park_group', parent_group_title: '中央公园 / 布莱恩特公园', group_sequence: 2 },
-      { card_id: '091_day3_riu_manhattan', card_type: 'hotel_arrival_card', entity_key: 'riu_manhattan', arrival_time: '18:00', parent_group_id: 'hotel_stay_riu_day3_day4', parent_group_title: 'Riu Plaza Manhattan Times Square 连住', group_sequence: 1, stay_id: 'stay_riu_manhattan_day3_day4' },
+      { card_id: '091_day3_central_park', card_type: 'landmark_card', entity_key: 'central_park', arrival_time: '10:00', appointment_time: '10:00', end_time: '11:00', parent_group_id: 'day3_uptown_museum_group', parent_group_title: 'Central Park / Metropolitan Museum of Art', group_sequence: 1 },
+      { card_id: '091_day3_met_museum', card_type: 'museum_card', entity_key: 'met_museum', arrival_time: '11:05', appointment_time: '11:05', end_time: '12:30', parent_group_id: 'day3_uptown_museum_group', parent_group_title: 'Central Park / Metropolitan Museum of Art', group_sequence: 2 },
+      { card_id: '091_day3_empire_state_building', card_type: 'landmark_card', entity_key: 'empire_state_building', arrival_time: '13:00', appointment_time: '13:00', end_time: '13:45', parent_group_id: 'day3_midtown_lunch_group', parent_group_title: 'Empire State Building / Lunch', group_sequence: 1 },
+      { card_id: '091_day3_lunch', card_type: 'custom_activity_card', title: 'Lunch', title_zh: '午餐', city: 'New York', area: 'Midtown Manhattan', arrival_time: '13:45', appointment_time: '13:45', end_time: '14:15', parent_group_id: 'day3_midtown_lunch_group', parent_group_title: 'Empire State Building / Lunch', group_sequence: 2, activity_type_text: '午餐 / 当日安排', customer_note: '按客户群最新行程安排，预留 13:45–14:15 午餐时间。', fit_tags: ['午餐', '当日安排', '客户群同步'] },
+      { card_id: '091_day3_battery_park_liberty_view', card_type: 'landmark_card', entity_key: 'battery_park_liberty_view', arrival_time: '14:45', appointment_time: '14:45', end_time: '15:45', parent_group_id: 'day3_downtown_brooklyn_group', parent_group_title: 'Battery Park / Wall Street / Brooklyn Bridge / DUMBO', group_sequence: 1 },
+      { card_id: '091_day3_wall_street', card_type: 'landmark_card', entity_key: 'wall_street', arrival_time: '15:45', appointment_time: '15:45', end_time: '16:15', parent_group_id: 'day3_downtown_brooklyn_group', parent_group_title: 'Battery Park / Wall Street / Brooklyn Bridge / DUMBO', group_sequence: 2 },
+      { card_id: '091_day3_brooklyn_bridge', card_type: 'landmark_card', entity_key: 'brooklyn_bridge', arrival_time: '16:15', appointment_time: '16:15', end_time: '16:45', parent_group_id: 'day3_downtown_brooklyn_group', parent_group_title: 'Battery Park / Wall Street / Brooklyn Bridge / DUMBO', group_sequence: 3 },
+      { card_id: '091_day3_dumbo_brooklyn_bridge_park', card_type: 'landmark_card', entity_key: 'dumbo_brooklyn_bridge_park', arrival_time: '16:45', appointment_time: '16:45', end_time: '17:30', parent_group_id: 'day3_downtown_brooklyn_group', parent_group_title: 'Battery Park / Wall Street / Brooklyn Bridge / DUMBO', group_sequence: 4 },
+      { card_id: '091_day3_riu_manhattan', card_type: 'hotel_arrival_card', entity_key: 'riu_manhattan', arrival_time: '18:30', parent_group_id: 'hotel_stay_riu_day3_day4', parent_group_title: 'Riu Plaza Manhattan Times Square 连住', group_sequence: 1, stay_id: 'stay_riu_manhattan_day3_day4' },
     ],
   },
   {
@@ -881,10 +1022,11 @@ const DAYS = [
     day_title: 'New York University / Columbia',
     route_label: 'NYU / Teacher Pan / Columbia',
     departure_time: '10:05',
+    pickup_address: 'Riu Plaza Manhattan Times Square, 145 W 47th Street, New York, NY 10036',
     cards: [
       { card_id: '091_day4_new_york_university', card_type: 'school_visit_card', entity_key: 'nyu', arrival_time: '10:40', appointment_time: '11:00' },
       { card_id: '091_day4_meeting_teacher_pan', card_type: 'meeting_card', title: 'Meeting with Teacher Pan', title_zh: '中午见潘老师', arrival_time: '', appointment_time: '', start_time: '午间', customer_note: '该安排由 Farland 顾问同步，请以客户群确认信息为准。' },
-      { card_id: '091_day4_columbia_university', card_type: 'school_visit_card', entity_key: 'columbia_university', arrival_time: '14:30', appointment_time: '' },
+      { card_id: '091_day4_columbia_university', card_type: 'school_visit_card', entity_key: 'columbia_university', visit_mode: 'self_tour', arrival_time: '14:30', appointment_time: 'Self Tour', end_time: '15:00' },
       { card_id: '091_day4_riu_manhattan', card_type: 'hotel_arrival_card', entity_key: 'riu_manhattan', arrival_time: '17:00', parent_group_id: 'hotel_stay_riu_day3_day4', parent_group_title: 'Riu Plaza Manhattan Times Square 连住', group_sequence: 2, stay_id: 'stay_riu_manhattan_day3_day4' },
     ],
   },
@@ -895,6 +1037,7 @@ const DAYS = [
     day_title: 'Philadelphia / King of Prussia',
     route_label: 'University of Pennsylvania / Swarthmore / King of Prussia',
     departure_time: '07:45',
+    pickup_address: 'Riu Plaza Manhattan Times Square, 145 W 47th Street, New York, NY 10036',
     cards: [
       { card_id: '091_day5_university_of_pennsylvania', card_type: 'school_visit_card', entity_key: 'upenn', arrival_time: '10:15', appointment_time: '10:15' },
       { card_id: '091_day5_swarthmore_college', card_type: 'school_visit_card', entity_key: 'swarthmore_college', arrival_time: '12:50', appointment_time: '13:30' },
@@ -908,6 +1051,7 @@ const DAYS = [
     day_title: 'Georgetown / Smithsonian',
     route_label: 'Georgetown / Smithsonian / Glover Park',
     departure_time: '05:30',
+    pickup_address: 'Hyatt House Philadelphia/King of Prussia, 240 Mall Boulevard, King of Prussia, PA 19406',
     cards: [
       { card_id: '091_day6_georgetown_university', card_type: 'school_visit_card', entity_key: 'georgetown_university', arrival_time: '09:15', appointment_time: '09:30' },
       { card_id: '091_day6_natural_history_museum', card_type: 'museum_card', entity_key: 'natural_history_museum', arrival_time: '13:30', appointment_time: '13:30', end_time: '15:00', parent_group_id: 'day6_museum_group', parent_group_title: '国家自然历史博物馆 / 国家航空航天博物馆', group_sequence: 1 },
@@ -922,6 +1066,7 @@ const DAYS = [
     day_title: 'Washington DC Monuments / Capitol Hill',
     route_label: 'White House / Capitol / Library of Congress',
     departure_time: '09:20',
+    pickup_address: 'Glover Park Hotel Georgetown, 2505 Wisconsin Avenue NW, Washington, DC 20007',
     cards: [
       { card_id: '091_day7_white_house', card_type: 'landmark_card', entity_key: 'white_house', arrival_time: '09:45', appointment_time: '10:00', end_time: '10:20', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 林肯纪念堂 / 国会大厦', group_sequence: 1 },
       { card_id: '091_day7_lincoln_memorial', card_type: 'landmark_card', entity_key: 'lincoln_memorial', arrival_time: '10:45', appointment_time: '10:45', end_time: '11:15', parent_group_id: 'day7_monuments_group', parent_group_title: '白宫 / 林肯纪念堂 / 国会大厦', group_sequence: 2 },
@@ -939,6 +1084,7 @@ const DAYS = [
     day_title: 'IAD / ORD / Chicago',
     route_label: 'Washington DC / Chicago',
     departure_time: '10:30',
+    pickup_address: 'Glover Park Hotel Georgetown, 2505 Wisconsin Avenue NW, Washington, DC 20007',
     cards: [
       {
         card_id: '091_day8_ua2331_iad_ord',
@@ -985,6 +1131,29 @@ function toMinutes(value) {
   const match = String(value || '').match(/^([01]\d|2[0-3]):([0-5]\d)$/);
   if (!match) return null;
   return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function formatMinutes(totalMinutes) {
+  const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+  return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`;
+}
+
+function addMinutesToTime(value, minutesToAdd) {
+  const minutes = toMinutes(value);
+  if (minutes === null) return '';
+  return formatMinutes(minutes + minutesToAdd);
+}
+
+function isSelfTourSchoolCard(card = {}) {
+  if (card.card_type !== 'school_visit_card') return false;
+  const visitMode = String(card.visit_mode || card.visitMode || '').trim().toLowerCase();
+  const appointmentText = String(card.appointment_time || '').trim().toLowerCase();
+  return visitMode === 'self_tour'
+    || visitMode === 'self-tour'
+    || visitMode === 'self tour'
+    || appointmentText === 'self tour'
+    || appointmentText === 'self-tour'
+    || appointmentText === '自行参观';
 }
 
 function defaultTravelSnapshot(snapshot = {}) {
@@ -1034,16 +1203,22 @@ function defaultTravelSnapshot(snapshot = {}) {
 }
 
 function buildTimeSnapshot(card, day) {
+  const isSelfTour = isSelfTourSchoolCard(card);
   const arrivalTime = card.arrival_time || '';
-  const appointmentTime = card.appointment_time || '';
+  const selfTourBaseTime = card.start_time || arrivalTime;
+  const appointmentTime = isSelfTour ? 'Self Tour' : (card.appointment_time || '');
   const arrivalMinutes = toMinutes(arrivalTime);
   const appointmentMinutes = toMinutes(appointmentTime);
+  const endTime = isSelfTour
+    ? addMinutesToTime(selfTourBaseTime, 30)
+    : (card.end_time || '');
   return {
     departure_time: card.departure_time || day.departure_time || '',
     arrival_time: arrivalTime,
     appointment_time: appointmentTime,
-    start_time: card.start_time || '',
-    end_time: card.end_time || '',
+    start_time: card.start_time || (isSelfTour ? arrivalTime : ''),
+    end_time: endTime,
+    end_time_day_offset: Number(card.end_time_day_offset || 0),
     time_warning_text: card.time_warning_text || (
       arrivalMinutes !== null && appointmentMinutes !== null && arrivalMinutes > appointmentMinutes
         ? '时间待复核'
@@ -1070,6 +1245,20 @@ function buildDisplaySnapshot(card, profile, day) {
       intro_lines: [card.customer_note || '该安排由 Farland 顾问同步，请以客户群确认信息为准。'],
       fit_tags: ['顾问同步', '客户群确认'],
       location_text: '午间 / 待同步',
+    };
+  }
+
+  if (card.card_type === 'custom_activity_card') {
+    return {
+      name_en: card.title || '',
+      name_zh: card.title_zh || card.title || '',
+      entity_type_text: card.activity_type_text || '自定义活动',
+      city: card.city || day.city || '',
+      area: card.area || '',
+      location_text: [card.city || '', card.area || ''].filter(Boolean).join(' · '),
+      intro_lines: [card.customer_note || card.description || '该活动按客户群最新行程安排展示，请以当天沟通为准。'],
+      fit_tags: card.fit_tags || ['当日安排', '客户群同步'],
+      highlight_tags: card.highlight_tags || card.fit_tags || ['当日安排'],
     };
   }
 
@@ -1153,6 +1342,9 @@ function buildLegacyCardFields(card, profile, display, timeSnapshot) {
 
 function buildCard(card, day, index, totalCount) {
   const profile = card.entity_key ? ENTITIES[card.entity_key] : null;
+  const hotelStay = card.card_type === 'hotel_arrival_card' && card.stay_id
+    ? HOTEL_STAYS.find((stay) => stay.stay_id === card.stay_id)
+    : null;
   const displaySnapshot = buildDisplaySnapshot(card, profile || {}, day);
   const timeSnapshot = buildTimeSnapshot(card, day);
   const sourceRefs = card.source_refs || (profile && profile.source_refs) || [];
@@ -1182,6 +1374,11 @@ function buildCard(card, day, index, totalCount) {
     route_check_id: routeCheckId,
     ui_flags: { ...UI_FLAGS, ...(card.ui_flags || {}) },
     hotel_stay_id: card.stay_id || '',
+    check_in_date: card.check_in_date || (hotelStay && hotelStay.check_in_date) || '',
+    check_out_date: card.check_out_date || (hotelStay && hotelStay.check_out_date) || '',
+    room_summary: card.room_summary || (hotelStay && hotelStay.room_summary) || '',
+    room_type: card.room_type || (hotelStay && hotelStay.room_type) || '',
+    confirmation_no: card.confirmation_no || (hotelStay && hotelStay.confirmation_no) || '',
     source_refs: sourceRefs,
     content_verified_at: VERIFIED_AT,
     content_quality_status: sourceRefs.length || card.card_type === 'flight_card' || card.card_type === 'meeting_card'
@@ -1215,12 +1412,11 @@ function buildHotelStay(stay) {
 }
 
 function buildDayTransportSummary(day) {
-  const isConfirmedDay1 = day.day_no === 1;
-  const confirmed = isConfirmedDay1 ? TRIP091_CONFIRMED_DRIVER : {};
+  const confirmed = TRIP091_CONFIRMED_DRIVER;
   return {
     type: 'charter',
     title: '今日包车服务',
-    status_text: isConfirmedDay1 ? '车辆与司机已确认' : '车辆已确认，司机信息待同步',
+    status_text: '车辆与司机已确认',
     departure_time: day.departure_time,
     depart_time: day.departure_time,
     pickup_time: day.departure_time,
@@ -1230,10 +1426,10 @@ function buildDayTransportSummary(day) {
     vehicle_model: confirmed.vehicle_model || '',
     vehicle_color: confirmed.vehicle_color || '',
     plate_number: confirmed.plate_number || '',
-    driver_visibility: isConfirmedDay1 ? 'assigned' : 'pending',
+    driver_visibility: 'assigned',
     driver_name: confirmed.driver_name || '',
     driver_phone: confirmed.driver_phone || '',
-    driver: isConfirmedDay1 ? {
+    driver: {
       name: confirmed.driver_name,
       driver_name: confirmed.driver_name,
       phone: confirmed.driver_phone,
@@ -1241,13 +1437,24 @@ function buildDayTransportSummary(day) {
       vehicle_model: confirmed.vehicle_model,
       vehicle_color: confirmed.vehicle_color,
       plate_number: confirmed.plate_number,
-    } : null,
-    helper_text: isConfirmedDay1 ? '上车地点以客户群确认为准。' : '司机信息确认后会同步到这里；如需调整请在客户群沟通。',
+    },
+    helper_text: '上车地点以客户群确认为准。',
   };
 }
 
 function buildDay(day) {
-  const cards = day.cards.map((card, index) => buildCard(card, day, index, day.cards.length));
+  const nextDay = DAYS.find((item) => Number(item.day_no) === Number(day.day_no) + 1) || null;
+  const sourceCards = day.cards.map((card) => {
+    if (card.card_type !== 'hotel_arrival_card' || card.end_time || !nextDay || !nextDay.departure_time) {
+      return card;
+    }
+    return {
+      ...card,
+      end_time: nextDay.departure_time,
+      end_time_day_offset: 1,
+    };
+  });
+  const cards = sourceCards.map((card, index) => buildCard(card, day, index, sourceCards.length));
   const hotelStay = findHotelStayForDay(day.day_no);
   const hotelProfile = hotelStay ? ENTITIES[hotelStay.entity_key] : null;
   const hotelCard = cards.find((card) => card.card_type === 'hotel_arrival_card') || null;
@@ -1258,6 +1465,7 @@ function buildDay(day) {
     planned_arrival_time: card.time_snapshot.arrival_time,
     planned_start_time: card.time_snapshot.appointment_time,
     planned_end_time: card.time_snapshot.end_time,
+    planned_end_time_day_offset: card.time_snapshot.end_time_day_offset || 0,
     customer_note: card.note || '',
   }));
   return {
@@ -1388,6 +1596,10 @@ function buildTrip091CardSystem(trip = {}) {
   const dailyCharterSummaries = DAYS.map(buildDailyCharterSummary);
   const firstDay = itineraryDays[0];
   const tripId = trip.trip_id || trip.external_trip_id || TRIP_NO;
+  const customer = {
+    ...TRIP091_CUSTOMER,
+    ...(trip.customer || {}),
+  };
   const snapshot = {
     snapshot_model_version: 2,
     snapshot_variant: 'p4_13_091_researched_destination_cards',
@@ -1405,7 +1617,7 @@ function buildTrip091CardSystem(trip = {}) {
     start_at: trip.start_at || '2026-06-05T10:00:00-04:00',
     end_at: trip.end_at || '2026-06-12T16:30:00-05:00',
     summary: '8 天美东访校、城市观光、博物馆、酒店与航班行程。',
-    customer: stripCustomerUnsafe(trip.customer || {}),
+    customer: stripCustomerUnsafe(customer),
     advisor: stripCustomerUnsafe(trip.advisor || {}),
     hero: {
       title: '2026XBC091 美东访校与城市行程',
@@ -1420,7 +1632,7 @@ function buildTrip091CardSystem(trip = {}) {
       date_range_text: '2026-06-05 - 2026-06-12',
       days_count: 8,
       destination_card_count: destinationCards.length,
-      customer_name: (trip.customer && (trip.customer.name || trip.customer.display_name)) || '',
+      customer_name: customer.name || customer.display_name || '',
     },
     trip_summary: {
       trip_id: tripId,
@@ -1542,7 +1754,7 @@ function validateTrip091CardSystem(snapshot) {
     ? snapshot.destination_cards
     : days.flatMap((day) => day.destination_cards || day.cards || []);
   const counts = days.map((day) => (day.destination_cards || day.cards || []).length);
-  const expectedCounts = [4, 3, 6, 4, 3, 4, 7, 2];
+  const expectedCounts = [4, 3, 9, 4, 3, 4, 7, 2];
   const warnings = cards.filter((card) => card.time_snapshot && card.time_snapshot.time_warning_text).map((card) => card.card_id);
   const missingSchema = cards.filter((card) => !card.card_id || !card.card_type || !card.time_snapshot || !card.display_snapshot || !card.travel_snapshot || !card.ui_flags);
   const uiLeaks = cards.filter((card) => card.ui_flags && (card.ui_flags.show_route || card.ui_flags.show_travel_meta || card.ui_flags.show_contact_advisor || card.ui_flags.show_driver));
@@ -1555,7 +1767,7 @@ function validateTrip091CardSystem(snapshot) {
   }, {});
   return {
     total_destination_cards: cards.length,
-    expected_total_destination_cards: 33,
+    expected_total_destination_cards: 36,
     day_counts: counts,
     expected_day_counts: expectedCounts,
     by_type: byType,
@@ -1567,14 +1779,14 @@ function validateTrip091CardSystem(snapshot) {
     maps_risk_card_ids: mapsRiskCards.map((card) => card.card_id),
     maps_conservative_card_count: cards.filter((card) => card.travel_snapshot && card.travel_snapshot.maps_review_status === 'source_conservative_or_slack').length,
     source_ref_missing_count: cards.filter((card) => !['meeting_card', 'flight_card'].includes(card.card_type) && !(card.source_refs && card.source_refs.length)).length,
-    valid: cards.length === 33
+    valid: cards.length === 36
       && counts.join(',') === expectedCounts.join(',')
       && missingSchema.length === 0
       && uiLeaks.length === 0
       && routeCheckMissing.length === 0
       && mapsCheckMissing.length === 0
       && mapsRiskCards.length === 0
-      && warnings.includes('091_day2_yale_university'),
+      && !warnings.length,
   };
 }
 

@@ -143,7 +143,7 @@ function validateTrip091WriteSnapshot(snapshot) {
     const dayCards = Array.isArray(day.destination_cards) ? day.destination_cards : (Array.isArray(day.cards) ? day.cards : []);
     return dayCards.length;
   });
-  const expectedDayCounts = [4, 3, 6, 4, 3, 4, 7, 2];
+  const expectedDayCounts = [4, 3, 9, 4, 3, 4, 7, 2];
   const nonMeetingMissingRoute = cards.filter((card) => {
     if (card.card_type === 'meeting_card') return false;
     const travel = card.travel_snapshot || {};
@@ -157,19 +157,21 @@ function validateTrip091WriteSnapshot(snapshot) {
       || !travel.maps_review_status;
   });
   const groupCounts = {
-    day3_midtown_group: cards.filter((card) => card.parent_group_id === 'day3_midtown_group').length,
-    day3_park_group: cards.filter((card) => card.parent_group_id === 'day3_park_group').length,
+    day3_uptown_museum_group: cards.filter((card) => card.parent_group_id === 'day3_uptown_museum_group').length,
+    day3_midtown_lunch_group: cards.filter((card) => card.parent_group_id === 'day3_midtown_lunch_group').length,
+    day3_downtown_brooklyn_group: cards.filter((card) => card.parent_group_id === 'day3_downtown_brooklyn_group').length,
     day6_museum_group: cards.filter((card) => card.parent_group_id === 'day6_museum_group').length,
     day7_monuments_group: cards.filter((card) => card.parent_group_id === 'day7_monuments_group').length,
     day7_capitol_hill_group: cards.filter((card) => card.parent_group_id === 'day7_capitol_hill_group').length,
   };
-  const validGroups = groupCounts.day3_midtown_group === 3
-    && groupCounts.day3_park_group === 2
+  const validGroups = groupCounts.day3_uptown_museum_group === 2
+    && groupCounts.day3_midtown_lunch_group === 2
+    && groupCounts.day3_downtown_brooklyn_group === 4
     && groupCounts.day6_museum_group === 2
     && groupCounts.day7_monuments_group === 3
     && groupCounts.day7_capitol_hill_group === 3;
   const generatorValidation = snapshot.card_system_validation || {};
-  const valid = cards.length === 33
+  const valid = cards.length === 36
     && dayCounts.join(',') === expectedDayCounts.join(',')
     && nonMeetingMissingRoute.length === 0
     && validGroups
