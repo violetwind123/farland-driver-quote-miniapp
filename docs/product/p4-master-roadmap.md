@@ -12,7 +12,7 @@
 ```
 
 - **普通行程的"运营改行程闭环"已全线打通**:行程管理 → 行程编号 → 提交 JSON 覆盖 → 发布 → 客户刷新可见。
-- **当前唯一硬骨头 = 091 三层硬编码**,它阻塞"所有行程统一数据驱动"。这是 ▶️ 当前焦点。
+- **当前唯一硬骨头 = 091 三层硬编码**,它阻塞"所有行程统一数据驱动"。C1 baseline 已冻结,现在 ▶️ 当前焦点是 C2 091B 实验。
 - 其余(客户绑定收口、行程归属、评价系统)都是**并行增量**,无强依赖。
 
 ---
@@ -46,8 +46,8 @@
 | 任务 | 目标 | 状态 |
 | --- | --- | --- |
 | C0 硬编码总清单 | 三层耦合面完整地图 + 删除清单 | ✅ 文档 |
-| **C1 冻结 091 UI WIP** | 把正在改的 `trip091CardSystem.js`/`day-detail`/`home`/`hotel-detail` 在稳定点提交,作为不动的对比基线 | ⛔ **gating,待你拍** |
-| C2 091B 实验 | 新 id 的回填数据副本走通用管线,验证"纯数据能复现 091"、量出兜底补了什么 | 🟡 待 C1 |
+| C1 冻结 091 UI WIP | 把正在改的 `trip091CardSystem.js`/`day-detail`/`home`/`hotel-detail` 在稳定点提交,作为不动的对比基线 | ✅ `0423de2` |
+| **C2 091B 实验** | 新 id 的回填数据副本走通用管线,验证"纯数据能复现 091"、量出兜底补了什么 | ▶️ 当前焦点 |
 | C3 回填 + 切构建分支 | 091 文档回填数据 + 改走 `normalizeSnapshotV2`(灰度,有备份)→ **解锁:JSON 改时间/顺序/地点** | 🟡 待 C2 |
 | C4 删渲染兜底 | 删 `resolveKnownTrip091Hotel*`/`get091RouteMetaOverride`/刘女士 → **解锁:改酒店日期/预订/路线/客户名** | 🟡 待 C3 |
 | C5 删构建硬编码 | 删 `trip091CardSystem.js` + `index.js` 091 分支/守卫,收口 | 🟡 待 C4 稳定 |
@@ -83,7 +83,7 @@
 A1✅ A2✅ ──→ A3🟡(待 C2)
 B1✅ B2✅ B3✅                      ← 普通行程闭环,已通
 
-▶️ C1 冻结UI ─→ C2 091B ─→ C3 回填+切分支 ─→ C4 删渲染兜底 ─→ C5 删构建硬编码
+C1✅ 冻结UI ─→ ▶️ C2 091B ─→ C3 回填+切分支 ─→ C4 删渲染兜底 ─→ C5 删构建硬编码
                     └─→ 反哺 A3 schema 缺口
 
 并行(无强依赖,可随时插入):
@@ -91,7 +91,7 @@ B1✅ B2✅ B3✅                      ← 普通行程闭环,已通
   E1→E2→E3
 ```
 
-**当前唯一卡点 = C1(冻结 091 UI WIP)**。它一解开,C2→C5 整条 091 去硬编码就能推进。
+**当前唯一卡点已解除 = C1(冻结 091 UI WIP) 已提交。** 下一步推进 C2 091B 实验,用新 id 副本验证 091 是否可由通用数据管线复现。
 
 ---
 
@@ -108,5 +108,5 @@ B1✅ B2✅ B3✅                      ← 普通行程闭环,已通
 | `p4-d0-card-snapshot-contract-and-normalization.md` | A1 卡片契约 | ✅ `46dbcfc` |
 | `p4-d0a-normalizer-faithful-passthrough-task.md` | A2 任务 | ✅ `46dbcfc` |
 | `p4-d2c-customer-trip-json-overwrite-panel-task.md` | B3 任务 | ✅ `46dbcfc` |
-| `p4-091-hardcode-inventory-and-dehardcode-reference.md` | C 轨道总参考 | ✅ 本次文档提交 |
-| `p4-master-roadmap.md`(本文件) | 全局总表 | ✅ 本次文档提交 |
+| `p4-091-hardcode-inventory-and-dehardcode-reference.md` | C 轨道总参考 | ✅ `58911c9` |
+| `p4-master-roadmap.md`(本文件) | 全局总表 | ✅ `58911c9` |
