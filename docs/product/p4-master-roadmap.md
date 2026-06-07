@@ -109,5 +109,5 @@ C1✅ 冻结UI ─→ C2✅ 091B ─→ ▶️ C3 回填+切分支 ─→ C4 删
 | `p4-d0a-normalizer-faithful-passthrough-task.md` | A2 任务 | ✅ `46dbcfc` |
 | `p4-d2c-customer-trip-json-overwrite-panel-task.md` | B3 任务 | ✅ `46dbcfc` |
 | `p4-091-hardcode-inventory-and-dehardcode-reference.md` | C 轨道总参考 | ✅ `58911c9` |
-| `p4-c3-091-data-driven-switch-plan.md` | C3 切通用管线决策方案 | 🟡 待提交 |
+| `p4-c3-091-data-driven-switch-plan.md` | C3 切通用管线决策方案 | ✅ `b94f4af` |
 | `p4-master-roadmap.md`(本文件) | 全局总表 | ✅ `58911c9` |
