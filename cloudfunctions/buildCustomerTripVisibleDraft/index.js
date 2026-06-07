@@ -41,6 +41,27 @@ const INTERNAL_KEYS = [
   'supplier_notes',
   'supplier_private_note',
   'supplier_private_notes',
+  'driver_name',
+  'driver_phone',
+  'driver_openid',
+  'driver_user_id',
+  'vehicle_id',
+  'plate_number',
+  'vehicle_summary',
+  'vehicle_model',
+  'vehicle_color',
+  'quote_price',
+  'driver_quote_amount',
+  'farland_service_fee_amount',
+  'client_total_internal',
+  'operator_user_id',
+  'operator_openid',
+  'created_by_openid',
+  'updated_by_openid',
+  'raw_json',
+  'raw_source',
+  'debug',
+  'debug_info',
 ];
 
 function isPlainObject(value) {
@@ -75,6 +96,25 @@ function firstText(values) {
     if (text) return text;
   }
   return '';
+}
+
+function filterCustomerSourceRefs(refs) {
+  if (!Array.isArray(refs)) return undefined;
+  return refs
+    .filter((ref) => ref && ref.visible_to_customer !== false)
+    .map((ref) => ({
+      title: ref.title || '',
+      url: ref.url || '',
+      source_type: ref.source_type || '',
+    }));
+}
+
+function gateHotelConfirmation(obj) {
+  if (!obj || typeof obj !== 'object') return {};
+  if (obj.confirmation_no && obj.confirmation_no_visible === true) {
+    return { confirmation_no: obj.confirmation_no };
+  }
+  return { confirmation_no: '' };
 }
 
 function makeId(prefix, value, index) {
@@ -261,8 +301,9 @@ function findWarningCodes(trip) {
 }
 
 function normalizeTimelineItem(item, index) {
-  const itemType = item.item_type || item.type || 'other';
+  const itemType = item.item_type || item.type || item.card_type || item.cardType || 'other';
   return sanitizeCustomerObject({
+    ...item,
     item_id: item.item_id || item.id || `${itemType}_${index + 1}`,
     item_type: itemType,
     type: itemType,
@@ -293,6 +334,8 @@ function normalizeTimelineItem(item, index) {
     departure_time: item.departure_time || item.depart_at || item.planned_start_time || '',
     arrival_time: item.arrival_time || item.arrive_at || item.planned_arrival_time || '',
     aircraft: item.aircraft || '',
+    source_refs: filterCustomerSourceRefs(item.source_refs),
+    ...gateHotelConfirmation(item),
   });
 }
 
@@ -303,6 +346,7 @@ function normalizeDayHotel(hotel, day, index) {
   if (!name && !address) return null;
   const dayNo = day.day_no || index + 1;
   return sanitizeCustomerObject({
+    ...hotel,
     hotel_id: hotel.hotel_id || hotel.id || `day_${dayNo}_hotel`,
     name: name || '酒店安排',
     hotel_name: name || '酒店安排',
@@ -316,13 +360,18 @@ function normalizeDayHotel(hotel, day, index) {
     status_text: hotel.status_text || normalizeHotelStatus(hotel.status),
     customer_note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '',
     linked_day_no: dayNo,
+    source_refs: filterCustomerSourceRefs(hotel.source_refs),
+    ...gateHotelConfirmation(hotel),
   });
 }
 
 function normalizeDay(day, index) {
+  const destinationCards = Array.isArray(day.destination_cards) ? day.destination_cards.map(normalizeTimelineItem) : null;
+  const cards = Array.isArray(day.cards) ? day.cards.map(normalizeTimelineItem) : null;
+  const items = Array.isArray(day.items) ? day.items.map(normalizeTimelineItem) : null;
   const timelineSource = Array.isArray(day.timeline_items)
     ? day.timeline_items
-    : (Array.isArray(day.items) ? day.items : []);
+    : (items || destinationCards || cards || []);
   const timelineItems = timelineSource.map(normalizeTimelineItem);
   const hotelItem = timelineItems.find((item) => {
     const type = item.item_type || item.type || '';
@@ -340,6 +389,7 @@ function normalizeDay(day, index) {
   const estimatedRaw = firstText([day.estimated_departure_time_raw, day.estimated_departure_time, day.depart_time]);
   const startTimeText = firstText([day.estimated_departure_time, day.estimated_departure_time_raw, day.displayed_start_time, day.displayed_start_time_raw, day.start_time]);
   return sanitizeCustomerObject({
+    ...day,
     day_no: day.day_no || index + 1,
     date: day.date || '',
     weekday: day.weekday || '',
@@ -353,9 +403,13 @@ function normalizeDay(day, index) {
     start_time_text: startTimeText,
     has_time_conflict: Boolean(displayedRaw && estimatedRaw && displayedRaw !== estimatedRaw),
     warning_codes: Array.isArray(day.warning_codes) ? day.warning_codes : [],
+    destination_cards: destinationCards || day.destination_cards,
+    cards: cards || day.cards,
+    items: items || day.items,
     timeline_items: timelineItems,
     hotel,
     transport_summary: day.transport_summary ? sanitizeCustomerObject(day.transport_summary) : null,
+    source_refs: filterCustomerSourceRefs(day.source_refs),
   });
 }
 
@@ -364,6 +418,7 @@ function normalizeTopLevelHotel(hotel, index) {
   const address = firstText([hotel.address]);
   if (!name && !address) return null;
   return sanitizeCustomerObject({
+    ...hotel,
     id: hotel.hotel_id || hotel.id || makeId('hotel', name || address, index),
     hotel_id: hotel.hotel_id || hotel.id || makeId('hotel', name || address, index),
     name: name || '酒店安排',
@@ -378,6 +433,8 @@ function normalizeTopLevelHotel(hotel, index) {
     status_text: hotel.status_text || normalizeHotelStatus(hotel.status),
     note: hotel.customer_note || hotel.customer_visible_note || hotel.note || '',
     linked_day_no: hotel.linked_day_no || hotel.day_no || 0,
+    source_refs: filterCustomerSourceRefs(hotel.source_refs),
+    ...gateHotelConfirmation(hotel),
   });
 }
 
@@ -402,6 +459,7 @@ function deriveHotelCards(trip, normalizedDays) {
     const hotel = day.hotel;
     if (!hotel) return;
     upsertHotelCard(cards, sanitizeCustomerObject({
+      ...hotel,
       id: hotel.hotel_id || hotel.id || `day_${day.day_no || index + 1}_hotel`,
       hotel_id: hotel.hotel_id || hotel.id || `day_${day.day_no || index + 1}_hotel`,
       name: hotel.name || hotel.hotel_name || '酒店安排',
@@ -416,6 +474,8 @@ function deriveHotelCards(trip, normalizedDays) {
       status_text: hotel.status_text || 'Planned stay',
       note: hotel.customer_note || hotel.note || '',
       linked_day_no: hotel.linked_day_no || day.day_no || index + 1,
+      source_refs: filterCustomerSourceRefs(hotel.source_refs),
+      ...gateHotelConfirmation(hotel),
     }));
   });
   const topLevelHotels = [
