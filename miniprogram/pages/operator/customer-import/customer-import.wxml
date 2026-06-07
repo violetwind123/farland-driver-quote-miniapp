@@ -113,15 +113,15 @@
       placeholder="发布备注，可选"
       bindinput="onReviewNoteInput"
     />
-    <button class="primary-wide-btn" loading="{{deliveryLoading}}" bindtap="deliverTripToCustomer">绑定至客户账户并创建分享链接</button>
+    <button class="primary-wide-btn" loading="{{deliveryLoading}}" bindtap="deliverTripToCustomer">发布并创建客户分享链接</button>
   </view>
 
   <view wx:if="{{importStage === 'delivered'}}" class="panel success-panel">
     <view class="section-title">客户分享链接已生成</view>
     <view class="result-line">share_path：{{sharePath}}</view>
     <view class="result-line">invite_code：{{inviteCode || '-'}}</view>
-    <view class="result-line">customer_bound：{{customerBound ? 'true' : 'false'}}</view>
-    <view class="result-line">customer_trip_access_id：{{customerTripAccessId || '-'}}</view>
+    <view class="result-line">分享对象：{{intendedCustomerName || intendedCustomerUserId || '未指定'}}</view>
+    <view class="result-line">已保存访问：客户主动保存后生成</view>
     <button class="secondary-btn" bindtap="copySharePath">复制客户路径</button>
   </view>
 

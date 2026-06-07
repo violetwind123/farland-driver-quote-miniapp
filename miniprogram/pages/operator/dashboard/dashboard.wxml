@@ -49,14 +49,6 @@
       <view class="chevron">›</view>
     </view>
 
-    <view class="utility-card customer-preview-entry" bindtap="openCustomerHomePreview">
-      <view>
-        <view class="utility-title">客户界面预览</view>
-        <view class="utility-desc">以 Customer Home 视角审核行程，发布后再生成客户卡片</view>
-      </view>
-      <view class="chevron">›</view>
-    </view>
-
     <view class="utility-card customer-invite-entry" bindtap="openCustomerInviteRequests">
       <view>
         <view class="utility-title">邀请客户查看</view>
@@ -69,6 +61,14 @@
       <view>
         <view class="utility-title">酒店预订页</view>
         <view class="utility-desc">直接查看客户侧酒店需求界面</view>
+      </view>
+      <view class="chevron">›</view>
+    </view>
+
+    <view class="utility-card customer-preview-entry legacy-entry" bindtap="openCustomerHomePreview">
+      <view>
+        <view class="utility-title">客户界面预览（辅助）</view>
+        <view class="utility-desc">旧版预览入口。常规流程请走「行程管理」逐个行程预览发布；此处用于按用车需求 / 指定客户临时核对。</view>
       </view>
       <view class="chevron">›</view>
     </view>

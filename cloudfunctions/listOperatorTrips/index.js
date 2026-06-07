@@ -181,6 +181,7 @@ async function activeAccessCountForTrip(trip, canonicalTripId) {
     .catch(() => ({ data: [] }))));
   const seen = {};
   results.flatMap((res) => res.data || []).forEach((row) => {
+    if (row.granted_source === 'operator_share_card') return;
     const key = row._id || [
       row.trip_id,
       row.customer_user_id || row.user_id || '',

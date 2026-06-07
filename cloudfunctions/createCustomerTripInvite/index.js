@@ -21,24 +21,10 @@ function isActiveInvite(invite, now) {
   return !expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() >= now.getTime();
 }
 
-function unique(values) {
-  const seen = {};
-  return values.filter((value) => {
-    const key = safeString(value).trim();
-    if (!key || seen[key]) return false;
-    seen[key] = true;
-    return true;
-  });
-}
-
 function normalizeBindMode(value) {
   if (value === 'farland_profile' || value === 'profile') return 'farland_profile';
   if (value === 'trip_only') return 'trip_only';
   return 'farland_profile';
-}
-
-function legacyAccessType(bindMode) {
-  return bindMode === 'farland_profile' ? 'profile' : 'trip_only';
 }
 
 function toIso(value) {
@@ -46,10 +32,6 @@ function toIso(value) {
   if (value instanceof Date) return value.toISOString();
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '' : date.toISOString();
-}
-
-function accessDocId(tripId, customerUserId) {
-  return `${tripId}_${customerUserId}`.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 120);
 }
 
 async function findTrip(tripId) {
@@ -81,88 +63,19 @@ async function loadCustomer(customerUserId) {
   return user;
 }
 
-function tripLookupIds(trip, canonicalTripId) {
-  return unique([
-    canonicalTripId,
-    trip && trip._id,
-    trip && trip.trip_id,
-    trip && trip.external_trip_id,
-    trip && trip.trip_no,
-  ]);
-}
-
-async function findExistingAccess({ trip, canonicalTripId, customer }) {
-  const tripIds = tripLookupIds(trip, canonicalTripId);
-  const queries = [];
-  tripIds.forEach((tripId) => {
-    queries.push(db.collection('customer_trip_access')
-      .where({ trip_id: tripId, customer_user_id: customer._id, status: 'active' })
-      .limit(1)
-      .get()
-      .catch(() => ({ data: [] })));
-    queries.push(db.collection('customer_trip_access')
-      .where({ trip_id: tripId, user_id: customer._id, status: 'active' })
-      .limit(1)
-      .get()
-      .catch(() => ({ data: [] })));
-    if (customer.openid) {
-      queries.push(db.collection('customer_trip_access')
-        .where({ trip_id: tripId, customer_openid: customer.openid, status: 'active' })
-        .limit(1)
-        .get()
-        .catch(() => ({ data: [] })));
-      queries.push(db.collection('customer_trip_access')
-        .where({ trip_id: tripId, openid: customer.openid, status: 'active' })
-        .limit(1)
-        .get()
-        .catch(() => ({ data: [] })));
-    }
-  });
-  const results = await Promise.all(queries);
-  return results.flatMap((res) => res.data || [])[0] || null;
-}
-
-async function upsertCustomerTripAccess({ trip, canonicalTripId, customer, invite, auth, bindMode, visibleUntil, nowIso }) {
-  const existing = await findExistingAccess({ trip, canonicalTripId, customer });
-  const accessData = {
-    trip_id: canonicalTripId,
-    external_trip_id: trip.external_trip_id || canonicalTripId,
-    trip_no: trip.trip_no || trip.external_trip_id || canonicalTripId,
-    user_id: customer._id,
-    customer_user_id: customer._id,
-    openid: customer.openid || '',
-    customer_openid: customer.openid || '',
-    customer_profile_id: customer.customer_profile_id || '',
-    bind_mode: bindMode,
-    access_type: legacyAccessType(bindMode),
-    status: 'active',
-    granted_source: 'operator_share_card',
-    invite_id: invite._id || '',
-    source_invite_id: invite._id || '',
-    invite_code_snapshot: invite.invite_code || '',
-    visible_from: existing ? (existing.visible_from || existing.created_at || nowIso) : nowIso,
-    visible_until: visibleUntil,
-    first_claimed_at: existing ? (existing.first_claimed_at || existing.created_at || nowIso) : nowIso,
-    assigned_by: auth.user._id,
-    assigned_by_openid: auth.openid,
-    updated_at: nowIso,
+function buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso }) {
+  if (!customer) return {};
+  const displayName = customer.display_name || customer.name || '';
+  return {
+    intended_customer_user_id: customer._id || '',
+    intended_customer_name: displayName,
+    intended_customer_display_name: displayName,
+    intended_customer_profile_id: customer.customer_profile_id || '',
+    intended_bind_mode: bindMode,
+    intended_visible_until: visibleUntil || '',
+    intended_customer_source: 'operator_share_card',
+    intended_customer_updated_at: nowIso,
   };
-
-  if (existing) {
-    await db.collection('customer_trip_access').doc(existing._id).update({ data: accessData });
-    return { access_id: existing._id, reused: true };
-  }
-
-  const accessId = accessDocId(canonicalTripId, customer._id);
-  await db.collection('customer_trip_access').doc(accessId).set({
-    data: {
-      ...accessData,
-      created_by: auth.user._id,
-      created_by_openid: auth.openid,
-      created_at: nowIso,
-    },
-  });
-  return { access_id: accessId, reused: false };
 }
 
 exports.main = async (event = {}) => {
@@ -221,33 +134,27 @@ exports.main = async (event = {}) => {
       .filter((invite) => isActiveInvite(invite, now))
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0];
     if (existingInvite) {
-      const accessResult = customer
-        ? await upsertCustomerTripAccess({
-          trip,
-          canonicalTripId,
-          customer,
-          invite: existingInvite,
-          auth,
-          bindMode,
-          visibleUntil,
-          nowIso,
-        })
-        : null;
-      if (accessResult) {
+      const intendedFields = buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso });
+      if (Object.keys(intendedFields).length) {
+        await db.collection('customer_trip_invites').doc(existingInvite._id).update({
+          data: {
+            ...intendedFields,
+            updated_at: nowIso,
+          },
+        });
         await writeAuditLog(db, {
           actor_openid: auth.openid,
           actor_user_id: auth.user._id,
           actor_role: auth.user.role,
-          action: 'customer_trip_access_bound_from_invite',
-          target_type: 'customer_trip_access',
-          target_id: accessResult.access_id,
+          action: 'customer_trip_invite_intended_customer_updated',
+          target_type: 'customer_trip_invite',
+          target_id: existingInvite._id,
           detail: {
             trip_id: canonicalTripId,
             customer_user_id: customer._id,
             invite_id: existingInvite._id,
             invite_code: existingInvite.invite_code || '',
             reused_invite: true,
-            reused_access: accessResult.reused,
             bind_mode: bindMode,
           },
           created_at: nowIso,
@@ -264,9 +171,11 @@ exports.main = async (event = {}) => {
         path: sharePath,
         expires_at: existingInvite.expires_at instanceof Date ? existingInvite.expires_at.toISOString() : existingInvite.expires_at,
         reused: true,
-        customer_bound: Boolean(accessResult),
-        customer_trip_access_id: accessResult ? accessResult.access_id : '',
-        access_reused: accessResult ? accessResult.reused : false,
+        customer_bound: false,
+        customer_trip_access_id: '',
+        access_reused: false,
+        intended_customer_user_id: customer ? customer._id : (existingInvite.intended_customer_user_id || ''),
+        intended_customer_name: customer ? (customer.display_name || customer.name || '') : (existingInvite.intended_customer_name || ''),
       };
     }
 
@@ -294,21 +203,9 @@ exports.main = async (event = {}) => {
       created_by_openid: auth.openid,
       created_at: nowIso,
       updated_at: nowIso,
+      ...buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso }),
     };
     const addRes = await db.collection('customer_trip_invites').add({ data: inviteData });
-    const createdInvite = { ...inviteData, _id: addRes._id };
-    const accessResult = customer
-      ? await upsertCustomerTripAccess({
-        trip,
-        canonicalTripId,
-        customer,
-        invite: createdInvite,
-        auth,
-        bindMode,
-        visibleUntil,
-        nowIso,
-      })
-      : null;
     const sharePath = `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
 
     await writeAuditLog(db, {
@@ -325,33 +222,14 @@ exports.main = async (event = {}) => {
         expires_at: expiresAt.toISOString(),
         published_version: trip.published_version || 0,
         customer_user_id: customer ? customer._id : '',
-        customer_trip_access_id: accessResult ? accessResult.access_id : '',
-        customer_bound: Boolean(accessResult),
+        intended_customer_user_id: customer ? customer._id : '',
+        intended_customer_name: customer ? (customer.display_name || customer.name || '') : '',
+        customer_trip_access_id: '',
+        customer_bound: false,
         bind_mode: customer ? bindMode : '',
       },
       created_at: nowIso,
     }).catch(() => null);
-
-    if (accessResult) {
-      await writeAuditLog(db, {
-        actor_openid: auth.openid,
-        actor_user_id: auth.user._id,
-        actor_role: auth.user.role,
-        action: 'customer_trip_access_bound_from_invite',
-        target_type: 'customer_trip_access',
-        target_id: accessResult.access_id,
-        detail: {
-          trip_id: canonicalTripId,
-          customer_user_id: customer._id,
-          invite_id: addRes._id,
-          invite_code: inviteCode,
-          reused_invite: false,
-          reused_access: accessResult.reused,
-          bind_mode: bindMode,
-        },
-        created_at: nowIso,
-      }).catch(() => null);
-    }
 
     return {
       success: true,
@@ -363,9 +241,11 @@ exports.main = async (event = {}) => {
       path: sharePath,
       expires_at: expiresAt.toISOString(),
       reused: false,
-      customer_bound: Boolean(accessResult),
-      customer_trip_access_id: accessResult ? accessResult.access_id : '',
-      access_reused: accessResult ? accessResult.reused : false,
+      customer_bound: false,
+      customer_trip_access_id: '',
+      access_reused: false,
+      intended_customer_user_id: customer ? customer._id : '',
+      intended_customer_name: customer ? (customer.display_name || customer.name || '') : '',
     };
   } catch (error) {
     console.error('[createCustomerTripInvite] failed', error);

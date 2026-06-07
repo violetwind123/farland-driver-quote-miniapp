@@ -80,7 +80,7 @@
         </view>
         <view class="metric-item">
           <view class="metric-value">{{item.accessCountText}}</view>
-          <view class="metric-label">active access</view>
+          <view class="metric-label">已保存人数</view>
         </view>
       </view>
 

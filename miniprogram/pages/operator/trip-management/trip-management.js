@@ -157,7 +157,7 @@ Page({
       visibilityClass: isPublished ? 'published' : 'unpublished',
       reviewClass: needsReview ? 'needs-review' : 'reviewed',
       dayCountText: `${trip.day_count || 0} 天`,
-      accessCountText: `${trip.active_access_count || 0} 人已保存`,
+      accessCountText: `${trip.active_access_count || 0} 人`,
       versionText: `v${trip.published_version || 0}`,
     };
   },

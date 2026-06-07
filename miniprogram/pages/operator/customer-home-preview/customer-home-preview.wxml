@@ -7,6 +7,11 @@
     <view class="header-note">{{preview ? '高级复核工具。标准导入交付流程请在“导入客户行程”页面完成。' : '用于复核已导入行程状态、警告和发布情况。'}}</view>
   </view>
 
+  <view class="legacy-notice" bindtap="goTripManagement">
+    <view class="legacy-notice-text">辅助 / 调试入口。正式预览发布请前往「行程管理」逐个行程操作。</view>
+    <view class="legacy-notice-link">前往行程管理 ›</view>
+  </view>
+
   <view class="mode-banner {{previewMeta.banner_class || (previewMeta && previewMeta.unpublished ? 'unpublished' : 'published')}}">
     <view class="banner-title">{{previewMeta.banner_title || (previewMeta && previewMeta.unpublished ? 'UNPUBLISHED - OPERATOR PREVIEW ONLY' : 'PUBLISHED CUSTOMER VIEW')}}</view>
     <view class="banner-sub">{{previewMeta.banner_sub || 'Customer would see: waiting'}}</view>
@@ -147,10 +152,10 @@
     <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
       <view class="share-title">客户分享卡</view>
       <view class="share-sub">
-        {{selectedCustomer ? '将为当前选中客户写入访问权限；准备好后直接微信转发。' : '未选择客户时只准备临时客户分享卡，不写 customer_trip_access。'}}
+        {{selectedCustomer ? '将当前选中客户记录为分享对象；客户主动保存后才计入已保存人数。' : '未选择客户时只准备临时客户分享卡，不写 customer_trip_access。'}}
       </view>
       <button wx:if="{{!invitePath}}" class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createInvite">
-        {{selectedCustomer ? '绑定账户并准备分享卡' : '准备客户分享卡'}}
+        准备客户分享卡
       </button>
       <view wx:else class="invite-ready-box">
         <view class="invite-ready-title">分享卡已准备</view>

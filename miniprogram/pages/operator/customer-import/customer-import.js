@@ -253,6 +253,8 @@ Page({
     inviteExpiresAt: '',
     customerTripAccessId: '',
     customerBound: false,
+    intendedCustomerUserId: '',
+    intendedCustomerName: '',
     accessReused: false,
     sampleHint,
   },
@@ -734,6 +736,8 @@ Page({
         inviteExpiresAt: inviteResult.expires_at || '',
         customerTripAccessId: inviteResult.customer_trip_access_id || '',
         customerBound: Boolean(inviteResult.customer_bound),
+        intendedCustomerUserId: inviteResult.intended_customer_user_id || '',
+        intendedCustomerName: inviteResult.intended_customer_name || '',
         accessReused: Boolean(inviteResult.access_reused),
       });
       wx.showToast({ title: '分享链接已生成', icon: 'success' });

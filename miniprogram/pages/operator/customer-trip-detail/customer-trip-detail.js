@@ -5,6 +5,7 @@ Page({
     building: false,
     publishing: false,
     creatingInvite: false,
+    openingCustomerView: false,
     tripId: '',
     error: '',
     reviewNote: '',
@@ -364,6 +365,55 @@ Page({
     return this.buildTripInviteShare();
   },
 
+  // 只读：走客户真实渲染链路（customer-trip-mobile-preview 复用客户 home 配置）。
+  // 不创建 invite、不创建 customer_trip_access、不改 viewed 状态。
+  // 未发布时 customer_share_preview 返回等待页，与客户真实所见一致。
+  async openCustomerFacingPreview() {
+    if (this.data.openingCustomerView) return;
+    if (!this.data.tripId) {
+      wx.showToast({ title: '缺少 trip_id', icon: 'none' });
+      return;
+    }
+    this.setData({ openingCustomerView: true, error: '' });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'getOperatorCustomerHomePreview',
+        data: {
+          trip_id: this.data.tripId,
+          preview_access_mode: 'temporary_guest',
+        },
+      });
+      if (!result || !result.success || !result.customer_share_preview) {
+        this.setData({ openingCustomerView: false });
+        wx.showToast({ title: (result && result.message) || '客户预览加载失败', icon: 'none' });
+        return;
+      }
+      const app = getApp();
+      app.globalData.operatorCustomerSharePreview = {
+        customer_share_preview: result.customer_share_preview,
+        preview_meta: result.preview_meta || {},
+        preview_customer: result.preview_customer || {},
+      };
+      delete app.globalData.operatorCustomerHomePreview;
+      this.setData({ openingCustomerView: false });
+      wx.navigateTo({
+        url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview',
+        fail: (error) => {
+          console.error('[customer-trip-detail] open customer view failed', error);
+          wx.showToast({ title: '客户页面打开失败', icon: 'none' });
+        },
+      });
+    } catch (error) {
+      console.error('[customer-trip-detail] getOperatorCustomerHomePreview failed', error);
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      this.setData({
+        openingCustomerView: false,
+        error: `客户预览加载失败：${errMsg}`,
+      });
+      wx.showToast({ title: '客户预览加载失败', icon: 'none' });
+    }
+  },
+
   refreshPreview() {
     this.loadPreview({ silent: true });
   },
@@ -376,10 +426,10 @@ Page({
     });
   },
 
-  backToImport() {
+  backToTripManagement() {
     wx.navigateBack({
       fail: () => {
-        wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
+        wx.navigateTo({ url: '/pages/operator/trip-management/trip-management' });
       },
     });
   },

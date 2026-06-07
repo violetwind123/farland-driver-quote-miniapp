@@ -167,7 +167,7 @@ async function upsertTripAccess({ trip, openid, userId, user, invite, nowIso }) 
     bind_mode: 'farland_profile',
     access_type: 'profile',
     status: 'active',
-    granted_source: existing ? (existing.granted_source || 'invite_save') : 'invite_save',
+    granted_source: 'invite_save',
     invite_id: invite._id,
     source_invite_id: invite._id,
     invite_code_snapshot: invite.invite_code || '',

@@ -98,6 +98,21 @@
 
     <view class="panel">
       <view class="section-title">客户视图预览</view>
+
+      <view class="customer-view-cta">
+        <view class="cta-copy">
+          <view class="cta-title">进入客户真实页面</view>
+          <view class="cta-sub">只读预览客户此刻真正看到的页面（未发布时为等待页），不会创建分享卡或保存记录。</view>
+        </view>
+        <button
+          class="cta-btn"
+          loading="{{openingCustomerView}}"
+          disabled="{{openingCustomerView}}"
+          bindtap="openCustomerFacingPreview"
+        >预览</button>
+      </view>
+
+      <view class="snapshot-hint">下方为草稿 / 已发布快照内容审阅，用于核对字段。</view>
       <view class="snapshot-tabs">
         <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">草稿预览</view>
         <view class="snapshot-tab {{activeSnapshotType === 'published' ? 'active' : ''}}" data-type="published" bindtap="selectSnapshot">已发布版本</view>
@@ -219,7 +234,7 @@
 
     <view class="footer-actions">
       <button class="footer-btn" bindtap="copyTripId">复制 trip_id</button>
-      <button class="footer-btn" bindtap="backToImport">返回导入</button>
+      <button class="footer-btn" bindtap="backToTripManagement">返回行程管理</button>
     </view>
   </block>
 </view>

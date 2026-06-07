@@ -45,6 +45,33 @@
   text-align: right;
 }
 
+.legacy-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 18rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 20rpx;
+  background: #F2F4F7;
+  border: 1rpx solid rgba(102, 114, 168, 0.18);
+}
+
+.legacy-notice-text {
+  flex: 1;
+  min-width: 0;
+  color: #6E7788;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.legacy-notice-link {
+  flex: 0 0 auto;
+  color: #6672A8;
+  font-size: 23rpx;
+  font-weight: 650;
+}
+
 .mode-banner {
   border: 1rpx solid rgba(102, 114, 168, 0.18);
 }

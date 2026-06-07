@@ -146,6 +146,15 @@ Page({
     }
   },
 
+  goTripManagement() {
+    wx.navigateTo({
+      url: '/pages/operator/trip-management/trip-management',
+      fail: () => {
+        wx.navigateBack({ fail: () => {} });
+      },
+    });
+  },
+
   onKeywordInput(e) {
     this.setData({ keyword: e.detail.value || '' });
   },
