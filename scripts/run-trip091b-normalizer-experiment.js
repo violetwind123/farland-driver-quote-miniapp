@@ -225,6 +225,57 @@ function build091BTripSource(snapshot091) {
   };
 }
 
+function buildTimelineOnlyRegressionSource() {
+  return {
+    schema_version: '1.0.0',
+    external_trip_id: 'NORMAL-TIMELINE-ONLY',
+    trip_id: 'NORMAL-TIMELINE-ONLY',
+    trip_no: 'NORMAL-TIMELINE-ONLY',
+    title: 'Normal Timeline Only Regression',
+    start_at: '2026-01-01',
+    end_at: '2026-01-01',
+    itinerary_days: [
+      {
+        day_no: 1,
+        date: '2026-01-01',
+        weekday: 'Thu',
+        title: 'Day 1',
+        city: 'Boston',
+        timeline_items: [
+          {
+            item_id: 'normal_stop_1',
+            item_type: 'landmark',
+            card_type: 'landmark_card',
+            title: 'Normal Stop 1',
+            time: '09:00',
+            planned_arrival_time: '09:00',
+            planned_start_time: '09:00',
+            address: '1 Test Street',
+            travel_snapshot: {
+              mode: 'driving',
+              duration_text: '10 min',
+            },
+            ui_flags: {
+              show_route_by_default: false,
+            },
+          },
+          {
+            item_id: 'normal_stop_2',
+            item_type: 'hotel',
+            card_type: 'hotel_arrival_card',
+            title: 'Normal Hotel',
+            time: '18:00',
+            planned_arrival_time: '18:00',
+            address: '2 Test Street',
+            room_type: 'Standard Room',
+            confirmation_no: 'SHOULD_NOT_SHOW',
+          },
+        ],
+      },
+    ],
+  };
+}
+
 function flattenDayCards(snapshot, fieldName) {
   const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
   return days.flatMap((day) => Array.isArray(day[fieldName]) ? day[fieldName] : []);
@@ -325,9 +376,9 @@ function buildReport({ outputDir, snapshot091, source091B, genericSnapshot, vali
     ? path.relative(REPO_ROOT, outputDir)
     : outputDir;
   const lines = [
-    '# P4 C2 · 091B Local Normalizer Experiment',
+    '# P4 C3A · 091B Local Normalizer Verification',
     '',
-    '> Local-only evidence for C2. This report does not perform import, publish, database writes, upload, or DevTools actions.',
+    '> Local-only evidence for C3A. This report does not perform import, publish, database writes, upload, or DevTools actions.',
     '',
     '## Command',
     '',
@@ -351,8 +402,9 @@ function buildReport({ outputDir, snapshot091, source091B, genericSnapshot, vali
     `| Day card counts | ${summary.baseline.day_counts.join(',')} | ${summary.generic.day_counts.join(',')} | ${summary.generic.day_counts.join(',') === summary.baseline.day_counts.join(',') ? 'match' : 'diff'} |`,
     `| Hotel cards | ${summary.baseline.hotel_cards_count} | ${summary.generic.hotel_cards_count} | ${summary.generic.hotel_cards_count === summary.baseline.hotel_cards_count ? 'match' : 'diff'} |`,
     `| Flight cards | ${summary.baseline.flight_cards_count} | ${summary.generic.flight_cards_count} | ${summary.generic.flight_cards_count === summary.baseline.flight_cards_count ? 'match' : 'diff'} |`,
-    `| Top-level destination_cards | ${summary.baseline.destination_cards_count} | ${summary.generic.top_level_destination_cards_count} | ${summary.generic.top_level_destination_cards_count ? 'present' : 'missing in generic'} |`,
+    `| Top-level destination_cards | ${summary.baseline.destination_cards_count} | ${summary.generic.top_level_destination_cards_count} | ${summary.generic.top_level_destination_cards_count === summary.baseline.destination_cards_count ? 'match' : 'diff'} |`,
     `| Sensitive key residue | 0 expected | ${summary.generic.sensitive_key_paths.length} | ${summary.generic.sensitive_key_paths.length ? 'BLOCKING' : 'clean'} |`,
+    `| Non-091 timeline-only regression | 2 day cards expected | ${summary.timeline_only_regression.day_timeline_count} | ${summary.timeline_only_regression.valid ? 'clean' : 'BLOCKING'} |`,
     '',
     '## Type Counts',
     '',
@@ -393,14 +445,15 @@ function buildReport({ outputDir, snapshot091, source091B, genericSnapshot, vali
 
   lines.push(
     '',
-    '## C2 Findings',
+    '## C3A Findings',
     '',
     '1. A data-driven 091B source can preserve the 36 visible stop cards through the generic normalizer at the day/timeline level.',
-    '2. The generic builder still does not derive a top-level `destination_cards` array. If downstream code depends on it, C3 needs either a top-level flattening derivation or a customer-read fallback to day `timeline_items`.',
-    '3. The generic builder double-derives hotel/flight summary cards when both top-level cards and day timeline cards are present. C3/A3 should define the canonical source of truth and dedupe rule before real 091 migration.',
+    '2. The generic builder now derives a top-level `destination_cards` compatibility index from canonical day cards.',
+    '3. The generic builder now dedupes hotel/flight summary cards when both top-level records and day timeline cards are present.',
     '4. The 091B id and card-id remap avoid the known trip/card-id hardcode triggers.',
     '5. Hotel brand name content triggers still exist in customer renderers, but the 091B data carries hotel dates and confirmation fields directly, so those renderer fallbacks should be redundant once C3/C4 removes them.',
-    '6. No production write was attempted. The next step is Claude review of this local evidence, then decide whether C2 needs a no-write DevTools preview fixture or can proceed to the C3 schema/flattening decision.',
+    '6. A non-091 timeline-only fixture preserves its day-level timeline cards after the canonical-source precedence alignment.',
+    '7. No production write was attempted. The next step is Claude review of this local evidence, then decide whether C3A is ready for commit.',
     '',
     '## Output Files',
     '',
@@ -442,6 +495,23 @@ function main() {
   const validation091 = validateTrip091CardSystem(snapshot091);
   const source091B = build091BTripSource(snapshot091);
   const genericSnapshot = privateFns.normalizeSnapshotV2(source091B);
+  const timelineOnlySource = buildTimelineOnlyRegressionSource();
+  const timelineOnlySnapshot = privateFns.normalizeSnapshotV2(timelineOnlySource);
+  const timelineOnlyCards = flattenDayCards(timelineOnlySnapshot, 'timeline_items');
+  const timelineOnlyRegression = {
+    day_timeline_count: timelineOnlyCards.length,
+    day_timeline_ids: timelineOnlyCards.map((card) => card.item_id || card.card_id || card.id),
+    top_level_destination_cards_count: Array.isArray(timelineOnlySnapshot.destination_cards) ? timelineOnlySnapshot.destination_cards.length : 0,
+    confirmation_no_values: JSON.stringify(timelineOnlySnapshot).match(/SHOULD_NOT_SHOW/g) || [],
+    sensitive_key_paths: collectSensitiveKeys(timelineOnlySnapshot),
+  };
+  timelineOnlyRegression.valid = (
+    timelineOnlyRegression.day_timeline_count === 2
+    && timelineOnlyRegression.day_timeline_ids.join(',') === 'normal_stop_1,normal_stop_2'
+    && timelineOnlyRegression.top_level_destination_cards_count === 2
+    && timelineOnlyRegression.confirmation_no_values.length === 0
+    && timelineOnlyRegression.sensitive_key_paths.length === 0
+  );
 
   const baselineCards = Array.isArray(snapshot091.destination_cards) ? snapshot091.destination_cards : [];
   const genericCards = flattenDayCards(genericSnapshot, 'timeline_items');
@@ -467,11 +537,13 @@ function main() {
     source_triggers: containsTrip091Trigger(source091B),
     generic_triggers: containsTrip091Trigger(genericSnapshot),
     field_missing: compareCardFields(snapshot091, genericSnapshot),
+    timeline_only_regression: timelineOnlyRegression,
   };
 
   fs.writeFileSync(path.join(options.outputDir, 'trip091-hardcoded-snapshot.json'), `${JSON.stringify(snapshot091, null, 2)}\n`);
   fs.writeFileSync(path.join(options.outputDir, 'trip091b-source.json'), `${JSON.stringify(source091B, null, 2)}\n`);
   fs.writeFileSync(path.join(options.outputDir, 'trip091b-generic-snapshot.json'), `${JSON.stringify(genericSnapshot, null, 2)}\n`);
+  fs.writeFileSync(path.join(options.outputDir, 'timeline-only-regression-generic-snapshot.json'), `${JSON.stringify(timelineOnlySnapshot, null, 2)}\n`);
   fs.writeFileSync(path.join(options.outputDir, 'trip091b-summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
   fs.writeFileSync(path.join(options.outputDir, 'trip091b-report.md'), buildReport({
     outputDir: options.outputDir,
@@ -490,6 +562,9 @@ function main() {
     baseline_day_counts: summary.baseline.day_counts,
     generic_day_counts: summary.generic.day_counts,
     generic_top_level_destination_cards: summary.generic.top_level_destination_cards_count,
+    generic_hotel_cards: summary.generic.hotel_cards_count,
+    generic_flight_cards: summary.generic.flight_cards_count,
+    timeline_only_regression: summary.timeline_only_regression,
     sensitive_key_paths: summary.generic.sensitive_key_paths,
     field_missing_count: summary.field_missing.length,
     source_triggers: summary.source_triggers,
@@ -499,6 +574,10 @@ function main() {
   if (!validation091.valid) process.exitCode = 1;
   if (summary.generic.sensitive_key_paths.length) process.exitCode = 1;
   if (summary.generic.timeline_items_count !== summary.baseline.destination_cards_count) process.exitCode = 1;
+  if (summary.generic.top_level_destination_cards_count !== summary.baseline.destination_cards_count) process.exitCode = 1;
+  if (summary.generic.hotel_cards_count !== summary.baseline.hotel_cards_count) process.exitCode = 1;
+  if (summary.generic.flight_cards_count !== summary.baseline.flight_cards_count) process.exitCode = 1;
+  if (!summary.timeline_only_regression.valid) process.exitCode = 1;
 }
 
 main();

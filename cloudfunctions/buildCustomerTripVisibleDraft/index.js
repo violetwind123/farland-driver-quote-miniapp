@@ -341,6 +341,15 @@ function normalizeTimelineItem(item, index) {
   });
 }
 
+function getCanonicalDayCards(day) {
+  if (!day || typeof day !== 'object') return [];
+  if (Array.isArray(day.destination_cards)) return day.destination_cards;
+  if (Array.isArray(day.cards)) return day.cards;
+  if (Array.isArray(day.timeline_items)) return day.timeline_items;
+  if (Array.isArray(day.items)) return day.items;
+  return [];
+}
+
 function normalizeDayHotel(hotel, day, index) {
   if (!hotel) return null;
   const name = firstText([hotel.name, hotel.hotel_name, hotel.title, hotel.location_name]);
@@ -371,9 +380,7 @@ function normalizeDay(day, index) {
   const destinationCards = Array.isArray(day.destination_cards) ? day.destination_cards.map(normalizeTimelineItem) : null;
   const cards = Array.isArray(day.cards) ? day.cards.map(normalizeTimelineItem) : null;
   const items = Array.isArray(day.items) ? day.items.map(normalizeTimelineItem) : null;
-  const timelineSource = Array.isArray(day.timeline_items)
-    ? day.timeline_items
-    : (items || destinationCards || cards || []);
+  const timelineSource = getCanonicalDayCards(day);
   const timelineItems = timelineSource.map(normalizeTimelineItem);
   const hotelItem = timelineItems.find((item) => {
     const type = item.item_type || item.type || '';
@@ -415,6 +422,32 @@ function normalizeDay(day, index) {
   });
 }
 
+function deriveDestinationCards(normalizedDays) {
+  const seen = new Set();
+  const output = [];
+  normalizedDays.forEach((day) => {
+    const dayNo = day.day_no || 0;
+    const date = day.date || '';
+    getCanonicalDayCards(day).forEach((card, index) => {
+      const sequence = card.sequence || index + 1;
+      const syntheticId = `day_${dayNo || 'x'}_card_${sequence}`;
+      const normalized = normalizeTimelineItem({
+        ...card,
+        day_no: card.day_no || dayNo,
+        date: card.date || date,
+        sequence,
+        card_id: card.card_id || card.item_id || card.id || syntheticId,
+        item_id: card.item_id || card.card_id || card.id || syntheticId,
+      }, index);
+      const key = normalized.card_id || syntheticId;
+      if (seen.has(key)) return;
+      seen.add(key);
+      output.push(normalized);
+    });
+  });
+  return output;
+}
+
 function normalizeTopLevelHotel(hotel, index) {
   const name = firstText([hotel.name, hotel.hotel_name, hotel.title]);
   const address = firstText([hotel.address]);
@@ -440,14 +473,40 @@ function normalizeTopLevelHotel(hotel, index) {
   });
 }
 
+function normalizeStayKeyText(value) {
+  return safeString(value).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function isGeneratedHotelId(value) {
+  const text = safeString(value);
+  return /^day_\d+_hotel$/i.test(text) || /^hotel_[a-z0-9]+_\d+$/i.test(text);
+}
+
+function getHotelStayKey(card) {
+  const stableId = [
+    card.hotel_stay_id,
+    card.stay_id,
+    card.hotel_id,
+    card.linked_entity_id,
+  ].map(safeString).find((value) => value && !isGeneratedHotelId(value));
+  if (stableId) return `id:${stableId}`;
+
+  const name = normalizeStayKeyText(card.name || card.hotel_name || card.title);
+  const checkIn = safeString(card.check_in_date || card.date).slice(0, 10);
+  const checkOut = safeString(card.check_out_date).slice(0, 10);
+  if (name && checkIn) return `stay:${name}|${checkIn}`;
+  return [
+    name,
+    checkIn,
+    checkOut,
+    card.linked_day_no || '',
+    card.address || '',
+  ].join('|');
+}
+
 function upsertHotelCard(map, card) {
   if (!card || (!card.name && !card.address)) return;
-  const key = [
-    card.name || card.hotel_name || '',
-    card.check_in_date || card.date || '',
-    card.check_out_date || '',
-    card.linked_day_no || '',
-  ].join('|');
+  const key = getHotelStayKey(card);
   map.set(key, {
     ...(map.get(key) || {}),
     ...card,
@@ -502,10 +561,11 @@ function parseFlightRoute(value) {
 
 function normalizeFlightCard(flight, index, dayNo = 0) {
   if (!flight) return null;
+  const display = flight.display_snapshot || flight.displaySnapshot || {};
   const route = parseFlightRoute(flight.route || flight.title || '');
-  const flightNo = firstText([flight.flight_no, flight.flight_number, flight.title && safeString(flight.title).match(/\b[A-Z]{2}\d{2,4}\b/)]);
-  const from = firstText([flight.from, flight.origin, flight.departure_airport, route.from]);
-  const to = firstText([flight.to, flight.destination, flight.arrival_airport, route.to]);
+  const flightNo = firstText([flight.flight_no, flight.flight_number, display.flight_no, flight.title && safeString(flight.title).match(/\b[A-Z]{2}\d{2,4}\b/)]);
+  const from = firstText([flight.from, flight.origin, flight.departure_airport, display.departure_airport, route.from]);
+  const to = firstText([flight.to, flight.destination, flight.arrival_airport, display.arrival_airport, route.to]);
   if (!flightNo && !from && !to) return null;
   return sanitizeCustomerObject({
     id: flight.flight_id || flight.id || makeId('flight', `${flightNo}-${from}-${to}`, index),
@@ -514,11 +574,21 @@ function normalizeFlightCard(flight, index, dayNo = 0) {
     flight_no: flightNo || '航班',
     from,
     to,
-    departure_time: flight.departure_time || flight.depart_at || flight.planned_start_time || flight.time || '',
-    arrival_time: flight.arrival_time || flight.arrive_at || flight.planned_arrival_time || '',
-    aircraft: flight.aircraft || '',
+    departure_time: flight.departure_time || flight.depart_at || flight.takeoff_time || display.takeoff_time || flight.planned_start_time || flight.time || '',
+    arrival_time: flight.arrival_time || flight.arrive_at || flight.landing_time || display.landing_time || flight.planned_arrival_time || '',
+    aircraft: flight.aircraft || display.aircraft || '',
     note: flight.customer_note || flight.customer_visible_note || flight.note || '',
   });
+}
+
+function getFlightCardKey(card) {
+  return [
+    card.flight_no,
+    card.day_no,
+    card.from,
+    card.to,
+    card.departure_time,
+  ].map((value) => safeString(value).trim().toUpperCase()).join('|');
 }
 
 function deriveFlightCards(trip, normalizedDays) {
@@ -544,7 +614,7 @@ function deriveFlightCards(trip, normalizedDays) {
   });
   const seen = new Set();
   return cards.filter((card) => {
-    const key = [card.flight_no, card.day_no, card.from, card.to, card.departure_time].join('|');
+    const key = getFlightCardKey(card);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -620,6 +690,7 @@ function normalizeSnapshotV2(trip) {
   const charterServices = sanitizeCustomerObject(trip.charter_services || (trip.charter ? [trip.charter] : []));
   const hotelCards = deriveHotelCards(trip, normalizedDays);
   const flightCards = deriveFlightCards(trip, normalizedDays);
+  const destinationCards = deriveDestinationCards(normalizedDays);
   const dailySummaryCards = deriveDailySummaryCards(normalizedDays, hotelCards);
   const tripSummary = deriveTripSummary({
     trip,
@@ -653,6 +724,7 @@ function normalizeSnapshotV2(trip) {
     },
     trip_summary: tripSummary,
     daily_summary_cards: dailySummaryCards,
+    destination_cards: destinationCards,
     hotel_cards: hotelCards,
     flight_cards: flightCards,
     itinerary_days: normalizedDays,

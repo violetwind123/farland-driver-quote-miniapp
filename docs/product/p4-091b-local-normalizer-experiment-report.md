@@ -1,11 +1,11 @@
-# P4 C2 · 091B Local Normalizer Experiment
+# P4 C3A · 091B Local Normalizer Verification
 
-> Local-only evidence for C2. This report does not perform import, publish, database writes, upload, or DevTools actions.
+> Local-only evidence for C3A. This report does not perform import, publish, database writes, upload, or DevTools actions.
 
 ## Command
 
 ```bash
-node scripts/run-trip091b-normalizer-experiment.js --out /tmp/farland-091b-experiment
+node scripts/run-trip091b-normalizer-experiment.js --out /tmp/farland-091b-c3a
 ```
 
 ## Inputs
@@ -22,10 +22,11 @@ node scripts/run-trip091b-normalizer-experiment.js --out /tmp/farland-091b-exper
 | --- | ---: | ---: | --- |
 | Destination cards | 36 | 36 | match |
 | Day card counts | 4,3,9,4,3,4,7,2 | 4,3,9,4,3,4,7,2 | match |
-| Hotel cards | 6 | 14 | diff |
-| Flight cards | 1 | 2 | diff |
-| Top-level destination_cards | 36 | 0 | missing in generic |
+| Hotel cards | 6 | 6 | match |
+| Flight cards | 1 | 1 | match |
+| Top-level destination_cards | 36 | 36 | match |
 | Sensitive key residue | 0 expected | 0 | clean |
+| Non-091 timeline-only regression | 2 day cards expected | 2 | clean |
 
 ## Type Counts
 
@@ -70,21 +71,22 @@ node scripts/run-trip091b-normalizer-experiment.js --out /tmp/farland-091b-exper
 No required card-level rich fields were lost in generic `timeline_items`.
 
 
-## C2 Findings
+## C3A Findings
 
 1. A data-driven 091B source can preserve the 36 visible stop cards through the generic normalizer at the day/timeline level.
-2. The generic builder still does not derive a top-level `destination_cards` array. If downstream code depends on it, C3 needs either a top-level flattening derivation or a customer-read fallback to day `timeline_items`.
-3. The generic builder double-derives hotel/flight summary cards when both top-level cards and day timeline cards are present. C3/A3 should define the canonical source of truth and dedupe rule before real 091 migration.
+2. The generic builder now derives a top-level `destination_cards` compatibility index from canonical day cards.
+3. The generic builder now dedupes hotel/flight summary cards when both top-level records and day timeline cards are present.
 4. The 091B id and card-id remap avoid the known trip/card-id hardcode triggers.
 5. Hotel brand name content triggers still exist in customer renderers, but the 091B data carries hotel dates and confirmation fields directly, so those renderer fallbacks should be redundant once C3/C4 removes them.
-6. No production write was attempted. The next step is Claude review of this local evidence, then decide whether C2 needs a no-write DevTools preview fixture or can proceed to the C3 schema/flattening decision.
+6. A non-091 timeline-only fixture preserves its day-level timeline cards after the canonical-source precedence alignment.
+7. No production write was attempted. The next step is Claude review of this local evidence, then decide whether C3A is ready for commit.
 
 ## Output Files
 
-- `/tmp/farland-091b-experiment/trip091-hardcoded-snapshot.json`
-- `/tmp/farland-091b-experiment/trip091b-source.json`
-- `/tmp/farland-091b-experiment/trip091b-generic-snapshot.json`
-- `/tmp/farland-091b-experiment/trip091b-summary.json`
+- `/tmp/farland-091b-c3a/trip091-hardcoded-snapshot.json`
+- `/tmp/farland-091b-c3a/trip091b-source.json`
+- `/tmp/farland-091b-c3a/trip091b-generic-snapshot.json`
+- `/tmp/farland-091b-c3a/trip091b-summary.json`
 
 ## Baseline Validation
 
