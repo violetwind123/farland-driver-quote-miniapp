@@ -6,6 +6,8 @@ Page({
     publishing: false,
     creatingInvite: false,
     openingCustomerView: false,
+    overwriteDryRunLoading: false,
+    overwriteApplyLoading: false,
     tripId: '',
     error: '',
     reviewNote: '',
@@ -26,6 +28,18 @@ Page({
     inviteCode: '',
     inviteExpiresAt: '',
     inviteReused: false,
+    overwriteJsonText: '',
+    overwritePreview: null,
+    overwriteErrors: [],
+    overwriteBlockReason: '',
+    canApplyOverwrite: false,
+    overwriteTargetText: '',
+    overwriteActionText: '',
+    overwriteDayCount: 0,
+    overwriteWarningList: [],
+    overwriteCriticalWarningList: [],
+    isTrip091: false,
+    overwriteExcludedReason: '',
   },
 
   onLoad(options) {
@@ -89,6 +103,7 @@ Page({
       ? 'published'
       : (hasDraft ? 'draft' : (hasPublished ? 'published' : 'draft'));
     const state = this.getStateCopy(result, hasDraft, hasPublished);
+    const isTrip091 = this.isTrip091(result, draftSnapshot, publishedSnapshot);
     this.setData({
       loading: false,
       refreshing: false,
@@ -105,8 +120,310 @@ Page({
       stateText: state.text,
       stateHint: state.hint,
       canPublish: hasDraft && !(result.critical_warning_codes || []).length,
+      isTrip091,
+      overwriteExcludedReason: isTrip091
+        ? '091 暂未迁移到数据驱动管线，暂不支持 JSON 覆盖。'
+        : '',
       error: '',
     });
+  },
+
+  isTrip091(result, draftSnapshot, publishedSnapshot) {
+    const candidates = [
+      this.data.tripId,
+      result && result.trip_id,
+      result && result.external_trip_id,
+      result && result.trip_no,
+      result && result.display_trip_no,
+      draftSnapshot && draftSnapshot.display_trip_no,
+      draftSnapshot && draftSnapshot.trip_no,
+      draftSnapshot && draftSnapshot.external_trip_id,
+      publishedSnapshot && publishedSnapshot.display_trip_no,
+      publishedSnapshot && publishedSnapshot.trip_no,
+      publishedSnapshot && publishedSnapshot.external_trip_id,
+    ].filter(Boolean).map((value) => String(value));
+    return candidates.includes('2026XBC091')
+      || candidates.includes('bf757c4c6a2054f800350a925147b32e');
+  },
+
+  getCurrentExternalTripId() {
+    const preview = this.data.preview || {};
+    const draftSnapshot = this.data.draftSnapshot || {};
+    const publishedSnapshot = this.data.publishedSnapshot || {};
+    return preview.external_trip_id
+      || preview.trip_no
+      || draftSnapshot.external_trip_id
+      || draftSnapshot.trip_no
+      || draftSnapshot.display_trip_no
+      || publishedSnapshot.external_trip_id
+      || publishedSnapshot.trip_no
+      || publishedSnapshot.display_trip_no
+      || '';
+  },
+
+  onOverwriteJsonInput(e) {
+    const value = e.detail.value || '';
+    this._overwriteApprovedText = '';
+    this._overwriteApprovedTrip = null;
+    this.setData({
+      overwriteJsonText: value,
+      overwritePreview: null,
+      overwriteErrors: [],
+      overwriteBlockReason: '',
+      canApplyOverwrite: false,
+      overwriteTargetText: '',
+      overwriteActionText: '',
+      overwriteDayCount: 0,
+      overwriteWarningList: [],
+      overwriteCriticalWarningList: [],
+    });
+  },
+
+  parseOverwriteTrip() {
+    const text = (this.data.overwriteJsonText || '').trim();
+    if (!text) {
+      this.setData({
+        overwriteErrors: ['请先粘贴标准行程 JSON。'],
+        canApplyOverwrite: false,
+      });
+      return null;
+    }
+    try {
+      const trip = JSON.parse(text);
+      if (!trip || typeof trip !== 'object' || Array.isArray(trip)) {
+        throw new Error('JSON 顶层必须是行程对象。');
+      }
+      return trip;
+    } catch (error) {
+      const errMsg = (error && error.message) || 'JSON 解析失败';
+      this.setData({
+        overwriteErrors: [`JSON 解析失败：${errMsg}`],
+        canApplyOverwrite: false,
+      });
+      return null;
+    }
+  },
+
+  getOverwriteSourceDayCount(trip) {
+    const candidates = [
+      trip && trip.itinerary_days,
+      trip && trip.daily_itinerary,
+      trip && trip.days,
+      trip && trip.itinerary && trip.itinerary.days,
+    ];
+    const days = candidates.find((item) => Array.isArray(item));
+    return days ? days.length : 0;
+  },
+
+  normalizeOverwritePreview(result, trip) {
+    const normalized = result.normalized_preview || {};
+    const preview = result.preview || {};
+    const warnings = Array.isArray(result.warnings)
+      ? result.warnings
+      : (Array.isArray(result.warning_codes) ? result.warning_codes : []);
+    const criticalWarnings = Array.isArray(result.critical_warning_codes)
+      ? result.critical_warning_codes
+      : [];
+    const externalTripId = normalized.external_trip_id || result.external_trip_id || '';
+    const tripNo = normalized.trip_no || result.trip_no || externalTripId;
+    const dayCount = preview.day_count
+      || normalized.day_count
+      || this.getOverwriteSourceDayCount(trip)
+      || 0;
+    return {
+      raw: result,
+      action: result.action || '',
+      externalTripId,
+      tripNo,
+      title: normalized.title || preview.title || trip.title || trip.trip_title || '',
+      dayCount,
+      warnings,
+      criticalWarnings,
+      targetText: [externalTripId || tripNo, tripNo && tripNo !== externalTripId ? tripNo : ''].filter(Boolean).join(' · '),
+    };
+  },
+
+  getOverwriteBlockReason(normalizedResult) {
+    const currentExtId = this.getCurrentExternalTripId();
+    if (!currentExtId) {
+      return '当前行程缺少 external_trip_id，已阻止覆盖。';
+    }
+    if (!normalizedResult || !normalizedResult.raw || normalizedResult.raw.success !== true) {
+      return '预览失败，不能覆盖。';
+    }
+    if (normalizedResult.raw.can_apply === false
+      || normalizedResult.raw.preview_valid === false
+      || normalizedResult.raw.valid === false) {
+      return 'dry-run 校验未通过，已阻止覆盖。';
+    }
+    if (normalizedResult.action === 'no_change') {
+      return '内容未变化，无需覆盖。';
+    }
+    if (normalizedResult.action !== 'update') {
+      return normalizedResult.action === 'create'
+        ? '该 JSON 会新建行程，非覆盖当前行程，已阻止。'
+        : `dry-run action 为 ${normalizedResult.action || '未知'}，不是 update，已阻止。`;
+    }
+    if (!normalizedResult.externalTripId) {
+      return 'dry-run 未返回 external_trip_id，已阻止覆盖。';
+    }
+    if (String(normalizedResult.externalTripId) !== String(currentExtId)) {
+      return `JSON 的 external_trip_id（${normalizedResult.externalTripId}）与当前行程（${currentExtId}）不一致，已阻止。`;
+    }
+    return '';
+  },
+
+  async previewOverwriteJson() {
+    if (this.data.isTrip091 || this.data.overwriteDryRunLoading) return;
+    const trip = this.parseOverwriteTrip();
+    if (!trip) return;
+    this._overwriteApprovedText = '';
+    this._overwriteApprovedTrip = null;
+    this.setData({
+      overwriteDryRunLoading: true,
+      overwriteErrors: [],
+      overwriteBlockReason: '',
+      canApplyOverwrite: false,
+      overwritePreview: null,
+    });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'importCustomerTripJSON',
+        data: {
+          trip,
+          dry_run: true,
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({
+          overwriteDryRunLoading: false,
+          overwriteErrors: [(result && result.message) || '覆盖预览失败'],
+        });
+        wx.showToast({ title: '预览失败', icon: 'none' });
+        return;
+      }
+      const normalizedResult = this.normalizeOverwritePreview(result, trip);
+      const blockReason = this.getOverwriteBlockReason(normalizedResult);
+      const canApplyOverwrite = !blockReason;
+      if (canApplyOverwrite) {
+        this._overwriteApprovedText = this.data.overwriteJsonText;
+        this._overwriteApprovedTrip = trip;
+      }
+      this.setData({
+        overwriteDryRunLoading: false,
+        overwritePreview: normalizedResult,
+        overwriteErrors: [],
+        overwriteBlockReason: blockReason,
+        canApplyOverwrite,
+        overwriteTargetText: normalizedResult.targetText || normalizedResult.externalTripId || '',
+        overwriteActionText: normalizedResult.action || '',
+        overwriteDayCount: normalizedResult.dayCount || 0,
+        overwriteWarningList: normalizedResult.warnings || [],
+        overwriteCriticalWarningList: normalizedResult.criticalWarnings || [],
+      });
+      wx.showToast({ title: canApplyOverwrite ? '预览完成' : '已阻止覆盖', icon: 'none' });
+    } catch (error) {
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      console.error('[customer-trip-detail] importCustomerTripJSON dry-run failed', error);
+      this.setData({
+        overwriteDryRunLoading: false,
+        overwriteErrors: [`覆盖预览失败：${errMsg}`],
+        canApplyOverwrite: false,
+      });
+      wx.showToast({ title: '预览失败', icon: 'none' });
+    }
+  },
+
+  async applyOverwriteJson() {
+    if (this.data.isTrip091 || this.data.overwriteApplyLoading) return;
+    if (!this.data.canApplyOverwrite || !this._overwriteApprovedTrip) {
+      wx.showToast({ title: '请先通过覆盖预览', icon: 'none' });
+      return;
+    }
+    if (this.data.overwriteJsonText !== this._overwriteApprovedText) {
+      this._overwriteApprovedText = '';
+      this._overwriteApprovedTrip = null;
+      this.setData({
+        canApplyOverwrite: false,
+        overwriteBlockReason: 'JSON 内容已修改，请重新预览后再覆盖。',
+      });
+      wx.showToast({ title: '请重新预览', icon: 'none' });
+      return;
+    }
+    const blockReason = this.getOverwriteBlockReason(this.data.overwritePreview);
+    if (blockReason) {
+      this.setData({ canApplyOverwrite: false, overwriteBlockReason: blockReason });
+      wx.showToast({ title: '覆盖已阻止', icon: 'none' });
+      return;
+    }
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '确认覆盖当前行程',
+        content: '确认后将覆盖当前行程源数据，并重建客户可见草稿；不会自动发布，客户仍看到旧发布版本直到手动发布。',
+        confirmText: '确认覆盖',
+        confirmColor: '#D94A4A',
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+
+    this.setData({ overwriteApplyLoading: true, overwriteErrors: [], error: '' });
+    try {
+      const { result: importResult } = await wx.cloud.callFunction({
+        name: 'importCustomerTripJSON',
+        data: {
+          trip: this._overwriteApprovedTrip,
+          dry_run: false,
+        },
+      });
+      if (!importResult || !importResult.success) {
+        this.setData({
+          overwriteApplyLoading: false,
+          overwriteErrors: [(importResult && importResult.message) || '覆盖写入失败'],
+        });
+        wx.showToast({ title: '覆盖失败', icon: 'none' });
+        return;
+      }
+      const { result: draftResult } = await wx.cloud.callFunction({
+        name: 'buildCustomerTripVisibleDraft',
+        data: { trip_id: this.data.tripId },
+      });
+      if (!draftResult || !draftResult.success) {
+        this.setData({
+          overwriteApplyLoading: false,
+          overwriteErrors: [(draftResult && draftResult.message) || '覆盖成功，但客户草稿重建失败'],
+        });
+        wx.showToast({ title: '草稿重建失败', icon: 'none' });
+        return;
+      }
+      this._overwriteApprovedText = '';
+      this._overwriteApprovedTrip = null;
+      this.setData({
+        overwriteApplyLoading: false,
+        canApplyOverwrite: false,
+        overwriteJsonText: '',
+        overwritePreview: null,
+        overwriteBlockReason: '',
+        overwriteErrors: [],
+        overwriteTargetText: '',
+        overwriteActionText: '',
+        overwriteDayCount: 0,
+        overwriteWarningList: [],
+        overwriteCriticalWarningList: [],
+        activeSnapshotType: 'draft',
+      });
+      wx.showToast({ title: '已覆盖并重建草稿', icon: 'success' });
+      this.loadPreview({ silent: true });
+    } catch (error) {
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      console.error('[customer-trip-detail] apply overwrite failed', error);
+      this.setData({
+        overwriteApplyLoading: false,
+        overwriteErrors: [`覆盖失败：${errMsg}`],
+      });
+      wx.showToast({ title: '覆盖失败', icon: 'none' });
+    }
   },
 
   normalizeSnapshot(snapshot) {

@@ -73,6 +73,75 @@
     </view>
 
     <view class="panel">
+      <view class="section-title">更新行程 JSON（覆盖）</view>
+      <view wx:if="{{isTrip091}}" class="overwrite-excluded">
+        {{overwriteExcludedReason}}
+      </view>
+      <block wx:else>
+        <view class="overwrite-note">
+          仅允许覆盖当前行程。系统会先 dry-run 校验目标行程，确认后只重建草稿，不会自动发布。
+        </view>
+        <textarea
+          class="overwrite-input"
+          value="{{overwriteJsonText}}"
+          placeholder="粘贴修改后的标准客户行程 JSON"
+          maxlength="-1"
+          bindinput="onOverwriteJsonInput"
+        />
+
+        <view wx:if="{{overwriteErrors.length}}" class="overwrite-error-list">
+          <view wx:for="{{overwriteErrors}}" wx:key="*this" class="overwrite-error-row">{{item}}</view>
+        </view>
+
+        <view wx:if="{{overwritePreview}}" class="overwrite-preview">
+          <view class="overwrite-preview-head">
+            <view>
+              <view class="overwrite-kicker">DRY RUN</view>
+              <view class="overwrite-title">{{overwriteActionText || 'unknown'}}</view>
+            </view>
+            <view class="overwrite-badge {{canApplyOverwrite ? 'ok' : 'blocked'}}">
+              {{canApplyOverwrite ? '可覆盖' : '已阻止'}}
+            </view>
+          </view>
+          <view class="overwrite-grid">
+            <view class="overwrite-cell">
+              <view class="overwrite-label">目标行程</view>
+              <view class="overwrite-value">{{overwriteTargetText || '--'}}</view>
+            </view>
+            <view class="overwrite-cell">
+              <view class="overwrite-label">day count</view>
+              <view class="overwrite-value">{{overwriteDayCount || 0}}</view>
+            </view>
+          </view>
+          <view wx:if="{{overwriteBlockReason}}" class="overwrite-block">{{overwriteBlockReason}}</view>
+          <view wx:if="{{overwriteCriticalWarningList.length}}" class="critical-box compact">
+            <view class="warning-title">关键警告</view>
+            <view wx:for="{{overwriteCriticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+          </view>
+          <view wx:if="{{overwriteWarningList.length}}" class="warning-box compact">
+            <view class="warning-title">warnings</view>
+            <view wx:for="{{overwriteWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+          </view>
+        </view>
+
+        <view class="action-row">
+          <button
+            class="secondary-btn"
+            loading="{{overwriteDryRunLoading}}"
+            disabled="{{overwriteDryRunLoading || overwriteApplyLoading}}"
+            bindtap="previewOverwriteJson"
+          >预览覆盖</button>
+          <button
+            class="primary-btn danger"
+            loading="{{overwriteApplyLoading}}"
+            disabled="{{overwriteApplyLoading || overwriteDryRunLoading || !canApplyOverwrite}}"
+            bindtap="applyOverwriteJson"
+          >确认覆盖</button>
+        </view>
+      </block>
+    </view>
+
+    <view class="panel">
       <view class="section-title">客户分享卡</view>
       <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
         <view class="empty-title">发布后可生成客户分享卡</view>
