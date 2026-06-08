@@ -37,6 +37,9 @@ write/publish steps.
      - driver/vehicle details may temporarily disappear from snapshot-driven
        091 preview, or
      - driver/vehicle details have been verified through `transport_orders`.
+   - If the `transport_orders` option is chosen, first confirm that a 091
+     transport order/customer-safe projection already exists, or create it in a
+     separately approved transport task before the official 091 write.
 2. 091B evidence trip retention:
    - `FARLAND-091B-DATA` / `881bf3f16a26434a004f43666a3ada22` is a real hidden
      `customer_trips` record created for C3B evidence.
@@ -44,6 +47,8 @@ write/publish steps.
      appear in operator trip-management lists.
    - Decide whether to retain it as durable migration evidence or clean it up in
      a separately approved data-cleanup task after C3B.
+   - If retained, it must remain `visibility_status === hidden` and must never
+     be published or shared with customers.
 3. Editable scope before C4:
    - C3B is expected to unlock data-driven time/order/location changes in the
      build path.
