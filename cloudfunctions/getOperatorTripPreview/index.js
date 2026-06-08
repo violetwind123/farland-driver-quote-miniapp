@@ -33,6 +33,257 @@ function hasObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
 }
 
+function firstText(...values) {
+  for (const value of values) {
+    const text = safeString(value).trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function compactArray(items, mapper) {
+  if (!Array.isArray(items)) return [];
+  return items.map(mapper).filter(Boolean);
+}
+
+function compactPlainObject(value, allowedKeys) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return allowedKeys.reduce((acc, key) => {
+    if (value[key] !== undefined && value[key] !== null && value[key] !== '') {
+      acc[key] = value[key];
+    }
+    return acc;
+  }, {});
+}
+
+function compactTimelineItem(item = {}, index = 0) {
+  if (!item || typeof item !== 'object') return null;
+  return compactPlainObject({
+    ...item,
+    item_id: item.item_id || item.card_id || item.id || `timeline_${index + 1}`,
+    card_id: item.card_id || item.item_id || item.id || `timeline_${index + 1}`,
+    sequence: item.sequence || index + 1,
+    title: item.title || item.location_name || item.name || '行程节点',
+    time: firstText(item.time, item.planned_start_time, item.planned_arrival_time, item.arrival_estimate),
+    customer_note: firstText(item.customer_note, item.customer_visible_note, item.note),
+  }, [
+    'item_id',
+    'card_id',
+    'item_type',
+    'card_type',
+    'type',
+    'sequence',
+    'title',
+    'subtitle',
+    'location_name',
+    'address',
+    'time',
+    'planned_start_time',
+    'planned_arrival_time',
+    'arrival_estimate',
+    'departure_time',
+    'drive_time_text',
+    'distance_text',
+    'traffic_text',
+    'customer_note',
+  ]);
+}
+
+function compactDailySummaryCard(card = {}, index = 0) {
+  if (!card || typeof card !== 'object') return null;
+  return {
+    ...compactPlainObject({
+      ...card,
+      id: card.id || card.card_id || `day_summary_${card.day_no || index + 1}`,
+      day_no: card.day_no || index + 1,
+      title: card.title || card.city || '当日安排',
+      start_time_text: firstText(card.start_time_text, card.estimated_departure_time, card.departure_time),
+      highlight_items: Array.isArray(card.highlight_items) ? card.highlight_items.slice(0, 8) : [],
+    }, [
+      'id',
+      'card_id',
+      'day_no',
+      'title',
+      'date',
+      'weekday',
+      'city',
+      'summary',
+      'start_time_text',
+      'hotel_badge',
+      'transport_badge',
+      'highlight_items',
+    ]),
+  };
+}
+
+function compactDay(day = {}, index = 0) {
+  if (!day || typeof day !== 'object') return null;
+  const rawItems = Array.isArray(day.timeline_items)
+    ? day.timeline_items
+    : (Array.isArray(day.items) ? day.items : []);
+  return {
+    ...compactPlainObject({
+      ...day,
+      day_no: day.day_no || index + 1,
+      display_day_label: day.display_day_label || `Day ${day.day_no || index + 1}`,
+      title: day.title || day.city || '当日安排',
+      estimated_departure_time: firstText(
+        day.estimated_departure_time_raw,
+        day.estimated_departure_time,
+        day.start_time_text,
+        day.displayed_start_time,
+      ),
+    }, [
+      'day_no',
+      'display_day_label',
+      'title',
+      'city',
+      'date',
+      'weekday',
+      'summary',
+      'estimated_departure_time',
+      'displayed_start_time',
+      'start_time_text',
+      'has_time_conflict',
+    ]),
+    timeline_items: compactArray(rawItems, compactTimelineItem),
+  };
+}
+
+function compactHotelCard(hotel = {}, index = 0) {
+  if (!hotel || typeof hotel !== 'object') return null;
+  return compactPlainObject({
+    ...hotel,
+    hotel_id: hotel.hotel_id || hotel.card_id || hotel.id || `hotel_${index + 1}`,
+    name: firstText(hotel.name, hotel.hotel_name, hotel.title, '酒店安排'),
+    hotel_name: firstText(hotel.hotel_name, hotel.name, hotel.title, '酒店安排'),
+  }, [
+    'hotel_id',
+    'card_id',
+    'day_no',
+    'name',
+    'hotel_name',
+    'title',
+    'date_text',
+    'check_in_date',
+    'check_out_date',
+    'arrival_time',
+    'address',
+    'status_text',
+    'room_summary',
+    'confirmation_no',
+  ]);
+}
+
+function compactFlightCard(flight = {}, index = 0) {
+  if (!flight || typeof flight !== 'object') return null;
+  return compactPlainObject({
+    ...flight,
+    flight_id: flight.flight_id || flight.card_id || flight.id || `flight_${index + 1}`,
+  }, [
+    'flight_id',
+    'card_id',
+    'flight_no',
+    'flight_number',
+    'title',
+    'from',
+    'to',
+    'origin',
+    'destination',
+    'departure_airport',
+    'arrival_airport',
+    'departure_time',
+    'depart_at',
+    'arrival_time',
+    'arrive_at',
+    'aircraft',
+  ]);
+}
+
+function compactTransfer(item = {}, index = 0) {
+  if (!item || typeof item !== 'object') return null;
+  return compactPlainObject({
+    ...item,
+    transfer_id: item.transfer_id || item.card_id || item.id || `transfer_${index + 1}`,
+  }, [
+    'transfer_id',
+    'card_id',
+    'title',
+    'pickup',
+    'dropoff',
+    'origin',
+    'destination',
+    'time',
+    'date',
+  ]);
+}
+
+function compactCharterService(item = {}, index = 0) {
+  if (!item || typeof item !== 'object') return null;
+  return compactPlainObject({
+    ...item,
+    charter_id: item.charter_id || item.card_id || item.id || `charter_${index + 1}`,
+  }, [
+    'charter_id',
+    'card_id',
+    'title',
+    'date_range_text',
+    'service_area',
+    'vehicle_class',
+    'date',
+  ]);
+}
+
+function compactSnapshotForOperatorPreview(snapshot) {
+  if (!hasObject(snapshot)) return {};
+  // Keep this allowlist aligned with customer-trip-detail.wxml bindings.
+  const hero = hasObject(snapshot.hero) ? snapshot.hero : {};
+  const customer = hasObject(snapshot.customer) ? snapshot.customer : {};
+  const advisor = hasObject(snapshot.advisor) ? snapshot.advisor : {};
+  const hotelCards = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
+    ? snapshot.hotel_cards
+    : (Array.isArray(snapshot.hotels) ? snapshot.hotels : []);
+  const flightCards = Array.isArray(snapshot.flight_cards) && snapshot.flight_cards.length
+    ? snapshot.flight_cards
+    : (Array.isArray(snapshot.flights) ? snapshot.flights : []);
+
+  return {
+    snapshot_compacted: true,
+    snapshot_model_version: snapshot.snapshot_model_version || 1,
+    trip_id: snapshot.trip_id || '',
+    external_trip_id: snapshot.external_trip_id || '',
+    trip_no: snapshot.trip_no || snapshot.external_trip_id || '',
+    title: snapshot.title || hero.title || '',
+    city: snapshot.city || hero.city_summary || '',
+    start_at: snapshot.start_at || '',
+    end_at: snapshot.end_at || '',
+    hero: compactPlainObject(hero, ['title', 'trip_no', 'date_range', 'city_summary']),
+    customer: compactPlainObject(customer, ['display_name', 'name']),
+    advisor: compactPlainObject(advisor, ['name']),
+    trip_summary: hasObject(snapshot.trip_summary)
+      ? compactPlainObject(snapshot.trip_summary, [
+        'title',
+        'date_range_text',
+        'city_route_text',
+        'days_count',
+        'hotels_count',
+        'flights_count',
+        'transport_count',
+        'next_day_label',
+      ])
+      : null,
+    daily_summary_cards: compactArray(snapshot.daily_summary_cards, compactDailySummaryCard),
+    itinerary_days: compactArray(snapshot.itinerary_days, compactDay),
+    hotel_cards: compactArray(hotelCards, compactHotelCard),
+    hotels: compactArray(hotelCards, compactHotelCard),
+    flight_cards: compactArray(flightCards, compactFlightCard),
+    flights: compactArray(flightCards, compactFlightCard),
+    transfers: compactArray(snapshot.transfers, compactTransfer),
+    charter_services: compactArray(snapshot.charter_services, compactCharterService),
+    documents: [],
+  };
+}
+
 function diffSummary(trip) {
   const hasPublishedVersion = Boolean(trip.published_version > 0 && hasObject(trip.published_snapshot));
   const draft = hasObject(trip.draft_snapshot) ? trip.draft_snapshot : {};
@@ -95,8 +346,8 @@ exports.main = async (event = {}) => {
     visibility_status: trip.visibility_status || 'hidden',
     warning_codes: trip.warning_codes || [],
     critical_warning_codes: trip.critical_warning_codes || [],
-    draft_snapshot: hasObject(trip.draft_snapshot) ? trip.draft_snapshot : {},
-    published_snapshot: hasObject(trip.published_snapshot) ? trip.published_snapshot : {},
+    draft_snapshot: compactSnapshotForOperatorPreview(trip.draft_snapshot),
+    published_snapshot: compactSnapshotForOperatorPreview(trip.published_snapshot),
     published_version: trip.published_version || 0,
     diff_summary: diffSummary(trip),
   };
