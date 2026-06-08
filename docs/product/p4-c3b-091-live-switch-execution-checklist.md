@@ -353,6 +353,23 @@ Rollback also requires explicit user approval unless the user previously grants 
 
 ## Completion Criteria
 
+C3B source/draft switch evidence recorded after the approved production write:
+
+- No customer-visible change has occurred from this source/draft switch; customers still see published v24 until a separate publish approval.
+- Official target: `customer_trips/bf757c4c6a2054f800350a925147b32e`.
+- Import apply result: `action=update`, `review_status=needs_review`, `visibility_status=published`, `published_version=24`, `access_binding_skipped=true`.
+- Draft projection after write: `destination_cards=36`, timeline/day counts `4,3,9,4,3,4,7,2`, `hotel_cards=6`, `flight_cards=1`, `sensitive_paths=[]`.
+- Published projection remains old v24: `destination_cards=33`, day counts `4,3,6,4,3,4,7,2`; no publish was executed.
+- `getOperatorTripPreview` response-size issue was fixed in `051c9c8` by compacting returned snapshots while keeping server-side diffing against full snapshots.
+- After deploying `getOperatorTripPreview`, WeChat DevTools simulator opened the official 091 operator detail page successfully and showed `2026XBC091`, `needs_review`, `visibility=published`, `version=v24`, changed sections, 8 days, 6 hotels, 1 flight, and the 36-card draft itinerary.
+- The old `EXCEED_MAX_RESPONSE_SIZE` console entry remains visible as a stale pre-deployment error; the deployed page now loads.
+
+Remaining publish gate:
+
+- Do not publish the new 36-card draft until separately approved.
+- Before publish, confirm customer-facing driver/vehicle display is sourced from `transport_orders` or an equivalent safe projection, because generic snapshots intentionally strip driver/vehicle identity fields.
+- Keep the full backup available for document-level rollback.
+
 C3B is complete only when:
 
 - The live 091 trip uses the generic data-driven build path.
