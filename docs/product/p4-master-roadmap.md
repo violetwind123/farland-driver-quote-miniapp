@@ -112,4 +112,5 @@ C1✅ 冻结UI ─→ C2✅ 091B ─→ C3A✅ 通用兼容 ─→ ▶️ C3B �
 | `p4-091-hardcode-inventory-and-dehardcode-reference.md` | C 轨道总参考 | ✅ `58911c9` |
 | `p4-091b-local-normalizer-experiment-report.md` | C2/C3A 本地验证证据 | ✅ `84d951d` / `a695821` |
 | `p4-c3-091-data-driven-switch-plan.md` | C3 切通用管线决策方案 | ✅ `b94f4af` |
+| `p4-c3b-091-live-switch-execution-checklist.md` | C3B 生产切换执行清单 | 🟡 待 commit |
 | `p4-master-roadmap.md`(本文件) | 全局总表 | ✅ `58911c9` |
