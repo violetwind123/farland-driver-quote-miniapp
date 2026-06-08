@@ -42,10 +42,15 @@ const INTERNAL_KEYS = [
   'supplier_notes',
   'supplier_private_note',
   'supplier_private_notes',
+  'driver',
+  'assigned_transport',
+  'driver_profile',
   'driver_name',
   'driver_phone',
   'driver_openid',
   'driver_user_id',
+  'vehicle',
+  'vehicle_profile',
   'vehicle_id',
   'plate_number',
   'vehicle_summary',
@@ -116,6 +121,40 @@ function gateHotelConfirmation(obj) {
     return { confirmation_no: obj.confirmation_no };
   }
   return { confirmation_no: '' };
+}
+
+function hasEmbeddedTransportIdentity(summary) {
+  if (!isPlainObject(summary)) return false;
+  return Boolean(
+    summary.driver
+      || summary.assigned_transport
+      || summary.driver_profile
+      || summary.driver_name
+      || summary.driver_phone
+      || summary.driver_openid
+      || summary.driver_user_id
+      || summary.vehicle
+      || summary.vehicle_profile
+      || summary.vehicle_id
+      || summary.plate_number
+      || summary.vehicle_summary
+      || summary.vehicle_model
+      || summary.vehicle_color
+  );
+}
+
+function sanitizeTransportSummary(summary) {
+  if (!summary) return null;
+  const sanitized = sanitizeCustomerObject(summary);
+  if (!isPlainObject(sanitized)) return sanitized;
+  if (!hasEmbeddedTransportIdentity(summary) && sanitized.driver_visibility !== 'assigned') return sanitized;
+
+  return {
+    ...sanitized,
+    driver_visibility: 'pending',
+    status_text: '司机信息待同步',
+    helper_text: sanitized.helper_text || '司机信息确认后会同步到这里；如需调整请在客户群沟通。',
+  };
 }
 
 function makeId(prefix, value, index) {
@@ -431,7 +470,7 @@ function normalizeDay(day, index) {
     items: items || day.items,
     timeline_items: timelineItems,
     hotel,
-    transport_summary: day.transport_summary ? sanitizeCustomerObject(day.transport_summary) : null,
+    transport_summary: sanitizeTransportSummary(day.transport_summary),
     source_refs: filterCustomerSourceRefs(day.source_refs),
   });
 }
