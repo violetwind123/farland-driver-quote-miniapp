@@ -2,6 +2,7 @@ const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 const BLOCKED_SNAPSHOT_KEYS = new Set([
   'openid',
@@ -369,6 +370,246 @@ function buildTripSummary(snapshot) {
   });
 }
 
+function toAssignedTransport(order) {
+  if (!order) return null;
+  const driver = order.driver || {};
+  return {
+    driver_name: order.driver_name || driver.display_name || driver.name || '',
+    driver_phone: order.driver_phone || driver.phone || '',
+    vehicle_type: order.vehicle_type || order.vehicle_class || driver.vehicle_type || '',
+    vehicle_model: order.vehicle_model || driver.vehicle_model || '',
+    vehicle_color: order.vehicle_color || driver.vehicle_color || '',
+    seats: order.seats || driver.seats || 0,
+    luggage_capacity: order.luggage_capacity || driver.luggage_capacity || 0,
+    plate_number: order.plate_number || driver.plate_number || '',
+    meeting_point: order.meeting_point || order.pickup || driver.meeting_point || '',
+    pickup: order.pickup || order.meeting_point || driver.meeting_point || '',
+    pickup_time_text: order.pickup_time_text || order.pickup_time || order.service_date || '',
+    service_date: order.service_date || '',
+    request_id: order.request_id || '',
+  };
+}
+
+function hasAssignedTransportDetails(transport) {
+  if (!transport) return false;
+  return Boolean(
+    transport.driver_name
+    || transport.driver_phone
+    || transport.vehicle_type
+    || transport.vehicle_model
+    || transport.plate_number
+  );
+}
+
+function hasCompleteAssignedTransport(transport) {
+  if (!transport) return false;
+  return Boolean(
+    (transport.driver_name || transport.driver_phone)
+    && (transport.vehicle_model || transport.vehicle_type)
+  );
+}
+
+function mergeAssignedTransport(primary, fallback) {
+  if (!primary && !fallback) return null;
+  const base = primary || {};
+  const fill = fallback || {};
+  return {
+    driver_name: base.driver_name || fill.driver_name || '',
+    driver_phone: base.driver_phone || fill.driver_phone || '',
+    vehicle_type: base.vehicle_type || fill.vehicle_type || '',
+    vehicle_model: base.vehicle_model || fill.vehicle_model || '',
+    vehicle_color: base.vehicle_color || fill.vehicle_color || '',
+    seats: base.seats || fill.seats || 0,
+    luggage_capacity: base.luggage_capacity || fill.luggage_capacity || 0,
+    plate_number: base.plate_number || fill.plate_number || '',
+    meeting_point: base.meeting_point || fill.meeting_point || '',
+    pickup: base.pickup || fill.pickup || '',
+    pickup_time_text: base.pickup_time_text || fill.pickup_time_text || '',
+    service_date: base.service_date || fill.service_date || '',
+    request_id: base.request_id || fill.request_id || '',
+  };
+}
+
+function toCustomerDriver(transport) {
+  if (!hasAssignedTransportDetails(transport)) return null;
+  return {
+    name: transport.driver_name || '',
+    phone: transport.driver_phone || '',
+    vehicle_type: transport.vehicle_type || '',
+    vehicle_model: transport.vehicle_model || transport.vehicle_type || '',
+    vehicle_color: transport.vehicle_color || '',
+    seats: transport.seats || 0,
+    luggage_capacity: transport.luggage_capacity || 0,
+    plate_number: transport.plate_number || '',
+    meeting_point: transport.meeting_point || transport.pickup || '',
+  };
+}
+
+function applyAssignedTransportToDay(day, transport) {
+  const driver = toCustomerDriver(transport);
+  if (!day || !driver) return day;
+  const existing = day.transport_summary || {};
+  return {
+    ...day,
+    transport_summary: sanitizeCustomerObject({
+      ...existing,
+      service_type: existing.service_type || existing.type || 'charter',
+      type: existing.type || existing.service_type || 'charter',
+      title: existing.title || '今日包车服务',
+      status_text: '已分配司机',
+      driver_visibility: 'assigned',
+      driver,
+      assigned_transport: driver,
+      assigned_transport_source: 'transport_orders',
+      request_id: transport.request_id || existing.request_id || '',
+      pickup: existing.pickup || existing.pickup_address || transport.pickup || transport.meeting_point || '',
+      pickup_address: existing.pickup_address || existing.pickup || transport.pickup || transport.meeting_point || '',
+      pickup_time: existing.pickup_time || transport.pickup_time_text || '',
+      depart_time: existing.depart_time || transport.pickup_time_text || '',
+      service_window_label: existing.service_window_label || (transport.pickup_time_text ? `${transport.pickup_time_text} 出发` : ''),
+      vehicle_summary: existing.vehicle_summary || [driver.vehicle_model || driver.vehicle_type || '', driver.vehicle_color || ''].filter(Boolean).join(' · '),
+      vehicle_model: driver.vehicle_model || '',
+      vehicle_type: driver.vehicle_type || '',
+      vehicle_color: driver.vehicle_color || '',
+      plate_number: driver.plate_number || '',
+    }),
+  };
+}
+
+function transportMatchesDay(transport, day) {
+  const serviceDate = safeString(transport && transport.service_date).slice(0, 10);
+  const dayDate = safeString(day && day.date).slice(0, 10);
+  return Boolean(serviceDate && dayDate && serviceDate === dayDate);
+}
+
+async function getAssignedTransportFromOrder(requestId) {
+  let primaryTransport = null;
+  const byDoc = await db.collection('transport_orders').doc(requestId).get().catch(() => null);
+  const docOrder = byDoc && byDoc.data;
+  if (docOrder && ['assigned', 'confirmed'].includes(docOrder.order_status)) {
+    primaryTransport = toAssignedTransport(docOrder);
+    if (hasCompleteAssignedTransport(primaryTransport)) return primaryTransport;
+  }
+
+  const queryRes = await db.collection('transport_orders')
+    .where({ request_id: requestId, order_status: _.in(['assigned', 'confirmed']) })
+    .limit(20)
+    .get()
+    .catch(() => ({ data: [] }));
+  const latestOrder = (queryRes.data || [])
+    .sort((a, b) => safeString(b.updated_at).localeCompare(safeString(a.updated_at)))[0];
+  return mergeAssignedTransport(primaryTransport, toAssignedTransport(latestOrder));
+}
+
+async function queryAssignedCharterRequests(field, tripIds) {
+  if (!tripIds.length) return [];
+  const res = await db.collection('ride_requests')
+    .where({
+      [field]: _.in(tripIds),
+      service_type: 'charter',
+      status: _.in(['assigned', 'confirmed']),
+    })
+    .limit(20)
+    .get()
+    .catch(() => ({ data: [] }));
+  return (res.data || []).sort((a, b) => safeString(b.updated_at).localeCompare(safeString(a.updated_at)));
+}
+
+async function queryAssignedCharterOrders(field, tripIds) {
+  if (!tripIds.length) return [];
+  const res = await db.collection('transport_orders')
+    .where({
+      [field]: _.in(tripIds),
+      service_type: 'charter',
+      order_status: _.in(['assigned', 'confirmed']),
+    })
+    .limit(20)
+    .get()
+    .catch(() => ({ data: [] }));
+  return (res.data || [])
+    .sort((a, b) => safeString(b.updated_at).localeCompare(safeString(a.updated_at)))
+    .map(toAssignedTransport)
+    .filter(hasAssignedTransportDetails);
+}
+
+async function findAssignedCharterTransports(tripIds) {
+  const safeTripIds = Array.from(new Set((tripIds || []).map((id) => safeString(id).trim()).filter(Boolean)));
+  if (!safeTripIds.length) return [];
+  const requestResults = await Promise.all([
+    queryAssignedCharterRequests('trip_id', safeTripIds),
+    queryAssignedCharterRequests('external_trip_id', safeTripIds),
+    queryAssignedCharterRequests('trip_no', safeTripIds),
+  ]);
+  const seenRequests = new Set();
+  const requests = requestResults.flat().filter((request) => {
+    const requestId = request._id || request.request_id || '';
+    if (!requestId || seenRequests.has(requestId)) return false;
+    seenRequests.add(requestId);
+    return true;
+  });
+  const fromRequests = await Promise.all(requests.map(async (request) => {
+    const requestId = request._id || request.request_id || '';
+    const orderTransport = await getAssignedTransportFromOrder(requestId);
+    return mergeAssignedTransport(orderTransport, {
+      request_id: requestId,
+      pickup: request.pickup || request.pickup_location || '',
+      pickup_time_text: request.pickup_time_text || request.pickup_time || request.service_date || '',
+      service_date: request.service_date || '',
+    });
+  }));
+
+  const orderResults = await Promise.all([
+    queryAssignedCharterOrders('trip_id', safeTripIds),
+    queryAssignedCharterOrders('external_trip_id', safeTripIds),
+    queryAssignedCharterOrders('trip_no', safeTripIds),
+  ]);
+  const seenKeys = new Set();
+  return [...fromRequests, ...orderResults.flat()]
+    .filter(hasAssignedTransportDetails)
+    .filter((transport) => {
+      const key = [
+        transport.request_id || '',
+        transport.driver_name || '',
+        transport.driver_phone || '',
+        transport.vehicle_model || '',
+        transport.plate_number || '',
+        transport.service_date || '',
+      ].join('|');
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+}
+
+function applyAssignedCharterTransport(snapshot, transports) {
+  if (!isPlainObject(snapshot) || !Array.isArray(snapshot.itinerary_days) || !transports.length) return snapshot;
+  const completeTransports = transports.filter(hasCompleteAssignedTransport);
+  const usableTransports = completeTransports.length ? completeTransports : transports;
+  const allDaysTransport = usableTransports.length === 1 ? usableTransports[0] : null;
+  const itineraryDays = snapshot.itinerary_days.map((day) => {
+    const matchingTransport = usableTransports.find((transport) => transportMatchesDay(transport, day)) || allDaysTransport;
+    return matchingTransport ? applyAssignedTransportToDay(day, matchingTransport) : day;
+  });
+  const firstAssignedDay = itineraryDays.find((day) => {
+    return day && day.transport_summary && day.transport_summary.driver_visibility === 'assigned';
+  });
+  if (!firstAssignedDay) return snapshot;
+  return sanitizeCustomerObject({
+    ...snapshot,
+    itinerary_days: itineraryDays,
+    today_driver_card: firstAssignedDay ? {
+      ...(snapshot.today_driver_card || {}),
+      visible: true,
+      day_no: firstAssignedDay.day_no || 0,
+      date: firstAssignedDay.date || '',
+      ...(firstAssignedDay.transport_summary || {}),
+      status: 'assigned',
+      status_text: '已分配司机',
+    } : snapshot.today_driver_card,
+    transport_projection_source: 'transport_orders',
+  });
+}
+
 function normalizePublishedSnapshot(rawSnapshot) {
   const snapshot = sanitizeCustomerObject(rawSnapshot || {});
   if (!isPlainObject(snapshot) || !Object.keys(snapshot).length) return {};
@@ -620,6 +861,9 @@ exports.main = async (event = {}) => {
     auto_saved: false,
     already_saved: alreadySaved,
     can_save_to_profile: Boolean(hasValidInvite && !alreadySaved && !blockedRole),
-    trip: normalizePublishedSnapshot(trip.published_snapshot),
+    trip: applyAssignedCharterTransport(
+      normalizePublishedSnapshot(trip.published_snapshot),
+      await findAssignedCharterTransports(tripIds),
+    ),
   };
 };
