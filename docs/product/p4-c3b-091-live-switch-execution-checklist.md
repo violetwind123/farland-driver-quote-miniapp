@@ -367,7 +367,11 @@ C3B source/draft switch evidence recorded after the approved production write:
 Remaining publish gate:
 
 - Do not publish the new 36-card draft until separately approved.
-- Before publish, confirm customer-facing driver/vehicle display is sourced from `transport_orders` or an equivalent safe projection, because generic snapshots intentionally strip driver/vehicle identity fields.
+- Driver/vehicle display source has a reviewed code path: `0c2d7c0` projects assigned/confirmed charter transport from `transport_orders`/linked `ride_requests` into the temporary invite/share-card response at runtime, while stored snapshots remain identity-free.
+- Before publish, deploy `getCustomerTripByInvite` with `0c2d7c0` and verify in WeChat DevTools simulator that the invite/share-card customer view either:
+  - shows the assigned 091 driver/vehicle from a real `transport_orders`/linked `ride_requests` row; or
+  - intentionally remains pending if no assigned/confirmed transport row exists.
+- Do not create or modify transport data as part of this publish gate unless separately approved.
 - Keep the full backup available for document-level rollback.
 
 C3B is complete only when:
