@@ -9,6 +9,7 @@ const db = cloud.database();
 const TRIP091_TARGET_DOC_ID = 'bf757c4c6a2054f800350a925147b32e';
 const TRIP091_NO = '2026XBC091';
 const TRIP091_BACKUP_COLLECTION = 'audit_logs';
+const TRIP091_GENERIC_SWITCH_TOKEN = 'C3B_2026XBC091_GENERIC_SNAPSHOT';
 const TRIP091_RESOLVED_WARNING_CODES = new Set([
   'missing_drive_time',
   'missing_distance',
@@ -130,7 +131,17 @@ function isStrictTrip091Target(trip) {
   );
 }
 
-function validateTrip091WriteSnapshot(snapshot) {
+function isTrip091GenericSwitchRequested(event = {}) {
+  return Boolean(
+    event.trip091_use_generic_snapshot === true
+      || event.trip091_generic_snapshot === true
+      || event.trip091_build_path === 'generic_normalize_snapshot_v2'
+  );
+}
+
+function validateTrip091WriteSnapshot(snapshot, options = {}) {
+  const buildPath = options.build_path || 'trip091_card_system';
+  const requireGeneratorValidation = options.require_generator_validation !== false;
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     return { valid: false, reason: 'empty_snapshot' };
   }
@@ -171,21 +182,24 @@ function validateTrip091WriteSnapshot(snapshot) {
     && groupCounts.day7_monuments_group === 3
     && groupCounts.day7_capitol_hill_group === 3;
   const generatorValidation = snapshot.card_system_validation || {};
+  const generatorValidationValid = generatorValidation.valid === true;
   const valid = cards.length === 36
     && dayCounts.join(',') === expectedDayCounts.join(',')
     && nonMeetingMissingRoute.length === 0
     && validGroups
-    && generatorValidation.valid === true;
+    && (!requireGeneratorValidation || generatorValidationValid);
 
   return {
     valid,
     reason: valid ? '' : 'trip091_snapshot_guardrail_failed',
+    build_path: buildPath,
+    require_generator_validation: requireGeneratorValidation,
     destination_cards_count: cards.length,
     day_counts: dayCounts,
     expected_day_counts: expectedDayCounts,
     non_meeting_missing_route_count: nonMeetingMissingRoute.length,
     group_counts: groupCounts,
-    generator_validation_valid: generatorValidation.valid === true,
+    generator_validation_valid: generatorValidationValid,
   };
 }
 
@@ -776,6 +790,15 @@ exports.main = async (event = {}) => {
   const warningCodes = unique(findWarningCodes(trip));
   const criticalWarningCodes = Array.isArray(trip.critical_warning_codes) ? trip.critical_warning_codes : [];
   const useTrip091CardSystem = trip091CardSystem.isTrip091(trip);
+  const trip091GenericSwitchRequested = isTrip091GenericSwitchRequested(event);
+  if (trip091GenericSwitchRequested && !useTrip091CardSystem) {
+    return {
+      success: false,
+      code: 422,
+      error_code: 'TRIP_091_GENERIC_SWITCH_NOT_APPLICABLE',
+      message: '091 通用构建开关仅适用于 2026XBC091',
+    };
+  }
   if (useTrip091CardSystem && !isStrictTrip091Target(trip)) {
     return {
       success: false,
@@ -785,11 +808,31 @@ exports.main = async (event = {}) => {
       target_doc_id: TRIP091_TARGET_DOC_ID,
     };
   }
+  if (
+    trip091GenericSwitchRequested
+    && safeString(event.trip091_generic_switch_token).trim() !== TRIP091_GENERIC_SWITCH_TOKEN
+  ) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'TRIP_091_GENERIC_SWITCH_TOKEN_REQUIRED',
+      message: '091 通用构建开关需要显式确认 token',
+    };
+  }
+  const useTrip091GenericSnapshot = Boolean(useTrip091CardSystem && trip091GenericSwitchRequested);
+  const trip091BuildPath = useTrip091GenericSnapshot
+    ? 'generic_normalize_snapshot_v2'
+    : (useTrip091CardSystem ? 'trip091_card_system' : 'generic_normalize_snapshot_v2');
 
-  const draftSnapshot = useTrip091CardSystem
-    ? trip091CardSystem.buildTrip091CardSystem(trip)
-    : normalizeSnapshotV2(trip);
-  const trip091SnapshotValidation = useTrip091CardSystem ? validateTrip091WriteSnapshot(draftSnapshot) : null;
+  const draftSnapshot = useTrip091GenericSnapshot
+    ? normalizeSnapshotV2(trip)
+    : (useTrip091CardSystem ? trip091CardSystem.buildTrip091CardSystem(trip) : normalizeSnapshotV2(trip));
+  const trip091SnapshotValidation = useTrip091CardSystem
+    ? validateTrip091WriteSnapshot(draftSnapshot, {
+      build_path: trip091BuildPath,
+      require_generator_validation: !useTrip091GenericSnapshot,
+    })
+    : null;
   if (useTrip091CardSystem && !trip091SnapshotValidation.valid) {
     return {
       success: false,
@@ -857,7 +900,10 @@ exports.main = async (event = {}) => {
     updateData.published_by = auth.user._id;
     updateData.published_by_openid = auth.openid;
     updateData.published_at = now;
-    updateData.review_note = safeString(event.review_note).trim() || '091 snapshot refreshed with route-checked destination cards';
+    updateData.review_note = safeString(event.review_note).trim()
+      || (useTrip091GenericSnapshot
+        ? '091 snapshot published from generic data-driven pipeline'
+        : '091 snapshot refreshed with route-checked destination cards');
   }
 
   await db.collection('customer_trips').doc(trip._id).update({
@@ -878,6 +924,7 @@ exports.main = async (event = {}) => {
       critical_warning_codes: criticalWarningCodes,
       trip091_backup_id: trip091BackupId,
       trip091_snapshot_validation: trip091SnapshotValidation,
+      trip091_build_path: useTrip091CardSystem ? trip091BuildPath : '',
       published_now: shouldPublishNow,
     },
     created_at: now,
@@ -895,6 +942,7 @@ exports.main = async (event = {}) => {
     critical_warning_codes: criticalWarningCodes,
     trip091_backup_id: trip091BackupId,
     trip091_snapshot_validation: trip091SnapshotValidation,
+    trip091_build_path: useTrip091CardSystem ? trip091BuildPath : '',
     published_now: shouldPublishNow,
     published_version: updateData.published_version || trip.published_version || 0,
     published_at: updateData.published_at || trip.published_at || '',

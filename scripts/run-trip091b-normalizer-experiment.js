@@ -131,7 +131,7 @@ function loadNormalizeSnapshotV2() {
     },
   };
   sandbox.global = sandbox;
-  const instrumented = `${source}\nmodule.exports.__trip091b_private__ = { normalizeSnapshotV2, sanitizeCustomerObject };`;
+  const instrumented = `${source}\nmodule.exports.__trip091b_private__ = { normalizeSnapshotV2, sanitizeCustomerObject, validateTrip091WriteSnapshot };`;
   vm.runInNewContext(instrumented, sandbox, { filename: BUILD_DRAFT_INDEX });
   return moduleObject.exports.__trip091b_private__;
 }
@@ -404,6 +404,7 @@ function buildReport({ outputDir, snapshot091, source091B, genericSnapshot, vali
     `| Flight cards | ${summary.baseline.flight_cards_count} | ${summary.generic.flight_cards_count} | ${summary.generic.flight_cards_count === summary.baseline.flight_cards_count ? 'match' : 'diff'} |`,
     `| Top-level destination_cards | ${summary.baseline.destination_cards_count} | ${summary.generic.top_level_destination_cards_count} | ${summary.generic.top_level_destination_cards_count === summary.baseline.destination_cards_count ? 'match' : 'diff'} |`,
     `| Sensitive key residue | 0 expected | ${summary.generic.sensitive_key_paths.length} | ${summary.generic.sensitive_key_paths.length ? 'BLOCKING' : 'clean'} |`,
+    `| C3B guardrail validation | valid | ${summary.generic_trip091_guard.valid ? 'valid' : 'invalid'} | ${summary.generic_trip091_guard.valid ? 'clean' : 'BLOCKING'} |`,
     `| Non-091 timeline-only regression | 2 day cards expected | ${summary.timeline_only_regression.day_timeline_count} | ${summary.timeline_only_regression.valid ? 'clean' : 'BLOCKING'} |`,
     '',
     '## Type Counts',
@@ -495,6 +496,10 @@ function main() {
   const validation091 = validateTrip091CardSystem(snapshot091);
   const source091B = build091BTripSource(snapshot091);
   const genericSnapshot = privateFns.normalizeSnapshotV2(source091B);
+  const genericTrip091Guard = privateFns.validateTrip091WriteSnapshot(genericSnapshot, {
+    build_path: 'generic_normalize_snapshot_v2',
+    require_generator_validation: false,
+  });
   const timelineOnlySource = buildTimelineOnlyRegressionSource();
   const timelineOnlySnapshot = privateFns.normalizeSnapshotV2(timelineOnlySource);
   const timelineOnlyCards = flattenDayCards(timelineOnlySnapshot, 'timeline_items');
@@ -534,6 +539,7 @@ function main() {
       by_type: countBy(genericCards, (card) => card.card_type),
       sensitive_key_paths: collectSensitiveKeys(genericSnapshot),
     },
+    generic_trip091_guard: genericTrip091Guard,
     source_triggers: containsTrip091Trigger(source091B),
     generic_triggers: containsTrip091Trigger(genericSnapshot),
     field_missing: compareCardFields(snapshot091, genericSnapshot),
@@ -564,6 +570,7 @@ function main() {
     generic_top_level_destination_cards: summary.generic.top_level_destination_cards_count,
     generic_hotel_cards: summary.generic.hotel_cards_count,
     generic_flight_cards: summary.generic.flight_cards_count,
+    generic_trip091_guard: summary.generic_trip091_guard,
     timeline_only_regression: summary.timeline_only_regression,
     sensitive_key_paths: summary.generic.sensitive_key_paths,
     field_missing_count: summary.field_missing.length,
@@ -577,6 +584,7 @@ function main() {
   if (summary.generic.top_level_destination_cards_count !== summary.baseline.destination_cards_count) process.exitCode = 1;
   if (summary.generic.hotel_cards_count !== summary.baseline.hotel_cards_count) process.exitCode = 1;
   if (summary.generic.flight_cards_count !== summary.baseline.flight_cards_count) process.exitCode = 1;
+  if (!summary.generic_trip091_guard.valid) process.exitCode = 1;
   if (!summary.timeline_only_regression.valid) process.exitCode = 1;
 }
 
