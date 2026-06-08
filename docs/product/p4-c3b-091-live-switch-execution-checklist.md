@@ -20,6 +20,37 @@ This is the first P4 C-track step that can touch production data. It must be gat
 - Do not touch demo trip `2026FEEDEMO01` or unrelated `customer_trips` records.
 - Every production write must target only document id `bf757c4c6a2054f800350a925147b32e`, with both `trip_no` and `external_trip_id` equal to `2026XBC091`.
 
+## Pre-Write Decisions Required
+
+These decisions must be recorded before Phase 3 approval. They are not blockers
+for maintaining this checklist, but they are blockers for the official 091
+write/publish steps.
+
+1. Driver / vehicle display source:
+   - The generic snapshot path intentionally strips driver and vehicle identity
+     fields from customer-trip snapshots.
+   - If 091 must continue showing driver name, phone, vehicle, or plate after
+     C3B, that display must come from the `transport_orders` customer-safe
+     projection, not from the itinerary snapshot.
+   - Do not approve the official 091 write until the user explicitly accepts
+     either:
+     - driver/vehicle details may temporarily disappear from snapshot-driven
+       091 preview, or
+     - driver/vehicle details have been verified through `transport_orders`.
+2. 091B evidence trip retention:
+   - `FARLAND-091B-DATA` / `881bf3f16a26434a004f43666a3ada22` is a real hidden
+     `customer_trips` record created for C3B evidence.
+   - It is not customer-visible while `visibility_status === hidden`, but it can
+     appear in operator trip-management lists.
+   - Decide whether to retain it as durable migration evidence or clean it up in
+     a separately approved data-cleanup task after C3B.
+3. Editable scope before C4:
+   - C3B is expected to unlock data-driven time/order/location changes in the
+     build path.
+   - Hotel-date and reservation editing may still be affected by existing
+     renderer fallback code until C4 removes `resolveKnownTrip091Hotel*` and
+     related 091-specific content overrides.
+
 ## Required Inputs
 
 - Current committed code includes C3A support:
@@ -60,7 +91,10 @@ This phase records non-live 091B evidence only. It is **not** approval to overwr
 
 Completed evidence:
 
-- `buildCustomerTripVisibleDraft` C3B switch version was deployed for verification.
+- `buildCustomerTripVisibleDraft` C3B switch version was deployed for verification:
+  - the switch is default-off;
+  - ordinary calls still use the hardcoded 091 path;
+  - the generic path requires the explicit switch flag and confirmation token.
 - Bad-token guard was verified against official 091:
   - bad token returned `TRIP_091_GENERIC_SWITCH_TOKEN_REQUIRED`;
   - no write occurred.
@@ -68,6 +102,8 @@ Completed evidence:
   - returned `TRIP_091_SNAPSHOT_GUARDRAIL_FAILED`;
   - validation showed the current live 091 document does not yet contain the full data-driven source (`destination_cards_count: 1`, `day_counts: [0]`);
   - no write occurred.
+  - this is the expected pre-backfill state and confirms the guardrail blocks
+    switching before complete 091 source data is present.
 - 091B experiment source was imported as a new hidden draft trip:
   - `trip_id` / `external_trip_id`: `FARLAND-091B-DATA`;
   - `customer_trip_id`: `881bf3f16a26434a004f43666a3ada22`;
@@ -91,7 +127,7 @@ Completed evidence:
 
 Known non-blocking simulator finding:
 
-- `customer-trip-detail` reported `setData` payload size around `1468 KB` for the rich 091B draft. This does not block C3B proof, but it should be treated as a later operator-detail performance optimization candidate before broad use of very large rich snapshots.
+- `customer-trip-detail` reported `setData` payload size around `1468 KB` for the rich 091B draft. This does not block C3B proof, but it should be treated as the same operator-detail payload/performance thread already observed during rich 091 preview work, and revisited before broad use of very large rich snapshots.
 
 Conclusion:
 
