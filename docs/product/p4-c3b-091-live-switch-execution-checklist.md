@@ -54,6 +54,50 @@ Run these before asking for write approval.
   - `node --check scripts/run-trip091b-normalizer-experiment.js`;
   - `node scripts/run-trip091b-normalizer-experiment.js --out /tmp/farland-091b-c3b-preflight`.
 
+## Phase 0A · 091B Sandbox Import And Simulator Evidence
+
+This phase records non-live 091B evidence only. It is **not** approval to overwrite, publish, or otherwise mutate the official `2026XBC091` trip.
+
+Completed evidence:
+
+- `buildCustomerTripVisibleDraft` C3B switch version was deployed for verification.
+- Bad-token guard was verified against official 091:
+  - bad token returned `TRIP_091_GENERIC_SWITCH_TOKEN_REQUIRED`;
+  - no write occurred.
+- Official 091 generic switch was attempted without publish flags and correctly blocked before write:
+  - returned `TRIP_091_SNAPSHOT_GUARDRAIL_FAILED`;
+  - validation showed the current live 091 document does not yet contain the full data-driven source (`destination_cards_count: 1`, `day_counts: [0]`);
+  - no write occurred.
+- 091B experiment source was imported as a new hidden draft trip:
+  - `trip_id` / `external_trip_id`: `FARLAND-091B-DATA`;
+  - `customer_trip_id`: `881bf3f16a26434a004f43666a3ada22`;
+  - `review_status`: `pending_review`;
+  - `visibility_status`: `hidden`;
+  - `published_version`: `0`;
+  - warning codes: `flight_segment_detected`.
+- 091B draft was built through the generic path and read back with:
+  - `snapshot_model_version: 2`;
+  - top-level `destination_cards.length === 36`;
+  - total day `timeline_items.length === 36`;
+  - day counts exactly `4,3,9,4,3,4,7,2`;
+  - `hotel_cards.length === 6`;
+  - `flight_cards.length === 1`;
+  - sensitive-field scan count `0`.
+- WeChat DevTools simulator opened the 091B operator trip detail page successfully:
+  - title: `091B Data Pipeline Experiment`;
+  - status: `pending_review / hidden / v0`;
+  - inline draft preview displayed daily summaries, daily itinerary cards, hotels, and flight data;
+  - Day 7 displayed White House, Lincoln Memorial, U.S. Capitol, Capitol Hill, Library of Congress, and Supreme Court exterior as separate itinerary nodes.
+
+Known non-blocking simulator finding:
+
+- `customer-trip-detail` reported `setData` payload size around `1468 KB` for the rich 091B draft. This does not block C3B proof, but it should be treated as a later operator-detail performance optimization candidate before broad use of very large rich snapshots.
+
+Conclusion:
+
+- The generic pipeline can carry the 091B canonical source end to end into a draft and operator simulator preview.
+- Official 091 still requires a separate, explicitly approved backfill/write step before the generic switch can pass guardrails.
+
 ## Phase 1 · Full Production Backup
 
 This is mandatory before any production mutation.
