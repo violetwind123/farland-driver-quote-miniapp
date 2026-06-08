@@ -368,9 +368,14 @@ Remaining publish gate:
 
 - Do not publish the new 36-card draft until separately approved.
 - Driver/vehicle display source has a reviewed code path: `0c2d7c0` projects assigned/confirmed charter transport from `transport_orders`/linked `ride_requests` into the temporary invite/share-card response at runtime, while stored snapshots remain identity-free.
-- Before publish, deploy `getCustomerTripByInvite` with `0c2d7c0` and verify in WeChat DevTools simulator that the invite/share-card customer view either:
-  - shows the assigned 091 driver/vehicle from a real `transport_orders`/linked `ride_requests` row; or
-  - intentionally remains pending if no assigned/confirmed transport row exists.
+- After deploying `getCustomerTripByInvite` with `0c2d7c0`, WeChat DevTools simulator read the existing active 091 invite and exercised the true invite/share-card response path. **Verified:**
+  - invite read: `customer_trip_invites/bf757c4c6a22944700e49ccc561a9c8d`, `invite_code=FTMQ0POE31KSWQ7P`, `status=active`;
+  - `getCustomerTripByInvite` returned `success=true`, `waiting=false`, `access_source=temporary_invite`, `auto_saved=false` (opening the invite does not auto-save);
+  - runtime sensitive-field scan of the returned trip reported `sensitive_key_hits=[]`;
+  - Day 4 showed a driver (`driver_name=林飞航`, `driver_phone=9298059888`).
+- **NOT verified (important — source of the driver is the old hardcode, not the projection):** the returned `status_text=车辆与司机已确认` is the hardcode 091 value, whereas `0c2d7c0`'s runtime projection unconditionally writes `status_text=已分配司机`. `getCustomerTripByInvite` serves `published_snapshot` (still v24), whose embedded driver survives because `BLOCKED_SNAPSHOT_KEYS` does not strip `driver_*`. Vehicle/plate were blank, consistent with no projection overlay. So this run shows only that the invite path can read the **v24 published hardcode driver**; it does **not** prove `0c2d7c0` projected anything from `transport_orders`.
+- **D-1 for the post-publish state is therefore still UNVERIFIED.** After publishing the identity-free 36-card generic draft, the invite would serve an identity-free snapshot and `0c2d7c0` would need a real assigned/confirmed `transport_orders`/linked `ride_requests` row for 091 — none was demonstrably found here (projection did not fire), so the driver would likely fall to `driver_visibility: pending`.
+- Before publish: confirm a real assigned/confirmed `transport_orders` row for 091 (so `0c2d7c0` projects the driver, `status_text=已分配司机`) **or** explicitly accept a `pending` driver display. Re-verify against the generic/identity-free snapshot, not v24.
 - Do not create or modify transport data as part of this publish gate unless separately approved.
 - Keep the full backup available for document-level rollback.
 

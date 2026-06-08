@@ -12,7 +12,7 @@
 ```
 
 - **普通行程的"运营改行程闭环"已全线打通**:行程管理 → 行程编号 → 提交 JSON 覆盖 → 发布 → 客户刷新可见。
-- **当前唯一硬骨头 = 091 三层硬编码**,它阻塞"所有行程统一数据驱动"。C1 baseline 已冻结,C2 091B 本地实验已证明通用 normalizer 能保留 36 张 day/timeline 卡;C3A 已让通用路径具备顶层 `destination_cards` parity 和酒店/航班去重。C3B 官方 091 source/draft 写入已按批准执行并在模拟器验证运营详情可加载;客户可见版本仍停在 published v24,尚未发布新草稿。`0c2d7c0` 已补 invite/share-card 的运行时用车投影代码,发布前仍需部署并模拟器验证 091 司机/车辆展示。
+- **当前唯一硬骨头 = 091 三层硬编码**,它阻塞"所有行程统一数据驱动"。C1 baseline 已冻结,C2 091B 本地实验已证明通用 normalizer 能保留 36 张 day/timeline 卡;C3A 已让通用路径具备顶层 `destination_cards` parity 和酒店/航班去重。C3B 官方 091 source/draft 写入已按批准执行并在模拟器验证运营详情可加载;客户可见版本仍停在 published v24,尚未发布新草稿。`0c2d7c0` 已补 invite/share-card 的运行时用车投影代码,部署后真实 active invite 验证了 `temporary_invite` 不自动保存、敏感字段扫描为空;但 Day 4 司机来自 v24 硬编码快照透传(`status_text=车辆与司机已确认` ≠ 投影输出 `已分配司机`),`0c2d7c0` 的 `transport_orders` 投影未确认触发——发布无身份通用草稿后司机能否显示仍属 D-1 未验证项。
 - 其余(客户绑定收口、行程归属、评价系统)都是**并行增量**,无强依赖。
 
 ---
@@ -49,7 +49,7 @@
 | C1 冻结 091 UI WIP | 把正在改的 `trip091CardSystem.js`/`day-detail`/`home`/`hotel-detail` 在稳定点提交,作为不动的对比基线 | ✅ `0423de2` |
 | C2 091B 实验 | 新 id 的回填数据副本走通用管线,验证"纯数据能复现 091"、量出兜底补了什么 | ✅ `84d951d` |
 | C3A 通用路径兼容 | 补 `normalizeSnapshotV2` 顶层 `destination_cards` 派生、酒店/航班摘要去重、非 091 timeline-only 回归验证;无生产写入 | ✅ `a695821` |
-| **C3B 回填 + 切构建分支** | 真实 091 文档回填数据 + 改走 `normalizeSnapshotV2`(灰度);source/draft 已写入并模拟器验证运营详情可加载。`0c2d7c0` 已补 invite/share-card 从 `transport_orders`/linked `ride_requests` 运行时投影司机/车辆;客户可见发布仍需单独批准,发布前需部署并模拟器验证 | ▶️ 当前焦点 · 待发布决策 |
+| **C3B 回填 + 切构建分支** | 真实 091 文档回填数据 + 改走 `normalizeSnapshotV2`(灰度);source/draft 已写入并模拟器验证运营详情可加载。`0c2d7c0` 已补 invite/share-card 从 `transport_orders`/linked `ride_requests` 运行时投影司机/车辆;部署后真实 active invite 验证 `temporary_invite` 不自动保存、敏感扫描为空;Day 4 司机可见但来自 v24 硬编码透传(非 `0c2d7c0` 投影,status 不匹配),发布前需确认真实 `transport_orders` 行或接受 pending;客户可见发布仍需单独批准 | ▶️ 当前焦点 · 待发布决策 |
 | C4 删渲染兜底 | 删 `resolveKnownTrip091Hotel*`/`get091RouteMetaOverride`/刘女士 → **解锁:改酒店日期/预订/路线/客户名** | 🟡 待 C3 |
 | C5 删构建硬编码 | 删 `trip091CardSystem.js` + `index.js` 091 分支/守卫,收口 | 🟡 待 C4 稳定 |
 
@@ -92,7 +92,7 @@ C1✅ 冻结UI ─→ C2✅ 091B ─→ C3A✅ 通用兼容 ─→ ▶️ C3B �
   E1→E2→E3
 ```
 
-**当前唯一卡点 = C3B 发布决策。** 官方 091 source/draft 已写入并通过模拟器运营详情页复验;下一步不能自动发布、上传或继续写生产数据。`0c2d7c0` 已补客户 invite/share-card 运行时用车投影,但发布前仍必须部署该函数、模拟器确认 091 客户侧司机/车辆展示或 pending 行为,并保留完整回滚路径。
+**当前唯一卡点 = C3B 发布决策。** 官方 091 source/draft 已写入并通过模拟器运营详情页复验;下一步不能自动发布、上传或继续写生产数据。`0c2d7c0` 已补客户 invite/share-card 运行时用车投影,部署后真实 active invite 模拟器确认 `getCustomerTripByInvite` 返回 `temporary_invite`、不自动保存、敏感字段扫描为空;但 Day 4 司机(林飞航)来自 v24 硬编码快照透传(`status_text=车辆与司机已确认` ≠ 投影输出 `已分配司机`),`transport_orders` 投影未确认触发,故 D-1 在"发布后通用草稿"上的司机显示仍未验证。发布前须确认 091 真实 `transport_orders` 行(令投影生效)或接受 pending,并保留完整回滚路径、由你单独批准。
 
 ---
 
