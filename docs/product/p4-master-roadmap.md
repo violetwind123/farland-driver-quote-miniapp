@@ -113,4 +113,5 @@ C1✅ 冻结UI ─→ C2✅ 091B ─→ C3A✅ 通用兼容 ─→ ▶️ C3B �
 | `p4-091b-local-normalizer-experiment-report.md` | C2/C3A 本地验证证据 | ✅ `84d951d` / `a695821` |
 | `p4-c3-091-data-driven-switch-plan.md` | C3 切通用管线决策方案 | ✅ `b94f4af` |
 | `p4-c3b-091-live-switch-execution-checklist.md` | C3B 生产切换执行清单 + 091B 证据 + 写入前决策护栏 + 最终 guardrail 澄清 | ✅ `f42a25a` / `74fa983` / `9e37325` / `b6b48e5` |
+| `p4-c3b-091-official-write-approval-packet-template.md` | C3B 正式写入前 approval packet 模板 | ✅ `852a5e2` |
 | `p4-master-roadmap.md`(本文件) | 全局总表 | ✅ `58911c9` |
