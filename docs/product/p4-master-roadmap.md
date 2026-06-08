@@ -12,7 +12,7 @@
 ```
 
 - **普通行程的"运营改行程闭环"已全线打通**:行程管理 → 行程编号 → 提交 JSON 覆盖 → 发布 → 客户刷新可见。
-- **当前唯一硬骨头 = 091 三层硬编码**,它阻塞"所有行程统一数据驱动"。C1 baseline 已冻结,C2 091B 本地实验已证明通用 normalizer 能保留 36 张 day/timeline 卡;现在 ▶️ 当前焦点是 C3 回填 + 切构建分支。
+- **当前唯一硬骨头 = 091 三层硬编码**,它阻塞"所有行程统一数据驱动"。C1 baseline 已冻结,C2 091B 本地实验已证明通用 normalizer 能保留 36 张 day/timeline 卡;C3A 已让通用路径具备顶层 `destination_cards` parity 和酒店/航班去重。现在 ▶️ 当前焦点是 C3B:真实 091 回填 + 切构建分支,但必须先显式批准备份/写入/回滚方案。
 - 其余(客户绑定收口、行程归属、评价系统)都是**并行增量**,无强依赖。
 
 ---
@@ -23,7 +23,7 @@
 | --- | --- | --- |
 | A1 卡片 snapshot 契约(原 P4-D0) | 正式定义 canonical 卡片 schema(字段/可见性/安全边界) | ✅ 文档 commit |
 | A2 normalizer 收口(原 P4-D0A) | 4 个 normalizer 默认透传 + 黑名单补强 + 受控可见性 | ✅ `ae7dc7f` |
-| A3 schema 缺口补全 | 091B 验证后,补路线元数据 / Day7 文案等缺口槽位;C2 已暴露顶层 `destination_cards` 缺失和酒店/航班摘要重复派生问题 | 🟡 随 C3 |
+| A3 schema 缺口补全 | 091B 验证后,补路线元数据 / Day7 文案等缺口槽位;C3A 已补顶层 `destination_cards` 派生和酒店/航班摘要去重,剩余缺口随 C3B/C4 实切验证反哺 | 🟡 随 C3B/C4 |
 
 ---
 
@@ -48,7 +48,8 @@
 | C0 硬编码总清单 | 三层耦合面完整地图 + 删除清单 | ✅ 文档 |
 | C1 冻结 091 UI WIP | 把正在改的 `trip091CardSystem.js`/`day-detail`/`home`/`hotel-detail` 在稳定点提交,作为不动的对比基线 | ✅ `0423de2` |
 | C2 091B 实验 | 新 id 的回填数据副本走通用管线,验证"纯数据能复现 091"、量出兜底补了什么 | ✅ `84d951d` |
-| **C3 回填 + 切构建分支** | 091 文档回填数据 + 改走 `normalizeSnapshotV2`(灰度,有备份);先决策顶层 `destination_cards` 派生/读取兜底与酒店/航班 dedupe | ▶️ 当前焦点 |
+| C3A 通用路径兼容 | 补 `normalizeSnapshotV2` 顶层 `destination_cards` 派生、酒店/航班摘要去重、非 091 timeline-only 回归验证;无生产写入 | ✅ `a695821` |
+| **C3B 回填 + 切构建分支** | 真实 091 文档回填数据 + 改走 `normalizeSnapshotV2`(灰度);必须先完整备份、dry-run 校验 36 卡/无 PII、显式批准后才允许写入/发布,回滚恢复整份原文档 | ▶️ 当前焦点 · 需批准 |
 | C4 删渲染兜底 | 删 `resolveKnownTrip091Hotel*`/`get091RouteMetaOverride`/刘女士 → **解锁:改酒店日期/预订/路线/客户名** | 🟡 待 C3 |
 | C5 删构建硬编码 | 删 `trip091CardSystem.js` + `index.js` 091 分支/守卫,收口 | 🟡 待 C4 稳定 |
 
@@ -80,10 +81,10 @@
 ## 依赖与推荐顺序
 
 ```
-A1✅ A2✅ ──→ A3🟡(随 C3)
+A1✅ A2✅ ──→ A3🟡(随 C3B/C4)
 B1✅ B2✅ B3✅                      ← 普通行程闭环,已通
 
-C1✅ 冻结UI ─→ C2✅ 091B ─→ ▶️ C3 回填+切分支 ─→ C4 删渲染兜底 ─→ C5 删构建硬编码
+C1✅ 冻结UI ─→ C2✅ 091B ─→ C3A✅ 通用兼容 ─→ ▶️ C3B 回填+切分支 ─→ C4 删渲染兜底 ─→ C5 删构建硬编码
                     └─→ 反哺 A3 schema 缺口
 
 并行(无强依赖,可随时插入):
@@ -91,7 +92,7 @@ C1✅ 冻结UI ─→ C2✅ 091B ─→ ▶️ C3 回填+切分支 ─→ C4 删
   E1→E2→E3
 ```
 
-**当前唯一卡点已解除 = C2(091B 本地实验) 已提交。** 下一步推进 C3,先决策通用路径的 canonical card source、顶层 `destination_cards` 派生/读取兜底、酒店/航班摘要去重,再设计可备份/可回滚的 091 切分支。
+**当前唯一卡点 = C3B 真实 091 写入需要显式批准。** C3A 已提交通用路径兼容代码和本地证据;下一步只能准备 C3B 的备份/dry-run/回滚执行清单,不能自动导入、发布、写生产数据或上传。
 
 ---
 
@@ -109,5 +110,6 @@ C1✅ 冻结UI ─→ C2✅ 091B ─→ ▶️ C3 回填+切分支 ─→ C4 删
 | `p4-d0a-normalizer-faithful-passthrough-task.md` | A2 任务 | ✅ `46dbcfc` |
 | `p4-d2c-customer-trip-json-overwrite-panel-task.md` | B3 任务 | ✅ `46dbcfc` |
 | `p4-091-hardcode-inventory-and-dehardcode-reference.md` | C 轨道总参考 | ✅ `58911c9` |
+| `p4-091b-local-normalizer-experiment-report.md` | C2/C3A 本地验证证据 | ✅ `84d951d` / `a695821` |
 | `p4-c3-091-data-driven-switch-plan.md` | C3 切通用管线决策方案 | ✅ `b94f4af` |
 | `p4-master-roadmap.md`(本文件) | 全局总表 | ✅ `58911c9` |
