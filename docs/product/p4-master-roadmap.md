@@ -74,7 +74,7 @@
 | --- | --- | --- |
 | E1 每日评价入口(原 P4-D4) | trip-detail 每日卡:生成 Day N 评价卡(自动复制路径)/ 复制路径 / 内联查看反馈 + 份数均分 | ✅ `e736c54` |
 | E2 评价卡页面 + 提交(原 P5-1) | `pages/customer/review-card` + 4 个云函数;锚点 `trip_id + day_no`;同 openid 同 day 幂等;打开/提交均不创建 access;max_openids/过期/白名单/低分标记 | ✅ `e736c54`(待部署 4 函数) |
-| E3 评价结果汇总(原 P5-2) | 单行程内按 day/driver 汇总 + 低分标记 ✅(`listRideReviewsForOperator`);**跨行程**司机维度汇总视图 | ⚠️ 半(跨行程视图待做) |
+| E3 评价结果汇总(原 P5-2) | 单行程:`listRideReviewsForOperator`(day/driver 汇总+低分标记);跨行程:`listDriverReviewSummaries` + 运营「评价汇总」页(按司机/行程、低分跟进列表、未归因桶) | ✅ `e736c54` / `ce04c14`(待部署) |
 
 ---
 
