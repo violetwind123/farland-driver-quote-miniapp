@@ -61,8 +61,8 @@
 
 | 任务 | 目标 | 状态 |
 | --- | --- | --- |
-| D1 取消分享卡预绑定(原 P4-D2B) | `createCustomerTripInvite` 停写 access;`saveCustomerTripToProfile` 为唯一写入口;invite 仅留 intended-customer 元数据 | 🟡 已规格化 |
-| D2 计数口径收口 | `listOperatorTrips` 已保存数排除 `granted_source=operator_share_card`(内存过滤) | 🟡 随 D1 |
+| D1 取消分享卡预绑定(原 P4-D2B) | `createCustomerTripInvite` 停写 access、仅存 intended-customer 元数据;`saveCustomerTripToProfile` 一律写 `granted_source=invite_save`;导入页孤儿投递面板已移除 | ✅ `73b68f6` / `363148a` |
+| D2 计数口径收口 | `listOperatorTrips` 已保存数排除 `granted_source=operator_share_card`(内存过滤) | ✅ `73b68f6` |
 | D3 存量清理(原 P4-D2B-mig) | 历史 `operator_share_card` access:dry-run + 备份 + 回滚后清理 | 🟡 待 D1 上线 |
 | D4 行程归属(原 P4-D3) | trip 指定 primary customer / family / traveler list(运营归属,**非 access**) | 🟡 规划 |
 
@@ -72,9 +72,9 @@
 
 | 任务 | 目标 | 状态 |
 | --- | --- | --- |
-| E1 每日评价入口(原 P4-D4) | 每个 Day 卡旁生成评价卡路径 / 复制 / 查看提交数 | 🟡 规划 |
-| E2 评价卡页面 + 提交(原 P5-1) | 客户打开 Day N 评价卡提交;锚点 `trip_id + day_no`;同家庭多 openid 各提交一次;不创建 access | 🟡 规划 |
-| E3 评价结果汇总(原 P5-2) | 按 day/trip/driver/vehicle 汇总;低分自动标记跟进 | 🟡 规划 |
+| E1 每日评价入口(原 P4-D4) | trip-detail 每日卡:生成 Day N 评价卡(自动复制路径)/ 复制路径 / 内联查看反馈 + 份数均分 | ✅ `e736c54` |
+| E2 评价卡页面 + 提交(原 P5-1) | `pages/customer/review-card` + 4 个云函数;锚点 `trip_id + day_no`;同 openid 同 day 幂等;打开/提交均不创建 access;max_openids/过期/白名单/低分标记 | ✅ `e736c54`(待部署 4 函数) |
+| E3 评价结果汇总(原 P5-2) | 单行程内按 day/driver 汇总 + 低分标记 ✅(`listRideReviewsForOperator`);**跨行程**司机维度汇总视图 | ⚠️ 半(跨行程视图待做) |
 
 ---
 
