@@ -71,7 +71,9 @@ exports.main = async () => {
     return { success: false, code: auth.code, error_code: 'FORBIDDEN', message: auth.message };
   }
 
+  // orderBy 保证扫描窗口是"最近 500 条";否则 limit 取的是自然序任意 500 条
   const res = await db.collection(REVIEWS_COLLECTION)
+    .orderBy('submitted_at', 'desc')
     .limit(SCAN_LIMIT)
     .get()
     .catch(() => ({ data: [] }));
