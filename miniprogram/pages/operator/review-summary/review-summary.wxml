@@ -1,0 +1,93 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="panel center">
+    <view class="title">正在加载评价汇总</view>
+  </view>
+
+  <block wx:else>
+    <view class="hero">
+      <view class="hero-top">
+        <view>
+          <view class="kicker">服务质量</view>
+          <view class="title">评价汇总</view>
+        </view>
+        <button class="icon-btn" loading="{{refreshing}}" bindtap="refresh">刷新</button>
+      </view>
+      <view class="stat-grid">
+        <view class="stat-item">
+          <view class="stat-value">{{overall.count}}</view>
+          <view class="stat-label">总评价</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-value">{{overall.avg_rating}}</view>
+          <view class="stat-label">平均星级</view>
+        </view>
+        <view class="stat-item {{overall.low_count ? 'warn' : ''}}">
+          <view class="stat-value">{{overall.low_count}}</view>
+          <view class="stat-label">低分需跟进</view>
+        </view>
+      </view>
+      <view wx:if="{{truncated}}" class="hint">数据量较大，仅统计最近 500 条。</view>
+    </view>
+
+    <view wx:if="{{error}}" class="panel error-panel">
+      <view class="section-title">错误</view>
+      <view class="error-text">{{error}}</view>
+    </view>
+
+    <view wx:if="{{followUps.length}}" class="panel">
+      <view class="section-title">低分需跟进</view>
+      <view wx:for="{{followUps}}" wx:key="submitted_at" class="review-item low">
+        <view class="review-head">
+          <text class="review-stars">{{item.rating}} 星</text>
+          <text class="review-meta">{{item.trip_no}} · Day {{item.day_no}} · {{item.openid_display}}</text>
+        </view>
+        <view wx:if="{{item.tags.length}}" class="review-tags">
+          <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="review-tag">{{tag}}</text>
+        </view>
+        <view wx:if="{{item.text}}" class="review-text">{{item.text}}</view>
+      </view>
+    </view>
+
+    <view class="panel">
+      <view class="section-title">按司机</view>
+      <view wx:if="{{!driverSummaries.length}}" class="empty-text">
+        暂无可归因到司机的评价{{unattributed.count ? '（' + unattributed.count + ' 份未归因）' : ''}}。
+      </view>
+      <view wx:for="{{driverSummaries}}" wx:key="driver_id" class="driver-card">
+        <view class="driver-head" data-driver="{{item.driver_id}}" bindtap="toggleDriver">
+          <view>
+            <view class="driver-name">{{item.driver_name || item.driver_id}}</view>
+            <view class="driver-sub">{{item.count}} 份 · 平均 {{item.avg_rating}} 星{{item.low_count ? ' · ' + item.low_count + ' 份低分' : ''}}</view>
+          </view>
+          <view class="chevron">{{expandedDriverId === item.driver_id ? '收起' : '展开'}}</view>
+        </view>
+        <view wx:if="{{expandedDriverId === item.driver_id}}" class="driver-detail">
+          <view wx:for="{{item.recent}}" wx:for-item="review" wx:key="submitted_at" class="review-item {{review.needs_follow_up ? 'low' : ''}}">
+            <view class="review-head">
+              <text class="review-stars">{{review.rating}} 星</text>
+              <text class="review-meta">{{review.trip_no}} · Day {{review.day_no}}</text>
+            </view>
+            <view wx:if="{{review.tags.length}}" class="review-tags">
+              <text wx:for="{{review.tags}}" wx:for-item="tag" wx:key="*this" class="review-tag">{{tag}}</text>
+            </view>
+            <view wx:if="{{review.text}}" class="review-text">{{review.text}}</view>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{driverSummaries.length && unattributed.count}}" class="hint">
+        另有 {{unattributed.count}} 份评价未能归因到司机（无当日用车记录）。
+      </view>
+    </view>
+
+    <view wx:if="{{tripSummaries.length}}" class="panel">
+      <view class="section-title">按行程</view>
+      <view wx:for="{{tripSummaries}}" wx:key="trip_no" class="trip-row" data-trip="{{item.trip_id}}" bindtap="openTrip">
+        <view>
+          <view class="trip-no">{{item.trip_no}}</view>
+          <view class="trip-sub">{{item.count}} 份 · 平均 {{item.avg_rating}} 星{{item.low_count ? ' · ' + item.low_count + ' 份低分' : ''}}</view>
+        </view>
+        <view class="chevron">›</view>
+      </view>
+    </view>
+  </block>
+</view>

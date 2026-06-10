@@ -41,6 +41,14 @@
       <view class="chevron">›</view>
     </view>
 
+    <view class="utility-card" bindtap="openReviewSummary">
+      <view>
+        <view class="utility-title">评价汇总</view>
+        <view class="utility-desc">按司机 / 行程查看每日评价，低分自动标记跟进</view>
+      </view>
+      <view class="chevron">›</view>
+    </view>
+
     <view class="utility-card" bindtap="openCustomerImport">
       <view>
         <view class="utility-title">导入客户行程</view>
