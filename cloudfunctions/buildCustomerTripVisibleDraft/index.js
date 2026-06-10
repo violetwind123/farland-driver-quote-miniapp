@@ -10,6 +10,7 @@ const TRIP091_TARGET_DOC_ID = 'bf757c4c6a2054f800350a925147b32e';
 const TRIP091_NO = '2026XBC091';
 const TRIP091_BACKUP_COLLECTION = 'audit_logs';
 const TRIP091_GENERIC_SWITCH_TOKEN = 'C3B_2026XBC091_GENERIC_SNAPSHOT';
+const TRIP091_ROLLBACK_B_TOKEN = 'ROLLBACK_B_PRE_C3B_HARDCODE_V24';
 const TRIP091_RESOLVED_WARNING_CODES = new Set([
   'missing_drive_time',
   'missing_distance',
@@ -176,6 +177,28 @@ function isTrip091GenericSwitchRequested(event = {}) {
       || event.trip091_generic_snapshot === true
       || event.trip091_build_path === 'generic_normalize_snapshot_v2'
   );
+}
+
+function isTrip091RollbackBRequested(event = {}) {
+  return Boolean(
+    event.trip091_restore_pre_c3b === true
+      || event.trip091_rollback_b === true
+      || event.trip091_build_path === 'rollback_b_pre_c3b_hardcode_v24'
+  );
+}
+
+function summarizeSnapshot(snapshot) {
+  const days = Array.isArray(snapshot && snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+  return {
+    top_destination_cards: Array.isArray(snapshot && snapshot.destination_cards)
+      ? snapshot.destination_cards.length
+      : null,
+    day_destination_counts: days.map((day) => (
+      Array.isArray(day.destination_cards)
+        ? day.destination_cards.length
+        : (Array.isArray(day.timeline_items) ? day.timeline_items.length : 0)
+    )),
+  };
 }
 
 function validateTrip091WriteSnapshot(snapshot, options = {}) {
@@ -830,12 +853,29 @@ exports.main = async (event = {}) => {
   const criticalWarningCodes = Array.isArray(trip.critical_warning_codes) ? trip.critical_warning_codes : [];
   const useTrip091CardSystem = trip091CardSystem.isTrip091(trip);
   const trip091GenericSwitchRequested = isTrip091GenericSwitchRequested(event);
+  const trip091RollbackBRequested = isTrip091RollbackBRequested(event);
+  if (trip091GenericSwitchRequested && trip091RollbackBRequested) {
+    return {
+      success: false,
+      code: 422,
+      error_code: 'TRIP_091_BUILD_MODE_CONFLICT',
+      message: '091 通用构建开关与回退开关不能同时使用',
+    };
+  }
   if (trip091GenericSwitchRequested && !useTrip091CardSystem) {
     return {
       success: false,
       code: 422,
       error_code: 'TRIP_091_GENERIC_SWITCH_NOT_APPLICABLE',
       message: '091 通用构建开关仅适用于 2026XBC091',
+    };
+  }
+  if (trip091RollbackBRequested && !useTrip091CardSystem) {
+    return {
+      success: false,
+      code: 422,
+      error_code: 'TRIP_091_ROLLBACK_B_NOT_APPLICABLE',
+      message: '091 回退开关仅适用于 2026XBC091',
     };
   }
   if (useTrip091CardSystem && !isStrictTrip091Target(trip)) {
@@ -858,6 +898,105 @@ exports.main = async (event = {}) => {
       message: '091 通用构建开关需要显式确认 token',
     };
   }
+  if (
+    trip091RollbackBRequested
+    && safeString(event.trip091_rollback_b_token || event.trip091_restore_token).trim() !== TRIP091_ROLLBACK_B_TOKEN
+  ) {
+    return {
+      success: false,
+      code: 409,
+      error_code: 'TRIP_091_ROLLBACK_B_TOKEN_REQUIRED',
+      message: '091 回退需要显式确认 token',
+    };
+  }
+
+  const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
+
+  if (useTrip091CardSystem && trip091RollbackBRequested) {
+    const rollbackSnapshot = trip091CardSystem.buildTrip091CardSystem(trip);
+    const rollbackValidation = validateTrip091WriteSnapshot(rollbackSnapshot, {
+      build_path: 'trip091_card_system',
+      require_generator_validation: true,
+    });
+    if (!rollbackValidation.valid) {
+      return {
+        success: false,
+        code: 409,
+        error_code: 'TRIP_091_ROLLBACK_B_SNAPSHOT_GUARDRAIL_FAILED',
+        message: '091 回退快照校验未通过，已阻止写入',
+        validation: rollbackValidation,
+      };
+    }
+
+    const beforeSummary = {
+      review_status: trip.review_status || '',
+      visibility_status: trip.visibility_status || '',
+      published_version: trip.published_version || 0,
+      draft: summarizeSnapshot(trip.draft_snapshot),
+      published: summarizeSnapshot(trip.published_snapshot),
+    };
+    const updateData = {
+      draft_snapshot: rollbackSnapshot,
+      warning_codes: [],
+      critical_warning_codes: [],
+      status: trip.status || 'active',
+      review_status: 'approved',
+      visibility_status: 'published',
+      source_type: 'manual_json',
+      source_id: '',
+      updated_by: auth.user._id,
+      updated_by_openid: auth.openid,
+      updated_at: now,
+      review_note: 'Rolled back 091 draft to pre-C3B hardcoded v24 state; published snapshot unchanged',
+    };
+
+    await db.collection('customer_trips').doc(trip._id).update({
+      data: updateData,
+    });
+
+    const afterSummary = {
+      review_status: updateData.review_status,
+      visibility_status: updateData.visibility_status,
+      published_version: trip.published_version || 0,
+      draft: summarizeSnapshot(rollbackSnapshot),
+      published: summarizeSnapshot(trip.published_snapshot),
+    };
+
+    await writeAuditLog(db, {
+      actor_openid: auth.openid,
+      actor_user_id: auth.user._id,
+      actor_role: auth.user.role,
+      action: 'customer_trip_091_rollback_b_restored',
+      target_type: 'customer_trip',
+      target_id: trip._id,
+      detail: {
+        trip_id: canonicalTripId,
+        external_trip_id: trip.external_trip_id || '',
+        before: beforeSummary,
+        after: afterSummary,
+        published_snapshot_unchanged: true,
+        validation: rollbackValidation,
+      },
+      created_at: now,
+    }).catch(() => null);
+
+    return {
+      success: true,
+      code: 0,
+      trip_id: canonicalTripId,
+      external_trip_id: trip.external_trip_id || canonicalTripId,
+      status: updateData.status,
+      review_status: updateData.review_status,
+      visibility_status: updateData.visibility_status,
+      published_version: trip.published_version || 0,
+      trip091_build_path: 'rollback_b_pre_c3b_hardcode_v24',
+      published_snapshot_unchanged: true,
+      validation: rollbackValidation,
+      before: beforeSummary,
+      after: afterSummary,
+    };
+  }
+
   const useTrip091GenericSnapshot = Boolean(useTrip091CardSystem && trip091GenericSwitchRequested);
   const trip091BuildPath = useTrip091GenericSnapshot
     ? 'generic_normalize_snapshot_v2'
@@ -895,7 +1034,6 @@ exports.main = async (event = {}) => {
   const effectiveWarningCodes = useTrip091CardSystem
     ? resolveTrip091WarningCodes(warningCodes, trip091SnapshotValidation)
     : warningCodes;
-  const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
   const nextReviewStatus = trip.published_version > 0 ? 'needs_review' : 'pending_review';
   const wasDiscarded =
     trip.status === 'discarded' ||
