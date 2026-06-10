@@ -1,3 +1,27 @@
+const WARNING_TEXT = {
+  flight_segment_detected: '检测到航班段，请核对航班信息',
+  missing_hotel: '有行程日缺少酒店安排',
+  missing_date: '有行程日缺少日期',
+  departure_time_mismatch: '出发时间与展示时间不一致，请核对',
+  missing_drive_time: '部分节点缺少车程时间',
+  missing_distance: '部分节点缺少距离信息',
+  arrival_after_start_time: '到达时间晚于预约开始时间，请核对',
+  unpublished_trip: '行程尚未发布',
+  preview_from_import_source: '预览内容来自导入源数据',
+};
+
+function translateWarning(code) {
+  return WARNING_TEXT[code] || code;
+}
+
+function formatDateYMD(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+  return text;
+}
+
 Page({
   data: {
     loading: true,
@@ -40,6 +64,16 @@ Page({
     overwriteCriticalWarningList: [],
     isTrip091: false,
     overwriteExcludedReason: '',
+    bizState: {},
+    dayStatusText: '',
+    dayCards: [],
+    expandedDayNo: 0,
+    advancedOpen: false,
+    displayDateRange: '',
+    displayDaysCount: 0,
+    displayCityRoute: '',
+    rawWarningCodes: [],
+    rawCriticalWarningCodes: [],
   },
 
   onLoad(options) {
@@ -104,6 +138,8 @@ Page({
       : (hasDraft ? 'draft' : (hasPublished ? 'published' : 'draft'));
     const state = this.getStateCopy(result, hasDraft, hasPublished);
     const isTrip091 = this.isTrip091(result, draftSnapshot, publishedSnapshot);
+    const nextActive = nextActiveType === 'draft' ? draftSnapshot : publishedSnapshot;
+    const bizState = this.deriveBusinessState(result, hasDraft, hasPublished);
     this.setData({
       loading: false,
       refreshing: false,
@@ -111,20 +147,131 @@ Page({
       draftSnapshot,
       publishedSnapshot,
       activeSnapshotType: nextActiveType,
-      activeSnapshot: nextActiveType === 'draft' ? draftSnapshot : publishedSnapshot,
-      warningList: result.warning_codes || [],
-      criticalWarningList: result.critical_warning_codes || [],
+      activeSnapshot: nextActive,
+      warningList: (result.warning_codes || []).map(translateWarning),
+      criticalWarningList: (result.critical_warning_codes || []).map(translateWarning),
+      rawWarningCodes: result.warning_codes || [],
+      rawCriticalWarningCodes: result.critical_warning_codes || [],
       changedSections: (result.diff_summary && result.diff_summary.changed_sections) || [],
       hasDraft,
       hasPublished,
       stateText: state.text,
       stateHint: state.hint,
+      bizState,
+      dayStatusText: bizState.day_status_text,
       canPublish: hasDraft && !(result.critical_warning_codes || []).length,
       isTrip091,
       overwriteExcludedReason: isTrip091
         ? '091 暂未迁移到数据驱动管线，暂不支持 JSON 覆盖。'
         : '',
       error: '',
+      ...this.deriveDisplayMeta(nextActive),
+    });
+  },
+
+  deriveBusinessState(result, hasDraft, hasPublished) {
+    const review = result.review_status || '';
+    const visibility = result.visibility_status || '';
+    const version = result.published_version || 0;
+    const published = visibility === 'published' && hasPublished;
+    if (!hasDraft && !published) {
+      return {
+        state_text: '已导入，待生成草稿',
+        customer_seeing_text: '客户看不到此行程',
+        next_step_text: '生成客户可见草稿',
+        flow_step: 1,
+        day_status_text: '未发布',
+      };
+    }
+    if (hasDraft && !published) {
+      return {
+        state_text: '草稿待审阅，尚未发布',
+        customer_seeing_text: '等待页（暂无行程内容）',
+        next_step_text: '审阅草稿 → 预览客户页面 → 发布',
+        flow_step: 1,
+        day_status_text: '草稿',
+      };
+    }
+    if (published && review === 'approved') {
+      return {
+        state_text: `已发布 v${version}，内容已确认`,
+        customer_seeing_text: `当前发布版 v${version}`,
+        next_step_text: '生成 / 转发客户分享卡',
+        flow_step: 3,
+        day_status_text: '已发布',
+      };
+    }
+    if (published && review === 'needs_review') {
+      return {
+        state_text: `已发布 v${version}，有新草稿待复核`,
+        customer_seeing_text: `仍是上一版 v${version}（新草稿未发布）`,
+        next_step_text: '审阅新草稿 → 重新发布',
+        flow_step: 1,
+        day_status_text: '待复核',
+      };
+    }
+    const legacy = this.getStateCopy(result, hasDraft, hasPublished);
+    return {
+      state_text: legacy.text,
+      customer_seeing_text: published ? `当前发布版 v${version}` : '等待页（暂无行程内容）',
+      next_step_text: '状态异常，请联系开发核查',
+      flow_step: 1,
+      day_status_text: published ? '已发布' : '草稿',
+    };
+  },
+
+  deriveDisplayMeta(snapshot) {
+    if (!snapshot) {
+      return {
+        displayDateRange: '',
+        displayDaysCount: 0,
+        displayCityRoute: '',
+        dayCards: [],
+      };
+    }
+    const tripSummary = snapshot.trip_summary || {};
+    const start = formatDateYMD(snapshot.start_at);
+    const end = formatDateYMD(snapshot.end_at);
+    let range = '';
+    if (start && end) {
+      range = `${start} - ${end}`;
+    } else if (tripSummary.date_range_text) {
+      range = tripSummary.date_range_text;
+    } else if (snapshot.display_date_range) {
+      range = String(snapshot.display_date_range).replace(/T[0-9:+\-.]+/g, '').trim();
+    }
+    const itineraryDays = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+    return {
+      displayDateRange: range,
+      displayDaysCount: tripSummary.days_count || itineraryDays.length || 0,
+      displayCityRoute: tripSummary.city_route_text || '',
+      dayCards: this.buildDayCards(snapshot),
+    };
+  },
+
+  buildDayCards(snapshot) {
+    const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+    if (!days.length) return [];
+    const hotels = Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : [];
+    const summaries = Array.isArray(snapshot.daily_summary_cards) ? snapshot.daily_summary_cards : [];
+    return days.map((day, index) => {
+      const dayNo = day.day_no || index + 1;
+      const summary = summaries.find((card) => (card.day_no || 0) === dayNo) || {};
+      const hotel = hotels.find((item) => item.linked_day_no === dayNo
+        || (Array.isArray(item.linked_day_nos) && item.linked_day_nos.indexOf(dayNo) >= 0));
+      const items = Array.isArray(day.timeline_items) ? day.timeline_items : [];
+      const stops = items.slice(0, 3).map((node) => node.title).filter(Boolean).join(' / ');
+      return {
+        day_no: dayNo,
+        date_text: formatDateYMD(day.date),
+        weekday: day.weekday || '',
+        title: day.title || day.city || `Day ${dayNo}`,
+        stops,
+        hotel_name: (hotel && (hotel.name || hotel.hotel_name)) || summary.hotel_badge || '',
+        transport_badge: summary.transport_badge || '',
+        departure: day.estimated_departure_time || day.displayed_start_time || '',
+        timeline_items: items,
+      };
     });
   },
 
@@ -508,9 +655,11 @@ Page({
       wx.showToast({ title: '请先生成草稿', icon: 'none' });
       return;
     }
+    const nextActive = type === 'draft' ? this.data.draftSnapshot : this.data.publishedSnapshot;
     this.setData({
       activeSnapshotType: type,
-      activeSnapshot: type === 'draft' ? this.data.draftSnapshot : this.data.publishedSnapshot,
+      activeSnapshot: nextActive,
+      ...this.deriveDisplayMeta(nextActive),
     });
   },
 
@@ -741,6 +890,41 @@ Page({
       data: this.data.tripId,
       success: () => wx.showToast({ title: '已复制 trip_id', icon: 'success' }),
     });
+  },
+
+  copyInvitePath() {
+    if (!this.data.invitePath) {
+      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: this.data.invitePath,
+      success: () => wx.showToast({ title: '已复制客户路径', icon: 'success' }),
+    });
+  },
+
+  toggleAdvanced() {
+    this.setData({ advancedOpen: !this.data.advancedOpen });
+  },
+
+  toggleDayExpand(e) {
+    const dayNo = Number(e.currentTarget.dataset.day || 0);
+    this.setData({ expandedDayNo: this.data.expandedDayNo === dayNo ? 0 : dayNo });
+  },
+
+  scrollToReview() {
+    if (!this.data.hasDraft) {
+      wx.showToast({ title: '请先生成草稿', icon: 'none' });
+      return;
+    }
+    if (this.data.activeSnapshotType !== 'draft' && this.data.draftSnapshot) {
+      this.setData({
+        activeSnapshotType: 'draft',
+        activeSnapshot: this.data.draftSnapshot,
+        ...this.deriveDisplayMeta(this.data.draftSnapshot),
+      });
+    }
+    wx.pageScrollTo({ selector: '#draft-review', duration: 300, fail: () => {} });
   },
 
   backToTripManagement() {

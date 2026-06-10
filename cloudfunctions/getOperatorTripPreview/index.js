@@ -161,6 +161,8 @@ function compactHotelCard(hotel = {}, index = 0) {
     'hotel_id',
     'card_id',
     'day_no',
+    'linked_day_no',
+    'linked_day_nos',
     'name',
     'hotel_name',
     'title',

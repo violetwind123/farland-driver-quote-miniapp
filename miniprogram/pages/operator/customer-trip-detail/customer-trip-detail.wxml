@@ -1,24 +1,38 @@
 <view class="page">
   <view wx:if="{{loading}}" class="loading-panel">
     <view class="loading-title">正在加载行程</view>
-    <view class="loading-sub">读取运营预览和发布状态</view>
+    <view class="loading-sub">读取行程状态与客户可见内容</view>
   </view>
 
   <block wx:else>
+    <!-- 顶部 · 行程状态卡 -->
     <view class="hero">
       <view class="hero-top">
         <view>
-          <view class="kicker">CUSTOMER TRIP RELEASE</view>
-          <view class="title">{{activeSnapshot && activeSnapshot.display_title ? activeSnapshot.display_title : '行程预览发布'}}</view>
+          <view class="kicker">行程管理</view>
+          <view class="title">{{activeSnapshot && activeSnapshot.display_title ? activeSnapshot.display_title : '行程详情'}}</view>
         </view>
         <button class="icon-btn" loading="{{refreshing}}" bindtap="refreshPreview">刷新</button>
       </view>
       <view class="trip-meta">
-        <view class="meta-chip">{{preview.trip_id || tripId}}</view>
-        <view wx:if="{{preview.external_trip_id}}" class="meta-chip">{{preview.external_trip_id}}</view>
-        <view class="meta-chip">{{stateText}}</view>
+        <view class="meta-chip">{{preview.external_trip_id || preview.trip_id || tripId}}</view>
+        <view wx:if="{{displayDateRange}}" class="meta-chip">{{displayDateRange}}{{displayDaysCount ? '｜' + displayDaysCount + ' 天' : ''}}</view>
       </view>
-      <view class="state-hint">{{stateHint}}</view>
+      <view wx:if="{{displayCityRoute}}" class="city-route">{{displayCityRoute}}</view>
+      <view class="biz-state">
+        <view class="biz-row">
+          <text class="biz-label">当前状态</text>
+          <text class="biz-value">{{bizState.state_text}}</text>
+        </view>
+        <view class="biz-row">
+          <text class="biz-label">客户现在看到</text>
+          <text class="biz-value">{{bizState.customer_seeing_text}}</text>
+        </view>
+        <view class="biz-row">
+          <text class="biz-label">下一步</text>
+          <text class="biz-value biz-next">{{bizState.next_step_text}}</text>
+        </view>
+      </view>
     </view>
 
     <view wx:if="{{error}}" class="panel error-panel">
@@ -26,25 +40,17 @@
       <view class="error-text">{{error}}</view>
     </view>
 
+    <!-- 模块一 · 发布流程 -->
     <view class="panel">
-      <view class="section-title">审核发布</view>
-      <view class="status-grid">
-        <view class="status-item">
-          <view class="status-label">review</view>
-          <view class="status-value">{{preview.review_status || 'pending_review'}}</view>
-        </view>
-        <view class="status-item">
-          <view class="status-label">visibility</view>
-          <view class="status-value">{{preview.visibility_status || 'hidden'}}</view>
-        </view>
-        <view class="status-item">
-          <view class="status-label">version</view>
-          <view class="status-value">v{{preview.published_version || 0}}</view>
-        </view>
+      <view class="section-title">发布流程</view>
+      <view class="flow-steps">
+        <view class="flow-step {{bizState.flow_step === 1 ? 'current' : ''}}">1 审阅草稿</view>
+        <view class="flow-step {{bizState.flow_step === 2 ? 'current' : ''}}">2 预览客户页面</view>
+        <view class="flow-step {{bizState.flow_step === 3 ? 'current' : ''}}">3 发布 / 分享</view>
       </view>
 
       <view wx:if="{{criticalWarningList.length}}" class="critical-box">
-        <view class="warning-title">关键警告</view>
+        <view class="warning-title">关键警告（发布前必须处理）</view>
         <view wx:for="{{criticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
       </view>
 
@@ -58,120 +64,15 @@
         <view wx:for="{{changedSections}}" wx:key="*this" class="warning-row">{{item}}</view>
       </view>
 
-      <textarea
-        class="note-input"
-        value="{{reviewNote}}"
-        placeholder="发布备注，可选"
-        maxlength="300"
-        bindinput="onReviewNoteInput"
-      />
-
       <view class="action-row">
         <button class="secondary-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见草稿</button>
-        <button class="primary-btn" loading="{{publishing}}" disabled="{{publishing || building || !canPublish}}" bindtap="publishTrip">发布</button>
+        <button class="secondary-btn" disabled="{{!hasDraft}}" bindtap="scrollToReview">审阅草稿</button>
       </view>
-    </view>
-
-    <view class="panel">
-      <view class="section-title">更新行程 JSON（覆盖）</view>
-      <view wx:if="{{isTrip091}}" class="overwrite-excluded">
-        {{overwriteExcludedReason}}
-      </view>
-      <block wx:else>
-        <view class="overwrite-note">
-          仅允许覆盖当前行程。系统会先 dry-run 校验目标行程，确认后只重建草稿，不会自动发布。
-        </view>
-        <textarea
-          class="overwrite-input"
-          value="{{overwriteJsonText}}"
-          placeholder="粘贴修改后的标准客户行程 JSON"
-          maxlength="-1"
-          bindinput="onOverwriteJsonInput"
-        />
-
-        <view wx:if="{{overwriteErrors.length}}" class="overwrite-error-list">
-          <view wx:for="{{overwriteErrors}}" wx:key="*this" class="overwrite-error-row">{{item}}</view>
-        </view>
-
-        <view wx:if="{{overwritePreview}}" class="overwrite-preview">
-          <view class="overwrite-preview-head">
-            <view>
-              <view class="overwrite-kicker">DRY RUN</view>
-              <view class="overwrite-title">{{overwriteActionText || 'unknown'}}</view>
-            </view>
-            <view class="overwrite-badge {{canApplyOverwrite ? 'ok' : 'blocked'}}">
-              {{canApplyOverwrite ? '可覆盖' : '已阻止'}}
-            </view>
-          </view>
-          <view class="overwrite-grid">
-            <view class="overwrite-cell">
-              <view class="overwrite-label">目标行程</view>
-              <view class="overwrite-value">{{overwriteTargetText || '--'}}</view>
-            </view>
-            <view class="overwrite-cell">
-              <view class="overwrite-label">day count</view>
-              <view class="overwrite-value">{{overwriteDayCount || 0}}</view>
-            </view>
-          </view>
-          <view wx:if="{{overwriteBlockReason}}" class="overwrite-block">{{overwriteBlockReason}}</view>
-          <view wx:if="{{overwriteCriticalWarningList.length}}" class="critical-box compact">
-            <view class="warning-title">关键警告</view>
-            <view wx:for="{{overwriteCriticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
-          </view>
-          <view wx:if="{{overwriteWarningList.length}}" class="warning-box compact">
-            <view class="warning-title">warnings</view>
-            <view wx:for="{{overwriteWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
-          </view>
-        </view>
-
-        <view class="action-row">
-          <button
-            class="secondary-btn"
-            loading="{{overwriteDryRunLoading}}"
-            disabled="{{overwriteDryRunLoading || overwriteApplyLoading}}"
-            bindtap="previewOverwriteJson"
-          >预览覆盖</button>
-          <button
-            class="primary-btn danger"
-            loading="{{overwriteApplyLoading}}"
-            disabled="{{overwriteApplyLoading || overwriteDryRunLoading || !canApplyOverwrite}}"
-            bindtap="applyOverwriteJson"
-          >确认覆盖</button>
-        </view>
-      </block>
-    </view>
-
-    <view class="panel">
-      <view class="section-title">客户分享卡</view>
-      <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
-        <view class="empty-title">发布后可生成客户分享卡</view>
-        <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
-      </view>
-      <block wx:else>
-        <view class="share-note">先准备客户分享卡，准备好后直接通过微信转发给客户。</view>
-        <button wx:if="{{!invitePath}}" class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createTripInvite">准备客户分享卡</button>
-        <view wx:if="{{invitePath}}" class="invite-box">
-          <view class="invite-row">
-            <view class="invite-label">invite_code</view>
-            <view class="invite-value">{{inviteCode}}</view>
-          </view>
-          <view class="invite-row">
-            <view class="invite-label">expires_at</view>
-            <view class="invite-value">{{inviteExpiresAt}}</view>
-          </view>
-          <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
-          <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户分享卡</button>
-        </view>
-      </block>
-    </view>
-
-    <view class="panel">
-      <view class="section-title">客户视图预览</view>
 
       <view class="customer-view-cta">
         <view class="cta-copy">
           <view class="cta-title">进入客户真实页面</view>
-          <view class="cta-sub">只读预览客户此刻真正看到的页面（未发布时为等待页），不会创建分享卡或保存记录。</view>
+          <view class="cta-sub">显示客户此刻所见（已发布版；未发布时为等待页）。新草稿请在下方「草稿内容审阅」核对。只读，不创建分享卡或保存记录。</view>
         </view>
         <button
           class="cta-btn"
@@ -181,10 +82,59 @@
         >预览</button>
       </view>
 
-      <view class="snapshot-hint">下方为草稿 / 已发布快照内容审阅，用于核对字段。</view>
+      <textarea
+        class="note-input"
+        value="{{reviewNote}}"
+        placeholder="发布备注，可选"
+        maxlength="300"
+        bindinput="onReviewNoteInput"
+      />
+      <button class="primary-wide-btn" loading="{{publishing}}" disabled="{{publishing || building || !canPublish}}" bindtap="publishTrip">确认发布</button>
+
+      <view class="share-block">
+        <view class="sub-title">客户分享卡</view>
+        <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
+          <view class="empty-title">发布后可生成客户分享卡</view>
+          <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
+        </view>
+        <block wx:else>
+          <view wx:if="{{preview.review_status === 'needs_review'}}" class="share-note">
+            有新草稿待复核：分享卡指向已发布的 v{{preview.published_version || 0}}，新草稿发布前客户不会看到变化。
+          </view>
+          <button
+            wx:if="{{!invitePath}}"
+            class="primary-wide-btn"
+            loading="{{creatingInvite}}"
+            disabled="{{creatingInvite || preview.review_status === 'needs_review'}}"
+            bindtap="createTripInvite"
+          >准备客户分享卡</button>
+          <view wx:if="{{!invitePath && preview.review_status === 'needs_review'}}" class="share-note">
+            建议先发布新草稿，再生成客户分享卡。
+          </view>
+          <view wx:if="{{invitePath}}" class="invite-box">
+            <view class="invite-row">
+              <view class="invite-label">invite_code</view>
+              <view class="invite-value">{{inviteCode}}</view>
+            </view>
+            <view class="invite-row">
+              <view class="invite-label">有效期至</view>
+              <view class="invite-value">{{inviteExpiresAt}}</view>
+            </view>
+            <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
+            <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户分享卡</button>
+            <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 模块二 · 草稿内容审阅（运营核对用） -->
+    <view class="panel" id="draft-review">
+      <view class="section-title">草稿内容审阅（运营核对用）</view>
+      <view class="snapshot-hint">此为运营字段核对视图，不是客户最终页面；客户页面请用上方「进入客户真实页面」。</view>
       <view class="snapshot-tabs">
-        <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">草稿预览</view>
-        <view class="snapshot-tab {{activeSnapshotType === 'published' ? 'active' : ''}}" data-type="published" bindtap="selectSnapshot">已发布版本</view>
+        <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">新草稿</view>
+        <view class="snapshot-tab {{activeSnapshotType === 'published' ? 'active' : ''}}" data-type="published" bindtap="selectSnapshot">已发布 v{{preview.published_version || 0}}</view>
       </view>
 
       <view wx:if="{{!activeSnapshot}}" class="empty-preview">
@@ -194,9 +144,10 @@
 
       <block wx:else>
         <view class="customer-hero">
+          <view class="audit-tag">运营审阅</view>
           <view class="customer-kicker">{{activeSnapshot.display_trip_no || 'Farland Trip'}}</view>
           <view class="customer-title">{{activeSnapshot.display_title}}</view>
-          <view wx:if="{{activeSnapshot.display_date_range}}" class="customer-sub">{{activeSnapshot.display_date_range}}</view>
+          <view wx:if="{{displayDateRange}}" class="customer-sub">{{displayDateRange}}</view>
           <view wx:if="{{activeSnapshot.display_city}}" class="customer-sub">{{activeSnapshot.display_city}}</view>
           <view wx:if="{{activeSnapshot.display_customer || activeSnapshot.display_advisor}}" class="customer-note">
             {{activeSnapshot.display_customer || '客户'}} · {{activeSnapshot.display_advisor}}
@@ -207,7 +158,7 @@
           <view class="preview-title">整体概览</view>
           <view class="info-row overview-row">
             <view class="info-main">{{activeSnapshot.trip_summary.title || activeSnapshot.display_title}}</view>
-            <view class="info-sub">{{activeSnapshot.trip_summary.date_range_text || activeSnapshot.display_date_range}}</view>
+            <view class="info-sub">{{activeSnapshot.trip_summary.date_range_text || displayDateRange}}</view>
             <view class="info-sub">{{activeSnapshot.trip_summary.city_route_text || activeSnapshot.display_city}}</view>
             <view class="overview-metrics">
               <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.days_count || 0}}</view><view class="overview-label">days</view></view>
@@ -301,8 +252,151 @@
       </block>
     </view>
 
+    <!-- 模块三 · 每日管理 -->
+    <view wx:if="{{dayCards.length}}" class="panel">
+      <view class="section-title">每日管理</view>
+      <view wx:for="{{dayCards}}" wx:key="day_no" class="op-day-card">
+        <view class="day-head">
+          <view>
+            <view class="day-label">Day {{item.day_no}}</view>
+            <view class="day-title">{{item.title}}</view>
+          </view>
+          <view class="day-right">
+            <view class="day-date">{{item.date_text}} {{item.weekday}}</view>
+            <view class="status-chip">{{dayStatusText}}</view>
+          </view>
+        </view>
+        <view wx:if="{{item.stops}}" class="day-summary">行程：{{item.stops}}</view>
+        <view wx:if="{{item.hotel_name}}" class="day-summary">酒店：{{item.hotel_name}}</view>
+        <view wx:if="{{item.transport_badge}}" class="day-summary">用车：{{item.transport_badge}}</view>
+        <view class="day-actions">
+          <button class="mini-action" data-day="{{item.day_no}}" bindtap="toggleDayExpand">{{expandedDayNo === item.day_no ? '收起详情' : '查看 Day 详情'}}</button>
+          <button class="mini-action placeholder" disabled>评价卡（待上线）</button>
+          <button class="mini-action placeholder" disabled>复制评价路径（待上线）</button>
+          <button class="mini-action placeholder" disabled>查看反馈（待上线）</button>
+        </view>
+        <view wx:if="{{expandedDayNo === item.day_no}}" class="day-detail">
+          <view wx:if="{{item.departure}}" class="service-line">出发：{{item.departure}}</view>
+          <view wx:for="{{item.timeline_items}}" wx:for-item="node" wx:key="item_id" class="timeline-row">
+            <view class="timeline-time">{{node.time || node.planned_start_time || node.planned_arrival_time || '--:--'}}</view>
+            <view class="timeline-main">
+              <view class="timeline-title">{{node.title || '行程节点'}}</view>
+              <view wx:if="{{node.location_name || node.address}}" class="timeline-sub">{{node.location_name || node.address}}</view>
+              <view wx:if="{{node.drive_time_text || node.distance_text || node.traffic_text}}" class="timeline-sub">
+                {{node.drive_time_text}}{{node.distance_text ? ' · ' + node.distance_text : ''}}{{node.traffic_text ? ' · ' + node.traffic_text : ''}}
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 模块四 · 高级操作（默认折叠） -->
+    <view class="panel advanced-panel">
+      <view class="advanced-head" bindtap="toggleAdvanced">
+        <view class="section-title no-margin">高级操作</view>
+        <view class="advanced-toggle">{{advancedOpen ? '收起' : '展开'}}</view>
+      </view>
+      <block wx:if="{{advancedOpen}}">
+        <view class="advanced-section">
+          <view class="sub-title">更新行程 JSON（覆盖）</view>
+          <view wx:if="{{isTrip091}}" class="overwrite-excluded">
+            {{overwriteExcludedReason}}
+          </view>
+          <block wx:else>
+            <view class="overwrite-note">
+              仅允许覆盖当前行程。系统会先 dry-run 校验目标行程，确认后只重建草稿，不会自动发布。
+            </view>
+            <textarea
+              class="overwrite-input"
+              value="{{overwriteJsonText}}"
+              placeholder="粘贴修改后的标准客户行程 JSON"
+              maxlength="-1"
+              bindinput="onOverwriteJsonInput"
+            />
+
+            <view wx:if="{{overwriteErrors.length}}" class="overwrite-error-list">
+              <view wx:for="{{overwriteErrors}}" wx:key="*this" class="overwrite-error-row">{{item}}</view>
+            </view>
+
+            <view wx:if="{{overwritePreview}}" class="overwrite-preview">
+              <view class="overwrite-preview-head">
+                <view>
+                  <view class="overwrite-kicker">DRY RUN</view>
+                  <view class="overwrite-title">{{overwriteActionText || 'unknown'}}</view>
+                </view>
+                <view class="overwrite-badge {{canApplyOverwrite ? 'ok' : 'blocked'}}">
+                  {{canApplyOverwrite ? '可覆盖' : '已阻止'}}
+                </view>
+              </view>
+              <view class="overwrite-grid">
+                <view class="overwrite-cell">
+                  <view class="overwrite-label">目标行程</view>
+                  <view class="overwrite-value">{{overwriteTargetText || '--'}}</view>
+                </view>
+                <view class="overwrite-cell">
+                  <view class="overwrite-label">day count</view>
+                  <view class="overwrite-value">{{overwriteDayCount || 0}}</view>
+                </view>
+              </view>
+              <view wx:if="{{overwriteBlockReason}}" class="overwrite-block">{{overwriteBlockReason}}</view>
+              <view wx:if="{{overwriteCriticalWarningList.length}}" class="critical-box compact">
+                <view class="warning-title">关键警告</view>
+                <view wx:for="{{overwriteCriticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+              </view>
+              <view wx:if="{{overwriteWarningList.length}}" class="warning-box compact">
+                <view class="warning-title">warnings</view>
+                <view wx:for="{{overwriteWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+              </view>
+            </view>
+
+            <view class="action-row">
+              <button
+                class="secondary-btn"
+                loading="{{overwriteDryRunLoading}}"
+                disabled="{{overwriteDryRunLoading || overwriteApplyLoading}}"
+                bindtap="previewOverwriteJson"
+              >预览覆盖</button>
+              <button
+                class="primary-btn danger"
+                loading="{{overwriteApplyLoading}}"
+                disabled="{{overwriteApplyLoading || overwriteDryRunLoading || !canApplyOverwrite}}"
+                bindtap="applyOverwriteJson"
+              >确认覆盖</button>
+            </view>
+          </block>
+        </view>
+
+        <view class="advanced-section">
+          <view class="sub-title">工具</view>
+          <button class="secondary-wide-btn" bindtap="copyTripId">复制 trip_id</button>
+        </view>
+
+        <view class="advanced-section">
+          <view class="sub-title">技术状态</view>
+          <view class="status-grid">
+            <view class="status-item">
+              <view class="status-label">review</view>
+              <view class="status-value">{{preview.review_status || 'pending_review'}}</view>
+            </view>
+            <view class="status-item">
+              <view class="status-label">visibility</view>
+              <view class="status-value">{{preview.visibility_status || 'hidden'}}</view>
+            </view>
+            <view class="status-item">
+              <view class="status-label">version</view>
+              <view class="status-value">v{{preview.published_version || 0}}</view>
+            </view>
+          </view>
+          <view wx:if="{{rawCriticalWarningCodes.length || rawWarningCodes.length}}" class="tech-codes">
+            <view wx:for="{{rawCriticalWarningCodes}}" wx:key="*this" class="tech-code critical">{{item}}</view>
+            <view wx:for="{{rawWarningCodes}}" wx:key="*this" class="tech-code">{{item}}</view>
+          </view>
+        </view>
+      </block>
+    </view>
+
     <view class="footer-actions">
-      <button class="footer-btn" bindtap="copyTripId">复制 trip_id</button>
       <button class="footer-btn" bindtap="backToTripManagement">返回行程管理</button>
     </view>
   </block>
