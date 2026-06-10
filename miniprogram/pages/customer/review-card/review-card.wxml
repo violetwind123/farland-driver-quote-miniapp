@@ -1,0 +1,85 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="panel center">
+    <view class="title">正在打开评价卡</view>
+    <view class="sub">请稍候</view>
+  </view>
+
+  <view wx:elif="{{error}}" class="panel center">
+    <view class="title">无法打开评价卡</view>
+    <view class="sub">{{error}}</view>
+  </view>
+
+  <block wx:else>
+    <view class="panel head-panel">
+      <view class="kicker">FARLAND 每日服务评价</view>
+      <view class="title">{{context.trip_title}}</view>
+      <view class="sub">Day {{dayNo}}{{context.date ? ' ｜ ' + context.date : ''}}{{context.city ? ' ｜ ' + context.city : ''}}</view>
+      <view wx:if="{{context.day_title}}" class="sub">{{context.day_title}}</view>
+      <view wx:if="{{context.stops.length}}" class="stops">
+        <view wx:for="{{context.stops}}" wx:key="*this" class="stop-chip">{{item}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{submitted}}" class="panel center">
+      <view class="title">感谢您的反馈</view>
+      <view class="sub">我们已收到您对 Day {{dayNo}} 的评价。</view>
+      <view wx:if="{{myReview}}" class="my-review">
+        <view class="my-rating">
+          <text wx:for="{{stars}}" wx:key="*this" class="star {{item <= myReview.rating ? 'on' : ''}}">★</text>
+        </view>
+        <view wx:if="{{myReview.tags.length}}" class="my-tags">
+          <view wx:for="{{myReview.tags}}" wx:key="*this" class="tag-chip selected small">{{item}}</view>
+        </view>
+        <view wx:if="{{myReview.text}}" class="my-text">{{myReview.text}}</view>
+      </view>
+    </view>
+
+    <block wx:else>
+      <view class="panel">
+        <view class="section-title">今天的服务体验如何？</view>
+        <view class="star-row">
+          <text
+            wx:for="{{stars}}"
+            wx:key="*this"
+            class="star big {{item <= rating ? 'on' : ''}}"
+            data-value="{{item}}"
+            bindtap="selectRating"
+          >★</text>
+        </view>
+        <view wx:if="{{rating}}" class="rating-label">{{ratingLabels[rating - 1]}}</view>
+      </view>
+
+      <view class="panel">
+        <view class="section-title">这些方面如何？（可多选）</view>
+        <view class="tag-grid">
+          <view
+            wx:for="{{tagOptions}}"
+            wx:key="*this"
+            class="tag-chip {{selectedTags.indexOf(item) >= 0 ? 'selected' : ''}}"
+            data-tag="{{item}}"
+            bindtap="toggleTag"
+          >{{item}}</view>
+        </view>
+      </view>
+
+      <view class="panel">
+        <view class="section-title">还有什么想告诉我们？（可选）</view>
+        <textarea
+          class="text-input"
+          value="{{text}}"
+          maxlength="500"
+          placeholder="今天的行程、用车或服务,有任何建议都欢迎告诉我们"
+          bindinput="onTextInput"
+        />
+      </view>
+
+      <button
+        class="submit-btn"
+        loading="{{submitting}}"
+        disabled="{{submitting || !rating}}"
+        bindtap="submitReview"
+      >提交评价</button>
+      <view class="privacy-note">提交仅用于服务改进，不会公开您的身份。</view>
+    </block>
+  </block>
+</view>

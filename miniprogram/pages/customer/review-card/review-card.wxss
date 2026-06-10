@@ -1,0 +1,179 @@
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 24rpx 60rpx;
+  background: #F5F6FA;
+}
+
+.panel {
+  margin-bottom: 18rpx;
+  padding: 26rpx 24rpx;
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  box-shadow: 0 8rpx 24rpx rgba(31, 36, 51, 0.04);
+}
+
+.panel.center {
+  text-align: center;
+  padding: 48rpx 24rpx;
+}
+
+.kicker {
+  color: #7E889A;
+  font-size: 21rpx;
+  letter-spacing: 1rpx;
+}
+
+.title {
+  margin-top: 8rpx;
+  color: #17315F;
+  font-size: 34rpx;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.sub {
+  margin-top: 8rpx;
+  color: #6E7788;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.stops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.stop-chip {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #F2F4F7;
+  color: #6672A8;
+  font-size: 22rpx;
+}
+
+.section-title {
+  color: #1F3266;
+  font-size: 28rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+}
+
+.star-row {
+  display: flex;
+  justify-content: center;
+  gap: 18rpx;
+}
+
+.star {
+  color: #D9DEE9;
+  font-size: 44rpx;
+}
+
+.star.big {
+  font-size: 64rpx;
+  line-height: 1;
+}
+
+.star.on {
+  color: #F5A623;
+}
+
+.rating-label {
+  margin-top: 12rpx;
+  text-align: center;
+  color: #6672A8;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.tag-chip {
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
+  background: #F2F4F7;
+  color: #4A5468;
+  font-size: 24rpx;
+}
+
+.tag-chip.selected {
+  background: #6672A8;
+  color: #FFFFFF;
+}
+
+.tag-chip.small {
+  padding: 6rpx 14rpx;
+  font-size: 21rpx;
+}
+
+.text-input {
+  width: 100%;
+  min-height: 160rpx;
+  box-sizing: border-box;
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+  border: 1rpx solid #DDE4F3;
+  color: #1D2433;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.submit-btn {
+  margin: 8rpx 0 0;
+  min-height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 42rpx;
+  background: #6672A8;
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 650;
+}
+
+.submit-btn[disabled] {
+  background: #C2C8D9;
+  color: #FFFFFF;
+}
+
+.privacy-note {
+  margin-top: 16rpx;
+  text-align: center;
+  color: #8A91A1;
+  font-size: 21rpx;
+}
+
+.my-review {
+  margin-top: 20rpx;
+}
+
+.my-rating {
+  display: flex;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.my-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+
+.my-text {
+  margin-top: 12rpx;
+  color: #4A5468;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+button::after {
+  border: none;
+}

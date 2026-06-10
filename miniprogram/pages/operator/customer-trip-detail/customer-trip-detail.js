@@ -74,6 +74,10 @@ Page({
     displayCityRoute: '',
     rawWarningCodes: [],
     rawCriticalWarningCodes: [],
+    reviewStats: {},
+    reviewInvites: {},
+    creatingReviewDay: 0,
+    reviewExpandedDayNo: 0,
   },
 
   onLoad(options) {
@@ -166,6 +170,90 @@ Page({
         : '',
       error: '',
       ...this.deriveDisplayMeta(nextActive),
+    });
+    this.loadReviewOverview();
+  },
+
+  // 评价相关调用统一用 canonical trip_id(预览结果里的),避免路由别名(trip_no/_id)查空
+  getReviewTripId() {
+    const preview = this.data.preview || {};
+    return preview.trip_id || preview.external_trip_id || this.data.tripId;
+  },
+
+  // 每日评价:加载本行程的评价卡与提交汇总(静默,失败不打扰主流程)
+  async loadReviewOverview() {
+    if (!this.data.tripId) return;
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'listRideReviewsForOperator',
+        data: { trip_id: this.getReviewTripId() },
+      });
+      if (!result || !result.success) return;
+      const reviewStats = {};
+      (result.day_summaries || []).forEach((summary) => {
+        reviewStats[summary.day_no] = summary;
+      });
+      this.setData({
+        reviewStats,
+        reviewInvites: result.invites_by_day || {},
+      });
+    } catch (error) {
+      // 评价云函数未部署/集合未建时静默降级,不影响行程管理主流程
+      console.warn('[customer-trip-detail] loadReviewOverview failed (non-fatal)', error);
+    }
+  },
+
+  async createDayReviewInvite(e) {
+    const dayNo = Number(e.currentTarget.dataset.day || 0);
+    if (!dayNo || this.data.creatingReviewDay) return;
+    this.setData({ creatingReviewDay: dayNo });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'createRideReviewInvite',
+        data: { trip_id: this.getReviewTripId(), day_no: dayNo },
+      });
+      if (!result || !result.success) {
+        this.setData({ creatingReviewDay: 0 });
+        wx.showToast({ title: (result && result.message) || '评价卡生成失败', icon: 'none' });
+        return;
+      }
+      this.setData({
+        creatingReviewDay: 0,
+        [`reviewInvites.${dayNo}`]: {
+          day_no: dayNo,
+          invite_code: result.invite_code,
+          share_path: result.share_path,
+          expires_at: result.expires_at || '',
+        },
+      });
+      wx.setClipboardData({
+        data: result.share_path,
+        success: () => wx.showToast({ title: '评价卡已生成，路径已复制', icon: 'success' }),
+      });
+    } catch (error) {
+      console.error('[customer-trip-detail] createRideReviewInvite failed', error);
+      this.setData({ creatingReviewDay: 0 });
+      wx.showToast({ title: '评价卡生成失败', icon: 'none' });
+    }
+  },
+
+  copyDayReviewPath(e) {
+    const dayNo = Number(e.currentTarget.dataset.day || 0);
+    const invite = this.data.reviewInvites[dayNo];
+    if (!invite || !invite.share_path) {
+      wx.showToast({ title: '请先生成评价卡', icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: invite.share_path,
+      success: () => wx.showToast({ title: '已复制评价卡路径', icon: 'success' }),
+    });
+  },
+
+  toggleReviewFeedback(e) {
+    const dayNo = Number(e.currentTarget.dataset.day || 0);
+    this.setData({
+      reviewExpandedDayNo: this.data.reviewExpandedDayNo === dayNo ? 0 : dayNo,
     });
   },
 

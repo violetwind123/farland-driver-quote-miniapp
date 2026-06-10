@@ -269,11 +269,43 @@
         <view wx:if="{{item.stops}}" class="day-summary">行程：{{item.stops}}</view>
         <view wx:if="{{item.hotel_name}}" class="day-summary">酒店：{{item.hotel_name}}</view>
         <view wx:if="{{item.transport_badge}}" class="day-summary">用车：{{item.transport_badge}}</view>
+        <view wx:if="{{reviewStats[item.day_no]}}" class="day-summary review-line">
+          评价：{{reviewStats[item.day_no].count}} 份 · 平均 {{reviewStats[item.day_no].avg_rating}} 星{{reviewStats[item.day_no].low_count ? ' · ' + reviewStats[item.day_no].low_count + ' 份低分需跟进' : ''}}
+        </view>
         <view class="day-actions">
           <button class="mini-action" data-day="{{item.day_no}}" bindtap="toggleDayExpand">{{expandedDayNo === item.day_no ? '收起详情' : '查看 Day 详情'}}</button>
-          <button class="mini-action placeholder" disabled>评价卡（待上线）</button>
-          <button class="mini-action placeholder" disabled>复制评价路径（待上线）</button>
-          <button class="mini-action placeholder" disabled>查看反馈（待上线）</button>
+          <button
+            wx:if="{{!reviewInvites[item.day_no]}}"
+            class="mini-action"
+            loading="{{creatingReviewDay === item.day_no}}"
+            disabled="{{creatingReviewDay !== 0}}"
+            data-day="{{item.day_no}}"
+            bindtap="createDayReviewInvite"
+          >生成 Day {{item.day_no}} 评价卡</button>
+          <button
+            wx:if="{{reviewInvites[item.day_no]}}"
+            class="mini-action"
+            data-day="{{item.day_no}}"
+            bindtap="copyDayReviewPath"
+          >复制评价卡路径</button>
+          <button
+            wx:if="{{reviewStats[item.day_no] && reviewStats[item.day_no].count}}"
+            class="mini-action"
+            data-day="{{item.day_no}}"
+            bindtap="toggleReviewFeedback"
+          >{{reviewExpandedDayNo === item.day_no ? '收起反馈' : '查看反馈（' + reviewStats[item.day_no].count + '）'}}</button>
+        </view>
+        <view wx:if="{{reviewExpandedDayNo === item.day_no && reviewStats[item.day_no]}}" class="review-feedback">
+          <view wx:for="{{reviewStats[item.day_no].recent}}" wx:for-item="review" wx:key="submitted_at" class="review-item {{review.needs_follow_up ? 'low' : ''}}">
+            <view class="review-head">
+              <text class="review-stars">{{review.rating}} 星</text>
+              <text class="review-meta">{{review.openid_display}}</text>
+            </view>
+            <view wx:if="{{review.tags.length}}" class="review-tags">
+              <text wx:for="{{review.tags}}" wx:for-item="tag" wx:key="*this" class="review-tag">{{tag}}</text>
+            </view>
+            <view wx:if="{{review.text}}" class="review-text">{{review.text}}</view>
+          </view>
         </view>
         <view wx:if="{{expandedDayNo === item.day_no}}" class="day-detail">
           <view wx:if="{{item.departure}}" class="service-line">出发：{{item.departure}}</view>

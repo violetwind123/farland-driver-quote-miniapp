@@ -7,6 +7,7 @@
     "pages/customer/hotel-detail/hotel-detail",
     "pages/customer/transfer-detail/transfer-detail",
     "pages/customer/benefits/benefits",
+    "pages/customer/review-card/review-card",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
     "pages/operator/trip-management/trip-management",
