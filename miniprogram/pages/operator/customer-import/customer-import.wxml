@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="kicker">CUSTOMER TRIP IMPORT</view>
     <view class="title">导入客户行程</view>
-    <view class="desc">粘贴标准 1.0.0 行程 JSON。导入页负责预览、写入、复核、重新录入、绑定客户和生成分享链接。</view>
+    <view class="desc">粘贴标准 1.0.0 行程 JSON。写入并生成草稿后会自动进入该行程的管理页（预览 / 发布 / 分享卡都在那里完成）。</view>
   </view>
 
   <view wx:if="{{importStage === 'editing' || importStage === 'previewed'}}" class="panel">
@@ -64,9 +64,9 @@
     </view>
   </view>
 
-  <view wx:if="{{importStage === 'draft_ready' || importStage === 'delivered'}}" class="panel draft-panel">
-    <view class="section-title">客户界面预览已生成</view>
-    <view class="draft-copy">该预览仅供运营核对，不会推送给客户。</view>
+  <view wx:if="{{importStage === 'draft_ready'}}" class="panel draft-panel">
+    <view class="section-title">草稿已生成</view>
+    <view class="draft-copy">通常会自动进入该行程的管理页；若停留在本页，可用下方按钮，或到「行程管理」打开该行程继续预览 / 发布 / 生成分享卡。</view>
     <view class="result-line">trip_id：{{draftTripId}}</view>
     <view class="review-state">
       <view class="review-pill">review：{{(draftPreviewMeta && draftPreviewMeta.review_status) || 'pending_review'}}</view>
@@ -75,54 +75,8 @@
     </view>
     <view class="action-row">
       <button class="secondary-btn tight-btn" loading="{{previewLoading}}" bindtap="openDraftCustomerPreviewFromImport">预览客户界面</button>
-      <button wx:if="{{importStage === 'draft_ready'}}" class="danger-btn tight-btn" loading="{{discardLoading}}" bindtap="discardDraftAndReimport">重新录入</button>
+      <button class="danger-btn tight-btn" loading="{{discardLoading}}" bindtap="discardDraftAndReimport">重新录入</button>
     </view>
-  </view>
-
-  <view wx:if="{{importStage === 'draft_ready'}}" class="panel">
-    <view class="section-title">确认无误后，绑定客户并创建分享链接</view>
-    <view class="field-label">搜索客户</view>
-    <view class="customer-search-row">
-      <input class="text-input" value="{{customerSearchKeyword}}" bindinput="onCustomerSearchInput" placeholder="客户称呼 / 手机 / 微信号" />
-      <button class="mini-btn" loading="{{customersLoading}}" bindtap="searchCustomers">搜索</button>
-    </view>
-
-    <view class="field-label">选择客户</view>
-    <picker range="{{customerPickerRange}}" value="{{selectedCustomerIndex}}" bindchange="onCustomerPickerChange">
-      <view class="picker-value">{{selectedCustomer ? (selectedCustomer.display_name || selectedCustomer.name) : (customersLoading ? '客户加载中...' : '请选择客户')}}</view>
-    </picker>
-    <view wx:if="{{selectedCustomer}}" class="selected-customer">
-      <view class="selected-main">{{selectedCustomer.display_name || selectedCustomer.name}}</view>
-      <view class="selected-sub">{{selectedCustomer.phone || '手机号未填写'}}{{selectedCustomer.wechat_id ? ' · ' + selectedCustomer.wechat_id : ''}}</view>
-    </view>
-
-    <view class="field-label">访问类型</view>
-    <picker range="{{['仅查看本次行程', '绑定 Farland 服务档案']}}" bindchange="onBindModeChange">
-      <view class="picker-value">{{bindMode === 'trip_only' ? '仅查看本次行程' : '绑定 Farland 服务档案'}}</view>
-    </picker>
-
-    <view wx:if="{{bindMode === 'trip_only'}}">
-      <view class="field-label">visible_until</view>
-      <input class="text-input" value="{{visibleUntil}}" bindinput="onVisibleUntilInput" placeholder="YYYY-MM-DD，可留空使用分享卡有效期" />
-    </view>
-
-    <textarea
-      class="note-input"
-      value="{{reviewNote}}"
-      maxlength="300"
-      placeholder="发布备注，可选"
-      bindinput="onReviewNoteInput"
-    />
-    <button class="primary-wide-btn" loading="{{deliveryLoading}}" bindtap="deliverTripToCustomer">发布并创建客户分享链接</button>
-  </view>
-
-  <view wx:if="{{importStage === 'delivered'}}" class="panel success-panel">
-    <view class="section-title">客户分享链接已生成</view>
-    <view class="result-line">share_path：{{sharePath}}</view>
-    <view class="result-line">invite_code：{{inviteCode || '-'}}</view>
-    <view class="result-line">分享对象：{{intendedCustomerName || intendedCustomerUserId || '未指定'}}</view>
-    <view class="result-line">已保存访问：客户主动保存后生成</view>
-    <button class="secondary-btn" bindtap="copySharePath">复制客户路径</button>
   </view>
 
   <view class="button-bar" wx:if="{{importStage === 'editing' || importStage === 'previewed'}}">

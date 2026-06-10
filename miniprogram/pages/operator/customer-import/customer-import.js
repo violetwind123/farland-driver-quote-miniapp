@@ -220,10 +220,6 @@ function safeString(value) {
   return value === undefined || value === null ? '' : String(value);
 }
 
-function normalizeBindMode(value) {
-  return value === 'trip_only' ? 'trip_only' : 'farland_profile';
-}
-
 Page({
   data: {
     jsonText: '',
@@ -231,7 +227,6 @@ Page({
     dryRunLoading: false,
     applyLoading: false,
     previewLoading: false,
-    deliveryLoading: false,
     discardLoading: false,
     preview: null,
     canApplyPreview: false,
@@ -239,28 +234,7 @@ Page({
     draftTripId: '',
     draftPreviewReady: false,
     draftPreviewMeta: null,
-    reviewNote: '',
-    customerSearchKeyword: '',
-    customersLoading: false,
-    customerOptions: [],
-    customerPickerRange: [],
-    selectedCustomerIndex: -1,
-    selectedCustomer: null,
-    bindMode: 'farland_profile',
-    visibleUntil: '',
-    sharePath: '',
-    inviteCode: '',
-    inviteExpiresAt: '',
-    customerTripAccessId: '',
-    customerBound: false,
-    intendedCustomerUserId: '',
-    intendedCustomerName: '',
-    accessReused: false,
     sampleHint,
-  },
-
-  onLoad() {
-    this.loadCustomerOptions();
   },
 
   onJsonInput(e) {
@@ -273,72 +247,6 @@ Page({
       draftTripId: '',
       draftPreviewReady: false,
       draftPreviewMeta: null,
-      sharePath: '',
-      inviteCode: '',
-      inviteExpiresAt: '',
-      customerTripAccessId: '',
-      customerBound: false,
-      accessReused: false,
-    });
-  },
-
-  onReviewNoteInput(e) {
-    this.setData({ reviewNote: e.detail.value || '' });
-  },
-
-  onVisibleUntilInput(e) {
-    this.setData({ visibleUntil: e.detail.value || '' });
-  },
-
-  onBindModeChange(e) {
-    const modes = ['trip_only', 'farland_profile'];
-    this.setData({ bindMode: normalizeBindMode(modes[Number(e.detail.value)] || 'farland_profile') });
-  },
-
-  onCustomerSearchInput(e) {
-    this.setData({ customerSearchKeyword: e.detail.value || '' });
-  },
-
-  async loadCustomerOptions(keyword = this.data.customerSearchKeyword) {
-    this.setData({ customersLoading: true });
-    try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'searchCustomersForOperator',
-        data: {
-          keyword: safeString(keyword).trim(),
-          limit: 50,
-        },
-      });
-      if (!result || !result.success) {
-        this.setData({ customersLoading: false });
-        wx.showToast({ title: (result && result.message) || '客户加载失败', icon: 'none' });
-        return;
-      }
-      const customers = result.customers || [];
-      this.setData({
-        customersLoading: false,
-        customerOptions: customers,
-        customerPickerRange: customers.map((customer) => {
-          const contact = [customer.phone, customer.wechat_id].filter(Boolean).join(' / ');
-          return contact ? `${customer.display_name || customer.name} · ${contact}` : (customer.display_name || customer.name || 'Farland 客户');
-        }),
-      });
-    } catch (error) {
-      this.setData({ customersLoading: false });
-      wx.showToast({ title: '客户加载失败', icon: 'none' });
-    }
-  },
-
-  searchCustomers() {
-    this.loadCustomerOptions();
-  },
-
-  onCustomerPickerChange(e) {
-    const index = Number(e.detail.value);
-    const selectedCustomer = this.data.customerOptions[index] || null;
-    this.setData({
-      selectedCustomerIndex: selectedCustomer ? index : -1,
-      selectedCustomer,
     });
   },
 
@@ -352,9 +260,6 @@ Page({
       draftTripId: '',
       draftPreviewReady: false,
       draftPreviewMeta: null,
-      sharePath: '',
-      inviteCode: '',
-      customerTripAccessId: '',
     });
   },
 
@@ -559,11 +464,6 @@ Page({
       errors: [],
       dryRunLoading: false,
       applyLoading: false,
-      sharePath: '',
-      inviteCode: '',
-      customerTripAccessId: '',
-      customerBound: false,
-      accessReused: false,
     });
 
     // 草稿已建好,直接落在该行程的单行程管理页(状态/预览/发布/分享卡都在那)。
@@ -684,100 +584,7 @@ Page({
       draftTripId: '',
       draftPreviewReady: false,
       draftPreviewMeta: null,
-      reviewNote: '',
-      selectedCustomerIndex: -1,
-      selectedCustomer: null,
-      visibleUntil: '',
-      sharePath: '',
-      inviteCode: '',
-      inviteExpiresAt: '',
-      customerTripAccessId: '',
-      customerBound: false,
-      accessReused: false,
       discardLoading: false,
-    });
-  },
-
-  async deliverTripToCustomer() {
-    const tripId = this.data.draftTripId;
-    const selectedCustomer = this.data.selectedCustomer;
-    if (!tripId || !this.data.draftPreviewReady) {
-      wx.showToast({ title: '请先生成客户界面预览', icon: 'none' });
-      return;
-    }
-    if (!selectedCustomer) {
-      wx.showToast({ title: '请选择客户', icon: 'none' });
-      return;
-    }
-    const criticalWarnings = (this.data.preview && this.data.preview.criticalWarningList) || [];
-    if (criticalWarnings.length) {
-      wx.showToast({ title: '存在关键警告，不能发布', icon: 'none' });
-      return;
-    }
-    this.setData({ deliveryLoading: true, errors: [] });
-    try {
-      const { result: publishResult } = await wx.cloud.callFunction({
-        name: 'publishCustomerTrip',
-        data: {
-          trip_id: tripId,
-          review_note: this.data.reviewNote,
-        },
-      });
-      if (!publishResult || !publishResult.success) {
-        this.setData({
-          deliveryLoading: false,
-          errors: [(publishResult && publishResult.message) || '发布失败'],
-        });
-        wx.showToast({ title: (publishResult && publishResult.message) || '发布失败', icon: 'none' });
-        return;
-      }
-      const customerUserId = selectedCustomer.customer_user_id || selectedCustomer.user_id;
-      const { result: inviteResult } = await wx.cloud.callFunction({
-        name: 'createCustomerTripInvite',
-        data: {
-          trip_id: publishResult.trip_id || tripId,
-          customer_user_id: customerUserId,
-          bind_mode: this.data.bindMode,
-          visible_until: this.data.visibleUntil,
-          expires_in_days: 30,
-        },
-      });
-      if (!inviteResult || !inviteResult.success) {
-        this.setData({
-          deliveryLoading: false,
-          errors: [(inviteResult && inviteResult.message) || '分享链接生成失败'],
-        });
-        wx.showToast({ title: (inviteResult && inviteResult.message) || '分享失败', icon: 'none' });
-        return;
-      }
-      this.setData({
-        importStage: 'delivered',
-        deliveryLoading: false,
-        sharePath: inviteResult.share_path || inviteResult.path || '',
-        inviteCode: inviteResult.invite_code || '',
-        inviteExpiresAt: inviteResult.expires_at || '',
-        customerTripAccessId: inviteResult.customer_trip_access_id || '',
-        customerBound: Boolean(inviteResult.customer_bound),
-        intendedCustomerUserId: inviteResult.intended_customer_user_id || '',
-        intendedCustomerName: inviteResult.intended_customer_name || '',
-        accessReused: Boolean(inviteResult.access_reused),
-      });
-      wx.showToast({ title: '分享链接已生成', icon: 'success' });
-    } catch (error) {
-      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
-      this.setData({ deliveryLoading: false, errors: [`交付失败：${errMsg}`] });
-      wx.showToast({ title: '交付失败', icon: 'none' });
-    }
-  },
-
-  copySharePath() {
-    if (!this.data.sharePath) {
-      wx.showToast({ title: '暂无客户路径', icon: 'none' });
-      return;
-    }
-    wx.setClipboardData({
-      data: this.data.sharePath,
-      success: () => wx.showToast({ title: '已复制客户路径', icon: 'success' }),
     });
   },
 });
