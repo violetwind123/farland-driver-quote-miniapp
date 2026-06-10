@@ -508,44 +508,13 @@ Page({
       return;
     }
 
+    let draftResult = null;
     try {
-      const { result: draftResult } = await wx.cloud.callFunction({
+      const buildRes = await wx.cloud.callFunction({
         name: 'buildCustomerTripVisibleDraft',
         data: { trip_id: tripId },
       });
-      if (!draftResult || !draftResult.success) {
-        this.setData({
-          errors: [(draftResult && draftResult.message) || '客户界面预览生成失败'],
-          dryRunLoading: false,
-          applyLoading: false,
-        });
-        wx.showToast({ title: '生成预览失败', icon: 'none' });
-        return;
-      }
-      const previewPayload = await this.loadOperatorCustomerPreview(tripId);
-      const previewMeta = (previewPayload && previewPayload.preview_meta) || {};
-      this.setData({
-        importStage: 'draft_ready',
-        draftTripId: draftResult.trip_id || tripId,
-        draftPreviewReady: true,
-        draftPreviewMeta: previewMeta,
-        preview: this.normalizePreviewResult({
-          ...importResult,
-          ...draftResult,
-          preview_meta: previewMeta,
-          dry_run: false,
-        }),
-        canApplyPreview: false,
-        errors: [],
-        dryRunLoading: false,
-        applyLoading: false,
-        sharePath: '',
-        inviteCode: '',
-        customerTripAccessId: '',
-        customerBound: false,
-        accessReused: false,
-      });
-      wx.showToast({ title: '客户界面预览已生成', icon: 'success' });
+      draftResult = buildRes.result;
     } catch (error) {
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
       console.error('[customer-import] buildCustomerTripVisibleDraft failed', error);
@@ -555,7 +524,60 @@ Page({
         applyLoading: false,
       });
       wx.showToast({ title: '生成预览失败', icon: 'none' });
+      return;
     }
+    if (!draftResult || !draftResult.success) {
+      this.setData({
+        errors: [(draftResult && draftResult.message) || '客户界面预览生成失败'],
+        dryRunLoading: false,
+        applyLoading: false,
+      });
+      wx.showToast({ title: '生成预览失败', icon: 'none' });
+      return;
+    }
+
+    let previewPayload = null;
+    try {
+      previewPayload = await this.loadOperatorCustomerPreview(tripId);
+    } catch (metaError) {
+      // 预览元信息加载失败不阻断主流程:草稿已建好,落点页会自己加载
+      console.warn('[customer-import] preview meta load failed (non-fatal)', metaError);
+    }
+    const previewMeta = (previewPayload && previewPayload.preview_meta) || {};
+    this.setData({
+      importStage: 'draft_ready',
+      draftTripId: draftResult.trip_id || tripId,
+      draftPreviewReady: true,
+      draftPreviewMeta: previewMeta,
+      preview: this.normalizePreviewResult({
+        ...importResult,
+        ...draftResult,
+        preview_meta: previewMeta,
+        dry_run: false,
+      }),
+      canApplyPreview: false,
+      errors: [],
+      dryRunLoading: false,
+      applyLoading: false,
+      sharePath: '',
+      inviteCode: '',
+      customerTripAccessId: '',
+      customerBound: false,
+      accessReused: false,
+    });
+
+    // 草稿已建好,直接落在该行程的单行程管理页(状态/预览/发布/分享卡都在那)。
+    // redirectTo 替换出栈:返回回到上一页(行程管理或运营中心),导入页用完即弃。
+    wx.showToast({ title: '已写入并生成草稿', icon: 'success' });
+    const detailTripId = draftResult.trip_id || tripId;
+    wx.redirectTo({
+      url: `/pages/operator/customer-trip-detail/customer-trip-detail?trip_id=${encodeURIComponent(detailTripId)}`,
+      fail: (error) => {
+        console.error('[customer-import] open trip detail failed', error);
+        // 兜底:留在导入页 draft_ready 状态,运营仍可用现有按钮
+        wx.showToast({ title: '已写入并生成草稿，请在行程管理打开该行程', icon: 'none' });
+      },
+    });
   },
 
   async loadOperatorCustomerPreview(tripId) {

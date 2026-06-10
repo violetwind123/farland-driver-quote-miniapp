@@ -67,6 +67,13 @@ Page({
     }, () => this.loadTrips());
   },
 
+  onShow() {
+    // 从单行程管理页返回时静默刷新,让新增/状态变化即时反映在列表里
+    if (this._loadedOnce && !this.data.loading && !this.data.refreshing) {
+      this.loadTrips({ silent: true });
+    }
+  },
+
   onPullDownRefresh() {
     this.loadTrips({ silent: true }).finally(() => {
       wx.stopPullDownRefresh();
@@ -93,6 +100,7 @@ Page({
 
   async loadTrips(options = {}) {
     const silent = Boolean(options.silent);
+    this._loadedOnce = true;
     if (!silent) {
       this.setData({ loading: true, error: '' });
     } else {
