@@ -65,7 +65,7 @@
 | D1 取消分享卡预绑定(原 P4-D2B) | `createCustomerTripInvite` 停写 access、仅存 intended-customer 元数据;`saveCustomerTripToProfile` 一律写 `granted_source=invite_save`;导入页孤儿投递面板已移除 | ✅ `73b68f6` / `363148a` |
 | D2 计数口径收口 | `listOperatorTrips` 已保存数排除 `granted_source=operator_share_card`(内存过滤) | ✅ `73b68f6` |
 | D3 存量清理(原 P4-D2B-mig) | 历史 `operator_share_card` access:dry-run + 备份 + 回滚后清理 | 🟡 待 D1 上线 |
-| D4 行程归属(原 P4-D3) | trip 指定 primary customer / family / traveler list(运营归属,**非 access**) | 🟡 规划 |
+| D4 行程归属(原 P4-D3) | trip 指定 primary customer / family / traveler list(运营归属,**非 access**) | 🟡 已规格化:`p4-d4-trip-ownership-task.md` |
 
 ---
 
@@ -115,4 +115,5 @@ C1✅ 冻结UI ─→ C2✅ 091B ─→ C3A✅ 通用兼容 ─→ ▶️ C3B �
 | `p4-c3-091-data-driven-switch-plan.md` | C3 切通用管线决策方案 | ✅ `b94f4af` |
 | `p4-c3b-091-live-switch-execution-checklist.md` | C3B 生产切换执行清单 + 091B 证据 + 写入前决策护栏 + 最终 guardrail 澄清 | ✅ `f42a25a` / `74fa983` / `9e37325` / `b6b48e5` |
 | `p4-c3b-091-official-write-approval-packet-template.md` | C3B 正式写入前 approval packet 模板 | ✅ `852a5e2` |
+| `p4-d4-trip-ownership-task.md` | D4 行程归属任务:运营编辑 intended customer / family / travelers,不写 access | 🟡 未执行 |
 | `p4-master-roadmap.md`(本文件) | 全局总表 | ✅ `58911c9` |
