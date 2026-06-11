@@ -13,7 +13,8 @@
 
 - **普通行程的"运营改行程闭环"已全线打通**:行程管理 → 行程编号 → 提交 JSON 覆盖 → 发布 → 客户刷新可见。
 - **当前唯一硬骨头 = 091 三层硬编码**,它阻塞"所有行程统一数据驱动"。C1 baseline 已冻结,C2 091B 本地实验已证明通用 normalizer 能保留 36 张 day/timeline 卡;C3A 已让通用路径具备顶层 `destination_cards` parity 和酒店/航班去重。C3B 官方 091 source/draft 写入已按批准执行并在模拟器验证运营详情可加载;客户可见版本仍停在 published v24,尚未发布新草稿。`0c2d7c0` 已补 invite/share-card 的运行时用车投影代码,部署后真实 active invite 验证了 `temporary_invite` 不自动保存、敏感字段扫描为空;但 Day 4 司机来自 v24 硬编码快照透传(`status_text=车辆与司机已确认` ≠ 投影输出 `已分配司机`),`0c2d7c0` 的 `transport_orders` 投影未确认触发——发布无身份通用草稿后司机能否显示仍属 D-1 未验证项。
-- 其余(客户绑定收口、行程归属、评价系统)都是**并行增量**,无强依赖。
+- 服务评价云函数已部署到 `cloud1-d3gmbz2bw024f051b`;开发者工具模拟器已验证运营「评价汇总」页可打开并显示空态。真机验证待用户返回后补。
+- 其余(行程归属、历史 access 清理)都是**并行增量**,无强依赖。
 
 ---
 
@@ -73,8 +74,8 @@
 | 任务 | 目标 | 状态 |
 | --- | --- | --- |
 | E1 每日评价入口(原 P4-D4) | trip-detail 每日卡:生成 Day N 评价卡(自动复制路径)/ 复制路径 / 内联查看反馈 + 份数均分 | ✅ `e736c54` |
-| E2 评价卡页面 + 提交(原 P5-1) | `pages/customer/review-card` + 4 个云函数;锚点 `trip_id + day_no`;同 openid 同 day 幂等;打开/提交均不创建 access;max_openids/过期/白名单/低分标记 | ✅ `e736c54`(待部署 4 函数) |
-| E3 评价结果汇总(原 P5-2) | 单行程:`listRideReviewsForOperator`(day/driver 汇总+低分标记);跨行程:`listDriverReviewSummaries` + 运营「评价汇总」页(按司机/行程、低分跟进列表、未归因桶) | ✅ `e736c54` / `ce04c14`(待部署) |
+| E2 评价卡页面 + 提交(原 P5-1) | `pages/customer/review-card` + 4 个云函数;锚点 `trip_id + day_no`;同 openid 同 day 幂等;打开/提交均不创建 access;max_openids/过期/白名单/低分标记 | ✅ `e736c54` / 已部署 `createRideReviewInvite`、`getRideReviewContext`、`submitRideReview`、`listRideReviewsForOperator`;真机待验 |
+| E3 评价结果汇总(原 P5-2) | 单行程:`listRideReviewsForOperator`(day/driver 汇总+低分标记);跨行程:`listDriverReviewSummaries` + 运营「评价汇总」页(按司机/行程、低分跟进列表、未归因桶) | ✅ `e736c54` / `ce04c14`;`listDriverReviewSummaries` 已部署,模拟器空态通过;真机待验 |
 
 ---
 
