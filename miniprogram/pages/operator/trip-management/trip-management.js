@@ -100,6 +100,8 @@ Page({
 
   async loadTrips(options = {}) {
     const silent = Boolean(options.silent);
+    const loadSeq = (this._loadSeq || 0) + 1;
+    this._loadSeq = loadSeq;
     this._loadedOnce = true;
     if (!silent) {
       this.setData({ loading: true, error: '' });
@@ -117,14 +119,18 @@ Page({
         },
       });
 
+      if (loadSeq !== this._loadSeq) return;
       if (!result || !result.success) {
-        this.setData({
+        const nextData = {
           loading: false,
           refreshing: false,
           error: (result && result.message) || '行程列表加载失败',
-          trips: [],
-        });
-        wx.showToast({ title: (result && result.message) || '加载失败', icon: 'none' });
+        };
+        if (!silent) nextData.trips = [];
+        this.setData(nextData);
+        if (!silent) {
+          wx.showToast({ title: (result && result.message) || '加载失败', icon: 'none' });
+        }
         return;
       }
 
@@ -135,15 +141,19 @@ Page({
         trips: (result.trips || []).map((trip) => this.normalizeTripListItem(trip)),
       });
     } catch (error) {
+      if (loadSeq !== this._loadSeq) return;
       console.error('[trip-management] listOperatorTrips failed', error);
       const message = (error && (error.errMsg || error.message)) || '未知错误';
-      this.setData({
+      const nextData = {
         loading: false,
         refreshing: false,
         error: `行程列表加载失败：${message}`,
-        trips: [],
-      });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      };
+      if (!silent) nextData.trips = [];
+      this.setData(nextData);
+      if (!silent) {
+        wx.showToast({ title: '加载失败', icon: 'none' });
+      }
     }
   },
 

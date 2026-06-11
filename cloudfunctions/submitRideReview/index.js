@@ -109,7 +109,7 @@ async function findDayDate(tripId, dayNo) {
     if (trip) {
       const snapshot = trip.published_snapshot || trip.draft_snapshot || {};
       const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
-      const day = days.find((item, index) => (item.day_no || index + 1) === dayNo);
+      const day = days.find((item, index) => Number(item.day_no || index + 1) === Number(dayNo));
       return day ? safeString(day.date) : '';
     }
   }

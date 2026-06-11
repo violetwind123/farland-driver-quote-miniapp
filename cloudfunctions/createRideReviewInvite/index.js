@@ -65,6 +65,12 @@ function isActiveInvite(invite, now) {
   return Number.isNaN(expires.getTime()) || expires.getTime() > now;
 }
 
+function findPublishedDay(trip, dayNo) {
+  const snapshot = trip && trip.published_snapshot;
+  const days = snapshot && Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+  return days.find((day, index) => Number(day.day_no || index + 1) === Number(dayNo));
+}
+
 exports.main = async (event = {}) => {
   const auth = await requireRole(cloud, db, ['operator', 'super_admin']);
   if (!auth.ok) {
@@ -87,6 +93,9 @@ exports.main = async (event = {}) => {
   // 评价卡发给行程中的客户群,行程必须已发布;也避免未发布草稿内容经评价上下文外泄
   if (trip.visibility_status !== 'published') {
     return { success: false, code: 409, error_code: 'TRIP_NOT_PUBLISHED', message: '行程尚未发布，发布后才能发送每日评价卡' };
+  }
+  if (!findPublishedDay(trip, dayNo)) {
+    return { success: false, code: 409, error_code: 'REVIEW_DAY_NOT_PUBLISHED', message: '该日期尚未发布，不能生成评价卡' };
   }
   const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
 

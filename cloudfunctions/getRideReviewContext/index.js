@@ -82,7 +82,7 @@ function buildDayContext(trip, dayNo) {
     stops: [],
   };
   if (!snapshot || !Array.isArray(snapshot.itinerary_days)) return base;
-  const day = snapshot.itinerary_days.find((item, index) => (item.day_no || index + 1) === dayNo);
+  const day = snapshot.itinerary_days.find((item, index) => Number(item.day_no || index + 1) === Number(dayNo));
   if (!day) return base;
   const items = Array.isArray(day.timeline_items) ? day.timeline_items : [];
   return {

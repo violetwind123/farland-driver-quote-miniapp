@@ -143,7 +143,8 @@ Page({
     const state = this.getStateCopy(result, hasDraft, hasPublished);
     const isTrip091 = this.isTrip091(result, draftSnapshot, publishedSnapshot);
     const nextActive = nextActiveType === 'draft' ? draftSnapshot : publishedSnapshot;
-    const bizState = this.deriveBusinessState(result, hasDraft, hasPublished);
+    const changedSections = (result.diff_summary && result.diff_summary.changed_sections) || [];
+    const bizState = this.deriveBusinessState(result, hasDraft, hasPublished, changedSections);
     this.setData({
       loading: false,
       refreshing: false,
@@ -156,13 +157,13 @@ Page({
       criticalWarningList: (result.critical_warning_codes || []).map(translateWarning),
       rawWarningCodes: result.warning_codes || [],
       rawCriticalWarningCodes: result.critical_warning_codes || [],
-      changedSections: (result.diff_summary && result.diff_summary.changed_sections) || [],
+      changedSections,
       hasDraft,
       hasPublished,
       stateText: state.text,
       stateHint: state.hint,
       bizState,
-      dayStatusText: bizState.day_status_text,
+      dayStatusText: this.getDayStatusText(bizState, nextActiveType),
       canPublish: hasDraft && !(result.critical_warning_codes || []).length,
       isTrip091,
       overwriteExcludedReason: isTrip091
@@ -257,11 +258,22 @@ Page({
     });
   },
 
-  deriveBusinessState(result, hasDraft, hasPublished) {
+  deriveBusinessState(result, hasDraft, hasPublished, changedSections = []) {
     const review = result.review_status || '';
     const visibility = result.visibility_status || '';
     const version = result.published_version || 0;
     const published = visibility === 'published' && hasPublished;
+    const hasUnpublishedChanges = Array.isArray(changedSections) && changedSections.length > 0;
+    if (review === 'discarded' || visibility === 'discarded' || result.status === 'discarded') {
+      return {
+        state_text: '行程已废弃',
+        customer_seeing_text: published ? `当前发布版 v${version}` : '客户看不到此行程',
+        next_step_text: '如需继续使用，请重新导入或恢复行程',
+        flow_step: 0,
+        day_status_text: '已废弃',
+        draft_day_status_text: '已废弃',
+      };
+    }
     if (!hasDraft && !published) {
       return {
         state_text: '已导入，待生成草稿',
@@ -269,6 +281,7 @@ Page({
         next_step_text: '生成客户可见草稿',
         flow_step: 1,
         day_status_text: '未发布',
+        draft_day_status_text: '未发布',
       };
     }
     if (hasDraft && !published) {
@@ -278,6 +291,17 @@ Page({
         next_step_text: '审阅草稿 → 预览客户页面 → 发布',
         flow_step: 1,
         day_status_text: '草稿',
+        draft_day_status_text: '草稿',
+      };
+    }
+    if (published && review === 'approved' && hasUnpublishedChanges) {
+      return {
+        state_text: `已发布 v${version}，存在未发布的草稿改动`,
+        customer_seeing_text: `客户仍看到当前发布版 v${version}`,
+        next_step_text: '审阅草稿差异 → 重新发布',
+        flow_step: 1,
+        day_status_text: '待发布',
+        draft_day_status_text: '待发布',
       };
     }
     if (published && review === 'approved') {
@@ -287,6 +311,7 @@ Page({
         next_step_text: '生成 / 转发客户分享卡',
         flow_step: 3,
         day_status_text: '已发布',
+        draft_day_status_text: '草稿',
       };
     }
     if (published && review === 'needs_review') {
@@ -296,6 +321,7 @@ Page({
         next_step_text: '审阅新草稿 → 重新发布',
         flow_step: 1,
         day_status_text: '待复核',
+        draft_day_status_text: '待复核',
       };
     }
     const legacy = this.getStateCopy(result, hasDraft, hasPublished);
@@ -305,7 +331,13 @@ Page({
       next_step_text: '状态异常，请联系开发核查',
       flow_step: 1,
       day_status_text: published ? '已发布' : '草稿',
+      draft_day_status_text: published ? '草稿' : '草稿',
     };
+  },
+
+  getDayStatusText(bizState = {}, snapshotType = 'draft') {
+    if (snapshotType === 'published') return '已发布';
+    return bizState.draft_day_status_text || bizState.day_status_text || '草稿';
   },
 
   deriveDisplayMeta(snapshot) {
@@ -343,10 +375,10 @@ Page({
     const hotels = Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : [];
     const summaries = Array.isArray(snapshot.daily_summary_cards) ? snapshot.daily_summary_cards : [];
     return days.map((day, index) => {
-      const dayNo = day.day_no || index + 1;
-      const summary = summaries.find((card) => (card.day_no || 0) === dayNo) || {};
-      const hotel = hotels.find((item) => item.linked_day_no === dayNo
-        || (Array.isArray(item.linked_day_nos) && item.linked_day_nos.indexOf(dayNo) >= 0));
+      const dayNo = Number(day.day_no || index + 1);
+      const summary = summaries.find((card) => Number(card.day_no || 0) === dayNo) || {};
+      const hotel = hotels.find((item) => Number(item.linked_day_no || 0) === dayNo
+        || (Array.isArray(item.linked_day_nos) && item.linked_day_nos.some((linkedDayNo) => Number(linkedDayNo) === dayNo)));
       const items = Array.isArray(day.timeline_items) ? day.timeline_items : [];
       const stops = items.slice(0, 3).map((node) => node.title).filter(Boolean).join(' / ');
       return {
@@ -747,6 +779,7 @@ Page({
     this.setData({
       activeSnapshotType: type,
       activeSnapshot: nextActive,
+      dayStatusText: this.getDayStatusText(this.data.bizState, type),
       ...this.deriveDisplayMeta(nextActive),
     });
   },
@@ -1009,6 +1042,7 @@ Page({
       this.setData({
         activeSnapshotType: 'draft',
         activeSnapshot: this.data.draftSnapshot,
+        dayStatusText: this.getDayStatusText(this.data.bizState, 'draft'),
         ...this.deriveDisplayMeta(this.data.draftSnapshot),
       });
     }
