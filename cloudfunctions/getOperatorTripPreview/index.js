@@ -286,6 +286,25 @@ function compactSnapshotForOperatorPreview(snapshot) {
   };
 }
 
+function ownershipProjection(trip) {
+  const customer = hasObject(trip.customer) ? trip.customer : {};
+  return {
+    primary_customer_user_id: trip.primary_customer_user_id || '',
+    customer_user_id: trip.customer_user_id || trip.primary_customer_user_id || '',
+    customer_user_ids: Array.isArray(trip.customer_user_ids) ? trip.customer_user_ids : [],
+    customer_profile_id: trip.customer_profile_id || customer.customer_profile_id || '',
+    party_name: trip.party_name || '',
+    traveler_names: Array.isArray(trip.traveler_names) ? trip.traveler_names : [],
+    customer: compactPlainObject(customer, ['customer_profile_id', 'display_name', 'name']),
+    customer_display_name: trip.customer_display_name || customer.display_name || '',
+    customer_name: trip.customer_name || customer.name || customer.display_name || '',
+    customer_phone: trip.customer_phone || '',
+    customer_wechat_id: trip.customer_wechat_id || '',
+    ownership_updated_at: trip.ownership_updated_at || '',
+    ownership_updated_by: trip.ownership_updated_by || '',
+  };
+}
+
 function diffSummary(trip) {
   const hasPublishedVersion = Boolean(trip.published_version > 0 && hasObject(trip.published_snapshot));
   const draft = hasObject(trip.draft_snapshot) ? trip.draft_snapshot : {};
@@ -350,6 +369,7 @@ exports.main = async (event = {}) => {
     critical_warning_codes: trip.critical_warning_codes || [],
     draft_snapshot: compactSnapshotForOperatorPreview(trip.draft_snapshot),
     published_snapshot: compactSnapshotForOperatorPreview(trip.published_snapshot),
+    ownership: ownershipProjection(trip),
     published_version: trip.published_version || 0,
     diff_summary: diffSummary(trip),
   };

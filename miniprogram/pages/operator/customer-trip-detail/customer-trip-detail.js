@@ -78,6 +78,18 @@ Page({
     reviewInvites: {},
     creatingReviewDay: 0,
     reviewExpandedDayNo: 0,
+    ownership: null,
+    ownershipEditing: false,
+    ownershipSaving: false,
+    ownershipSearchKeyword: '',
+    ownershipSearchLoading: false,
+    ownershipSearchResults: [],
+    ownershipForm: {
+      party_name: '',
+      primary_customer_user_id: '',
+      primary_customer_display_name: '',
+      traveler_names_text: '',
+    },
   },
 
   onLoad(options) {
@@ -145,10 +157,17 @@ Page({
     const nextActive = nextActiveType === 'draft' ? draftSnapshot : publishedSnapshot;
     const changedSections = (result.diff_summary && result.diff_summary.changed_sections) || [];
     const bizState = this.deriveBusinessState(result, hasDraft, hasPublished, changedSections);
+    const ownership = this.normalizeOwnership(result.ownership || {});
+    const ownershipFormPatch = this.data.ownershipEditing ? {} : {
+      ownershipForm: this.buildOwnershipForm(ownership),
+      ownershipSearchKeyword: '',
+      ownershipSearchResults: [],
+    };
     this.setData({
       loading: false,
       refreshing: false,
       preview: result,
+      ownership,
       draftSnapshot,
       publishedSnapshot,
       activeSnapshotType: nextActiveType,
@@ -171,8 +190,58 @@ Page({
         : '',
       error: '',
       ...this.deriveDisplayMeta(nextActive),
+      ...ownershipFormPatch,
     });
     this.loadReviewOverview();
+  },
+
+  normalizeOwnership(ownership = {}) {
+    const customer = ownership.customer || {};
+    const travelerNames = Array.isArray(ownership.traveler_names)
+      ? ownership.traveler_names.map((name) => String(name || '').trim()).filter(Boolean)
+      : [];
+    const primaryName = ownership.customer_display_name
+      || customer.display_name
+      || ownership.customer_name
+      || customer.name
+      || '';
+    return {
+      primary_customer_user_id: ownership.primary_customer_user_id || ownership.customer_user_id || '',
+      customer_user_id: ownership.customer_user_id || ownership.primary_customer_user_id || '',
+      customer_user_ids: Array.isArray(ownership.customer_user_ids) ? ownership.customer_user_ids : [],
+      customer_profile_id: ownership.customer_profile_id || customer.customer_profile_id || '',
+      party_name: ownership.party_name || '',
+      traveler_names: travelerNames,
+      traveler_names_display: travelerNames.length ? travelerNames.join(' / ') : '未填写',
+      primary_customer_display_name: primaryName,
+      customer_display_name: ownership.customer_display_name || customer.display_name || '',
+      customer_name: ownership.customer_name || customer.name || '',
+      customer_phone: ownership.customer_phone || '',
+      customer_wechat_id: ownership.customer_wechat_id || '',
+      ownership_updated_at: ownership.ownership_updated_at || '',
+    };
+  },
+
+  buildOwnershipForm(ownership = {}) {
+    return {
+      party_name: ownership.party_name || '',
+      primary_customer_user_id: ownership.primary_customer_user_id || '',
+      primary_customer_display_name: ownership.primary_customer_display_name || '',
+      traveler_names_text: Array.isArray(ownership.traveler_names) ? ownership.traveler_names.join('\n') : '',
+    };
+  },
+
+  normalizeTravelerNamesText(text) {
+    const seen = {};
+    return String(text || '')
+      .split(/[\n,，、/]+/)
+      .map((name) => name.trim().slice(0, 30))
+      .filter((name) => {
+        if (!name || seen[name]) return false;
+        seen[name] = true;
+        return true;
+      })
+      .slice(0, 20);
   },
 
   // 评价相关调用统一用 canonical trip_id(预览结果里的),避免路由别名(trip_no/_id)查空
@@ -256,6 +325,122 @@ Page({
     this.setData({
       reviewExpandedDayNo: this.data.reviewExpandedDayNo === dayNo ? 0 : dayNo,
     });
+  },
+
+  startOwnershipEdit() {
+    const ownership = this.data.ownership || this.normalizeOwnership({});
+    this.setData({
+      ownershipEditing: true,
+      ownershipForm: this.buildOwnershipForm(ownership),
+      ownershipSearchKeyword: ownership.primary_customer_display_name || '',
+      ownershipSearchResults: [],
+    });
+  },
+
+  cancelOwnershipEdit() {
+    this.setData({
+      ownershipEditing: false,
+      ownershipSaving: false,
+      ownershipSearchKeyword: '',
+      ownershipSearchResults: [],
+      ownershipForm: this.buildOwnershipForm(this.data.ownership || {}),
+    });
+  },
+
+  onOwnershipPartyInput(e) {
+    this.setData({ 'ownershipForm.party_name': e.detail.value || '' });
+  },
+
+  onOwnershipTravelerInput(e) {
+    this.setData({ 'ownershipForm.traveler_names_text': e.detail.value || '' });
+  },
+
+  onOwnershipSearchInput(e) {
+    this.setData({ ownershipSearchKeyword: e.detail.value || '' });
+  },
+
+  async searchOwnershipCustomers() {
+    const keyword = String(this.data.ownershipSearchKeyword || '').trim();
+    if (this.data.ownershipSearchLoading) return;
+    this.setData({ ownershipSearchLoading: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'searchCustomersForOperator',
+        data: { keyword, limit: 8 },
+      });
+      this.setData({
+        ownershipSearchLoading: false,
+        ownershipSearchResults: result && result.success ? (result.customers || []) : [],
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '客户搜索失败', icon: 'none' });
+      }
+    } catch (error) {
+      console.error('[customer-trip-detail] search ownership customers failed', error);
+      this.setData({ ownershipSearchLoading: false, ownershipSearchResults: [] });
+      wx.showToast({ title: '客户搜索失败', icon: 'none' });
+    }
+  },
+
+  selectOwnershipCustomer(e) {
+    const index = Number(e.currentTarget.dataset.index || 0);
+    const customer = this.data.ownershipSearchResults[index];
+    if (!customer) return;
+    this.setData({
+      'ownershipForm.primary_customer_user_id': customer.user_id || customer.customer_user_id || '',
+      'ownershipForm.primary_customer_display_name': customer.display_name || customer.name || 'Farland 客户',
+      ownershipSearchKeyword: customer.display_name || customer.name || '',
+      ownershipSearchResults: [],
+    });
+  },
+
+  clearOwnershipPrimaryCustomer() {
+    this.setData({
+      'ownershipForm.primary_customer_user_id': '',
+      'ownershipForm.primary_customer_display_name': '',
+      ownershipSearchKeyword: '',
+      ownershipSearchResults: [],
+    });
+  },
+
+  async saveOwnership() {
+    if (this.data.ownershipSaving) return;
+    const form = this.data.ownershipForm || {};
+    const primaryCustomerId = String(form.primary_customer_user_id || '').trim();
+    const travelerNames = this.normalizeTravelerNamesText(form.traveler_names_text);
+    this.setData({ ownershipSaving: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'updateOperatorTripOwnership',
+        data: {
+          trip_id: this.data.tripId,
+          primary_customer_user_id: primaryCustomerId,
+          customer_user_ids: primaryCustomerId ? [primaryCustomerId] : [],
+          party_name: form.party_name || '',
+          traveler_names: travelerNames,
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({ ownershipSaving: false });
+        wx.showToast({ title: (result && result.message) || '归属保存失败', icon: 'none' });
+        return;
+      }
+      const ownership = this.normalizeOwnership(result.ownership || {});
+      this.setData({
+        ownershipSaving: false,
+        ownershipEditing: false,
+        ownership,
+        ownershipForm: this.buildOwnershipForm(ownership),
+        ownershipSearchKeyword: '',
+        ownershipSearchResults: [],
+      });
+      wx.showToast({ title: '归属已保存', icon: 'success' });
+      this.loadPreview({ silent: true });
+    } catch (error) {
+      console.error('[customer-trip-detail] update ownership failed', error);
+      this.setData({ ownershipSaving: false });
+      wx.showToast({ title: '归属保存失败', icon: 'none' });
+    }
   },
 
   deriveBusinessState(result, hasDraft, hasPublished, changedSections = []) {

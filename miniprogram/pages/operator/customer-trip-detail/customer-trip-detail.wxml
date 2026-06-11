@@ -40,6 +40,111 @@
       <view class="error-text">{{error}}</view>
     </view>
 
+    <!-- 模块 · 客户 / 家庭归属（运营元数据,不创建 access） -->
+    <view class="panel ownership-panel">
+      <view class="ownership-head">
+        <view>
+          <view class="section-title no-margin">客户 / 家庭归属</view>
+          <view class="ownership-note">仅用于运营归属记录；不会保存到客户账号，也不会创建分享卡。</view>
+        </view>
+        <button
+          wx:if="{{!ownershipEditing}}"
+          class="mini-action ownership-edit-btn"
+          bindtap="startOwnershipEdit"
+        >编辑归属</button>
+      </view>
+
+      <block wx:if="{{!ownershipEditing}}">
+        <view class="ownership-grid">
+          <view class="ownership-cell">
+            <view class="ownership-label">家庭名称</view>
+            <view class="ownership-value">{{ownership.party_name || '待补充'}}</view>
+          </view>
+          <view class="ownership-cell">
+            <view class="ownership-label">主要客户</view>
+            <view class="ownership-value">{{ownership.primary_customer_display_name || '未指定'}}</view>
+          </view>
+        </view>
+        <view class="ownership-row">
+          <view class="ownership-label">随行成员 / 旅客</view>
+          <view class="ownership-value">{{ownership.traveler_names_display}}</view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="ownership-form">
+          <view class="form-label">家庭名称</view>
+          <input
+            class="ownership-input"
+            value="{{ownershipForm.party_name}}"
+            placeholder="例如：刘女士家庭"
+            maxlength="80"
+            bindinput="onOwnershipPartyInput"
+          />
+
+          <view class="form-label">主要客户</view>
+          <view class="ownership-search-row">
+            <input
+              class="ownership-input search"
+              value="{{ownershipSearchKeyword}}"
+              placeholder="搜索客户姓名 / 手机 / 微信"
+              maxlength="80"
+              bindinput="onOwnershipSearchInput"
+            />
+            <button
+              class="mini-action"
+              loading="{{ownershipSearchLoading}}"
+              disabled="{{ownershipSearchLoading}}"
+              bindtap="searchOwnershipCustomers"
+            >搜索</button>
+          </view>
+
+          <view wx:if="{{ownershipForm.primary_customer_display_name}}" class="selected-customer">
+            <view>
+              <view class="selected-name">{{ownershipForm.primary_customer_display_name}}</view>
+              <view class="selected-sub">{{ownershipForm.primary_customer_user_id}}</view>
+            </view>
+            <button class="tiny-action" bindtap="clearOwnershipPrimaryCustomer">清除</button>
+          </view>
+
+          <view wx:if="{{ownershipSearchResults.length}}" class="customer-result-list">
+            <view
+              wx:for="{{ownershipSearchResults}}"
+              wx:key="user_id"
+              data-index="{{index}}"
+              class="customer-result"
+              bindtap="selectOwnershipCustomer"
+            >
+              <view>
+                <view class="customer-result-name">{{item.display_name || item.name || 'Farland 客户'}}</view>
+                <view class="customer-result-sub">{{item.phone || item.wechat_id || item.customer_profile_id || item.user_id}}</view>
+              </view>
+              <view class="customer-result-action">选择</view>
+            </view>
+          </view>
+
+          <view class="form-label">随行成员 / 旅客</view>
+          <textarea
+            class="ownership-textarea"
+            value="{{ownershipForm.traveler_names_text}}"
+            placeholder="一行一个姓名，或用逗号分隔；最多 20 人"
+            maxlength="800"
+            bindinput="onOwnershipTravelerInput"
+          />
+
+          <view class="action-row">
+            <button class="secondary-btn" disabled="{{ownershipSaving}}" bindtap="cancelOwnershipEdit">取消</button>
+            <button
+              class="primary-btn"
+              loading="{{ownershipSaving}}"
+              disabled="{{ownershipSaving}}"
+              bindtap="saveOwnership"
+            >保存归属</button>
+          </view>
+        </view>
+      </block>
+    </view>
+
     <!-- 模块一 · 发布流程 -->
     <view class="panel">
       <view class="section-title">发布流程</view>
