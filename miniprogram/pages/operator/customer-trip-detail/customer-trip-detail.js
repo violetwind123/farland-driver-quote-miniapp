@@ -40,6 +40,7 @@ Page({
     publishedSnapshot: null,
     activeSnapshotType: 'draft',
     activeSnapshot: null,
+    activeSnapshotLabel: '新草稿',
     warningList: [],
     criticalWarningList: [],
     changedSections: [],
@@ -67,7 +68,10 @@ Page({
     bizState: {},
     dayStatusText: '',
     dayCards: [],
+    draftReviewOpen: false,
+    draftReviewSection: 'overview',
     expandedDayNo: 0,
+    dailyManagementOpen: false,
     advancedOpen: false,
     displayDateRange: '',
     displayDaysCount: 0,
@@ -172,6 +176,7 @@ Page({
       publishedSnapshot,
       activeSnapshotType: nextActiveType,
       activeSnapshot: nextActive,
+      activeSnapshotLabel: this.getSnapshotLabel(nextActiveType, result.published_version),
       warningList: (result.warning_codes || []).map(translateWarning),
       criticalWarningList: (result.critical_warning_codes || []).map(translateWarning),
       rawWarningCodes: result.warning_codes || [],
@@ -525,6 +530,11 @@ Page({
     return bizState.draft_day_status_text || bizState.day_status_text || '草稿';
   },
 
+  getSnapshotLabel(snapshotType = 'draft', publishedVersion = 0) {
+    if (snapshotType === 'published') return `已发布 v${publishedVersion || 0}`;
+    return '新草稿';
+  },
+
   deriveDisplayMeta(snapshot) {
     if (!snapshot) {
       return {
@@ -864,6 +874,7 @@ Page({
         overwriteWarningList: [],
         overwriteCriticalWarningList: [],
         activeSnapshotType: 'draft',
+        activeSnapshotLabel: this.getSnapshotLabel('draft', this.data.preview && this.data.preview.published_version),
       });
       wx.showToast({ title: '已覆盖并重建草稿', icon: 'success' });
       this.loadPreview({ silent: true });
@@ -964,9 +975,23 @@ Page({
     this.setData({
       activeSnapshotType: type,
       activeSnapshot: nextActive,
+      activeSnapshotLabel: this.getSnapshotLabel(type, this.data.preview && this.data.preview.published_version),
       dayStatusText: this.getDayStatusText(this.data.bizState, type),
       ...this.deriveDisplayMeta(nextActive),
     });
+  },
+
+  toggleDraftReview() {
+    if (!this.data.activeSnapshot) {
+      wx.showToast({ title: '暂无可审阅内容', icon: 'none' });
+      return;
+    }
+    this.setData({ draftReviewOpen: !this.data.draftReviewOpen });
+  },
+
+  selectDraftReviewSection(e) {
+    const section = e.currentTarget.dataset.section || 'overview';
+    this.setData({ draftReviewSection: section });
   },
 
   onReviewNoteInput(e) {
@@ -990,7 +1015,11 @@ Page({
         return;
       }
       wx.showToast({ title: '草稿已生成', icon: 'success' });
-      this.setData({ building: false, activeSnapshotType: 'draft' });
+      this.setData({
+        building: false,
+        activeSnapshotType: 'draft',
+        activeSnapshotLabel: this.getSnapshotLabel('draft', this.data.preview && this.data.preview.published_version),
+      });
       this.loadPreview({ silent: true });
     } catch (error) {
       console.error('[customer-trip-detail] buildCustomerTripVisibleDraft failed', error);
@@ -1045,6 +1074,7 @@ Page({
       this.setData({
         publishing: false,
         activeSnapshotType: 'published',
+        activeSnapshotLabel: this.getSnapshotLabel('published', (result && result.published_version) || (this.data.preview && this.data.preview.published_version)),
         invitePath: '',
         inviteCode: '',
         inviteExpiresAt: '',
@@ -1213,6 +1243,10 @@ Page({
     this.setData({ advancedOpen: !this.data.advancedOpen });
   },
 
+  toggleDailyManagement() {
+    this.setData({ dailyManagementOpen: !this.data.dailyManagementOpen });
+  },
+
   toggleDayExpand(e) {
     const dayNo = Number(e.currentTarget.dataset.day || 0);
     this.setData({ expandedDayNo: this.data.expandedDayNo === dayNo ? 0 : dayNo });
@@ -1227,10 +1261,12 @@ Page({
       this.setData({
         activeSnapshotType: 'draft',
         activeSnapshot: this.data.draftSnapshot,
+        activeSnapshotLabel: this.getSnapshotLabel('draft', this.data.preview && this.data.preview.published_version),
         dayStatusText: this.getDayStatusText(this.data.bizState, 'draft'),
         ...this.deriveDisplayMeta(this.data.draftSnapshot),
       });
     }
+    this.setData({ draftReviewOpen: true, draftReviewSection: 'overview' });
     wx.pageScrollTo({ selector: '#draft-review', duration: 300, fail: () => {} });
   },
 

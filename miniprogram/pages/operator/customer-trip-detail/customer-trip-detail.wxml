@@ -235,11 +235,33 @@
 
     <!-- 模块二 · 草稿内容审阅（运营核对用） -->
     <view class="panel" id="draft-review">
-      <view class="section-title">草稿内容审阅（运营核对用）</view>
-      <view class="snapshot-hint">此为运营字段核对视图，不是客户最终页面；客户页面请用上方「进入客户真实页面」。</view>
+      <view class="section-toggle-head">
+        <view>
+          <view class="section-title no-margin">草稿内容审阅（运营核对用）</view>
+          <view class="snapshot-hint compact-hint">此为运营字段核对视图，不是客户最终页面；客户页面请用上方「进入客户真实页面」。</view>
+        </view>
+        <button class="mini-action" disabled="{{!activeSnapshot}}" bindtap="toggleDraftReview">
+          {{draftReviewOpen ? '收起审阅' : '展开审阅'}}
+        </button>
+      </view>
       <view class="snapshot-tabs">
         <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">新草稿</view>
         <view class="snapshot-tab {{activeSnapshotType === 'published' ? 'active' : ''}}" data-type="published" bindtap="selectSnapshot">已发布 v{{preview.published_version || 0}}</view>
+      </view>
+
+      <view class="review-summary-grid">
+        <view class="review-summary-item">
+          <view class="review-summary-label">审阅对象</view>
+          <view class="review-summary-value">{{activeSnapshotLabel}}</view>
+        </view>
+        <view class="review-summary-item">
+          <view class="review-summary-label">差异</view>
+          <view class="review-summary-value">{{changedSections.length || 0}} 项</view>
+        </view>
+        <view class="review-summary-item">
+          <view class="review-summary-label">warnings</view>
+          <view class="review-summary-value">{{warningList.length || 0}}</view>
+        </view>
       </view>
 
       <view wx:if="{{!activeSnapshot}}" class="empty-preview">
@@ -247,69 +269,206 @@
         <view class="empty-sub">请先点击“生成客户可见草稿”。</view>
       </view>
 
-      <block wx:else>
-        <view class="customer-hero">
-          <view class="audit-tag">运营审阅</view>
-          <view class="customer-kicker">{{activeSnapshot.display_trip_no || 'Farland Trip'}}</view>
-          <view class="customer-title">{{activeSnapshot.display_title}}</view>
-          <view wx:if="{{displayDateRange}}" class="customer-sub">{{displayDateRange}}</view>
-          <view wx:if="{{activeSnapshot.display_city}}" class="customer-sub">{{activeSnapshot.display_city}}</view>
-          <view wx:if="{{activeSnapshot.display_customer || activeSnapshot.display_advisor}}" class="customer-note">
-            {{activeSnapshot.display_customer || '客户'}} · {{activeSnapshot.display_advisor}}
-          </view>
+      <block wx:elif="{{draftReviewOpen}}">
+        <view class="review-segments">
+          <view class="review-segment {{draftReviewSection === 'overview' ? 'active' : ''}}" data-section="overview" bindtap="selectDraftReviewSection">概览</view>
+          <view class="review-segment {{draftReviewSection === 'summary' ? 'active' : ''}}" data-section="summary" bindtap="selectDraftReviewSection">每日摘要</view>
+          <view class="review-segment {{draftReviewSection === 'itinerary' ? 'active' : ''}}" data-section="itinerary" bindtap="selectDraftReviewSection">每日行程</view>
+          <view class="review-segment {{draftReviewSection === 'hotels' ? 'active' : ''}}" data-section="hotels" bindtap="selectDraftReviewSection">酒店</view>
+          <view class="review-segment {{draftReviewSection === 'transport' ? 'active' : ''}}" data-section="transport" bindtap="selectDraftReviewSection">航班/用车</view>
         </view>
 
-        <view wx:if="{{activeSnapshot.trip_summary}}" class="preview-section">
-          <view class="preview-title">整体概览</view>
-          <view class="info-row overview-row">
-            <view class="info-main">{{activeSnapshot.trip_summary.title || activeSnapshot.display_title}}</view>
-            <view class="info-sub">{{activeSnapshot.trip_summary.date_range_text || displayDateRange}}</view>
-            <view class="info-sub">{{activeSnapshot.trip_summary.city_route_text || activeSnapshot.display_city}}</view>
-            <view class="overview-metrics">
-              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.days_count || 0}}</view><view class="overview-label">days</view></view>
-              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.hotels_count || 0}}</view><view class="overview-label">hotels</view></view>
-              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.flights_count || 0}}</view><view class="overview-label">flights</view></view>
-              <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.transport_count || 0}}</view><view class="overview-label">transport</view></view>
+        <block wx:if="{{draftReviewSection === 'overview'}}">
+          <view class="customer-hero">
+            <view class="audit-tag">运营审阅</view>
+            <view class="customer-kicker">{{activeSnapshot.display_trip_no || 'Farland Trip'}}</view>
+            <view class="customer-title">{{activeSnapshot.display_title}}</view>
+            <view wx:if="{{displayDateRange}}" class="customer-sub">{{displayDateRange}}</view>
+            <view wx:if="{{activeSnapshot.display_city}}" class="customer-sub">{{activeSnapshot.display_city}}</view>
+            <view wx:if="{{activeSnapshot.display_customer || activeSnapshot.display_advisor}}" class="customer-note">
+              {{activeSnapshot.display_customer || '客户'}} · {{activeSnapshot.display_advisor}}
             </view>
-            <view wx:if="{{activeSnapshot.trip_summary.next_day_label}}" class="info-sub">{{activeSnapshot.trip_summary.next_day_label}}</view>
           </view>
-        </view>
 
-        <view wx:if="{{activeSnapshot.daily_summary_cards.length}}" class="preview-section">
-          <view class="preview-title">每日摘要卡</view>
-          <view wx:for="{{activeSnapshot.daily_summary_cards}}" wx:key="id" class="day-card summary-card">
-            <view class="day-head">
-              <view>
-                <view class="day-label">Day {{item.day_no || index + 1}}</view>
-                <view class="day-title">{{item.title || '当日安排'}}</view>
+          <view wx:if="{{activeSnapshot.trip_summary}}" class="preview-section">
+            <view class="preview-title">整体概览</view>
+            <view class="info-row overview-row">
+              <view class="info-main">{{activeSnapshot.trip_summary.title || activeSnapshot.display_title}}</view>
+              <view class="info-sub">{{activeSnapshot.trip_summary.date_range_text || displayDateRange}}</view>
+              <view class="info-sub">{{activeSnapshot.trip_summary.city_route_text || activeSnapshot.display_city}}</view>
+              <view class="overview-metrics">
+                <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.days_count || 0}}</view><view class="overview-label">days</view></view>
+                <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.hotels_count || 0}}</view><view class="overview-label">hotels</view></view>
+                <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.flights_count || 0}}</view><view class="overview-label">flights</view></view>
+                <view class="overview-metric"><view class="overview-number">{{activeSnapshot.trip_summary.transport_count || 0}}</view><view class="overview-label">transport</view></view>
               </view>
-              <view class="day-date">{{item.date}} {{item.weekday}}</view>
-            </view>
-            <view wx:if="{{item.city}}" class="day-summary">{{item.city}}</view>
-            <view wx:if="{{item.start_time_text}}" class="service-line">出发：{{item.start_time_text}}</view>
-            <view wx:if="{{item.highlight_items.length}}" class="summary-highlights">
-              <view wx:for="{{item.highlight_items}}" wx:for-item="highlight" wx:key="*this" class="summary-highlight">{{highlight}}</view>
-            </view>
-            <view wx:if="{{item.hotel_badge || item.transport_badge}}" class="day-summary">
-              {{item.hotel_badge ? '酒店：' + item.hotel_badge : ''}}{{item.hotel_badge && item.transport_badge ? ' · ' : ''}}{{item.transport_badge ? '用车：' + item.transport_badge : ''}}
+              <view wx:if="{{activeSnapshot.trip_summary.next_day_label}}" class="info-sub">{{activeSnapshot.trip_summary.next_day_label}}</view>
             </view>
           </view>
-        </view>
+        </block>
 
-        <view wx:if="{{activeSnapshot.itinerary_days.length}}" class="preview-section">
-          <view class="preview-title">每日行程</view>
-          <view wx:for="{{activeSnapshot.itinerary_days}}" wx:key="day_no" class="day-card">
-            <view class="day-head">
-              <view>
-                <view class="day-label">{{item.display_day_label}}</view>
-                <view class="day-title">{{item.title || item.city || '当日安排'}}</view>
+        <block wx:elif="{{draftReviewSection === 'summary'}}">
+          <view wx:if="{{activeSnapshot.daily_summary_cards.length}}" class="preview-section">
+            <view class="preview-title">每日摘要卡</view>
+            <view wx:for="{{activeSnapshot.daily_summary_cards}}" wx:key="id" class="day-card summary-card">
+              <view class="day-head">
+                <view>
+                  <view class="day-label">Day {{item.day_no || index + 1}}</view>
+                  <view class="day-title">{{item.title || '当日安排'}}</view>
+                </view>
+                <view class="day-date">{{item.date}} {{item.weekday}}</view>
               </view>
-              <view class="day-date">{{item.date}} {{item.weekday}}</view>
+              <view wx:if="{{item.city}}" class="day-summary">{{item.city}}</view>
+              <view wx:if="{{item.start_time_text}}" class="service-line">出发：{{item.start_time_text}}</view>
+              <view wx:if="{{item.highlight_items.length}}" class="summary-highlights">
+                <view wx:for="{{item.highlight_items}}" wx:for-item="highlight" wx:key="*this" class="summary-highlight">{{highlight}}</view>
+              </view>
+              <view wx:if="{{item.hotel_badge || item.transport_badge}}" class="day-summary">
+                {{item.hotel_badge ? '酒店：' + item.hotel_badge : ''}}{{item.hotel_badge && item.transport_badge ? ' · ' : ''}}{{item.transport_badge ? '用车：' + item.transport_badge : ''}}
+              </view>
             </view>
-            <view wx:if="{{item.summary}}" class="day-summary">{{item.summary}}</view>
-            <view wx:if="{{item.estimated_departure_time || item.displayed_start_time}}" class="service-line">
-              出发：{{item.estimated_departure_time || item.displayed_start_time}}
+          </view>
+          <view wx:else class="empty-preview"><view class="empty-sub">暂无每日摘要卡。</view></view>
+        </block>
+
+        <block wx:elif="{{draftReviewSection === 'itinerary'}}">
+          <view wx:if="{{activeSnapshot.itinerary_days.length}}" class="preview-section">
+            <view class="preview-title">每日行程</view>
+            <view wx:for="{{activeSnapshot.itinerary_days}}" wx:key="day_no" class="day-card">
+              <view class="day-head">
+                <view>
+                  <view class="day-label">{{item.display_day_label}}</view>
+                  <view class="day-title">{{item.title || item.city || '当日安排'}}</view>
+                </view>
+                <view class="day-date">{{item.date}} {{item.weekday}}</view>
+              </view>
+              <view wx:if="{{item.summary}}" class="day-summary">{{item.summary}}</view>
+              <view wx:if="{{item.estimated_departure_time || item.displayed_start_time}}" class="service-line">
+                出发：{{item.estimated_departure_time || item.displayed_start_time}}
+              </view>
+              <view wx:for="{{item.timeline_items}}" wx:for-item="node" wx:key="item_id" class="timeline-row">
+                <view class="timeline-time">{{node.time || node.planned_start_time || node.planned_arrival_time || '--:--'}}</view>
+                <view class="timeline-main">
+                  <view class="timeline-title">{{node.title || '行程节点'}}</view>
+                  <view wx:if="{{node.location_name || node.address}}" class="timeline-sub">{{node.location_name || node.address}}</view>
+                  <view wx:if="{{node.drive_time_text || node.distance_text || node.traffic_text}}" class="timeline-sub">
+                    {{node.drive_time_text}}{{node.distance_text ? ' · ' + node.distance_text : ''}}{{node.traffic_text ? ' · ' + node.traffic_text : ''}}
+                  </view>
+                  <view wx:if="{{node.customer_note}}" class="timeline-note">{{node.customer_note}}</view>
+                </view>
+              </view>
             </view>
+          </view>
+          <view wx:else class="empty-preview"><view class="empty-sub">暂无每日行程。</view></view>
+        </block>
+
+        <block wx:elif="{{draftReviewSection === 'hotels'}}">
+          <view wx:if="{{activeSnapshot.hotel_cards.length}}" class="preview-section">
+            <view class="preview-title">酒店</view>
+            <view wx:for="{{activeSnapshot.hotel_cards}}" wx:key="hotel_id" class="info-row">
+              <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
+              <view class="info-sub">{{item.date_text || item.check_in_date || ''}}</view>
+              <view class="info-sub">{{item.address || item.arrival_time || ''}}</view>
+            </view>
+          </view>
+          <view wx:else class="empty-preview"><view class="empty-sub">暂无酒店卡。</view></view>
+        </block>
+
+        <block wx:else>
+          <view wx:if="{{activeSnapshot.flight_cards.length}}" class="preview-section">
+            <view class="preview-title">航班</view>
+            <view wx:for="{{activeSnapshot.flight_cards}}" wx:key="flight_id" class="info-row">
+              <view class="info-main">{{item.flight_no || item.flight_number || item.title || '航班安排'}}</view>
+              <view class="info-sub">{{item.from || item.origin || item.departure_airport || ''}}{{item.to || item.destination || item.arrival_airport ? ' → ' + (item.to || item.destination || item.arrival_airport) : ''}}</view>
+              <view class="info-sub">{{item.departure_time || item.depart_at || ''}}{{item.arrival_time || item.arrive_at ? ' - ' + (item.arrival_time || item.arrive_at) : ''}}</view>
+              <view wx:if="{{item.aircraft}}" class="info-sub">{{item.aircraft}}</view>
+            </view>
+          </view>
+
+          <view wx:if="{{activeSnapshot.transfers.length || activeSnapshot.charter_services.length}}" class="preview-section">
+            <view class="preview-title">用车</view>
+            <view wx:for="{{activeSnapshot.transfers}}" wx:key="transfer_id" class="info-row">
+              <view class="info-main">{{item.title || '接送安排'}}</view>
+              <view class="info-sub">{{item.pickup || item.origin || ''}}{{item.dropoff || item.destination ? ' → ' + (item.dropoff || item.destination) : ''}}</view>
+            </view>
+            <view wx:for="{{activeSnapshot.charter_services}}" wx:key="charter_id" class="info-row">
+              <view class="info-main">{{item.title || '包车服务'}}</view>
+              <view class="info-sub">{{item.date_range_text || item.service_area || item.vehicle_class || ''}}</view>
+            </view>
+          </view>
+
+          <view wx:if="{{!activeSnapshot.flight_cards.length && !activeSnapshot.transfers.length && !activeSnapshot.charter_services.length}}" class="empty-preview">
+            <view class="empty-sub">暂无航班 / 用车卡。</view>
+          </view>
+        </block>
+      </block>
+    </view>
+
+    <!-- 模块三 · 每日管理 / 评价卡 -->
+    <view wx:if="{{dayCards.length}}" class="panel">
+      <view class="section-toggle-head" bindtap="toggleDailyManagement">
+        <view>
+          <view class="section-title no-margin">每日管理 / 评价卡</view>
+          <view class="snapshot-hint compact-hint">{{dayCards.length}} 天 · 生成评价卡、复制路径、查看反馈</view>
+        </view>
+        <view class="advanced-toggle">{{dailyManagementOpen ? '收起' : '展开'}}</view>
+      </view>
+
+      <block wx:if="{{dailyManagementOpen}}">
+        <view wx:for="{{dayCards}}" wx:key="day_no" class="op-day-card">
+          <view class="day-head">
+            <view>
+              <view class="day-label">Day {{item.day_no}}</view>
+              <view class="day-title">{{item.title}}</view>
+            </view>
+            <view class="day-right">
+              <view class="day-date">{{item.date_text}} {{item.weekday}}</view>
+              <view class="status-chip">{{dayStatusText}}</view>
+            </view>
+          </view>
+          <view wx:if="{{item.stops}}" class="day-summary">行程：{{item.stops}}</view>
+          <view wx:if="{{item.hotel_name}}" class="day-summary">酒店：{{item.hotel_name}}</view>
+          <view wx:if="{{item.transport_badge}}" class="day-summary">用车：{{item.transport_badge}}</view>
+          <view wx:if="{{reviewStats[item.day_no]}}" class="day-summary review-line">
+            评价：{{reviewStats[item.day_no].count}} 份 · 平均 {{reviewStats[item.day_no].avg_rating}} 星{{reviewStats[item.day_no].low_count ? ' · ' + reviewStats[item.day_no].low_count + ' 份低分需跟进' : ''}}
+          </view>
+          <view class="day-actions">
+            <button class="mini-action" data-day="{{item.day_no}}" bindtap="toggleDayExpand">{{expandedDayNo === item.day_no ? '收起详情' : '查看 Day 详情'}}</button>
+            <button
+              wx:if="{{!reviewInvites[item.day_no]}}"
+              class="mini-action"
+              loading="{{creatingReviewDay === item.day_no}}"
+              disabled="{{creatingReviewDay !== 0}}"
+              data-day="{{item.day_no}}"
+              bindtap="createDayReviewInvite"
+            >生成 Day {{item.day_no}} 评价卡</button>
+            <button
+              wx:if="{{reviewInvites[item.day_no]}}"
+              class="mini-action"
+              data-day="{{item.day_no}}"
+              bindtap="copyDayReviewPath"
+            >复制评价卡路径</button>
+            <button
+              wx:if="{{reviewStats[item.day_no] && reviewStats[item.day_no].count}}"
+              class="mini-action"
+              data-day="{{item.day_no}}"
+              bindtap="toggleReviewFeedback"
+            >{{reviewExpandedDayNo === item.day_no ? '收起反馈' : '查看反馈（' + reviewStats[item.day_no].count + '）'}}</button>
+          </view>
+          <view wx:if="{{reviewExpandedDayNo === item.day_no && reviewStats[item.day_no]}}" class="review-feedback">
+            <view wx:for="{{reviewStats[item.day_no].recent}}" wx:for-item="review" wx:key="submitted_at" class="review-item {{review.needs_follow_up ? 'low' : ''}}">
+              <view class="review-head">
+                <text class="review-stars">{{review.rating}} 星</text>
+                <text class="review-meta">{{review.openid_display}}</text>
+              </view>
+              <view wx:if="{{review.tags.length}}" class="review-tags">
+                <text wx:for="{{review.tags}}" wx:for-item="tag" wx:key="*this" class="review-tag">{{tag}}</text>
+              </view>
+              <view wx:if="{{review.text}}" class="review-text">{{review.text}}</view>
+            </view>
+          </view>
+          <view wx:if="{{expandedDayNo === item.day_no}}" class="day-detail">
+            <view wx:if="{{item.departure}}" class="service-line">出发：{{item.departure}}</view>
             <view wx:for="{{item.timeline_items}}" wx:for-item="node" wx:key="item_id" class="timeline-row">
               <view class="timeline-time">{{node.time || node.planned_start_time || node.planned_arrival_time || '--:--'}}</view>
               <view class="timeline-main">
@@ -318,113 +477,13 @@
                 <view wx:if="{{node.drive_time_text || node.distance_text || node.traffic_text}}" class="timeline-sub">
                   {{node.drive_time_text}}{{node.distance_text ? ' · ' + node.distance_text : ''}}{{node.traffic_text ? ' · ' + node.traffic_text : ''}}
                 </view>
-                <view wx:if="{{node.customer_note}}" class="timeline-note">{{node.customer_note}}</view>
               </view>
             </view>
-          </view>
-        </view>
-
-        <view wx:if="{{activeSnapshot.hotel_cards.length}}" class="preview-section">
-          <view class="preview-title">酒店</view>
-          <view wx:for="{{activeSnapshot.hotel_cards}}" wx:key="hotel_id" class="info-row">
-            <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
-            <view class="info-sub">{{item.date_text || item.check_in_date || ''}}</view>
-            <view class="info-sub">{{item.address || item.arrival_time || ''}}</view>
-          </view>
-        </view>
-
-        <view wx:if="{{activeSnapshot.flight_cards.length}}" class="preview-section">
-          <view class="preview-title">航班</view>
-          <view wx:for="{{activeSnapshot.flight_cards}}" wx:key="flight_id" class="info-row">
-            <view class="info-main">{{item.flight_no || item.flight_number || item.title || '航班安排'}}</view>
-            <view class="info-sub">{{item.from || item.origin || item.departure_airport || ''}}{{item.to || item.destination || item.arrival_airport ? ' → ' + (item.to || item.destination || item.arrival_airport) : ''}}</view>
-            <view class="info-sub">{{item.departure_time || item.depart_at || ''}}{{item.arrival_time || item.arrive_at ? ' - ' + (item.arrival_time || item.arrive_at) : ''}}</view>
-            <view wx:if="{{item.aircraft}}" class="info-sub">{{item.aircraft}}</view>
-          </view>
-        </view>
-
-        <view wx:if="{{activeSnapshot.transfers.length || activeSnapshot.charter_services.length}}" class="preview-section">
-          <view class="preview-title">用车</view>
-          <view wx:for="{{activeSnapshot.transfers}}" wx:key="transfer_id" class="info-row">
-            <view class="info-main">{{item.title || '接送安排'}}</view>
-            <view class="info-sub">{{item.pickup || item.origin || ''}}{{item.dropoff || item.destination ? ' → ' + (item.dropoff || item.destination) : ''}}</view>
-          </view>
-          <view wx:for="{{activeSnapshot.charter_services}}" wx:key="charter_id" class="info-row">
-            <view class="info-main">{{item.title || '包车服务'}}</view>
-            <view class="info-sub">{{item.date_range_text || item.service_area || item.vehicle_class || ''}}</view>
           </view>
         </view>
       </block>
-    </view>
-
-    <!-- 模块三 · 每日管理 -->
-    <view wx:if="{{dayCards.length}}" class="panel">
-      <view class="section-title">每日管理</view>
-      <view wx:for="{{dayCards}}" wx:key="day_no" class="op-day-card">
-        <view class="day-head">
-          <view>
-            <view class="day-label">Day {{item.day_no}}</view>
-            <view class="day-title">{{item.title}}</view>
-          </view>
-          <view class="day-right">
-            <view class="day-date">{{item.date_text}} {{item.weekday}}</view>
-            <view class="status-chip">{{dayStatusText}}</view>
-          </view>
-        </view>
-        <view wx:if="{{item.stops}}" class="day-summary">行程：{{item.stops}}</view>
-        <view wx:if="{{item.hotel_name}}" class="day-summary">酒店：{{item.hotel_name}}</view>
-        <view wx:if="{{item.transport_badge}}" class="day-summary">用车：{{item.transport_badge}}</view>
-        <view wx:if="{{reviewStats[item.day_no]}}" class="day-summary review-line">
-          评价：{{reviewStats[item.day_no].count}} 份 · 平均 {{reviewStats[item.day_no].avg_rating}} 星{{reviewStats[item.day_no].low_count ? ' · ' + reviewStats[item.day_no].low_count + ' 份低分需跟进' : ''}}
-        </view>
-        <view class="day-actions">
-          <button class="mini-action" data-day="{{item.day_no}}" bindtap="toggleDayExpand">{{expandedDayNo === item.day_no ? '收起详情' : '查看 Day 详情'}}</button>
-          <button
-            wx:if="{{!reviewInvites[item.day_no]}}"
-            class="mini-action"
-            loading="{{creatingReviewDay === item.day_no}}"
-            disabled="{{creatingReviewDay !== 0}}"
-            data-day="{{item.day_no}}"
-            bindtap="createDayReviewInvite"
-          >生成 Day {{item.day_no}} 评价卡</button>
-          <button
-            wx:if="{{reviewInvites[item.day_no]}}"
-            class="mini-action"
-            data-day="{{item.day_no}}"
-            bindtap="copyDayReviewPath"
-          >复制评价卡路径</button>
-          <button
-            wx:if="{{reviewStats[item.day_no] && reviewStats[item.day_no].count}}"
-            class="mini-action"
-            data-day="{{item.day_no}}"
-            bindtap="toggleReviewFeedback"
-          >{{reviewExpandedDayNo === item.day_no ? '收起反馈' : '查看反馈（' + reviewStats[item.day_no].count + '）'}}</button>
-        </view>
-        <view wx:if="{{reviewExpandedDayNo === item.day_no && reviewStats[item.day_no]}}" class="review-feedback">
-          <view wx:for="{{reviewStats[item.day_no].recent}}" wx:for-item="review" wx:key="submitted_at" class="review-item {{review.needs_follow_up ? 'low' : ''}}">
-            <view class="review-head">
-              <text class="review-stars">{{review.rating}} 星</text>
-              <text class="review-meta">{{review.openid_display}}</text>
-            </view>
-            <view wx:if="{{review.tags.length}}" class="review-tags">
-              <text wx:for="{{review.tags}}" wx:for-item="tag" wx:key="*this" class="review-tag">{{tag}}</text>
-            </view>
-            <view wx:if="{{review.text}}" class="review-text">{{review.text}}</view>
-          </view>
-        </view>
-        <view wx:if="{{expandedDayNo === item.day_no}}" class="day-detail">
-          <view wx:if="{{item.departure}}" class="service-line">出发：{{item.departure}}</view>
-          <view wx:for="{{item.timeline_items}}" wx:for-item="node" wx:key="item_id" class="timeline-row">
-            <view class="timeline-time">{{node.time || node.planned_start_time || node.planned_arrival_time || '--:--'}}</view>
-            <view class="timeline-main">
-              <view class="timeline-title">{{node.title || '行程节点'}}</view>
-              <view wx:if="{{node.location_name || node.address}}" class="timeline-sub">{{node.location_name || node.address}}</view>
-              <view wx:if="{{node.drive_time_text || node.distance_text || node.traffic_text}}" class="timeline-sub">
-                {{node.drive_time_text}}{{node.distance_text ? ' · ' + node.distance_text : ''}}{{node.traffic_text ? ' · ' + node.traffic_text : ''}}
-              </view>
-            </view>
-          </view>
-        </view>
+      <view wx:else class="folded-summary">
+        <view class="folded-summary-text">每日操作已收起。展开后可按 Day 管理评价卡和反馈。</view>
       </view>
     </view>
 
