@@ -1,0 +1,609 @@
+.preview-page {
+  min-height: 100vh;
+  padding: 26rpx 24rpx calc(250rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: #F4F5F9;
+}
+
+.preview-nav {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 8rpx 0 22rpx;
+}
+
+.back-button {
+  flex: 0 0 auto;
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 18rpx;
+  background: #FFFFFF;
+  color: #4A56A5;
+  font-size: 44rpx;
+  line-height: 54rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(28, 27, 41, 0.05);
+}
+
+.nav-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-title {
+  color: #1C1B29;
+  font-size: 30rpx;
+  line-height: 1.32;
+  font-weight: 720;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.nav-subtitle {
+  margin-top: 6rpx;
+  color: #6E6D82;
+  font-size: 22rpx;
+  line-height: 1.4;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.recap-strip,
+.hotel-card,
+.section-card,
+.empty-card,
+.notice-card {
+  margin-bottom: 18rpx;
+  border-radius: 30rpx;
+  background: #FFFFFF;
+  box-shadow: 0 1rpx 4rpx rgba(28, 27, 41, 0.04), 0 14rpx 38rpx rgba(28, 27, 41, 0.06);
+  box-sizing: border-box;
+}
+
+.notice-card {
+  padding: 22rpx 26rpx;
+  background: #FBF1E1;
+  color: #A6772A;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.empty-card {
+  padding: 36rpx 30rpx;
+}
+
+.empty-title {
+  color: #1C1B29;
+  font-size: 29rpx;
+  line-height: 1.35;
+  font-weight: 740;
+}
+
+.empty-copy {
+  margin-top: 10rpx;
+  color: #6E6D82;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.error-card .empty-title,
+.error-card .empty-copy {
+  color: #B64747;
+}
+
+.recap-strip {
+  padding: 24rpx 28rpx;
+  background: #FFFFFF;
+}
+
+.recap-main {
+  color: #1C1B29;
+  font-size: 28rpx;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+.recap-sub {
+  margin-top: 8rpx;
+  color: #8B8A9C;
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.hotel-card {
+  overflow: hidden;
+}
+
+.hotel-image-wrap {
+  position: relative;
+  height: 306rpx;
+  overflow: hidden;
+  background: #EEF0F9;
+}
+
+.hotel-image {
+  width: 100%;
+  height: 306rpx;
+  display: block;
+}
+
+.hotel-image-mask {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(28, 27, 41, 0.04) 20%, rgba(28, 27, 41, 0.45) 100%);
+}
+
+.hotel-badge-row {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 22rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.hotel-badge {
+  max-width: 220rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.9);
+  color: #4A56A5;
+  font-size: 21rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hotel-body {
+  padding: 26rpx 28rpx 28rpx;
+}
+
+.hotel-name {
+  color: #1C1B29;
+  font-family: "Cormorant Garamond", Georgia, "Songti SC", serif;
+  font-size: 42rpx;
+  line-height: 1.12;
+  font-weight: 760;
+}
+
+.hotel-name-en {
+  margin-top: 8rpx;
+  color: #8B8A9C;
+  font-size: 22rpx;
+  line-height: 1.35;
+  font-weight: 520;
+}
+
+.transport-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.transport-pill {
+  max-width: 100%;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #EEF0F9;
+  color: #4A56A5;
+  font-size: 21rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
+.transport-pill.traffic {
+  background: #E7F2E8;
+  color: #4E8F58;
+}
+
+.transport-pill.traffic.moderate,
+.transport-pill.traffic.high {
+  background: #FBF1E1;
+  color: #A6772A;
+}
+
+.traffic-note {
+  margin-top: 10rpx;
+  color: #6E6D82;
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.hotel-address {
+  margin-top: 10rpx;
+  color: #6E6D82;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.room-summary {
+  margin-top: 18rpx;
+  color: #353F8E;
+  font-size: 27rpx;
+  line-height: 1.35;
+  font-weight: 740;
+}
+
+.room-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.room-tag {
+  max-width: 100%;
+  padding: 7rpx 13rpx;
+  border-radius: 14rpx;
+  background: #EEF0F9;
+  color: #4A56A5;
+  font-size: 22rpx;
+  line-height: 1.2;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.hotel-footnote {
+  margin-top: 16rpx;
+  color: #8B8A9C;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.section-card {
+  padding: 28rpx;
+}
+
+.section-kicker {
+  color: #A6772A;
+  font-size: 21rpx;
+  line-height: 1.25;
+  letter-spacing: 1rpx;
+  font-weight: 760;
+}
+
+.daily-price-list,
+.price-list {
+  margin-top: 16rpx;
+}
+
+.price-list {
+  margin-top: 22rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid #F0EFF5;
+}
+
+.price-group-title {
+  color: #1C1B29;
+  font-size: 25rpx;
+  line-height: 1.35;
+  font-weight: 760;
+}
+
+.daily-price-line,
+.price-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  min-height: 58rpx;
+  border-bottom: 1rpx solid #F0EFF5;
+}
+
+.daily-price-line:last-child,
+.price-line:last-child {
+  border-bottom: none;
+}
+
+.daily-price-copy,
+.price-copy {
+  flex: 1;
+  min-width: 0;
+  padding: 12rpx 0;
+}
+
+.daily-price-label,
+.price-label,
+.price-value {
+  color: #6E6D82;
+  font-size: 24rpx;
+  line-height: 1.35;
+}
+
+.daily-price-label {
+  color: #1C1B29;
+  font-weight: 650;
+}
+
+.daily-price-note,
+.price-note-line {
+  margin-top: 4rpx;
+  color: #8B8A9C;
+  font-size: 20rpx;
+  line-height: 1.35;
+}
+
+.daily-price-value,
+.price-value {
+  flex: 0 0 auto;
+  color: #1C1B29;
+  font-size: 24rpx;
+  line-height: 1.35;
+  font-weight: 720;
+  text-align: right;
+}
+
+.daily-price-value {
+  color: #353F8E;
+}
+
+.muted-line {
+  margin-top: 16rpx;
+  color: #8B8A9C;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.total-block {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22rpx;
+  margin-top: 22rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #EEF0F9;
+}
+
+.total-label {
+  color: #1C1B29;
+  font-size: 28rpx;
+  line-height: 1.35;
+  font-weight: 760;
+}
+
+.total-note {
+  margin-top: 8rpx;
+  color: #6E6D82;
+  font-size: 21rpx;
+  line-height: 1.4;
+}
+
+.total-price {
+  flex: 0 0 auto;
+  color: #353F8E;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.total-currency {
+  color: #4A56A5;
+  font-size: 23rpx;
+  font-weight: 650;
+  margin-right: 6rpx;
+}
+
+.total-amount {
+  font-family: "Cormorant Garamond", Georgia, "Songti SC", serif;
+  font-size: 54rpx;
+  font-weight: 780;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.policy-status {
+  flex: 0 0 auto;
+  max-width: 320rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #FBF1E1;
+  color: #A6772A;
+  font-size: 22rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.policy-status.strict {
+  background: #FBF1E1;
+}
+
+.policy-copy {
+  margin-top: 16rpx;
+  color: #6E6D82;
+  font-size: 23rpx;
+  line-height: 1.55;
+}
+
+.policy-copy.muted {
+  color: #8B8A9C;
+}
+
+.guest-form {
+  margin-top: 22rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #F0EFF5;
+}
+
+.guest-form:first-of-type {
+  margin-top: 16rpx;
+}
+
+.guest-room-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.room-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 18rpx;
+  background: #6874B4;
+  color: #FFFFFF;
+  font-size: 26rpx;
+  line-height: 56rpx;
+  text-align: center;
+  font-weight: 760;
+}
+
+.form-subtitle {
+  color: #1C1B29;
+  font-size: 26rpx;
+  line-height: 1.35;
+  font-weight: 740;
+}
+
+.form-hint {
+  margin-top: 3rpx;
+  color: #8B8A9C;
+  font-size: 21rpx;
+  line-height: 1.35;
+}
+
+.name-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14rpx;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  margin-top: 14rpx;
+  min-height: 82rpx;
+  padding: 0 20rpx;
+  border-radius: 18rpx;
+  background: #F4F5F9;
+  color: #1C1B29;
+  font-size: 25rpx;
+  line-height: 82rpx;
+  box-sizing: border-box;
+}
+
+.name-grid .form-input {
+  margin-top: 0;
+}
+
+.form-textarea {
+  min-height: 152rpx;
+  padding-top: 18rpx;
+  line-height: 1.45;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #A8A7B5;
+}
+
+.bottom-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 18rpx 24rpx calc(22rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1rpx solid #EEEDF4;
+  box-shadow: 0 -12rpx 28rpx rgba(28, 27, 41, 0.08);
+  box-sizing: border-box;
+  -webkit-backdrop-filter: blur(24rpx);
+  backdrop-filter: blur(24rpx);
+}
+
+.bottom-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.bottom-stay {
+  flex: 1;
+  min-width: 0;
+  color: #1C1B29;
+  font-size: 24rpx;
+  line-height: 1.35;
+  font-weight: 720;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bottom-policy {
+  flex: 0 0 auto;
+  max-width: 270rpx;
+  padding: 7rpx 13rpx;
+  border-radius: 999rpx;
+  background: #FBF1E1;
+  color: #A6772A;
+  font-size: 20rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bottom-pay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-top: 14rpx;
+}
+
+.bottom-price {
+  flex: 1;
+  min-width: 0;
+  color: #4A56A5;
+  font-size: 22rpx;
+  line-height: 1;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bottom-amount {
+  margin-left: 6rpx;
+  color: #353F8E;
+  font-family: "Cormorant Garamond", Georgia, "Songti SC", serif;
+  font-size: 44rpx;
+  font-weight: 780;
+}
+
+.bottom-btn {
+  flex: 0 0 236rpx;
+  margin: 0;
+  height: 82rpx;
+  line-height: 82rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #6874B4 0%, #8993CC 100%);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 700;
+  box-shadow: 0 8rpx 22rpx rgba(104, 116, 180, 0.34), inset 0 1rpx 0 rgba(255, 255, 255, 0.25);
+}
+
+.bottom-btn::after {
+  border: none;
+}

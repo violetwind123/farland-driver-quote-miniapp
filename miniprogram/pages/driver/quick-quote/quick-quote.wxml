@@ -18,49 +18,18 @@
 
     <view class="card">
       <view class="card-title">任务信息</view>
+      <view wx:if="{{request.task_title}}" class="task-title">{{request.task_title}}</view>
       <view class="field"><text>订单编号</text><text>{{request.request_no}}</text></view>
-      <view class="field"><text>服务类型</text><text>{{request.service_type === 'transfer' ? '接送 / 转场' : '包车 / 多日用车'}}</text></view>
+      <view class="field"><text>服务类型</text><text>{{request.service_type_label || (request.service_type === 'transfer' ? '接送 / 转场' : '包车 / 多日用车')}}</text></view>
       <view class="field"><text>服务日期</text><text>{{request.service_date}}</text></view>
+      <view wx:if="{{request.route_text}}" class="field"><text>路径</text><text>{{request.route_text}}</text></view>
+      <view wx:if="{{request.time_summary || request.pickup_time_text}}" class="field"><text>时间</text><text>{{request.time_summary || request.pickup_time_text}}</text></view>
+      <view wx:if="{{request.flight_summary || request.flight_no}}" class="field"><text>航班</text><text>{{request.flight_summary || request.flight_no}}</text></view>
+      <view wx:if="{{request.estimated_drive_time || request.estimated_distance}}" class="field"><text>预估</text><text>{{request.estimated_drive_time}} {{request.estimated_distance}}</text></view>
       <view class="field"><text>司机区域</text><text>{{request.driver_region}}</text></view>
       <view class="field"><text>报价截止</text><text>{{request.quote_deadline}}</text></view>
+      <view wx:if="{{request.execution_note}}" class="task-note">{{request.execution_note}}</view>
       <view class="task-description">{{request.task_description}}</view>
-    </view>
-
-    <view wx:if="{{driverStatus !== 'unregistered'}}" class="card">
-      <view class="card-title">司机信息</view>
-      <view class="field"><text>司机姓名</text><text>{{driver.name}}</text></view>
-      <view class="field"><text>司机电话</text><text>{{driver.phone}}</text></view>
-      <view class="field"><text>服务区域</text><text>{{driver.service_region || '-'}}</text></view>
-    </view>
-
-    <view wx:if="{{isRegistered}}" class="card">
-      <view class="card-title">司机与车辆信息</view>
-      <view class="field"><text>车辆类型</text><text>{{vehicle.vehicle_type}}</text></view>
-      <view class="field"><text>车辆型号</text><text>{{vehicle.vehicle_model}}</text></view>
-      <view class="field"><text>座位数</text><text>{{vehicle.seats}}</text></view>
-      <view class="field"><text>行李容量</text><text>{{vehicle.luggage_capacity}}</text></view>
-      <view class="field"><text>车牌号</text><text>{{vehicle.plate_number || '-'}}</text></view>
-      <view class="hint">请确认以上司机和车辆信息无误，如需修改请联系 Farland 运营。</view>
-    </view>
-
-    <view wx:if="{{driverStatus === 'unregistered' && !quoteLocked}}" class="card">
-      <view class="card-title">司机信息</view>
-      <view class="input-row"><text>司机姓名</text><input value="{{formDriverName}}" data-field="formDriverName" bindinput="onInputChange" /></view>
-      <view class="input-row"><text>司机电话</text><input value="{{formDriverPhone}}" data-field="formDriverPhone" bindinput="onInputChange" /></view>
-    </view>
-
-    <view wx:if="{{driverStatus !== 'registered_with_vehicle' && !quoteLocked}}" class="card">
-      <view class="card-title">车辆信息</view>
-      <view class="input-row">
-        <text>车辆类型</text>
-        <picker range="{{vehicleTypeOptions}}" value="{{vehicleTypeIndex}}" bindchange="onVehicleTypeChange">
-          <view class="picker-value">{{formVehicleType}}</view>
-        </picker>
-      </view>
-      <view class="input-row"><text>车辆型号</text><input value="{{formVehicleModel}}" data-field="formVehicleModel" bindinput="onInputChange" /></view>
-      <view class="input-row"><text>座位数</text><input type="number" value="{{formSeats}}" data-field="formSeats" bindinput="onInputChange" /></view>
-      <view class="input-row"><text>行李容量</text><input type="number" value="{{formLuggageCapacity}}" data-field="formLuggageCapacity" bindinput="onInputChange" /></view>
-      <view class="input-row"><text>车牌号（选填）</text><input value="{{formPlateNumber}}" data-field="formPlateNumber" bindinput="onInputChange" /></view>
     </view>
 
     <view class="card">
@@ -81,8 +50,47 @@
       </view>
       <view class="input-row textarea-row">
         <text>报价备注</text>
-        <textarea value="{{quoteNote}}" data-field="quoteNote" bindinput="onInputChange" disabled="{{quoteLocked}}" placeholder="请说明是否包含停车费、过路费、基础等待时间、超时费、临时加点/绕路收费规则。" />
+        <textarea value="{{quoteNote}}" data-field="quoteNote" bindinput="onInputChange" disabled="{{quoteLocked}}" placeholder="可说明是否包含停车费、过路费、等待时间等。" />
       </view>
+    </view>
+
+    <view wx:if="{{driverStatus !== 'unregistered'}}" class="card">
+      <view class="card-title">司机信息</view>
+      <view class="field"><text>司机姓名</text><text>{{driver.name}}</text></view>
+      <view class="field"><text>司机电话</text><text>{{driver.phone}}</text></view>
+      <view class="field"><text>服务区域</text><text>{{driver.service_region || '-'}}</text></view>
+    </view>
+
+    <view wx:if="{{isRegistered}}" class="card">
+      <view class="card-title">司机与车辆信息</view>
+      <view class="field"><text>车辆类型</text><text>{{vehicle.vehicle_type}}</text></view>
+      <view class="field"><text>车辆型号</text><text>{{vehicle.vehicle_model}}</text></view>
+      <view class="field"><text>座位数</text><text>{{vehicle.seats}}</text></view>
+      <view class="field"><text>行李容量</text><text>{{vehicle.luggage_capacity}}</text></view>
+      <view class="field"><text>车牌号</text><text>{{vehicle.plate_number || '-'}}</text></view>
+      <view class="hint">请确认以上司机和车辆信息无误，如需修改请联系 Farland 运营。</view>
+    </view>
+
+    <view wx:if="{{driverStatus === 'unregistered' && !quoteLocked}}" class="card">
+      <view class="card-title">司机信息（选填）</view>
+      <button class="profile-btn" bindtap="onGetWechatProfile">{{wechatProfileName ? '已获取微信昵称' : '获取微信昵称'}}</button>
+      <view wx:if="{{wechatProfileName}}" class="optional-hint">当前昵称：{{wechatProfileName}}</view>
+      <view class="input-row"><text>司机姓名</text><input placeholder="选填" value="{{formDriverName}}" data-field="formDriverName" bindinput="onInputChange" /></view>
+      <view class="input-row"><text>司机电话</text><input placeholder="选填" value="{{formDriverPhone}}" data-field="formDriverPhone" bindinput="onInputChange" /></view>
+    </view>
+
+    <view wx:if="{{driverStatus !== 'registered_with_vehicle' && !quoteLocked}}" class="card">
+      <view class="card-title">车辆信息（选填）</view>
+      <view class="input-row">
+        <text>车辆类型</text>
+        <picker range="{{vehicleTypeOptions}}" value="{{vehicleTypeIndex}}" bindchange="onVehicleTypeChange">
+          <view class="picker-value">{{formVehicleType}}</view>
+        </picker>
+      </view>
+      <view class="input-row"><text>车辆型号</text><input value="{{formVehicleModel}}" data-field="formVehicleModel" bindinput="onInputChange" /></view>
+      <view class="input-row"><text>座位数</text><input type="number" value="{{formSeats}}" data-field="formSeats" bindinput="onInputChange" /></view>
+      <view class="input-row"><text>行李容量</text><input type="number" value="{{formLuggageCapacity}}" data-field="formLuggageCapacity" bindinput="onInputChange" /></view>
+      <view class="input-row"><text>车牌号（选填）</text><input value="{{formPlateNumber}}" data-field="formPlateNumber" bindinput="onInputChange" /></view>
     </view>
 
     <button wx:if="{{!quoteLocked}}" class="submit-btn" loading="{{submitting}}" bindtap="onSubmit">{{submitting ? '提交中...' : '提交报价'}}</button>

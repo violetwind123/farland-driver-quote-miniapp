@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "酒店订单",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true
+}

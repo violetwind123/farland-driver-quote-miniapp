@@ -40,164 +40,153 @@
       <view class="error-text">{{error}}</view>
     </view>
 
-    <!-- 模块 · 客户 / 家庭归属（运营元数据,不创建 access） -->
-    <view class="panel ownership-panel">
-      <view class="ownership-head">
-        <view>
-          <view class="section-title no-margin">客户 / 家庭归属</view>
-          <view class="ownership-note">仅用于运营归属记录；不会保存到客户账号，也不会创建分享卡。</view>
-        </view>
-        <button
-          wx:if="{{!ownershipEditing}}"
-          class="mini-action ownership-edit-btn"
-          bindtap="startOwnershipEdit"
-        >编辑归属</button>
-      </view>
+    <!-- 模块一 · 发布工作流 -->
+    <view class="panel workflow-panel">
+      <view class="section-title">发布工作流</view>
+      <view class="workflow-sub">按顺序完成完整 JSON 更新、生成草稿、客户页预览、确认发布和客户分享卡。</view>
 
-      <block wx:if="{{!ownershipEditing}}">
-        <view class="ownership-grid">
-          <view class="ownership-cell">
-            <view class="ownership-label">家庭名称</view>
-            <view class="ownership-value">{{ownership.party_name || '待补充'}}</view>
-          </view>
-          <view class="ownership-cell">
-            <view class="ownership-label">主要客户</view>
-            <view class="ownership-value">{{ownership.primary_customer_display_name || '未指定'}}</view>
-          </view>
-        </view>
-        <view class="ownership-row">
-          <view class="ownership-label">随行成员 / 旅客</view>
-          <view class="ownership-value">{{ownership.traveler_names_display}}</view>
-        </view>
-      </block>
-
-      <block wx:else>
-        <view class="ownership-form">
-          <view class="form-label">家庭名称</view>
-          <input
-            class="ownership-input"
-            value="{{ownershipForm.party_name}}"
-            placeholder="例如：刘女士家庭"
-            maxlength="80"
-            bindinput="onOwnershipPartyInput"
-          />
-
-          <view class="form-label">主要客户</view>
-          <view class="ownership-search-row">
-            <input
-              class="ownership-input search"
-              value="{{ownershipSearchKeyword}}"
-              placeholder="搜索客户姓名 / 手机 / 微信"
-              maxlength="80"
-              bindinput="onOwnershipSearchInput"
-            />
-            <button
-              class="mini-action"
-              loading="{{ownershipSearchLoading}}"
-              disabled="{{ownershipSearchLoading}}"
-              bindtap="searchOwnershipCustomers"
-            >搜索</button>
-          </view>
-
-          <view wx:if="{{ownershipForm.primary_customer_display_name}}" class="selected-customer">
-            <view>
-              <view class="selected-name">{{ownershipForm.primary_customer_display_name}}</view>
-              <view class="selected-sub">{{ownershipForm.primary_customer_user_id}}</view>
-            </view>
-            <button class="tiny-action" bindtap="clearOwnershipPrimaryCustomer">清除</button>
-          </view>
-
-          <view wx:if="{{ownershipSearchResults.length}}" class="customer-result-list">
-            <view
-              wx:for="{{ownershipSearchResults}}"
-              wx:key="user_id"
-              data-index="{{index}}"
-              class="customer-result"
-              bindtap="selectOwnershipCustomer"
-            >
-              <view>
-                <view class="customer-result-name">{{item.display_name || item.name || 'Farland 客户'}}</view>
-                <view class="customer-result-sub">{{item.phone || item.wechat_id || item.customer_profile_id || item.user_id}}</view>
-              </view>
-              <view class="customer-result-action">选择</view>
-            </view>
-          </view>
-
-          <view class="form-label">随行成员 / 旅客</view>
-          <textarea
-            class="ownership-textarea"
-            value="{{ownershipForm.traveler_names_text}}"
-            placeholder="一行一个姓名，或用逗号分隔；最多 20 人"
-            maxlength="800"
-            bindinput="onOwnershipTravelerInput"
-          />
-
-          <view class="action-row">
-            <button class="secondary-btn" disabled="{{ownershipSaving}}" bindtap="cancelOwnershipEdit">取消</button>
-            <button
-              class="primary-btn"
-              loading="{{ownershipSaving}}"
-              disabled="{{ownershipSaving}}"
-              bindtap="saveOwnership"
-            >保存归属</button>
-          </view>
-        </view>
-      </block>
-    </view>
-
-    <!-- 模块一 · 发布流程 -->
-    <view class="panel">
-      <view class="section-title">发布流程</view>
-      <view class="flow-steps">
-        <view class="flow-step {{bizState.flow_step === 1 ? 'current' : ''}}">1 审阅草稿</view>
-        <view class="flow-step {{bizState.flow_step === 2 ? 'current' : ''}}">2 预览客户页面</view>
-        <view class="flow-step {{bizState.flow_step === 3 ? 'current' : ''}}">3 发布 / 分享</view>
-      </view>
-
-      <view wx:if="{{criticalWarningList.length}}" class="critical-box">
-        <view class="warning-title">关键警告（发布前必须处理）</view>
-        <view wx:for="{{criticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
-      </view>
-
-      <view wx:if="{{warningList.length}}" class="warning-box">
-        <view class="warning-title">需复核</view>
+      <view wx:if="{{criticalWarningList.length || warningList.length}}" class="workflow-alert">
+        <view class="warning-title">发布前提醒</view>
+        <view wx:for="{{criticalWarningList}}" wx:key="*this" class="warning-row critical">{{item}}</view>
         <view wx:for="{{warningList}}" wx:key="*this" class="warning-row">{{item}}</view>
       </view>
-
-      <view wx:if="{{changedSections.length}}" class="changed-box">
-        <view class="warning-title">与已发布版本不同</view>
-        <view wx:for="{{changedSections}}" wx:key="*this" class="warning-row">{{item}}</view>
+      <view wx:if="{{changedSections.length}}" class="workflow-diff-note">
+        当前草稿与已发布版本有 {{changedSections.length}} 项差异；详细内容可在下方「草稿内容审阅」展开查看。
       </view>
 
-      <view class="action-row">
-        <button class="secondary-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见草稿</button>
-        <button class="secondary-btn" disabled="{{!hasDraft}}" bindtap="scrollToReview">审阅草稿</button>
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">1</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">更新完整行程 JSON</view>
+            <view class="workflow-step-sub">只支持完整标准 JSON 覆盖；不做单日或酒店局部更新。</view>
+          </view>
+          <view class="workflow-step-status">{{isTrip091 ? '暂不可用' : (canApplyOverwrite ? '已校验' : '可选')}}</view>
+        </view>
+        <view wx:if="{{isTrip091}}" class="overwrite-excluded">
+          {{overwriteExcludedReason}}
+        </view>
+        <block wx:else>
+          <view class="overwrite-note">
+            粘贴修改后的完整行程 JSON。系统会先 dry-run 校验目标行程；确认覆盖后只重建草稿，不会自动发布。
+          </view>
+          <textarea
+            class="overwrite-input compact"
+            value="{{overwriteJsonText}}"
+            placeholder="粘贴完整标准客户行程 JSON"
+            maxlength="-1"
+            bindinput="onOverwriteJsonInput"
+          />
+
+          <view wx:if="{{overwriteErrors.length}}" class="overwrite-error-list">
+            <view wx:for="{{overwriteErrors}}" wx:key="*this" class="overwrite-error-row">{{item}}</view>
+          </view>
+
+          <view wx:if="{{overwritePreview}}" class="overwrite-preview">
+            <view class="overwrite-preview-head">
+              <view>
+                <view class="overwrite-kicker">DRY RUN</view>
+                <view class="overwrite-title">{{overwriteActionText || 'unknown'}}</view>
+              </view>
+              <view class="overwrite-badge {{canApplyOverwrite ? 'ok' : 'blocked'}}">
+                {{canApplyOverwrite ? '可覆盖' : '已阻止'}}
+              </view>
+            </view>
+            <view class="overwrite-grid">
+              <view class="overwrite-cell">
+                <view class="overwrite-label">目标行程</view>
+                <view class="overwrite-value">{{overwriteTargetText || '--'}}</view>
+              </view>
+              <view class="overwrite-cell">
+                <view class="overwrite-label">day count</view>
+                <view class="overwrite-value">{{overwriteDayCount || 0}}</view>
+              </view>
+            </view>
+            <view wx:if="{{overwriteBlockReason}}" class="overwrite-block">{{overwriteBlockReason}}</view>
+            <view wx:if="{{overwriteCriticalWarningList.length}}" class="critical-box compact">
+              <view class="warning-title">关键警告</view>
+              <view wx:for="{{overwriteCriticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+            </view>
+            <view wx:if="{{overwriteWarningList.length}}" class="warning-box compact">
+              <view class="warning-title">warnings</view>
+              <view wx:for="{{overwriteWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
+            </view>
+          </view>
+
+          <view class="action-row">
+            <button
+              class="secondary-btn"
+              loading="{{overwriteDryRunLoading}}"
+              disabled="{{overwriteDryRunLoading || overwriteApplyLoading}}"
+              bindtap="previewOverwriteJson"
+            >预览覆盖</button>
+            <button
+              class="primary-btn danger"
+              loading="{{overwriteApplyLoading}}"
+              disabled="{{overwriteApplyLoading || overwriteDryRunLoading || !canApplyOverwrite}}"
+              bindtap="applyOverwriteJson"
+            >确认覆盖</button>
+          </view>
+        </block>
       </view>
 
-      <view class="customer-view-cta">
-        <view class="cta-copy">
-          <view class="cta-title">进入客户真实页面</view>
-          <view class="cta-sub">显示客户此刻所见（已发布版；未发布时为等待页）。新草稿请在下方「草稿内容审阅」核对。只读，不创建分享卡或保存记录。</view>
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">2</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">生成客户可见草稿</view>
+            <view class="workflow-step-sub">把源数据转成客户可见快照，移除内部字段。</view>
+          </view>
+          <view class="workflow-step-status">{{hasDraft ? '已生成' : '待生成'}}</view>
+        </view>
+        <button class="primary-wide-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见草稿</button>
+      </view>
+
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">3</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">预览客户页面</view>
+            <view class="workflow-step-sub">打开客户真实渲染链路。只读，不创建分享卡或保存记录。</view>
+          </view>
+          <view class="workflow-step-status">{{hasDraft || hasPublished ? '可预览' : '待草稿'}}</view>
         </view>
         <button
-          class="cta-btn"
+          class="secondary-wide-btn"
           loading="{{openingCustomerView}}"
           disabled="{{openingCustomerView}}"
           bindtap="openCustomerFacingPreview"
-        >预览</button>
+        >预览客户页面</button>
       </view>
 
-      <textarea
-        class="note-input"
-        value="{{reviewNote}}"
-        placeholder="发布备注，可选"
-        maxlength="300"
-        bindinput="onReviewNoteInput"
-      />
-      <button class="primary-wide-btn" loading="{{publishing}}" disabled="{{publishing || building || !canPublish}}" bindtap="publishTrip">确认发布</button>
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">4</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">确认发布</view>
+            <view class="workflow-step-sub">发布后客户分享卡读取新的已发布版本。</view>
+          </view>
+          <view class="workflow-step-status">{{canPublish ? '可发布' : '待检查'}}</view>
+        </view>
+        <textarea
+          class="note-input"
+          value="{{reviewNote}}"
+          placeholder="发布备注，可选"
+          maxlength="300"
+          bindinput="onReviewNoteInput"
+        />
+        <button class="primary-wide-btn" loading="{{publishing}}" disabled="{{publishing || building || !canPublish}}" bindtap="publishTrip">确认发布</button>
+      </view>
 
-      <view class="share-block">
-        <view class="sub-title">客户分享卡</view>
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">5</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">生成 / 转发客户分享卡</view>
+            <view class="workflow-step-sub">主动作是微信转发；复制路径仅作内部兜底。</view>
+          </view>
+          <view class="workflow-step-status">{{invitePath ? '已准备' : '待准备'}}</view>
+        </view>
         <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
           <view class="empty-title">发布后可生成客户分享卡</view>
           <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
@@ -227,7 +216,7 @@
             </view>
             <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
             <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户分享卡</button>
-            <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径</button>
+            <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径（备用）</button>
           </view>
         </block>
       </view>
@@ -365,10 +354,38 @@
         <block wx:elif="{{draftReviewSection === 'hotels'}}">
           <view wx:if="{{activeSnapshot.hotel_cards.length}}" class="preview-section">
             <view class="preview-title">酒店</view>
-            <view wx:for="{{activeSnapshot.hotel_cards}}" wx:key="hotel_id" class="info-row">
+            <view wx:for="{{activeSnapshot.hotel_cards}}" wx:key="hotel_id" wx:for-index="hotelIndex" class="info-row">
               <view class="info-main">{{item.name || item.hotel_name || item.title || '酒店安排'}}</view>
               <view class="info-sub">{{item.date_text || item.check_in_date || ''}}</view>
               <view class="info-sub">{{item.address || item.arrival_time || ''}}</view>
+              <view class="hotel-share-actions">
+                <button
+                  class="mini-action"
+                  data-hotel-key="{{item.share_key}}"
+                  data-hotel-id="{{item.hotel_id || item.id || item.card_id || ''}}"
+                  data-hotel-index="{{hotelIndex}}"
+                  loading="{{creatingHotelInviteKey === item.share_key}}"
+                  disabled="{{creatingHotelInviteKey && creatingHotelInviteKey !== item.share_key}}"
+                  bindtap="createHotelInvite"
+                >{{hotelInviteMap[item.share_key] ? '刷新酒店分享' : '生成酒店分享'}}</button>
+                <button
+                  wx:if="{{hotelInviteMap[item.share_key]}}"
+                  class="mini-action"
+                  open-type="share"
+                  data-share-type="hotel"
+                  data-hotel-key="{{item.share_key}}"
+                  bindtap="onHotelInviteShareTap"
+                >微信转发</button>
+                <button
+                  wx:if="{{hotelInviteMap[item.share_key]}}"
+                  class="mini-action"
+                  data-hotel-key="{{item.share_key}}"
+                  bindtap="copyHotelInvitePath"
+                >复制路径</button>
+              </view>
+              <view wx:if="{{hotelInviteMap[item.share_key]}}" class="hotel-share-hint">
+                {{hotelInviteMap[item.share_key].expires_at ? '有效期至 ' + hotelInviteMap[item.share_key].expires_at : '酒店分享卡已准备'}}
+              </view>
             </view>
           </view>
           <view wx:else class="empty-preview"><view class="empty-sub">暂无酒店卡。</view></view>
@@ -449,6 +466,14 @@
               bindtap="copyDayReviewPath"
             >复制评价卡路径</button>
             <button
+              wx:if="{{reviewInvites[item.day_no]}}"
+              class="mini-action"
+              open-type="share"
+              data-share-type="review"
+              data-day="{{item.day_no}}"
+              bindtap="onDayReviewShareTap"
+            >转发评价卡</button>
+            <button
               wx:if="{{reviewStats[item.day_no] && reviewStats[item.day_no].count}}"
               class="mini-action"
               data-day="{{item.day_no}}"
@@ -495,70 +520,105 @@
       </view>
       <block wx:if="{{advancedOpen}}">
         <view class="advanced-section">
-          <view class="sub-title">更新行程 JSON（覆盖）</view>
-          <view wx:if="{{isTrip091}}" class="overwrite-excluded">
-            {{overwriteExcludedReason}}
+          <view class="ownership-head">
+            <view>
+              <view class="sub-title no-margin">客户 / 家庭归属</view>
+              <view class="ownership-note">仅用于运营归属记录；不会保存到客户账号，也不会创建分享卡。</view>
+            </view>
+            <button
+              wx:if="{{!ownershipEditing}}"
+              class="mini-action ownership-edit-btn"
+              bindtap="startOwnershipEdit"
+            >编辑归属</button>
           </view>
+
+          <block wx:if="{{!ownershipEditing}}">
+            <view class="ownership-grid">
+              <view class="ownership-cell">
+                <view class="ownership-label">家庭名称</view>
+                <view class="ownership-value">{{ownership.party_name || '待补充'}}</view>
+              </view>
+              <view class="ownership-cell">
+                <view class="ownership-label">主要客户</view>
+                <view class="ownership-value">{{ownership.primary_customer_display_name || '未指定'}}</view>
+              </view>
+            </view>
+            <view class="ownership-row">
+              <view class="ownership-label">随行成员 / 旅客</view>
+              <view class="ownership-value">{{ownership.traveler_names_display}}</view>
+            </view>
+          </block>
+
           <block wx:else>
-            <view class="overwrite-note">
-              仅允许覆盖当前行程。系统会先 dry-run 校验目标行程，确认后只重建草稿，不会自动发布。
-            </view>
-            <textarea
-              class="overwrite-input"
-              value="{{overwriteJsonText}}"
-              placeholder="粘贴修改后的标准客户行程 JSON"
-              maxlength="-1"
-              bindinput="onOverwriteJsonInput"
-            />
+            <view class="ownership-form">
+              <view class="form-label">家庭名称</view>
+              <input
+                class="ownership-input"
+                value="{{ownershipForm.party_name}}"
+                placeholder="例如：刘女士家庭"
+                maxlength="80"
+                bindinput="onOwnershipPartyInput"
+              />
 
-            <view wx:if="{{overwriteErrors.length}}" class="overwrite-error-list">
-              <view wx:for="{{overwriteErrors}}" wx:key="*this" class="overwrite-error-row">{{item}}</view>
-            </view>
+              <view class="form-label">主要客户</view>
+              <view class="ownership-search-row">
+                <input
+                  class="ownership-input search"
+                  value="{{ownershipSearchKeyword}}"
+                  placeholder="搜索客户姓名 / 手机 / 微信"
+                  maxlength="80"
+                  bindinput="onOwnershipSearchInput"
+                />
+                <button
+                  class="mini-action"
+                  loading="{{ownershipSearchLoading}}"
+                  disabled="{{ownershipSearchLoading}}"
+                  bindtap="searchOwnershipCustomers"
+                >搜索</button>
+              </view>
 
-            <view wx:if="{{overwritePreview}}" class="overwrite-preview">
-              <view class="overwrite-preview-head">
+              <view wx:if="{{ownershipForm.primary_customer_display_name}}" class="selected-customer">
                 <view>
-                  <view class="overwrite-kicker">DRY RUN</view>
-                  <view class="overwrite-title">{{overwriteActionText || 'unknown'}}</view>
+                  <view class="selected-name">{{ownershipForm.primary_customer_display_name}}</view>
+                  <view class="selected-sub">{{ownershipForm.primary_customer_user_id}}</view>
                 </view>
-                <view class="overwrite-badge {{canApplyOverwrite ? 'ok' : 'blocked'}}">
-                  {{canApplyOverwrite ? '可覆盖' : '已阻止'}}
-                </view>
+                <button class="tiny-action" bindtap="clearOwnershipPrimaryCustomer">清除</button>
               </view>
-              <view class="overwrite-grid">
-                <view class="overwrite-cell">
-                  <view class="overwrite-label">目标行程</view>
-                  <view class="overwrite-value">{{overwriteTargetText || '--'}}</view>
-                </view>
-                <view class="overwrite-cell">
-                  <view class="overwrite-label">day count</view>
-                  <view class="overwrite-value">{{overwriteDayCount || 0}}</view>
-                </view>
-              </view>
-              <view wx:if="{{overwriteBlockReason}}" class="overwrite-block">{{overwriteBlockReason}}</view>
-              <view wx:if="{{overwriteCriticalWarningList.length}}" class="critical-box compact">
-                <view class="warning-title">关键警告</view>
-                <view wx:for="{{overwriteCriticalWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
-              </view>
-              <view wx:if="{{overwriteWarningList.length}}" class="warning-box compact">
-                <view class="warning-title">warnings</view>
-                <view wx:for="{{overwriteWarningList}}" wx:key="*this" class="warning-row">{{item}}</view>
-              </view>
-            </view>
 
-            <view class="action-row">
-              <button
-                class="secondary-btn"
-                loading="{{overwriteDryRunLoading}}"
-                disabled="{{overwriteDryRunLoading || overwriteApplyLoading}}"
-                bindtap="previewOverwriteJson"
-              >预览覆盖</button>
-              <button
-                class="primary-btn danger"
-                loading="{{overwriteApplyLoading}}"
-                disabled="{{overwriteApplyLoading || overwriteDryRunLoading || !canApplyOverwrite}}"
-                bindtap="applyOverwriteJson"
-              >确认覆盖</button>
+              <view wx:if="{{ownershipSearchResults.length}}" class="customer-result-list">
+                <view
+                  wx:for="{{ownershipSearchResults}}"
+                  wx:key="user_id"
+                  data-index="{{index}}"
+                  class="customer-result"
+                  bindtap="selectOwnershipCustomer"
+                >
+                  <view>
+                    <view class="customer-result-name">{{item.display_name || item.name || 'Farland 客户'}}</view>
+                    <view class="customer-result-sub">{{item.phone || item.wechat_id || item.customer_profile_id || item.user_id}}</view>
+                  </view>
+                  <view class="customer-result-action">选择</view>
+                </view>
+              </view>
+
+              <view class="form-label">随行成员 / 旅客</view>
+              <textarea
+                class="ownership-textarea"
+                value="{{ownershipForm.traveler_names_text}}"
+                placeholder="一行一个姓名，或用逗号分隔；最多 20 人"
+                maxlength="800"
+                bindinput="onOwnershipTravelerInput"
+              />
+
+              <view class="action-row">
+                <button class="secondary-btn" disabled="{{ownershipSaving}}" bindtap="cancelOwnershipEdit">取消</button>
+                <button
+                  class="primary-btn"
+                  loading="{{ownershipSaving}}"
+                  disabled="{{ownershipSaving}}"
+                  bindtap="saveOwnership"
+                >保存归属</button>
+              </view>
             </view>
           </block>
         </view>

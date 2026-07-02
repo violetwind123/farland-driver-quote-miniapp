@@ -1,9 +1,24 @@
 Page({
   data: {
+    loading: false,
+    error: '',
     hotel: null,
+    inviteCode: '',
+    tripId: '',
+    hotelId: '',
+    shareTitle: 'Farland 酒店确认',
   },
 
-  onLoad() {
+  onLoad(options = {}) {
+    const inviteCode = decodeURIComponent(options.invite_code || '');
+    const tripId = decodeURIComponent(options.trip_id || '');
+    const hotelId = decodeURIComponent(options.hotel_id || '');
+    if (inviteCode) {
+      this.setData({ inviteCode, tripId, hotelId });
+      this.loadHotelInvite();
+      return;
+    }
+
     const app = getApp();
     const cached = (app.globalData && app.globalData.customerHotelDetail)
       || wx.getStorageSync('customerHotelDetail')
@@ -11,6 +26,46 @@ Page({
     this.setData({
       hotel: this.normalizeHotel(cached),
     });
+  },
+
+  async loadHotelInvite() {
+    this.setData({ loading: true, error: '' });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'getHotelOrderByInvite',
+        data: {
+          invite_code: this.data.inviteCode,
+          trip_id: this.data.tripId,
+          hotel_id: this.data.hotelId,
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({
+          loading: false,
+          error: (result && result.message) || '酒店分享卡加载失败',
+          hotel: null,
+        });
+        return;
+      }
+      this.setData({
+        loading: false,
+        hotel: this.normalizeHotel(result.hotel || {}),
+        tripId: result.trip_id || this.data.tripId,
+        hotelId: result.hotel_id || this.data.hotelId,
+        shareTitle: result.share_title || this.data.shareTitle,
+      });
+      if (wx.showShareMenu) {
+        wx.showShareMenu({ menus: ['shareAppMessage'] });
+      }
+    } catch (error) {
+      console.error('[hotel-detail] getHotelOrderByInvite failed', error);
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      this.setData({
+        loading: false,
+        error: `酒店分享卡加载失败：${errMsg}`,
+        hotel: null,
+      });
+    }
   },
 
   normalizeHotel(hotel) {
@@ -34,6 +89,7 @@ Page({
       address: hotel.address || '',
       roomSummary,
       confirmationNo: confirmationDisplay,
+      hasConfirmationNo: !this.isEmptyBookingInfo(confirmationDisplay),
       statusText: hotel.statusText || hotel.status_text || '已同步',
       note: hotel.note || '完整酒店信息将由 Farland 顾问同步。',
       detailItems: [
@@ -44,6 +100,8 @@ Page({
       ],
       plainDetailItems: [
         { label: '地址', value: hotel.address || '' },
+        { label: '入住人', value: hotel.guest_name || hotel.check_in_name || hotel.primary_guest_name || '' },
+        { label: '预订渠道', value: hotel.booking_source || hotel.source || '' },
       ].filter((item) => item.value),
     };
   },
@@ -133,7 +191,7 @@ Page({
 
   resolveHotelConfirmationNo(hotel = {}) {
     const knownBooking = this.resolveKnownTrip091HotelBookingInfo(hotel);
-    const value = hotel.confirmationNo || hotel.confirmation_no || hotel.confirmation_number || '';
+    const value = hotel.confirmationNo || hotel.confirmation_no || hotel.confirmation_number || hotel.booking_reference || '';
     if (this.isEmptyBookingInfo(value)) return knownBooking.confirmationNo || '无酒店预订信息';
     return value;
   },
@@ -168,5 +226,31 @@ Page({
         wx.navigateBack({ delta: 1 });
       },
     });
+  },
+
+  copyConfirmationNo() {
+    const hotel = this.data.hotel || {};
+    if (!hotel.hasConfirmationNo || !hotel.confirmationNo) {
+      wx.showToast({ title: '暂无确认号', icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: hotel.confirmationNo,
+      success: () => wx.showToast({ title: '已复制确认号', icon: 'success' }),
+    });
+  },
+
+  onShareAppMessage() {
+    const hotel = this.data.hotel || {};
+    const inviteCode = this.data.inviteCode || '';
+    const tripId = this.data.tripId || '';
+    const hotelId = this.data.hotelId || '';
+    const path = inviteCode
+      ? `/pages/customer/hotel-detail/hotel-detail?trip_id=${encodeURIComponent(tripId)}&hotel_id=${encodeURIComponent(hotelId)}&invite_code=${encodeURIComponent(inviteCode)}`
+      : '/pages/customer/home/home';
+    return {
+      title: this.data.shareTitle || `${hotel.name || '酒店信息'}｜Farland 酒店确认`,
+      path: path.replace(/^\//, ''),
+    };
   },
 });

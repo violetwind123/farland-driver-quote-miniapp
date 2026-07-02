@@ -35,6 +35,7 @@
 | B1 行程管理列表(原 P4-D1) | 运营中心"行程管理",读 `customer_trips`,显示发布/版本/归属/已保存数 | ✅ `569b754`/`73b68f6` |
 | B2 单行程页·真实预览(原 P4-D2A) | "进入客户真实页面"(只读)+ 返回 trip-management + Dashboard 旧入口降级 + "已保存人数" | ✅ `73b68f6` |
 | B3 单行程页·覆盖 JSON(原 P4-D2C) | 粘贴新 JSON 覆盖(dry-run 校验 + 显式确认 + 重建草稿,不自动发布,091 排除) | ✅ `1ceb771` |
+| B4 / P4-13 发布页收口 | 单行程页主屏收敛为 5 步发布工作流:完整 JSON → 草稿 → 预览 → 发布 → 分享卡;审阅/评价/技术状态默认折叠 | 🟡 本地实现待 review |
 
 ---
 
@@ -73,8 +74,8 @@
 
 | 任务 | 目标 | 状态 |
 | --- | --- | --- |
-| E1 每日评价入口(原 P4-D4) | trip-detail 每日卡:生成 Day N 评价卡(自动复制路径)/ 复制路径 / 内联查看反馈 + 份数均分 | ✅ `e736c54` |
-| E2 评价卡页面 + 提交(原 P5-1) | `pages/customer/review-card` + 4 个云函数;锚点 `trip_id + day_no`;同 openid 同 day 幂等;打开/提交均不创建 access;max_openids/过期/白名单/低分标记 | ✅ `e736c54` / 已部署 `createRideReviewInvite`、`getRideReviewContext`、`submitRideReview`、`listRideReviewsForOperator`;真机待验 |
+| E1 每日评价入口(原 P4-D4) | trip-detail 每日卡:生成 Day N 评价卡(自动复制路径)/ 微信转发 / 复制路径 / 内联查看反馈 + 份数均分 | ✅ `e736c54` + 微信转发补强 |
+| E2 评价卡页面 + 提交(原 P5-1) | `pages/customer/review-card` + 4 个云函数;锚点 `trip_id + day_no`;同 openid 同 day 幂等;打开/提交均不创建 access;max_openids/过期/白名单/低分标记;客户页可继续转发同一 invite | ✅ `e736c54` / 已部署 `createRideReviewInvite`、`getRideReviewContext`、`submitRideReview`、`listRideReviewsForOperator`;真机待验 |
 | E3 评价结果汇总(原 P5-2) | 单行程:`listRideReviewsForOperator`(day/driver 汇总+低分标记);跨行程:`listDriverReviewSummaries` + 运营「评价汇总」页(按司机/行程、低分跟进列表、未归因桶) | ✅ `e736c54` / `ce04c14`;`listDriverReviewSummaries` 已部署,模拟器空态通过;真机待验 |
 
 ---

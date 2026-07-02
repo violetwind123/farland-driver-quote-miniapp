@@ -95,7 +95,7 @@
 | `listRideReviewsForOperator(trip_id)` | 运营看提交明细 + 按 day/trip/driver/vehicle 汇总;低分标记需跟进 |
 
 ### 4.3 运营侧(`customer-trip-detail`,每个 Day 卡旁)
-- `[生成 Day N 评价卡]` → 复制路径 → 微信转发到客户群。
+- `[生成 Day N 评价卡]` → 生成/复用 `service_review_invites` → 微信转发评价卡;复制路径仅作兜底。
 - 显示该 Day "已提交 X 份"。
 - **Day1 / Day2 各一张独立卡 + 独立 invite**,互不影响。
 

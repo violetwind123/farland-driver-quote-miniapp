@@ -62,10 +62,14 @@ Page({
       this.setData({
         loading: false,
         context: result.context || null,
+        tripId: result.trip_id || this.data.tripId,
         dayNo: result.day_no || this.data.dayNo,
         submitted: Boolean(result.already_submitted),
         myReview: result.my_review || null,
       });
+      if (wx.showShareMenu) {
+        wx.showShareMenu({ menus: ['shareAppMessage'] });
+      }
     } catch (error) {
       console.error('[review-card] getRideReviewContext failed', error);
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
@@ -135,5 +139,22 @@ Page({
       this.setData({ submitting: false });
       wx.showToast({ title: `提交失败：${errMsg}`, icon: 'none' });
     }
+  },
+
+  buildReviewShare() {
+    const context = this.data.context || {};
+    const dayNo = Number(this.data.dayNo || 0);
+    const tripId = this.data.tripId || context.trip_id || '';
+    const inviteCode = this.data.inviteCode || '';
+    const titleBase = context.day_title || context.trip_title || 'Farland 行程';
+    const path = `/pages/customer/review-card/review-card?trip_id=${encodeURIComponent(tripId)}&day_no=${dayNo}&invite_code=${encodeURIComponent(inviteCode)}`;
+    return {
+      title: `Day ${dayNo || ''} 服务评价｜${titleBase}`,
+      path: path.replace(/^\//, ''),
+    };
+  },
+
+  onShareAppMessage() {
+    return this.buildReviewShare();
   },
 });

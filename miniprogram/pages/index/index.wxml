@@ -1,8 +1,10 @@
 <view class="page">
   <view class="splash-card">
     <image class="splash-logo" src="/assets/images/logo-farland-splash.png" mode="aspectFit" />
+    <view class="splash-slogan">以居为旅 · 美国访校住宿</view>
     <view class="loading-line">
       <view class="loading-bar"></view>
     </view>
   </view>
+  <view class="splash-footer">FARLAND</view>
 </view>

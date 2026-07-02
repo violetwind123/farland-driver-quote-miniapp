@@ -370,6 +370,8 @@
                       <view class="route-arrow">→</view>
                       <view class="route-text">{{item.dropoff}}</view>
                     </view>
+                    <view wx:if="{{item.time_summary || item.flight_summary}}" class="ops-sub">{{item.time_summary || item.flight_summary}}</view>
+                    <view wx:if="{{item.execution_note || item.task_description}}" class="ops-sub task-brief-line">{{item.execution_note || item.task_description}}</view>
                     <view wx:if="{{item.status === 'cancelled'}}" class="ops-sub">{{item.cancel_reason_driver || '该用车需求已取消，如需重新安排请在 Farland 客户群内沟通。'}}</view>
                     <view wx:elif="{{item.status === 'assigned' && item.assigned_transport}}" class="ops-sub">
                       司机：{{item.assigned_transport.driver_name || '待确认'}} · {{item.assigned_transport.vehicle_model || item.assigned_transport.vehicle_type || '车辆待确认'}}
@@ -385,6 +387,8 @@
                     </view>
                     <view class="body-text">{{item.pickup}} → {{item.dropoff}}</view>
                     <view class="service-sub">{{item.pickup_time_text}} · {{item.vehicle_class}}</view>
+                    <view wx:if="{{item.time_summary || item.flight_summary}}" class="service-sub">{{item.time_summary || item.flight_summary}}</view>
+                    <view wx:if="{{item.execution_note || item.task_description}}" class="service-sub task-brief-line">{{item.execution_note || item.task_description}}</view>
                     <view wx:if="{{item.driver}}" class="service-sub">{{item.driver.display_name}} · {{item.driver.vehicle_model}} · {{item.driver.plate_number}}</view>
                   </view>
                 </view>
@@ -542,6 +546,8 @@
             <view class="route-arrow">→</view>
             <view class="route-text">{{item.dropoff}}</view>
           </view>
+          <view wx:if="{{item.time_summary || item.flight_summary}}" class="ops-sub">{{item.time_summary || item.flight_summary}}</view>
+          <view wx:if="{{item.execution_note || item.task_description}}" class="ops-sub task-brief-line">{{item.execution_note || item.task_description}}</view>
           <view wx:if="{{item.status === 'cancelled'}}" class="ops-sub">{{item.cancel_reason_driver || '该用车需求已取消，如需重新安排请在 Farland 客户群内沟通。'}}</view>
           <view wx:elif="{{item.status === 'assigned' && item.assigned_transport}}" class="ops-sub">
             司机：{{item.assigned_transport.driver_name || '待确认'}} · {{item.assigned_transport.vehicle_model || item.assigned_transport.vehicle_type || '车辆待确认'}}
@@ -557,6 +563,8 @@
           </view>
           <view class="body-text">{{item.pickup}} → {{item.dropoff}}</view>
           <view class="service-sub">{{item.pickup_time_text}} · {{item.vehicle_class}}</view>
+          <view wx:if="{{item.time_summary || item.flight_summary}}" class="service-sub">{{item.time_summary || item.flight_summary}}</view>
+          <view wx:if="{{item.execution_note || item.task_description}}" class="service-sub task-brief-line">{{item.execution_note || item.task_description}}</view>
           <view wx:if="{{item.driver}}" class="service-sub">{{item.driver.display_name}} · {{item.driver.vehicle_model}} · {{item.driver.plate_number}}</view>
         </view>
       </view>

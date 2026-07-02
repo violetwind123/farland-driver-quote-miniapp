@@ -106,7 +106,7 @@ Page({
       return;
     }
     const canShareInvite = !['cancelled', 'completed'].includes(result.request.status);
-    const invite = canShareInvite && result.invites ? result.invites[0] : null;
+    const invite = canShareInvite ? (result.active_quote_invite || null) : null;
     const request = {
       ...result.request,
       cancel_reason_type_text: this.getCancelReasonLabel(result.request.cancel_reason_type),

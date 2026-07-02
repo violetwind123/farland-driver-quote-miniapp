@@ -3,13 +3,18 @@
 .subtitle { font-size: 28rpx; color: #4a5b7a; margin: 16rpx 0 20rpx; }
 .card, .state-card { background: #fff; border-radius: 18rpx; padding: 24rpx; margin-bottom: 20rpx; }
 .card-title { font-size: 30rpx; font-weight: 600; color: #1f3266; margin-bottom: 16rpx; }
+.task-title { margin-bottom: 16rpx; color: #1f3266; font-size: 28rpx; line-height: 1.45; font-weight: 700; }
 .field { display: flex; justify-content: space-between; gap: 20rpx; margin-bottom: 12rpx; font-size: 26rpx; color: #243454; }
 .field text:first-child { color: #63759a; flex: 0 0 190rpx; }
 .field text:last-child { flex: 1; text-align: right; word-break: break-word; }
+.task-note { margin-top: 16rpx; padding: 16rpx; border-radius: 12rpx; background: #f2f5ff; color: #40527a; font-size: 24rpx; line-height: 1.65; white-space: pre-wrap; }
 .task-description { margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid #edf1f7; line-height: 1.7; white-space: pre-wrap; color: #243454; }
 .hint { margin-top: 14rpx; color: #7a89a8; font-size: 24rpx; line-height: 1.6; }
 .quote-notice { margin-bottom: 18rpx; padding: 16rpx; background: #f2f3fa; border-radius: 12rpx; color: #6672A8; font-size: 24rpx; line-height: 1.6; }
 .quote-notice text { display: block; margin-top: 6rpx; }
+.profile-btn { margin: 0 0 18rpx; height: 72rpx; line-height: 72rpx; border-radius: 18rpx; background: #f2f5ff; color: #40527a; font-size: 26rpx; }
+.profile-btn::after { border: none; }
+.optional-hint { margin: -4rpx 0 18rpx; color: #7a89a8; font-size: 24rpx; line-height: 1.5; }
 .quote-result { margin-bottom: 18rpx; padding: 18rpx; border-radius: 12rpx; font-size: 26rpx; line-height: 1.6; }
 .quote-result.selected { background: #ecfdf3; color: #067647; }
 .quote-result.rejected { background: #f2f4f7; color: #475467; }

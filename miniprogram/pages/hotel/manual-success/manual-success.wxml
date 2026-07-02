@@ -1,0 +1,61 @@
+<view class="success-page">
+  <view class="success-hero">
+    <view class="status-mark">✓</view>
+    <view class="success-title">订单已提交</view>
+    <view class="success-copy">Farland 运营会联系你确认手动支付方式；付款确认后，再由运营完成酒店预订。</view>
+  </view>
+
+  <view class="info-card">
+    <view class="section-title">订单信息</view>
+    <view class="info-row">
+      <view class="info-label">订单号</view>
+      <view class="info-value">{{order.order_no || '待生成'}}</view>
+    </view>
+    <view class="info-row">
+      <view class="info-label">状态</view>
+      <view class="info-value">待手动支付确认</view>
+    </view>
+    <view class="info-row">
+      <view class="info-label">应付总额</view>
+      <view class="info-value strong">{{payableText}}</view>
+    </view>
+  </view>
+
+  <view class="hotel-card">
+    <image class="hotel-photo" src="{{hotel.displayPhoto}}" mode="aspectFill" />
+    <view class="hotel-info">
+      <view class="section-title">酒店与房型</view>
+      <view class="hotel-name">{{hotel.displayName}}</view>
+      <view wx:if="{{hotel.displayNameEn}}" class="hotel-name-en">{{hotel.displayNameEn}}</view>
+      <view wx:if="{{hotel.hasBadges}}" class="hotel-badges">
+        <text wx:for="{{hotel.displayBadges}}" wx:key="*this" wx:for-item="badge" class="hotel-badge">{{badge}}</text>
+      </view>
+      <view wx:if="{{hotel.hasTransport}}" class="transport-row">
+        <text wx:for="{{hotel.transportItems}}" wx:key="key" wx:for-item="tag" class="transport-pill {{tag.className}}">{{tag.label}}</text>
+      </view>
+      <view wx:if="{{hotel.transportNote}}" class="traffic-note">{{hotel.transportNote}}</view>
+      <view wx:if="{{hotel.displayAddress}}" class="muted-line">{{hotel.displayAddress}}</view>
+      <view class="stay-line">{{stayText}} · {{searchMeta}}</view>
+      <view class="room-line">{{room.roomSummary || room.displayName}}</view>
+      <view wx:if="{{room.hasTags}}" class="room-tags">
+        <text wx:for="{{room.displayTags}}" wx:key="*this" wx:for-item="tag" class="room-tag">{{tag}}</text>
+      </view>
+      <view wx:if="{{room.hasCancel}}" class="cancel-line">
+        <text wx:if="{{room.cancelBadge}}" class="cancel-badge">{{room.cancelBadge}}</text>
+        <text wx:if="{{room.cancelPolicy}}" class="cancel-copy">{{room.cancelPolicy}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="info-card">
+    <view class="section-title">下一步</view>
+    <view class="step-line">1. 请等待 Farland 运营联系你确认支付方式。</view>
+    <view class="step-line">2. 手动支付完成后，运营会确认价格和库存并创建酒店订单。</view>
+    <view class="step-line">3. 酒店确认号出来后，会同步到你的 Farland 行程或由运营发给你。</view>
+  </view>
+
+  <view class="bottom-actions">
+    <button class="secondary-btn" bindtap="copyOrderNo">复制订单号</button>
+    <button class="primary-btn" bindtap="backToHotelSearch">返回酒店搜索</button>
+  </view>
+</view>

@@ -1,0 +1,135 @@
+<view class="preview-page">
+  <view class="preview-nav">
+    <view class="back-button" bindtap="goBack">‹</view>
+    <view class="nav-copy">
+      <view class="nav-title">{{recapText || '订单确认'}}</view>
+      <view class="nav-subtitle">{{stayText}} · {{searchMeta}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{notice}}" class="notice-card">{{notice}}</view>
+
+  <view wx:if="{{loading}}" class="empty-card">
+    <view class="empty-title">正在确认价格与库存</view>
+    <view class="empty-copy">正在向酒店供应商重新校验房型、价格和取消政策。</view>
+  </view>
+
+  <view wx:elif="{{error}}" class="empty-card error-card">
+    <view class="empty-title">{{error}}</view>
+    <view class="empty-copy">实时价格和库存可能已变化，请返回详情页重新选择房型。</view>
+  </view>
+
+  <block wx:else>
+    <view class="recap-strip">
+      <view class="recap-main">{{recapText}}</view>
+      <view class="recap-sub">提交后由 Farland 运营确认付款与供应商订单。</view>
+    </view>
+
+    <view class="hotel-card">
+      <view class="hotel-image-wrap">
+        <image class="hotel-image" src="{{hotel.displayPhoto}}" mode="aspectFill" />
+        <view class="hotel-image-mask"></view>
+        <view class="hotel-badge-row" wx:if="{{hotel.hasBadges}}">
+          <text wx:for="{{hotel.displayBadges}}" wx:key="*this" wx:for-item="badge" class="hotel-badge">{{badge}}</text>
+        </view>
+      </view>
+      <view class="hotel-body">
+        <view class="hotel-name">{{hotel.displayName}}</view>
+        <view wx:if="{{hotel.displayNameEn}}" class="hotel-name-en">{{hotel.displayNameEn}}</view>
+        <view wx:if="{{hotel.hasTransport}}" class="transport-row">
+          <text wx:for="{{hotel.transportItems}}" wx:key="key" wx:for-item="tag" class="transport-pill {{tag.className}}">{{tag.label}}</text>
+        </view>
+        <view wx:if="{{hotel.transportNote}}" class="traffic-note">{{hotel.transportNote}}</view>
+        <view wx:if="{{hotel.displayAddress}}" class="hotel-address">{{hotel.displayAddress}}</view>
+        <view class="room-summary">{{room.roomSummary || room.displayName}}</view>
+        <view wx:if="{{room.hasTags}}" class="room-tag-row">
+          <text wx:for="{{room.displayTags}}" wx:key="*this" wx:for-item="tag" class="room-tag">{{tag}}</text>
+        </view>
+        <view class="hotel-footnote">预付价 · 含税费 · 库存以最终确认为准</view>
+      </view>
+    </view>
+
+    <view class="section-card price-card">
+      <view class="section-kicker">价格明细</view>
+      <view wx:if="{{dailyPriceLines.length}}" class="daily-price-list">
+        <view class="price-group-title">每日房费</view>
+        <view wx:for="{{dailyPriceLines}}" wx:key="key" class="daily-price-line">
+          <view class="daily-price-copy">
+            <view class="daily-price-label">{{item.label}}</view>
+            <view wx:if="{{item.note}}" class="daily-price-note">{{item.note}}</view>
+          </view>
+          <view class="daily-price-value">{{item.amount_text}}</view>
+        </view>
+      </view>
+      <view wx:if="{{priceLines.length}}" class="price-list">
+        <view class="price-group-title">费用汇总</view>
+        <view wx:for="{{priceLines}}" wx:key="key" class="price-line">
+          <view class="price-copy">
+            <view class="price-label">{{item.label}}</view>
+            <view wx:if="{{item.note}}" class="price-note-line">{{item.note}}</view>
+          </view>
+          <view class="price-value">{{item.amount_text}}</view>
+        </view>
+      </view>
+      <view wx:else class="muted-line">供应商仅返回应付总额。</view>
+      <view class="total-block">
+        <view>
+          <view class="total-label">应付总额</view>
+          <view class="total-note">本阶段采用手动支付，运营确认后创建供应商订单。</view>
+        </view>
+        <view class="total-price">
+          <text class="total-currency">{{payableCurrency}}</text>
+          <text class="total-amount">{{payableAmount}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card policy-card">
+      <view class="card-title-row">
+        <view class="section-kicker">取消政策</view>
+        <view class="policy-status {{room.isNonCancelable ? 'strict' : ''}}">{{barCancelText}}</view>
+      </view>
+      <view class="policy-copy">{{room.cancelPolicy || '以酒店最终确认为准'}}</view>
+      <view wx:if="{{room.instructions}}" class="policy-copy muted">{{room.instructions}}</view>
+    </view>
+
+    <view class="section-card guest-card">
+      <view class="section-kicker">入住人</view>
+      <view wx:for="{{guestForms}}" wx:for-index="index" wx:key="roomNo" class="guest-form">
+        <view class="guest-room-head">
+          <view class="room-avatar">{{item.roomNo}}</view>
+          <view>
+            <view class="form-subtitle">房间 {{item.roomNo}}</view>
+            <view class="form-hint">请填写与证件一致的英文或拼音姓名</view>
+          </view>
+        </view>
+        <view class="name-grid">
+          <input class="form-input" placeholder="First name / 名" value="{{item.firstName}}" data-index="{{index}}" data-field="firstName" bindinput="onGuestInput" />
+          <input class="form-input" placeholder="Last name / 姓" value="{{item.lastName}}" data-index="{{index}}" data-field="lastName" bindinput="onGuestInput" />
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card contact-card">
+      <view class="section-kicker">联系人</view>
+      <input class="form-input" placeholder="联系人姓名" value="{{contact.name}}" data-field="name" bindinput="onContactInput" />
+      <input class="form-input" placeholder="联系电话" value="{{contact.mobile}}" data-field="mobile" bindinput="onContactInput" />
+      <input class="form-input" placeholder="邮箱（可选）" value="{{contact.email}}" data-field="email" bindinput="onContactInput" />
+      <textarea class="form-textarea" placeholder="特殊需求（可选）" value="{{contact.specialRequests}}" data-field="specialRequests" bindinput="onContactInput" />
+    </view>
+  </block>
+
+  <view wx:if="{{!loading && !error && preview}}" class="bottom-actions">
+    <view class="bottom-summary">
+      <view class="bottom-stay">{{barStayText}}</view>
+      <view class="bottom-policy">{{barCancelText}}</view>
+    </view>
+    <view class="bottom-pay">
+      <view class="bottom-price">
+        <text>{{payableCurrency}}</text>
+        <text class="bottom-amount">{{payableAmount}}</text>
+      </view>
+      <button class="bottom-btn" loading="{{submitting}}" bindtap="submitOrderDraft">{{submitting ? '提交中' : '提交订单'}}</button>
+    </view>
+  </view>
+</view>

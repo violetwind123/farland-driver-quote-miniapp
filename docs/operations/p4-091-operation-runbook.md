@@ -457,6 +457,54 @@ const rollbackSnapshot = trip091CardSystem.buildTrip091CardSystem(trip);
 
 ## 8. Claude / Claude Code 复核报告模板
 
+### 8.0 Claude Code 调用准则
+
+当前工作环境没有 Claude Code API / MCP connector / CLI 可调用接口。
+
+已确认过的不可用入口:
+
+```text
+which claude      -> not found
+which claude-code -> not found
+```
+
+规则:
+
+1. 不得声称"已发送给 Claude Code"或"Claude Code 已复核",除非实际通过 Claude Code 前端窗口完成了复制/粘贴/提交并读回 Markdown 结果。
+2. 调用 Claude Code 只能走前端 UI:
+   - 使用 Computer Use 打开/切到 Claude Code 前端窗口;
+   - 粘贴本节报告模板或具体 review request;
+   - 等待 Claude Code 返回 Markdown;
+   - 再把返回内容复制回当前线程或文档。
+3. 如果本机没有可见 Claude Code 前端窗口,或 Computer Use 无法稳定操作:
+   - 只能生成"可复制给 Claude Code 的报告包";
+   - 必须标记为`未复核成功`;
+   - 不得把该任务按"Claude 已无 blocking"处理。
+4. 如果只是使用 Codex multi-agent / explorer / worker,必须明确写成 Codex agent 复核,不能替代 Claude Code。
+5. 任何 commit gate 中写有"Claude / Claude Code review required"时,有效证据必须包含:
+   - 发送给 Claude Code 的英文/ASCII 报告;
+   - Claude Code 返回的 Markdown;
+   - blocking issue 是否已修复或由用户显式覆盖。
+
+建议记录格式:
+
+```text
+Claude Code access method:
+- frontend Computer Use / not available
+
+Report sent:
+- <paste report title or file path>
+
+Markdown review received:
+- yes / no
+
+Blocking issues:
+- none / listed below / not reviewed
+
+Commit gate:
+- ready / blocked / user-overridden
+```
+
 发给 Claude 的报告必须 ASCII/英文,便于复制和 diff。模板:
 
 ```text
@@ -537,4 +585,3 @@ trip091CardSystem.buildTrip091CardSystem(trip)
 9. split readback 验证 `rollback_b_complete=true`。
 10. 决定是否保留或清理 ops-only 分支。
 11. 记录操作结果到 P4 文档。
-

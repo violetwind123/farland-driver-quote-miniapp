@@ -25,8 +25,47 @@
     </view>
 
     <view class="city-row">
-      <input class="city-name" value="{{form.city}}" data-field="city" bindinput="onInput" placeholder="{{placePlaceholder}}" />
+      <input
+        class="city-name"
+        value="{{form.city}}"
+        data-field="city"
+        bindinput="onInput"
+        bindfocus="onPlaceFocus"
+        placeholder="{{placePlaceholder}}"
+      />
       <view class="location-link" bindtap="useCurrentLocation">⌖ {{placeActionText}}</view>
+    </view>
+
+    <view wx:if="{{serviceType === 'campus' && showSchoolSuggestions}}" class="school-suggestions">
+      <view
+        wx:for="{{schoolSuggestions}}"
+        wx:key="slug"
+        class="school-suggestion"
+        data-name="{{item.name}}"
+        bindtap="onSchoolSuggestionTap"
+      >
+        <view class="school-suggestion-name">{{item.name}}</view>
+        <view class="school-suggestion-meta">{{item.nameZh}} · {{item.city}}, {{item.state}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{serviceType === 'hotel'}}" class="city-chip-row">
+      <view
+        wx:for="{{supportedCities}}"
+        wx:key="value"
+        class="city-chip {{form.city === item.value ? 'active' : ''}}"
+        data-city="{{item.value}}"
+        bindtap="onCityChipTap"
+      >{{item.label}}</view>
+    </view>
+    <view wx:else class="city-chip-row school-chip-row">
+      <view
+        wx:for="{{campusSchoolChips}}"
+        wx:key="value"
+        class="city-chip school-chip {{form.city === item.value ? 'active' : ''}}"
+        data-city="{{item.value}}"
+        bindtap="onCityChipTap"
+      >{{item.label}}</view>
     </view>
 
     <view class="date-room-row">
@@ -48,23 +87,21 @@
     </view>
 
     <view class="keyword-row">
-      <text class="search-icon">⌕</text>
-      <input
-        value="{{form.location_preference}}"
-        data-field="location_preference"
-        bindinput="onInput"
-        placeholder="搜索学校 / 位置 / 品牌 / 酒店偏好"
-      />
+      <view class="keyword-copy">
+        <view class="keyword-label">品牌 / 酒店偏好</view>
+        <input
+          value="{{form.location_preference}}"
+          data-field="location_preference"
+          bindinput="onInput"
+          placeholder="{{keywordPlaceholder}}"
+        />
+      </view>
+      <text class="optional-text">可选</text>
       <text class="arrow">›</text>
     </view>
 
-    <view wx:if="{{showContactFields}}" class="contact-mini">
-      <input value="{{form.customer_name}}" data-field="customer_name" bindinput="onInput" placeholder="联系人" />
-      <input value="{{form.contact}}" data-field="contact" bindinput="onInput" placeholder="微信 / 手机 / 邮箱" />
-    </view>
-
     <button class="query-btn" loading="{{submitting}}" bindtap="submitRequest">
-      {{submitting ? '提交中...' : '查询'}}
+      {{submitting ? '搜索中...' : '搜索酒店'}}
     </button>
   </view>
 

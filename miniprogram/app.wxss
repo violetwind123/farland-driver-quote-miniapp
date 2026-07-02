@@ -1,6 +1,8 @@
+@import "/styles/farland-ui.wxss";
+
 page {
-  background: #F5F6FA;
-  color: #1E2635;
+  background: #F4F5F9;
+  color: #1C1B29;
   font-size: 28rpx;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
 }
@@ -18,12 +20,13 @@ button.floating-add,
 .select-btn,
 .floating-add,
 .service-type.active {
-  background: #6672A8 !important;
+  background: linear-gradient(135deg, #6874B4 0%, #8993CC 100%) !important;
   color: #ffffff !important;
+  box-shadow: 0 8rpx 22rpx rgba(104, 116, 180, 0.30), inset 0 1rpx 0 rgba(255,255,255,0.25);
 }
 
 .status,
 .selected-label,
 .error-text {
-  color: #6672A8 !important;
+  color: #4A56A5 !important;
 }

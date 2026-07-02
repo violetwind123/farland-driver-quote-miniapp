@@ -40,6 +40,8 @@ Page({
     formSeats: '',
     formLuggageCapacity: '',
     formPlateNumber: '',
+    wechatProfileName: '',
+    wechatProfileAvatarUrl: '',
   },
 
   onLoad(options) {
@@ -157,6 +159,27 @@ Page({
     });
   },
 
+  async onGetWechatProfile() {
+    if (!wx.getUserProfile) {
+      wx.showToast({ title: '当前微信版本暂不支持获取昵称', icon: 'none' });
+      return;
+    }
+    try {
+      const profile = await wx.getUserProfile({
+        desc: '用于司机报价身份识别',
+      });
+      const userInfo = profile.userInfo || {};
+      const nickName = userInfo.nickName || '';
+      this.setData({
+        wechatProfileName: nickName,
+        wechatProfileAvatarUrl: userInfo.avatarUrl || '',
+        formDriverName: this.data.formDriverName || nickName,
+      });
+    } catch (error) {
+      wx.showToast({ title: '未获取微信昵称，可直接报价', icon: 'none' });
+    }
+  },
+
   async onSubmit() {
     const {
       token,
@@ -175,6 +198,8 @@ Page({
       formSeats,
       formLuggageCapacity,
       formPlateNumber,
+      wechatProfileName,
+      wechatProfileAvatarUrl,
       quoteFinalized,
       quoteLocked,
     } = this.data;
@@ -190,8 +215,9 @@ Page({
     }
 
     const driverProfile = driverStatus !== 'unregistered'
-      ? { name: driver.name, phone: driver.phone }
-      : { name: formDriverName, phone: formDriverPhone };
+      ? { name: driver.name, phone: driver.phone, nick_name: wechatProfileName, avatar_url: wechatProfileAvatarUrl }
+      : { name: formDriverName || wechatProfileName, phone: formDriverPhone, nick_name: wechatProfileName, avatar_url: wechatProfileAvatarUrl };
+    const hasVehicleForm = !!formVehicleModel;
     const vehicleProfile = isRegistered && vehicle
       ? {
         vehicle_type: vehicle.vehicle_type,
@@ -201,7 +227,7 @@ Page({
         plate_number: vehicle.plate_number,
       }
       : {
-        vehicle_type: formVehicleType,
+        vehicle_type: hasVehicleForm ? formVehicleType : '',
         vehicle_model: formVehicleModel,
         seats: formSeats,
         luggage_capacity: formLuggageCapacity,

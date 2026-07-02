@@ -2,6 +2,10 @@
   "pages": [
     "pages/index/index",
     "pages/hotel/request/request",
+    "pages/hotel/results/results",
+    "pages/hotel/detail/detail",
+    "pages/hotel/order-preview/order-preview",
+    "pages/hotel/manual-success/manual-success",
     "pages/customer/home/home",
     "pages/customer/day-detail/day-detail",
     "pages/customer/hotel-detail/hotel-detail",
@@ -10,6 +14,7 @@
     "pages/customer/review-card/review-card",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
+    "pages/operator/hotel-orders/hotel-orders",
     "pages/operator/trip-management/trip-management",
     "pages/operator/review-summary/review-summary",
     "pages/operator/request-hall/request-hall",

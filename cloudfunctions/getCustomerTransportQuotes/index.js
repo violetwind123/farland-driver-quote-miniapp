@@ -1,12 +1,33 @@
 const cloud = require('wx-server-sdk');
-const { getCaller, isOperator } = require('./lib/auth');
-const { writeAuditLog } = require('./lib/audit');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
 const CUSTOMER_VISIBLE_STATUSES = ['published', 'viewed', 'selected', 'confirmed'];
+
+async function getCaller(cloudApi, database) {
+  const { OPENID } = cloudApi.getWXContext();
+  if (!OPENID) {
+    return { openid: '', user: null };
+  }
+
+  const userRes = await database.collection('users').where({ openid: OPENID }).limit(1).get();
+  return { openid: OPENID, user: userRes.data[0] || null };
+}
+
+function isOperator(user) {
+  return Boolean(user && user.status === 'active' && ['operator', 'super_admin'].includes(user.role));
+}
+
+async function writeAuditLog(database, data) {
+  await database.collection('audit_logs').add({
+    data: {
+      ...data,
+      created_at: data.created_at || new Date().toISOString(),
+    },
+  });
+}
 
 function formatMoney(value) {
   const amount = Number(value || 0);
@@ -405,6 +426,17 @@ exports.main = async (event = {}) => {
   const rawQuotes = quoteRes.data || [];
   const quotes = rawQuotes.map(toClientQuote);
   const now = new Date().toISOString();
+  let customerNotice = '';
+  if (!quotes.length) {
+    const noticeRes = await db.collection('customer_transport_quotes')
+      .where({ request_id, quote_status: 'cancelled' })
+      .orderBy('updated_at', 'desc')
+      .limit(1)
+      .get()
+      .catch(() => ({ data: [] }));
+    const latestCancelledQuote = noticeRes.data[0] || {};
+    customerNotice = latestCancelledQuote.customer_notice || '';
+  }
 
   await Promise.all(rawQuotes
     .filter((quote) => quote.quote_status === 'published' && !operatorPreview && accessSource !== 'temporary_invite')
@@ -465,6 +497,7 @@ exports.main = async (event = {}) => {
     code: 0,
     request_id,
     has_published_quotes: quotes.length > 0,
+    customer_notice: customerNotice,
     access_source: accessSource,
     customer_trip_access_id: customerTripAccessId,
     assigned_transport_source: assignedTransportSource,
@@ -472,6 +505,8 @@ exports.main = async (event = {}) => {
       request_no: request.request_no || '',
       service_date: request.service_date || '',
       service_type: request.service_type || '',
+      service_type_label: request.service_type_label || '',
+      task_title: request.task_title || '',
       driver_region: request.driver_region || '',
       task_description: request.task_description || '',
       status: request.status || '',
@@ -480,6 +515,16 @@ exports.main = async (event = {}) => {
       pickup: request.pickup || request.pickup_location || '',
       dropoff: request.dropoff || request.dropoff_location || '',
       pickup_time_text: request.pickup_time_text || request.pickup_time || request.service_date || '',
+      route_text: request.route_text || [request.pickup || request.pickup_location || '', request.dropoff || request.dropoff_location || ''].filter(Boolean).join(' -> '),
+      time_summary: request.time_summary || '',
+      flight_summary: request.flight_summary || '',
+      execution_note: request.execution_note || '',
+      estimated_drive_time: request.estimated_drive_time || '',
+      estimated_distance: request.estimated_distance || '',
+      flight_no: request.flight_no || '',
+      terminal: request.terminal || '',
+      scheduled_flight_time: request.scheduled_flight_time || '',
+      driver_arrive_time: request.driver_arrive_time || '',
       passengers: request.passengers || request.passenger_count || '',
       luggage: request.luggage || request.luggage_count || '',
       status_text: request.status === 'cancelled'

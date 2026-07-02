@@ -1,0 +1,83 @@
+<view class="detail-page">
+  <view class="detail-header">
+    <view class="back-button" bindtap="goBack">‹</view>
+    <view class="header-copy">
+      <view class="detail-title">{{sourceTitle}}</view>
+      <view class="detail-subtitle">{{stayText}} · {{searchMeta}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{notice}}" class="notice-card">{{notice}}</view>
+
+  <view wx:if="{{error}}" class="empty-card error-card">
+    <view class="empty-title">{{error}}</view>
+    <view class="empty-copy">请返回列表选择其他已匹配酒店。</view>
+  </view>
+
+  <view wx:elif="{{loading && !hotel}}" class="empty-card">
+    <view class="empty-title">正在查询实时房型</view>
+    <view class="empty-copy">正在按当前入住日期、房间数和人数读取实时房态。</view>
+  </view>
+
+  <block wx:else>
+    <view class="hotel-hero">
+      <view class="hero-image-wrap">
+        <image class="hero-image" src="{{hotel.displayPhoto}}" mode="aspectFill" />
+        <view class="hero-mask"></view>
+        <view class="hero-overlay">
+          <view class="hotel-name">{{hotel.displayName}}</view>
+          <view wx:if="{{hotel.displayNameEn}}" class="hotel-name-en">{{hotel.displayNameEn}}</view>
+          <view wx:if="{{hotel.hasTransport}}" class="transport-row">
+            <text wx:for="{{hotel.transportItems}}" wx:key="key" wx:for-item="tag" class="transport-pill {{tag.className}}">{{tag.label}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="hero-body">
+        <view wx:if="{{hotel.transportNote}}" class="traffic-note">{{hotel.transportNote}}</view>
+        <view class="hotel-address">{{hotel.displayAddress}}</view>
+        <view wx:if="{{hotel.reason}}" class="hotel-reason">{{hotel.reason}}</view>
+        <view class="price-row">
+          <view class="hotel-price"><text class="price-currency">{{hotel.priceCurrency}}</text><text class="price-number">{{hotel.priceAmount}}</text></view>
+          <view class="price-note">价格为实时估算，提交前将重新确认</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-head">
+      <view class="section-title">可选房型</view>
+      <view class="section-count">{{loading ? '查询中' : roomCount + ' 个'}}</view>
+    </view>
+
+    <view wx:if="{{loading}}" class="empty-card">
+      <view class="empty-title">正在查询实时房型</view>
+      <view class="empty-copy">正在按当前入住日期、房间数和人数读取实时房态。</view>
+    </view>
+
+    <view wx:elif="{{!rooms.length}}" class="empty-card">
+      <view class="empty-title">暂无可展示房型</view>
+      <view class="empty-copy">可返回列表换酒店，或稍后重新查询。</view>
+    </view>
+
+    <view wx:else class="room-list">
+      <view wx:for="{{rooms}}" wx:for-index="index" wx:key="key" class="room-card {{selectedRoomIndex == index ? 'selected' : ''}}" bindtap="selectRoom" data-index="{{index}}">
+        <view wx:if="{{selectedRoomIndex == index}}" class="selected-check">✓</view>
+        <view class="room-top">
+          <view class="room-name">{{item.displayName}}</view>
+          <view class="room-price"><text>{{item.priceCurrency}}</text> {{item.priceAmount}}</view>
+        </view>
+        <view wx:if="{{item.hasTags}}" class="room-tags">
+          <text wx:for="{{item.displayTags}}" wx:key="*this" wx:for-item="tag" class="room-tag">{{tag}}</text>
+        </view>
+        <view wx:if="{{item.cancelBadge}}" class="policy-badge {{item.isNonCancelable ? 'strict' : ''}}" data-index="{{index}}" catchtap="showCancelPolicy">! {{item.cancelBadge}}</view>
+        <view class="room-footer">
+          <view class="room-note">预订前将重新确认价格和库存</view>
+          <view class="select-state">{{selectedRoomIndex == index ? '已选择' : '点卡片选择'}}</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view class="bottom-actions">
+    <button class="bottom-btn" disabled="{{!selectedRoom}}" bindtap="continueBooking">{{selectedRoom ? ('预订 · ' + selectedRoom.displayPrice) : '选择房型'}}</button>
+  </view>
+</view>

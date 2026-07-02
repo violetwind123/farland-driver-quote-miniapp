@@ -18,6 +18,7 @@
       <view wx:if="{{context.stops.length}}" class="stops">
         <view wx:for="{{context.stops}}" wx:key="*this" class="stop-chip">{{item}}</view>
       </view>
+      <button class="share-btn" open-type="share">转发评价卡</button>
     </view>
 
     <view wx:if="{{submitted}}" class="panel center">

@@ -11,8 +11,10 @@
 .utility-card { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 26rpx 24rpx; margin-bottom: 16rpx; }
 .trip-management-entry,
 .customer-invite-entry,
-.customer-preview-entry { border: 1rpx solid rgba(102, 114, 168, 0.22); background: #F7F9FF; }
+.customer-preview-entry,
+.hotel-orders-entry { border: 1rpx solid rgba(102, 114, 168, 0.22); background: #F7F9FF; }
 .trip-management-entry { background: #FFFFFF; border-color: rgba(102, 114, 168, 0.34); box-shadow: 0 10rpx 28rpx rgba(102, 114, 168, 0.08); }
+.hotel-orders-entry { background: #F6FBF8; border-color: rgba(40, 137, 93, 0.24); }
 .customer-preview-entry { background: #FFFDF7; border-color: rgba(194, 122, 0, 0.20); }
 .legacy-entry { opacity: 0.72; }
 .legacy-entry .utility-title { color: #6E7788; font-weight: 650; }

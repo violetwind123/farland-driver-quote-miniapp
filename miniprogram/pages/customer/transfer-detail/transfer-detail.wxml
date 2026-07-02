@@ -24,7 +24,7 @@
 
       <view class="detail-hero">
         <view class="hero-kicker">TRANSFER REQUEST</view>
-        <view class="hero-title">接送需求</view>
+        <view class="hero-title">{{request.task_title || '接送需求'}}</view>
         <view class="hero-route">{{request.pickup}} → {{request.dropoff}}</view>
         <view class="hero-status">{{request.status_text}}</view>
       </view>
@@ -45,12 +45,31 @@
             <view class="field-label">时间</view>
             <view class="field-value">{{request.pickup_time_text}}</view>
           </view>
+          <view wx:if="{{request.time_summary}}" class="snapshot-item">
+            <view class="field-label">时间安排</view>
+            <view class="field-value">{{request.time_summary}}</view>
+          </view>
+          <view wx:if="{{request.flight_summary || request.flight_no}}" class="snapshot-item">
+            <view class="field-label">航班</view>
+            <view class="field-value">{{request.flight_summary || request.flight_no}}</view>
+          </view>
           <view class="snapshot-item">
             <view class="field-label">人数 / 行李</view>
             <view class="field-value">{{request.passengers}} 人 / {{request.luggage}} 件</view>
           </view>
+          <view wx:if="{{request.estimated_drive_time || request.estimated_distance}}" class="snapshot-item">
+            <view class="field-label">预计车程</view>
+            <view class="field-value">{{request.estimated_drive_time}} {{request.estimated_distance}}</view>
+          </view>
         </view>
         <view class="snapshot-note">{{request.created_by_text}}</view>
+      </view>
+
+      <view wx:if="{{request.task_description || request.execution_note}}" class="detail-card">
+        <view class="section-kicker">TASK BRIEF</view>
+        <view class="section-title">任务说明</view>
+        <view wx:if="{{request.execution_note}}" class="task-brief">{{request.execution_note}}</view>
+        <view wx:if="{{request.task_description}}" class="task-brief muted">{{request.task_description}}</view>
       </view>
 
       <view class="detail-card status-card">

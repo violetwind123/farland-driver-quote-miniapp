@@ -55,6 +55,10 @@ Page({
     wx.switchTab({ url: '/pages/hotel/request/request' });
   },
 
+  openHotelOrders() {
+    wx.navigateTo({ url: '/pages/operator/hotel-orders/hotel-orders' });
+  },
+
   openCustomerImport() {
     wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
   },

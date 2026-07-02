@@ -1957,6 +1957,11 @@
   font-size: 24rpx;
 }
 
+.task-brief-line {
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
 .request-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

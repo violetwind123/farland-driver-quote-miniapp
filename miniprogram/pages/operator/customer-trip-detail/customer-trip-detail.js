@@ -53,6 +53,9 @@ Page({
     inviteCode: '',
     inviteExpiresAt: '',
     inviteReused: false,
+    hotelInviteMap: {},
+    creatingHotelInviteKey: '',
+    hotelShareKey: '',
     overwriteJsonText: '',
     overwritePreview: null,
     overwriteErrors: [],
@@ -82,6 +85,7 @@ Page({
     reviewInvites: {},
     creatingReviewDay: 0,
     reviewExpandedDayNo: 0,
+    reviewShareDayNo: 0,
     ownership: null,
     ownershipEditing: false,
     ownershipSaving: false,
@@ -323,6 +327,53 @@ Page({
       data: invite.share_path,
       success: () => wx.showToast({ title: '已复制评价卡路径', icon: 'success' }),
     });
+  },
+
+  getReviewInviteForDay(dayNo) {
+    const normalizedDayNo = Number(dayNo || 0);
+    return (this.data.reviewInvites || {})[normalizedDayNo] || null;
+  },
+
+  getPublishedDayForShare(dayNo) {
+    const normalizedDayNo = Number(dayNo || 0);
+    const snapshot = this.data.publishedSnapshot || {};
+    const days = Array.isArray(snapshot.itinerary_days) ? snapshot.itinerary_days : [];
+    return days.find((day, index) => Number(day.day_no || index + 1) === normalizedDayNo) || null;
+  },
+
+  buildDayReviewShare(dayNo) {
+    const normalizedDayNo = Number(dayNo || 0);
+    const invite = this.getReviewInviteForDay(normalizedDayNo);
+    if (!invite || !invite.share_path) {
+      wx.showToast({ title: '请先生成评价卡', icon: 'none' });
+      return {
+        title: 'Farland 每日服务评价',
+        path: 'pages/customer/review-card/review-card',
+      };
+    }
+    const publishedDay = this.getPublishedDayForShare(normalizedDayNo) || {};
+    const cardDay = (this.data.dayCards || [])
+      .find((day) => Number(day.day_no || 0) === normalizedDayNo) || {};
+    const snapshot = this.data.publishedSnapshot || this.data.activeSnapshot || {};
+    const titleBase = publishedDay.title
+      || publishedDay.city
+      || cardDay.title
+      || snapshot.display_title
+      || snapshot.title
+      || 'Farland 行程';
+    return {
+      title: `Day ${normalizedDayNo} 服务评价｜${titleBase}`,
+      path: String(invite.share_path || '').replace(/^\//, ''),
+    };
+  },
+
+  onDayReviewShareTap(e) {
+    const dayNo = Number(e.currentTarget.dataset.day || 0);
+    if (!this.getReviewInviteForDay(dayNo)) {
+      wx.showToast({ title: '请先生成评价卡', icon: 'none' });
+      return;
+    }
+    this.setData({ reviewShareDayNo: dayNo });
   },
 
   toggleReviewFeedback(e) {
@@ -900,6 +951,11 @@ Page({
     const hotelCards = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
       ? snapshot.hotel_cards
       : (Array.isArray(snapshot.hotels) ? snapshot.hotels : []);
+    const normalizedHotelCards = hotelCards.map((hotel, index) => ({
+      ...hotel,
+      hotel_index: index,
+      share_key: this.getHotelShareKey(hotel, index),
+    }));
     const flightCards = Array.isArray(snapshot.flight_cards) && snapshot.flight_cards.length
       ? snapshot.flight_cards
       : (Array.isArray(snapshot.flights) ? snapshot.flights : []);
@@ -924,14 +980,23 @@ Page({
         display_day_label: `Day ${day.day_no || index + 1}`,
         timeline_items: Array.isArray(day.timeline_items) ? day.timeline_items : [],
       })),
-      hotel_cards: hotelCards,
-      hotels: hotelCards,
+      hotel_cards: normalizedHotelCards,
+      hotels: normalizedHotelCards,
       flight_cards: flightCards,
       flights: flightCards,
       transfers: Array.isArray(snapshot.transfers) ? snapshot.transfers : [],
       charter_services: Array.isArray(snapshot.charter_services) ? snapshot.charter_services : [],
       documents: Array.isArray(snapshot.documents) ? snapshot.documents : [],
     };
+  },
+
+  getHotelShareKey(hotel = {}, index = 0) {
+    return String(
+      hotel.hotel_id
+      || hotel.card_id
+      || hotel.id
+      || [hotel.name || hotel.hotel_name || hotel.title || 'hotel', hotel.check_in_date || hotel.date || '', index].join('_'),
+    ).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80);
   },
 
   getStateCopy(result, hasDraft, hasPublished) {
@@ -1163,7 +1228,14 @@ Page({
     }
   },
 
-  onShareAppMessage() {
+  onShareAppMessage(options = {}) {
+    const dataset = options.target && options.target.dataset ? options.target.dataset : {};
+    if (dataset.shareType === 'review') {
+      return this.buildDayReviewShare(dataset.day || this.data.reviewShareDayNo);
+    }
+    if (dataset.shareType === 'hotel') {
+      return this.buildHotelInviteShare(dataset.hotelKey || this.data.hotelShareKey);
+    }
     return this.buildTripInviteShare();
   },
 
@@ -1237,6 +1309,86 @@ Page({
       data: this.data.invitePath,
       success: () => wx.showToast({ title: '已复制客户路径', icon: 'success' }),
     });
+  },
+
+  async createHotelInvite(e) {
+    const dataset = (e.currentTarget && e.currentTarget.dataset) || {};
+    const hotelKey = dataset.hotelKey || '';
+    if (!hotelKey || this.data.creatingHotelInviteKey) return;
+    this.setData({ creatingHotelInviteKey: hotelKey, error: '' });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'createHotelOrderInvite',
+        data: {
+          trip_id: this.getReviewTripId(),
+          hotel_id: dataset.hotelId || '',
+          hotel_index: Number(dataset.hotelIndex || 0),
+          expires_in_days: 30,
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({ creatingHotelInviteKey: '' });
+        wx.showToast({ title: (result && result.message) || '酒店分享生成失败', icon: 'none' });
+        return;
+      }
+      this.setData({
+        creatingHotelInviteKey: '',
+        [`hotelInviteMap.${hotelKey}`]: {
+          hotel_key: hotelKey,
+          hotel_id: result.hotel_id || dataset.hotelId || '',
+          hotel_name: result.hotel_name || '',
+          invite_code: result.invite_code || '',
+          share_path: result.share_path || result.path || '',
+          expires_at: result.expires_at || '',
+        },
+      });
+      wx.showToast({ title: result.reused ? '已复用酒店分享' : '酒店分享已生成', icon: 'success' });
+    } catch (error) {
+      console.error('[customer-trip-detail] createHotelOrderInvite failed', error);
+      this.setData({ creatingHotelInviteKey: '' });
+      wx.showToast({ title: '酒店分享生成失败', icon: 'none' });
+    }
+  },
+
+  copyHotelInvitePath(e) {
+    const hotelKey = e.currentTarget.dataset.hotelKey || '';
+    const invite = (this.data.hotelInviteMap || {})[hotelKey];
+    if (!invite || !invite.share_path) {
+      wx.showToast({ title: '请先生成酒店分享', icon: 'none' });
+      return;
+    }
+    wx.setClipboardData({
+      data: invite.share_path,
+      success: () => wx.showToast({ title: '已复制酒店路径', icon: 'success' }),
+    });
+  },
+
+  buildHotelInviteShare(hotelKey) {
+    const invite = (this.data.hotelInviteMap || {})[hotelKey];
+    if (!invite || !invite.share_path) {
+      wx.showToast({ title: '请先生成酒店分享', icon: 'none' });
+      return {
+        title: 'Farland 酒店确认',
+        path: 'pages/customer/hotel-detail/hotel-detail',
+      };
+    }
+    const snapshot = this.data.publishedSnapshot || this.data.activeSnapshot || {};
+    const hotel = (Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : [])
+      .find((item) => item.share_key === hotelKey) || {};
+    const title = `${invite.hotel_name || hotel.name || hotel.hotel_name || '酒店信息'}｜Farland 酒店确认`;
+    return {
+      title,
+      path: String(invite.share_path || '').replace(/^\//, ''),
+    };
+  },
+
+  onHotelInviteShareTap(e) {
+    const hotelKey = e.currentTarget.dataset.hotelKey || '';
+    if (!((this.data.hotelInviteMap || {})[hotelKey])) {
+      wx.showToast({ title: '请先生成酒店分享', icon: 'none' });
+      return;
+    }
+    this.setData({ hotelShareKey: hotelKey });
   },
 
   toggleAdvanced() {

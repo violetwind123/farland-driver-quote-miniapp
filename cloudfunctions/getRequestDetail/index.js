@@ -38,6 +38,16 @@ function hasValue(value) {
   return value !== undefined && value !== null && String(value).trim() !== '';
 }
 
+function isExpired(expiresAt) {
+  return expiresAt && new Date(expiresAt).getTime() < Date.now();
+}
+
+function isUsableQuoteInvite(invite) {
+  if (!invite) return false;
+  if (['cancelled', 'expired'].includes(invite.status)) return false;
+  return !isExpired(invite.expires_at);
+}
+
 function hasFallbackDriverVehicle(request) {
   return Boolean(request && request.selected_driver_id);
 }
@@ -147,6 +157,8 @@ exports.main = async (event = {}) => {
   const selectedQuote = quotes.find((quote) => {
     return quote.quote_status === 'selected' || quote._id === request.selected_quote_id;
   }) || null;
+  const allInvites = inviteRes.data || [];
+  const activeQuoteInvite = allInvites.find(isUsableQuoteInvite) || null;
   const { transportOrder, health: transportOrderHealth } = await loadTransportOrderHealth({
     request,
     requestId: event.request_id,
@@ -183,7 +195,8 @@ exports.main = async (event = {}) => {
     assigned_customer: assignedCustomer,
     transport_order: transportOrder,
     transport_order_health: transportOrderHealth,
-    invites: inviteRes.data,
+    active_quote_invite: activeQuoteInvite,
+    invites: allInvites,
     quotes,
   };
 };

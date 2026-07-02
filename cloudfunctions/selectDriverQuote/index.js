@@ -116,6 +116,11 @@ function toTransportOrderData({ request, quote, customerQuote, resolved, operato
   return {
     request_id: request._id,
     request_no: request.request_no || '',
+    trip_id: request.trip_id || request.ops_trip_id || '',
+    ops_transfer_id: request.ops_transfer_id || '',
+    ops_trip_id: request.ops_trip_id || request.trip_id || '',
+    ops_sync_version: Number(request.ops_sync_version || 0),
+    source_system: request.source_system || '',
     customer_name: request.customer_name || '',
     customer_openid: request.customer_openid || '',
     customer_user_id: request.customer_user_id || '',

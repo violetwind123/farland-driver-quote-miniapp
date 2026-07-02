@@ -1,0 +1,149 @@
+.page {
+  min-height: 100vh;
+  padding: 24rpx;
+  box-sizing: border-box;
+  background: #F5F6FA;
+}
+
+.tabs {
+  display: flex;
+  gap: 10rpx;
+  overflow-x: auto;
+  margin-bottom: 18rpx;
+}
+
+.tab {
+  flex: 0 0 auto;
+  padding: 12rpx 20rpx;
+  border-radius: 28rpx;
+  background: #FFFFFF;
+  color: #6E7788;
+  font-size: 24rpx;
+}
+
+.tab.active {
+  background: #6672A8;
+  color: #FFFFFF;
+}
+
+.state,
+.order-card {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+}
+
+.state {
+  padding: 28rpx;
+  color: #6E7788;
+}
+
+.order-card {
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 8rpx 24rpx rgba(31, 36, 51, 0.04);
+}
+
+.card-top,
+.price-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 18rpx;
+  align-items: center;
+}
+
+.order-no {
+  flex: 1;
+  min-width: 0;
+  color: #253554;
+  font-size: 27rpx;
+  line-height: 1.35;
+  font-weight: 750;
+  word-break: break-word;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.status-pill.pending {
+  background: rgba(244, 156, 69, 0.14);
+  color: #C36F16;
+}
+
+.status-pill.paid {
+  background: rgba(23, 153, 91, 0.10);
+  color: #17995B;
+}
+
+.hotel-name {
+  margin-top: 14rpx;
+  color: #1D2433;
+  font-size: 30rpx;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+.muted-line,
+.room-line {
+  margin-top: 9rpx;
+  color: #6E7788;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.room-line {
+  color: #53609A;
+  font-weight: 700;
+}
+
+.price-line {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(102, 114, 168, 0.10);
+}
+
+.price-label {
+  color: #6E7788;
+  font-size: 24rpx;
+}
+
+.price-value {
+  color: #53609A;
+  font-size: 30rpx;
+  line-height: 1.25;
+  font-weight: 780;
+}
+
+.actions {
+  margin-top: 18rpx;
+}
+
+.primary-btn {
+  margin: 0;
+  height: 78rpx;
+  line-height: 78rpx;
+  border-radius: 999rpx;
+  background: #5B6596;
+  color: #FFFFFF;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.primary-btn::after {
+  border: none;
+}
+
+.paid-note {
+  color: #17995B;
+  font-size: 24rpx;
+  line-height: 1.45;
+  font-weight: 700;
+}

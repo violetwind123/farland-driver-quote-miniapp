@@ -73,6 +73,14 @@
       <view class="chevron">›</view>
     </view>
 
+    <view class="utility-card hotel-orders-entry" bindtap="openHotelOrders">
+      <view>
+        <view class="utility-title">酒店订单</view>
+        <view class="utility-desc">查看手动支付订单，并确认已付款。</view>
+      </view>
+      <view class="chevron">›</view>
+    </view>
+
     <view class="utility-card customer-preview-entry legacy-entry" bindtap="openCustomerHomePreview">
       <view>
         <view class="utility-title">客户界面预览（辅助）</view>

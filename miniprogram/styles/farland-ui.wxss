@@ -1,0 +1,19 @@
+.farland-primary-btn {
+  background: linear-gradient(135deg, #6874B4 0%, #8993CC 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 8rpx 22rpx rgba(104, 116, 180, 0.38), inset 0 1rpx 0 rgba(255, 255, 255, 0.25);
+}
+
+.farland-card {
+  background: #FFFFFF;
+  border-radius: 41rpx;
+  box-shadow: 0 1rpx 4rpx rgba(28, 27, 41, 0.04), 0 19rpx 56rpx rgba(28, 27, 41, 0.06);
+}
+
+.farland-section-kicker {
+  color: #B0AFBF;
+  font-size: 24rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 2.6rpx;
+}

@@ -7,6 +7,21 @@ function isExpired(expiresAt) {
   return expiresAt && new Date(expiresAt).getTime() < Date.now();
 }
 
+function toTime(value) {
+  if (!value) return 0;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function isQuoteFromCurrentRound(quote, invite, request) {
+  if (!quote) return false;
+  if (quote.token && invite.token && quote.token === invite.token) return true;
+  const reopenedAt = toTime(request.reopened_at);
+  if (!reopenedAt) return true;
+  const quoteTime = toTime(quote.resubmitted_at || quote.updated_at || quote.submitted_at || quote.created_at);
+  return Boolean(quoteTime && quoteTime >= reopenedAt);
+}
+
 exports.main = async (event = {}) => {
   const { token } = event;
   const { OPENID } = cloud.getWXContext();
@@ -70,6 +85,7 @@ exports.main = async (event = {}) => {
     request_id: invite.request_id,
     driver_id: user.driver_id,
   }).limit(1).get() : { data: [] };
+  const existingQuote = isQuoteFromCurrentRound(existingRes.data[0], invite, request) ? existingRes.data[0] : null;
 
   return {
     success: true,
@@ -83,9 +99,24 @@ exports.main = async (event = {}) => {
       _id: request._id,
       request_no: request.request_no,
       service_type: request.service_type,
+      service_type_label: request.service_type_label || '',
+      task_title: request.task_title || '',
       service_date: request.service_date,
       driver_region: request.driver_region,
       task_description: request.task_description,
+      route_text: request.route_text || [request.pickup || request.pickup_location || '', request.dropoff || request.dropoff_location || ''].filter(Boolean).join(' -> '),
+      time_summary: request.time_summary || '',
+      flight_summary: request.flight_summary || '',
+      execution_note: request.execution_note || request.dispatch_note || request.special_requests || '',
+      pickup: request.pickup || request.pickup_location || '',
+      dropoff: request.dropoff || request.dropoff_location || '',
+      pickup_time_text: request.pickup_time_text || request.pickup_time || '',
+      estimated_drive_time: request.estimated_drive_time || '',
+      estimated_distance: request.estimated_distance || '',
+      flight_no: request.flight_no || '',
+      terminal: request.terminal || '',
+      scheduled_flight_time: request.scheduled_flight_time || '',
+      driver_arrive_time: request.driver_arrive_time || '',
       quote_deadline: request.quote_deadline,
       status: request.status,
     },
@@ -105,12 +136,12 @@ exports.main = async (event = {}) => {
       plate_number: vehicle.plate_number,
     } : null,
     is_registered: driverStatus === 'registered_with_vehicle',
-    existing_quote: existingRes.data[0] ? {
-      quote_price: existingRes.data[0].quote_price,
-      currency: existingRes.data[0].currency,
-      quote_note: existingRes.data[0].quote_note,
-      quote_status: existingRes.data[0].quote_status,
-      updated_at: existingRes.data[0].updated_at,
+    existing_quote: existingQuote ? {
+      quote_price: existingQuote.quote_price,
+      currency: existingQuote.currency,
+      quote_note: existingQuote.quote_note,
+      quote_status: existingQuote.quote_status,
+      updated_at: existingQuote.updated_at,
     } : null,
   };
 };

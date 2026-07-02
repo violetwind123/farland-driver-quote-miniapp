@@ -5,9 +5,7 @@
   justify-content: center;
   box-sizing: border-box;
   padding: 56rpx;
-  background:
-    radial-gradient(circle at 50% 28%, rgba(102, 114, 168, 0.16), transparent 34%),
-    linear-gradient(180deg, #F7F8FC 0%, #EEF1F8 100%);
+  background: linear-gradient(180deg, #F7F8FC 0%, #EEF0F8 100%);
 }
 
 .splash-card {
@@ -23,21 +21,42 @@
   filter: drop-shadow(0 16rpx 28rpx rgba(73, 82, 126, 0.20));
 }
 
+.splash-slogan {
+  margin-top: 30rpx;
+  color: #6E6D82;
+  font-size: 24rpx;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0.8rpx;
+}
+
 .loading-line {
-  width: 180rpx;
+  width: 224rpx;
   height: 6rpx;
-  margin: 46rpx auto 0;
+  margin: 38rpx auto 0;
   overflow: hidden;
   border-radius: 999rpx;
-  background: rgba(102, 114, 168, 0.14);
+  background: rgba(104, 116, 180, 0.20);
 }
 
 .loading-bar {
-  width: 72rpx;
+  width: 92rpx;
   height: 100%;
   border-radius: 999rpx;
-  background: #6672A8;
+  background: #6874B4;
   animation: loadingSlide 1.4s ease-in-out infinite;
+}
+
+.splash-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(46rpx + env(safe-area-inset-bottom));
+  color: #9A99AD;
+  font-size: 21rpx;
+  line-height: 1.2;
+  letter-spacing: 4rpx;
+  text-align: center;
 }
 
 @keyframes loadingSlide {

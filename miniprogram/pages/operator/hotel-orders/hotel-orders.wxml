@@ -1,0 +1,45 @@
+<view class="page">
+  <view class="tabs">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab {{activeTab === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >{{item.label}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="state">加载中...</view>
+
+  <block wx:else>
+    <view wx:if="{{!orders.length}}" class="state">暂无酒店订单</view>
+
+    <view wx:for="{{orders}}" wx:key="_id" class="order-card">
+      <view class="card-top">
+        <view class="order-no">{{item.order_no}}</view>
+        <view class="status-pill {{item.statusClass}}">{{item.status_text}}</view>
+      </view>
+      <view class="hotel-name">{{item.hotel_name}}</view>
+      <view wx:if="{{item.hotel_name_en}}" class="muted-line">{{item.hotel_name_en}}</view>
+      <view class="muted-line">{{item.stayText}}</view>
+      <view wx:if="{{item.roomText}}" class="room-line">{{item.roomText}}</view>
+      <view class="price-line">
+        <view class="price-label">应付总额</view>
+        <view class="price-value">{{item.payable_text}}</view>
+      </view>
+      <view class="muted-line">联系人：{{item.contactText}}</view>
+      <view class="muted-line">供应商订单：{{item.supplier_order_status || 'not_created'}}</view>
+
+      <view class="actions">
+        <button
+          wx:if="{{item.can_confirm_paid}}"
+          class="primary-btn"
+          loading="{{actingId === item._id}}"
+          data-id="{{item._id}}"
+          catchtap="confirmPaid"
+        >确认已付款</button>
+        <view wx:else class="paid-note">{{item.paidNote}}</view>
+      </view>
+    </view>
+  </block>
+</view>

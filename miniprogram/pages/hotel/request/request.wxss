@@ -4,8 +4,7 @@
   padding-bottom: 170rpx;
   box-sizing: border-box;
   overflow-x: hidden;
-  background:
-    linear-gradient(180deg, #F7F8FC 0%, #FFFFFF 100%);
+  background: #F4F5F9;
 }
 
 .text-logo {
@@ -72,9 +71,8 @@
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 82% 6%, rgba(255, 255, 255, 0.14), transparent 28%),
-    linear-gradient(180deg, rgba(17, 24, 39, 0.22) 0%, rgba(17, 24, 39, 0.08) 38%, rgba(17, 24, 39, 0.46) 100%),
-    linear-gradient(90deg, rgba(17, 24, 39, 0.28) 0%, rgba(17, 24, 39, 0.08) 52%, rgba(17, 24, 39, 0.18) 100%);
+    linear-gradient(180deg, rgba(28, 27, 41, 0.16) 0%, rgba(28, 27, 41, 0.08) 34%, rgba(28, 27, 41, 0.64) 100%),
+    linear-gradient(90deg, rgba(28, 27, 41, 0.30) 0%, rgba(28, 27, 41, 0.08) 58%, rgba(28, 27, 41, 0.20) 100%);
 }
 
 .hero-copy {
@@ -110,10 +108,8 @@
   margin: -74rpx 24rpx 24rpx;
   padding: 18rpx 28rpx 30rpx;
   border-radius: 32rpx;
-  background:
-    radial-gradient(circle at 86% 0%, rgba(102, 114, 168, 0.06), transparent 34%),
-    linear-gradient(180deg, #FFFFFF 0%, #FBFCFF 100%);
-  border: 1rpx solid rgba(102, 114, 168, 0.07);
+  background: #FFFFFF;
+  border: 1rpx solid rgba(238, 237, 244, 0.95);
   box-shadow:
     0 1rpx 2rpx rgba(255, 255, 255, 0.92) inset,
     0 18rpx 42rpx rgba(102, 114, 168, 0.10),
@@ -146,9 +142,8 @@
   padding: 4rpx;
   overflow: hidden;
   border-radius: 22rpx;
-  background:
-    linear-gradient(180deg, #F3F5FA 0%, #EAEDF5 100%);
-  border: 1rpx solid rgba(102, 114, 168, 0.055);
+  background: #E9EAF2;
+  border: 1rpx solid rgba(238, 237, 244, 0.88);
   box-shadow:
     0 1rpx 2rpx rgba(255,255,255,0.85) inset,
     0 2rpx 8rpx rgba(17,24,39,0.025);
@@ -162,9 +157,7 @@
   width: calc((100% - 8rpx) / 2);
   height: 60rpx;
   border-radius: 18rpx;
-  background:
-    radial-gradient(circle at 78% 0%, rgba(102, 114, 168, 0.065), transparent 34%),
-    linear-gradient(180deg, #FFFFFF 0%, #FDFEFF 100%);
+  background: #FFFFFF;
   border: 1rpx solid rgba(102, 114, 168, 0.09);
   box-shadow:
     0 1rpx 2rpx rgba(255, 255, 255, 0.95) inset,
@@ -186,16 +179,16 @@
   justify-content: center;
   height: 60rpx;
   min-width: 0;
-  color: #A0A7B6;
+  color: #6E6D82;
   background: transparent;
   border-radius: 18rpx;
   font-size: 25rpx;
   line-height: 1;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .tab.active {
-  color: #6672A8;
+  color: #4A56A5;
   background: transparent;
   font-weight: 600;
   box-shadow: none;
@@ -223,14 +216,14 @@
   align-items: center;
   gap: 24rpx;
   padding: 12rpx 0 24rpx;
-  border-bottom: 1rpx solid rgba(102, 114, 168, 0.075);
+  border-bottom: 1rpx solid #EEEDF4;
 }
 
 .city-name {
   flex: 1;
   min-height: auto;
-  color: #6F7685;
-  font-size: 40rpx;
+  color: #1C1B29;
+  font-size: 34rpx;
   line-height: 1.2;
   font-weight: 600;
 }
@@ -239,10 +232,84 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  color: #4B5565;
+  color: #4A56A5;
   font-size: 25rpx;
   line-height: 1.2;
   font-weight: 500;
+}
+
+.city-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  padding: 18rpx 0 6rpx;
+}
+
+.school-suggestions {
+  margin: 16rpx 0 4rpx;
+  border-radius: 22rpx;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 1rpx solid rgba(102, 114, 168, 0.08);
+  box-shadow:
+    0 1rpx 2rpx rgba(255,255,255,0.92) inset,
+    0 8rpx 22rpx rgba(17, 24, 39, 0.04);
+}
+
+.school-suggestion {
+  padding: 18rpx 20rpx;
+  border-bottom: 1rpx solid rgba(102, 114, 168, 0.06);
+}
+
+.school-suggestion:last-child {
+  border-bottom: none;
+}
+
+.school-suggestion-name {
+  color: #1C1B29;
+  font-size: 25rpx;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.school-suggestion-meta {
+  margin-top: 5rpx;
+  color: #6E6D82;
+  font-size: 21rpx;
+  line-height: 1.35;
+}
+
+.city-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 138rpx;
+  height: 50rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: #FFFFFF;
+  color: #6E6D82;
+  border: 1rpx solid #EEEDF4;
+  font-size: 23rpx;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+.city-chip.active {
+  background: #6874B4;
+  color: #FFFFFF;
+  border-color: #6874B4;
+  font-weight: 700;
+}
+
+.school-chip-row {
+  gap: 12rpx;
+}
+
+.school-chip {
+  min-width: auto;
+  height: 48rpx;
+  padding: 0 18rpx;
 }
 
 .date-room-row {
@@ -251,7 +318,7 @@
   align-items: center;
   gap: 16rpx;
   padding: 24rpx 0;
-  border-bottom: 1rpx solid rgba(102, 114, 168, 0.07);
+  border-bottom: 1rpx solid #EEEDF4;
 }
 
 .date-block {
@@ -271,7 +338,7 @@
 
 .date-main {
   width: 100%;
-  color: #1D2433;
+  color: #1C1B29;
   font-size: 34rpx;
   line-height: 40rpx;
   font-weight: 600;
@@ -297,11 +364,10 @@
   line-height: 36rpx;
   text-align: center;
   border-radius: 999rpx;
-  background:
-    linear-gradient(180deg, #F5F6FB 0%, #EEF1F8 100%);
-  color: #6D78A8;
+  background: #EEF0F9;
+  color: #4A56A5;
   font-size: 20rpx;
-  font-weight: 500;
+  font-weight: 700;
   align-self: center;
   border: 1rpx solid rgba(102, 114, 168, 0.06);
   box-shadow:
@@ -312,48 +378,44 @@
 .keyword-row {
   display: flex;
   align-items: center;
-  height: 88rpx;
-  border-bottom: 1rpx solid rgba(102, 114, 168, 0.07);
+  gap: 14rpx;
+  min-height: 98rpx;
+  border-bottom: 1rpx solid #EEEDF4;
+}
+
+.keyword-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.keyword-label {
+  color: #1C1B29;
+  font-size: 26rpx;
+  line-height: 1.35;
+  font-weight: 700;
 }
 
 .keyword-row input {
-  flex: 1;
-  min-height: 60rpx;
-  color: #1D2433;
-  font-size: 26rpx;
+  width: 100%;
+  min-height: 42rpx;
+  margin-top: 4rpx;
+  color: #1C1B29;
+  font-size: 23rpx;
   line-height: 1.4;
   font-weight: 400;
 }
 
-.search-icon {
-  margin-right: 14rpx;
-  color: #6D78A8;
-  font-size: 28rpx;
-  line-height: 1;
+.optional-text {
+  flex: 0 0 auto;
+  color: #8B8A9C;
+  font-size: 22rpx;
+  line-height: 1.25;
 }
 
 .arrow {
-  color: #C8CDD8;
+  color: #B8B7C6;
   font-size: 38rpx;
   line-height: 1;
-}
-
-.contact-mini {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16rpx;
-  margin-top: 22rpx;
-}
-
-.contact-mini input {
-  height: 72rpx;
-  min-height: 72rpx;
-  padding: 0 20rpx;
-  border-radius: 18rpx;
-  background: #F7F8FC;
-  color: #1D2433;
-  font-size: 24rpx;
-  box-sizing: border-box;
 }
 
 .query-btn {
@@ -361,15 +423,13 @@
   height: 82rpx;
   line-height: 82rpx;
   border-radius: 999rpx;
-  background:
-    radial-gradient(circle at 82% 0%, rgba(255, 255, 255, 0.18), transparent 32%),
-    linear-gradient(180deg, #6F79B0 0%, #6672A8 100%);
+  background: linear-gradient(135deg, #6874B4 0%, #8993CC 100%);
   color: #FFFFFF;
   font-size: 29rpx;
   font-weight: 600;
   box-shadow:
     0 1rpx 2rpx rgba(255, 255, 255, 0.22) inset,
-    0 8rpx 20rpx rgba(102, 114, 168, 0.18);
+    0 8rpx 22rpx rgba(104, 116, 180, 0.34);
   padding: 0;
 }
 
@@ -377,14 +437,162 @@
   border: none;
 }
 
+.hotel-results {
+  margin: 0 24rpx 24rpx;
+}
+
+.result-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 8rpx 4rpx 20rpx;
+}
+
+.result-kicker {
+  color: #9AA3B5;
+  font-size: 18rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 1.5rpx;
+}
+
+.result-title {
+  margin-top: 6rpx;
+  color: #1C1B29;
+  font-size: 28rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.result-count {
+  flex: 0 0 auto;
+  color: #4A56A5;
+  font-size: 22rpx;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.result-empty {
+  padding: 36rpx 28rpx;
+  border-radius: 26rpx;
+  background: #FFFFFF;
+  border: 1rpx solid rgba(102, 114, 168, 0.07);
+}
+
+.empty-title {
+  color: #1C1B29;
+  font-size: 27rpx;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.empty-copy {
+  margin-top: 10rpx;
+  color: #6E6D82;
+  font-size: 23rpx;
+  line-height: 1.48;
+}
+
+.hotel-result-card {
+  margin-bottom: 18rpx;
+  padding: 28rpx;
+  border-radius: 26rpx;
+  background: #FFFFFF;
+  border: 1rpx solid rgba(102, 114, 168, 0.07);
+  box-shadow:
+    0 1rpx 2rpx rgba(255, 255, 255, 0.92) inset,
+    0 8rpx 22rpx rgba(17, 24, 39, 0.035);
+  box-sizing: border-box;
+}
+
+.hotel-result-main {
+  min-width: 0;
+}
+
+.hotel-result-title {
+  color: #1C1B29;
+  font-size: 29rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.hotel-result-address {
+  margin-top: 8rpx;
+  color: #6E6D82;
+  font-size: 22rpx;
+  line-height: 1.42;
+}
+
+.hotel-result-meta {
+  margin-top: 12rpx;
+  color: #4A56A5;
+  font-size: 22rpx;
+  line-height: 1.42;
+  font-weight: 600;
+}
+
+.hotel-result-reason {
+  margin-top: 12rpx;
+  color: #6E6D82;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.hotel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.hotel-tag {
+  max-width: 100%;
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: #EEF0F9;
+  color: #4A56A5;
+  font-size: 19rpx;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
+.hotel-result-price {
+  margin-top: 18rpx;
+  color: #353F8E;
+  font-size: 27rpx;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.room-lines {
+  margin-top: 18rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(102, 114, 168, 0.08);
+}
+
+.room-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 6rpx 0;
+  color: #6E6D82;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.room-price {
+  flex: 0 0 auto;
+  color: #4A56A5;
+  font-weight: 600;
+}
+
 .advisor-service-card {
   position: relative;
   margin: 0 24rpx 24rpx;
   padding: 34rpx 28rpx 24rpx;
   border-radius: 30rpx;
-  background:
-    radial-gradient(circle at 86% 0%, rgba(102, 114, 168, 0.035), transparent 34%),
-    linear-gradient(180deg, #FFFFFF 0%, #FBFCFF 100%);
+  background: #FFFFFF;
   border: 1rpx solid rgba(31, 36, 51, 0.045);
   box-shadow:
     0 1rpx 2rpx rgba(255, 255, 255, 0.92) inset,
@@ -399,7 +607,7 @@
   top: -12rpx;
   padding: 0 12rpx;
   background: #FFFFFF;
-  color: #A1A8B7;
+  color: #A6772A;
   font-size: 19rpx;
   line-height: 1.2;
   letter-spacing: 1.5rpx;
@@ -423,9 +631,9 @@
 
 .service-icon {
   flex: 0 0 auto;
-  width: 76rpx;
-  height: 76rpx;
-  opacity: 1;
+  width: 50rpx;
+  height: 50rpx;
+  opacity: 0.72;
 }
 
 .service-copy {
@@ -434,7 +642,7 @@
 }
 
 .service-name {
-  color: #1D2433;
+  color: #1C1B29;
   font-size: 26rpx;
   line-height: 1.32;
   font-weight: 600;
@@ -442,7 +650,7 @@
 
 .service-detail {
   margin-top: 4rpx;
-  color: #667085;
+  color: #6E6D82;
   font-size: 22rpx;
   line-height: 1.42;
   font-weight: 400;

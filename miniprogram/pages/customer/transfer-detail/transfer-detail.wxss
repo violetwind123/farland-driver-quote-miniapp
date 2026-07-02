@@ -168,6 +168,22 @@
   margin-top: 14rpx;
 }
 
+.task-brief {
+  margin-top: 16rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 20rpx;
+  background: #F7F8FC;
+  color: #344054;
+  font-size: 24rpx;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.task-brief.muted {
+  background: rgba(102, 114, 168, 0.075);
+  color: #667085;
+}
+
 .snapshot-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

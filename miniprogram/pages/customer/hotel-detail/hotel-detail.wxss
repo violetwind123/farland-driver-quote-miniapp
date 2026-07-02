@@ -181,3 +181,23 @@
 .bottom-btn::after {
   border: none;
 }
+
+.error-card .empty-title,
+.error-card .empty-copy {
+  color: #B64747;
+}
+
+.copy-confirm-btn {
+  margin: 22rpx 0 0;
+  min-height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 36rpx;
+  background: rgba(91, 101, 150, 0.10);
+  color: #5B6596;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.copy-confirm-btn::after {
+  border: none;
+}

@@ -1,5 +1,15 @@
 <view class="hotel-detail-page">
-  <view wx:if="{{!hotel}}" class="empty-card">
+  <view wx:if="{{loading}}" class="empty-card">
+    <view class="empty-title">正在加载酒店信息</view>
+    <view class="empty-copy">请稍候，Farland 正在读取酒店确认信息。</view>
+  </view>
+
+  <view wx:elif="{{error}}" class="empty-card error-card">
+    <view class="empty-title">酒店分享卡无法打开</view>
+    <view class="empty-copy">{{error}}</view>
+  </view>
+
+  <view wx:elif="{{!hotel}}" class="empty-card">
     <view class="empty-title">暂无酒店信息</view>
     <view class="empty-copy">Farland 顾问同步后会在这里显示完整酒店安排。</view>
   </view>
@@ -19,6 +29,8 @@
           <view class="detail-value compact">{{detail.value}}</view>
         </view>
       </view>
+
+      <button wx:if="{{hotel.hasConfirmationNo}}" class="copy-confirm-btn" bindtap="copyConfirmationNo">复制确认号</button>
 
       <view wx:if="{{hotel.plainDetailItems && hotel.plainDetailItems.length}}" class="plain-detail-list">
         <view wx:for="{{hotel.plainDetailItems}}" wx:key="label" wx:for-item="detail" class="plain-detail-row">
