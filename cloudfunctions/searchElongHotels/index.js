@@ -1,8 +1,26 @@
 const crypto = require('crypto');
 const https = require('https');
 const zlib = require('zlib');
+const cloud = require('wx-server-sdk');
 const SCHOOL_GUIDES = require('./schoolHotelGuides.json');
 const ELONG_HOTEL_MATCHES = require('./elongHotelMatches.json');
+
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+const PREVIEWS_COLLECTION = 'hotel_order_previews';
+
+// 鉴权:小程序调用一律带 OPENID,须为 active 用户;OPENID 缺失=管理端/脚本可信上下文(放行)。
+// 挡掉未注册/被禁用户直连烧付费配额;为后续 per-openid 限频留钩子。
+async function requireActiveCallerOrService() {
+  const { OPENID } = cloud.getWXContext();
+  if (!OPENID) return { ok: true, openid: '' };
+  const res = await db.collection('users').where({ openid: OPENID }).limit(1).get().catch(() => ({ data: [] }));
+  const user = res.data && res.data[0];
+  if (!user || user.status !== 'active') {
+    return { ok: false, code: 403, error_code: 'FORBIDDEN', message: '无权限访问酒店搜索' };
+  }
+  return { ok: true, openid: OPENID, user };
+}
 
 const DEFAULT_VERSION = '1.62';
 const DEFAULT_LOCAL = 'zh_CN';
@@ -245,7 +263,9 @@ function getConfig() {
     secret_key: safeString(process.env.ELONG_HOTEL_SECRET_KEY).trim(),
     version: safeString(process.env.ELONG_HOTEL_VERSION || DEFAULT_VERSION).trim(),
     local: safeString(process.env.ELONG_HOTEL_LOCAL || DEFAULT_LOCAL).trim(),
-    timeout_ms: asPositiveInt(process.env.ELONG_HOTEL_TIMEOUT_MS, 25000, 60000),
+    // 单次上游调用超时默认 8s(原 25s 在 3s 函数默认限制下必然整体超时);
+    // 云函数执行超时须在控制台/发布配置提到 ~60s 才能覆盖多次串联调用。
+    timeout_ms: asPositiveInt(process.env.ELONG_HOTEL_TIMEOUT_MS, 8000, 20000),
   };
 }
 
@@ -721,8 +741,11 @@ async function fetchElongCities(config) {
     const count = Number(result.Count || result.TotalCount || 0);
     if (!pageCities.length || pageCities.length < CITY_LIST_PAGE_SIZE || (count && cities.length >= count)) break;
   }
-  cityListCache = cities;
-  cityListCacheAt = now;
+  // 仅在拿到城市时才缓存 24h;首页失败/空结果不写缓存,否则空数组被缓存一整天
+  if (cities.length) {
+    cityListCache = cities;
+    cityListCacheAt = now;
+  }
   return cities;
 }
 
@@ -1373,7 +1396,7 @@ function normalizePreviewResult(body, rate, params, request) {
   };
 }
 
-async function searchHotelPreview(event) {
+async function searchHotelPreview(event, openid = '') {
   const hotelId = firstText(event, ['elong_hotel_id', 'provider_hotel_id', 'hotel_id', 'HotelId']);
   const room = event.room || event.selected_room || {};
   const checkIn = parseDate(event.check_in_date);
@@ -1455,6 +1478,29 @@ async function searchHotelPreview(event) {
   }
 
   const preview = normalizePreviewResult(body, matchedRate, params, validateRequest);
+  // 服务端持久化 preview:下单时按 preview_id 回查用存储价,杜绝客户端改价下单
+  if (preview.bookable && preview.preview_id) {
+    await db.collection(PREVIEWS_COLLECTION).doc(preview.preview_id).set({
+      data: {
+        preview_id: preview.preview_id,
+        openid,
+        hotel_id: hotelId,
+        hotel: preview.hotel,
+        rate: preview.rate,
+        price: preview.price,
+        cancellation: preview.cancellation,
+        search: {
+          check_in_date: event.check_in_date,
+          check_out_date: event.check_out_date,
+          rooms,
+          guests,
+          adults_per_room: adultsPerRoom,
+        },
+        lock_expires_at: preview.lock_expires_at,
+        created_at: new Date().toISOString(),
+      },
+    }).catch(() => null);
+  }
   return {
     success: preview.bookable,
     code: preview.bookable ? 0 : 409,
@@ -1475,9 +1521,13 @@ async function searchHotelPreview(event) {
 }
 
 exports.main = async (event = {}) => {
+  const auth = await requireActiveCallerOrService();
+  if (!auth.ok) {
+    return { success: false, code: auth.code, error_code: auth.error_code, message: auth.message };
+  }
   const mode = safeString(event.mode || event.search_mode).trim().toLowerCase();
   if (['preview', 'rate_preview', 'validate'].includes(mode)) {
-    return searchHotelPreview(event);
+    return searchHotelPreview(event, auth.openid);
   }
   if (['detail', 'hotel_detail', 'rates', 'rate'].includes(mode)) {
     return searchHotelDetail(event);

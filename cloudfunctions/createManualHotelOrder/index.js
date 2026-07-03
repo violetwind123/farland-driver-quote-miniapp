@@ -95,14 +95,42 @@ async function ensureCollection(name) {
   }
 }
 
-async function findExistingOrder(openid, clientOrderToken) {
+async function findExistingOrder(openid, clientOrderToken, previewId) {
   if (!clientOrderToken) return null;
+  // 幂等键含 preview_id:token 被复用到另一份草稿(不同 preview)时不误命中旧单,
+  // 避免"超时后换酒店重下拿回上一单"。
+  const query = { openid, client_order_token: clientOrderToken };
+  if (previewId) query.preview_id = previewId;
   const res = await db.collection(ORDERS_COLLECTION)
-    .where({ openid, client_order_token: clientOrderToken })
+    .where(query)
     .limit(1)
     .get()
     .catch(() => ({ data: [] }));
   return (res.data && res.data[0]) || null;
+}
+
+const PREVIEWS_COLLECTION = 'hotel_order_previews';
+
+// 服务端按 preview_id 回查 searchElongHotels 存下的 preview,拿权威 price/room/hotel。
+// 杜绝客户端伪造 event.preview.price 改价下单。
+async function loadServerPreview(previewId, openid) {
+  const id = text(previewId);
+  if (!id) return { ok: false, code: 422, error_code: 'PREVIEW_ID_REQUIRED', message: '缺少订单预览,请返回重新确认价格' };
+  const res = await db.collection(PREVIEWS_COLLECTION).doc(id).get().catch(() => null);
+  const stored = res && res.data;
+  if (!stored) {
+    return { ok: false, code: 409, error_code: 'PREVIEW_NOT_FOUND', message: '订单预览已失效,请返回重新确认价格' };
+  }
+  if (stored.lock_expires_at && new Date(stored.lock_expires_at).getTime() < Date.now()) {
+    return { ok: false, code: 409, error_code: 'PREVIEW_EXPIRED', message: '订单预览已过期,请返回重新确认价格' };
+  }
+  if (openid && stored.openid && stored.openid !== openid) {
+    return { ok: false, code: 403, error_code: 'PREVIEW_MISMATCH', message: '订单预览与当前用户不匹配,请重新确认价格' };
+  }
+  if (!numberValue(stored.price && stored.price.payable_total)) {
+    return { ok: false, code: 409, error_code: 'PREVIEW_PRICE_MISSING', message: '订单预览缺少应付总额,请返回重新确认价格' };
+  }
+  return { ok: true, stored };
 }
 
 exports.main = async (event = {}) => {
@@ -112,6 +140,20 @@ exports.main = async (event = {}) => {
   if (!validation.ok) {
     return { success: false, code: 422, error_code: 'VALIDATION_ERROR', message: validation.message };
   }
+
+  // 权威价格/房型/酒店来自服务端存储的 preview,不信任客户端传入的 event.preview.price
+  const previewLoad = await loadServerPreview(validation.preview.preview_id, openid);
+  if (!previewLoad.ok) {
+    return { success: false, code: previewLoad.code, error_code: previewLoad.error_code, message: previewLoad.message };
+  }
+  const serverPreview = previewLoad.stored;
+  const price = serverPreview.price || {};
+  const hotel = serverPreview.hotel || {};
+  const room = serverPreview.rate || {};
+  const cancellation = serverPreview.cancellation || {};
+  const serverSearch = serverPreview.search || {};
+  const guests = validation.guests;
+  const contact = validation.contact;
 
   const clientOrderToken = text(event.client_order_token);
   if (event.dry_run) {
@@ -125,13 +167,13 @@ exports.main = async (event = {}) => {
       status: 'pending_manual_payment',
       payment_status: 'manual_payment_pending',
       supplier_order_status: 'not_created',
-      payable_text: validation.price.payable_text,
-      message: '订单参数验证通过；dry_run 未写入正式订单。',
+      payable_text: text(price.payable_text),
+      message: '订单参数验证通过;dry_run 未写入正式订单。',
     };
   }
 
   await ensureCollection(ORDERS_COLLECTION);
-  const existing = await findExistingOrder(openid, clientOrderToken);
+  const existing = await findExistingOrder(openid, clientOrderToken, text(serverPreview.preview_id));
   if (existing) {
     return {
       success: true,
@@ -147,14 +189,6 @@ exports.main = async (event = {}) => {
   }
 
   const now = new Date().toISOString();
-  const {
-    preview,
-    price,
-    hotel,
-    room,
-    contact,
-    guests,
-  } = validation;
 
   const orderData = compactObject({
     order_no: buildOrderNo(),
@@ -176,10 +210,10 @@ exports.main = async (event = {}) => {
     room_id: text(room.room_id),
     room_type_id: text(room.room_type_id),
     rate_plan_id: text(room.rate_plan_id),
-    check_in_date: text(event.check_in_date || (event.search && event.search.check_in_date)),
-    check_out_date: text(event.check_out_date || (event.search && event.search.check_out_date)),
-    rooms: numberValue(event.rooms || (event.search && event.search.rooms)) || guests.length,
-    guests_count: numberValue(event.guests_count || (event.search && event.search.guests)),
+    check_in_date: text(serverSearch.check_in_date),
+    check_out_date: text(serverSearch.check_out_date),
+    rooms: numberValue(serverSearch.rooms) || guests.length,
+    guests_count: numberValue(serverSearch.guests),
     guest_names: guests,
     contact: {
       name: text(contact.name),
@@ -193,11 +227,11 @@ exports.main = async (event = {}) => {
     farland_service_fee: numberValue(price.farland_service_fee),
     payable_total: numberValue(price.payable_total),
     payable_text: text(price.payable_text),
-    cancellation: preview.cancellation || {},
-    preview_id: text(preview.preview_id),
-    preview_lock_expires_at: text(preview.lock_expires_at),
-    preview_snapshot: preview,
-    provider_request_snapshot: preview.request_snapshot || {},
+    cancellation: cancellation || {},
+    preview_id: text(serverPreview.preview_id),
+    preview_lock_expires_at: text(serverPreview.lock_expires_at),
+    preview_snapshot: serverPreview,
+    provider_request_snapshot: (serverPreview.rate && serverPreview.rate.request_snapshot) || {},
     ops_note: '客户选择手动支付；请运营联系客户确认付款方式，付款后再创建供应商订单。',
     created_at: now,
     updated_at: now,
