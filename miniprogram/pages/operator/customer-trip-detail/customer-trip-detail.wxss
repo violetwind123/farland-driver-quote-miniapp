@@ -1182,6 +1182,11 @@
   border-style: dashed;
 }
 
+.mini-action.danger {
+  color: #C4443A;
+  border-color: rgba(196, 68, 58, 0.35);
+}
+
 .day-detail {
   margin-top: 14rpx;
   padding-top: 12rpx;

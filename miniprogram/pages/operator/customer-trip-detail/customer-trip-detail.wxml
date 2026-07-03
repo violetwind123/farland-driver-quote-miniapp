@@ -382,6 +382,14 @@
                   data-hotel-key="{{item.share_key}}"
                   bindtap="copyHotelInvitePath"
                 >复制路径</button>
+                <button
+                  wx:if="{{hotelInviteMap[item.share_key]}}"
+                  class="mini-action danger"
+                  loading="{{revokingHotelInviteKey === item.share_key}}"
+                  disabled="{{revokingHotelInviteKey && revokingHotelInviteKey !== item.share_key}}"
+                  data-hotel-key="{{item.share_key}}"
+                  bindtap="revokeHotelInvite"
+                >撤销分享卡</button>
               </view>
               <view wx:if="{{hotelInviteMap[item.share_key]}}" class="hotel-share-hint">
                 {{hotelInviteMap[item.share_key].expires_at ? '有效期至 ' + hotelInviteMap[item.share_key].expires_at : '酒店分享卡已准备'}}

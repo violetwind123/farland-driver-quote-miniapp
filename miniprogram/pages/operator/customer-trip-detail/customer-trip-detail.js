@@ -55,6 +55,7 @@ Page({
     inviteReused: false,
     hotelInviteMap: {},
     creatingHotelInviteKey: '',
+    revokingHotelInviteKey: '',
     hotelShareKey: '',
     overwriteJsonText: '',
     overwritePreview: null,
@@ -1361,6 +1362,47 @@ Page({
       data: invite.share_path,
       success: () => wx.showToast({ title: '已复制酒店路径', icon: 'success' }),
     });
+  },
+
+  async revokeHotelInvite(e) {
+    const hotelKey = (e.currentTarget && e.currentTarget.dataset.hotelKey) || '';
+    const invite = (this.data.hotelInviteMap || {})[hotelKey];
+    if (!invite || !invite.invite_code || this.data.revokingHotelInviteKey) {
+      wx.showToast({ title: '暂无可撤销的分享卡', icon: 'none' });
+      return;
+    }
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '撤销分享卡',
+        content: '撤销后，客户当前收到的酒店分享链接将无法再访问。确认撤销？',
+        confirmText: '撤销',
+        confirmColor: '#C4443A',
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+    this.setData({ revokingHotelInviteKey: hotelKey });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'createHotelOrderInvite',
+        data: { action: 'revoke', invite_code: invite.invite_code },
+      });
+      if (!result || !result.success) {
+        this.setData({ revokingHotelInviteKey: '' });
+        wx.showToast({ title: (result && result.message) || '撤销失败', icon: 'none' });
+        return;
+      }
+      // 清掉本地该酒店的 invite,按钮回到「生成酒店分享」,不再显示为 active
+      const nextMap = { ...(this.data.hotelInviteMap || {}) };
+      delete nextMap[hotelKey];
+      this.setData({ revokingHotelInviteKey: '', hotelInviteMap: nextMap });
+      wx.showToast({ title: '分享卡已撤销', icon: 'success' });
+    } catch (error) {
+      console.error('[customer-trip-detail] revokeHotelInvite failed', error);
+      this.setData({ revokingHotelInviteKey: '' });
+      wx.showToast({ title: '撤销失败', icon: 'none' });
+    }
   },
 
   buildHotelInviteShare(hotelKey) {
