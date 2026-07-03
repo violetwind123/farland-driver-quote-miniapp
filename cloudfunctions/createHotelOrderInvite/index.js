@@ -155,6 +155,40 @@ exports.main = async (event = {}) => {
     return { success: false, code: auth.code, error_code: 'FORBIDDEN', message: auth.message };
   }
 
+  // 撤销:运营可停用某张酒店分享卡(getHotelOrderByInvite 对 status!=='active' 一律拒)
+  if (safeString(event.action).trim() === 'revoke') {
+    const revokeCode = firstText(event.invite_code);
+    if (!revokeCode) {
+      return { success: false, code: 422, error_code: 'INVITE_CODE_REQUIRED', message: '请提供要撤销的 invite_code' };
+    }
+    const revokeRes = await db.collection(INVITES_COLLECTION)
+      .where({ invite_code: revokeCode })
+      .limit(1)
+      .get()
+      .catch(() => ({ data: [] }));
+    const target = revokeRes.data && revokeRes.data[0];
+    if (!target) {
+      return { success: false, code: 404, error_code: 'INVITE_NOT_FOUND', message: '酒店分享卡不存在' };
+    }
+    const revokeIso = new Date().toISOString();
+    await db.collection(INVITES_COLLECTION).doc(target._id).update({
+      data: { status: 'revoked', revoked_at: revokeIso, revoked_by: auth.user._id, updated_at: revokeIso },
+    });
+    await db.collection('audit_logs').add({
+      data: {
+        actor_openid: auth.openid,
+        actor_user_id: auth.user._id,
+        actor_role: auth.user.role,
+        action: 'hotel_order_invite_revoked',
+        target_type: 'hotel_order_invite',
+        target_id: target._id,
+        detail: { invite_code: revokeCode, trip_id: target.trip_id || '', hotel_id: target.hotel_id || '' },
+        created_at: revokeIso,
+      },
+    }).catch(() => null);
+    return { success: true, code: 0, revoked: true, invite_code: revokeCode };
+  }
+
   const tripId = firstText(event.trip_id, event.external_trip_id, event.trip_no);
   if (!tripId) {
     return { success: false, code: 422, error_code: 'TRIP_ID_REQUIRED', message: '请提供 trip_id' };
@@ -190,6 +224,18 @@ exports.main = async (event = {}) => {
     .filter((invite) => isActiveInvite(invite, now))
     .sort((a, b) => safeString(b.created_at).localeCompare(safeString(a.created_at)))[0];
   if (existing) {
+    // 行程已重新发布(版本变化)时,刷新复用 invite 的酒店快照,避免继续分享过期的酒店信息
+    const currentVersion = trip.published_version || 0;
+    if (Number(existing.published_version_snapshot || 0) !== Number(currentVersion)) {
+      await db.collection(INVITES_COLLECTION).doc(existing._id).update({
+        data: {
+          hotel_snapshot: hotel,
+          hotel_name: hotel.name || hotel.hotel_name || existing.hotel_name || '',
+          published_version_snapshot: currentVersion,
+          updated_at: nowIso,
+        },
+      }).catch(() => null);
+    }
     return {
       success: true,
       code: 0,

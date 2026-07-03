@@ -7,10 +7,14 @@ const ELONG_HOTEL_MATCHES = require('./elongHotelMatches.json');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 const PREVIEWS_COLLECTION = 'hotel_order_previews';
+const RATE_LIMIT_COLLECTION = 'rate_limits';
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 40; // 每 openid 每分钟最多 40 次搜索,保护付费上游配额
 
 // 鉴权:小程序调用一律带 OPENID,须为 active 用户;OPENID 缺失=管理端/脚本可信上下文(放行)。
-// 挡掉未注册/被禁用户直连烧付费配额;为后续 per-openid 限频留钩子。
+// 挡掉未注册/被禁用户直连烧付费配额。
 async function requireActiveCallerOrService() {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { ok: true, openid: '' };
@@ -20,6 +24,26 @@ async function requireActiveCallerOrService() {
     return { ok: false, code: 403, error_code: 'FORBIDDEN', message: '无权限访问酒店搜索' };
   }
   return { ok: true, openid: OPENID, user };
+}
+
+// per-openid 滑窗限频(近似,check-then-write);空 openid(脚本/管理端)不限。
+async function checkSearchRateLimit(openid) {
+  if (!openid) return { ok: true };
+  const docId = `elong_search_${String(openid).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80)}`;
+  const ref = db.collection(RATE_LIMIT_COLLECTION).doc(docId);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const res = await ref.get().catch(() => null);
+  const row = res && res.data;
+  if (!row || (now - Number(row.window_start_ms || 0)) > RATE_LIMIT_WINDOW_MS) {
+    await ref.set({ data: { key: docId, window_start_ms: now, count: 1, updated_at: nowIso } }).catch(() => null);
+    return { ok: true };
+  }
+  if (Number(row.count || 0) >= RATE_LIMIT_MAX) {
+    return { ok: false, code: 429, error_code: 'RATE_LIMITED', message: '酒店搜索过于频繁,请稍后再试' };
+  }
+  await ref.update({ data: { count: _.inc(1), updated_at: nowIso } }).catch(() => null);
+  return { ok: true };
 }
 
 const DEFAULT_VERSION = '1.62';
@@ -1525,6 +1549,10 @@ exports.main = async (event = {}) => {
   const auth = await requireActiveCallerOrService();
   if (!auth.ok) {
     return { success: false, code: auth.code, error_code: auth.error_code, message: auth.message };
+  }
+  const rate = await checkSearchRateLimit(auth.openid);
+  if (!rate.ok) {
+    return { success: false, code: rate.code, error_code: rate.error_code, message: rate.message };
   }
   const mode = safeString(event.mode || event.search_mode).trim().toLowerCase();
   if (['preview', 'rate_preview', 'validate'].includes(mode)) {
