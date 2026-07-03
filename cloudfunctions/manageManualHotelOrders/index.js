@@ -70,7 +70,8 @@ async function listOrders(tab) {
   } else if (tab === 'paid') {
     query = query.where({ payment_status: 'manual_payment_confirmed' });
   }
-  const res = await query.limit(100).get().catch(() => ({ data: [] }));
+  // orderBy 保证取的是最新 100 单;否则超 100 后返回的是自然序任意 100 单,最新待付会被丢
+  const res = await query.orderBy('created_at', 'desc').limit(100).get().catch(() => ({ data: [] }));
   const orders = (res.data || [])
     .filter((order) => {
       if (tab === 'pending_payment') return order.payment_status === 'manual_payment_pending';

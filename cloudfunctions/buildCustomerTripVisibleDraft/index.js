@@ -93,6 +93,21 @@ function sanitizeCustomerObject(value) {
   }, {});
 }
 
+// 客户自己的联系方式不应进入可转发的客户可见快照(第三方拿到分享链接即见)。
+// 只作用于 customer 对象,不影响酒店前台电话等客户应见字段。
+const CUSTOMER_CONTACT_KEYS = [
+  'phone', 'mobile', 'tel', 'telephone', 'wechat', 'wechat_id', 'weixin',
+  'email', 'contact', 'contact_phone', 'contact_mobile', 'contact_info',
+];
+function stripCustomerContact(value) {
+  if (!isPlainObject(value)) return value;
+  return Object.keys(value).reduce((acc, key) => {
+    if (CUSTOMER_CONTACT_KEYS.includes(key)) return acc;
+    acc[key] = value[key];
+    return acc;
+  }, {});
+}
+
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -790,7 +805,7 @@ function normalizeSnapshotV2(trip) {
     start_at: trip.start_at || trip.date_start || '',
     end_at: trip.end_at || trip.date_end || '',
     summary: trip.summary || '',
-    customer: sanitizeCustomerObject(trip.customer || {}),
+    customer: sanitizeCustomerObject(stripCustomerContact(trip.customer || {})),
     advisor: sanitizeCustomerObject(trip.advisor || {}),
     hero: {
       title: trip.title || 'Farland 行程',

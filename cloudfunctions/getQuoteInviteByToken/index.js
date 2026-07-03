@@ -107,7 +107,7 @@ exports.main = async (event = {}) => {
       route_text: request.route_text || [request.pickup || request.pickup_location || '', request.dropoff || request.dropoff_location || ''].filter(Boolean).join(' -> '),
       time_summary: request.time_summary || '',
       flight_summary: request.flight_summary || '',
-      execution_note: request.execution_note || request.dispatch_note || request.special_requests || '',
+      execution_note: request.dispatch_note || request.special_requests || '',
       pickup: request.pickup || request.pickup_location || '',
       dropoff: request.dropoff || request.dropoff_location || '',
       pickup_time_text: request.pickup_time_text || request.pickup_time || '',

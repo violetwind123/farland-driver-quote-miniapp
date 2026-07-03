@@ -1425,7 +1425,9 @@ exports.main = async () => {
     (missingRes.data || []).forEach((request) => requestMap.set(request._id, request));
   }
 
-  const requests = visibleRequestIds.map((id) => requestMap.get(id)).filter(Boolean);
+  // customer_visible=false(ops 台账未对客户开放)的请求不进客户首页 feed(与 getCustomerTransportQuotes 一致)
+  const requests = visibleRequestIds.map((id) => requestMap.get(id)).filter(Boolean)
+    .filter((request) => request.customer_visible !== false);
   const quoteRes = visibleRequestIds.length
     ? await db.collection('customer_transport_quotes')
       .where({ request_id: _.in(visibleRequestIds), quote_status: _.in(['published', 'viewed', 'selected', 'confirmed']) })

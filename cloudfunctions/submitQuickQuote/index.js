@@ -93,6 +93,10 @@ exports.main = async (event = {}) => {
 
   let userRes = await db.collection('users').where({ openid: OPENID }).limit(1).get();
   let user = userRes.data[0];
+  // 已存在的非司机账号(客户/运营)不得经报价链接被转成司机、覆盖其身份;仅司机或全新账号可报价
+  if (user && user.role && user.role !== 'driver') {
+    return { success: false, code: 403, message: '当前账号不是司机账号，无法报价', msg: '当前账号不是司机账号，无法报价' };
+  }
   if (!user) {
     const userName = displayDriverName({ driverProfile: driver_profile, user: null, openid: OPENID });
     const created = await db.collection('users').add({

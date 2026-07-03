@@ -153,11 +153,17 @@ function buildPatch(event, trip, customersById, operatorUserId) {
   patch.primary_customer_user_id = nextPrimaryId;
   patch.customer_user_id = nextPrimaryId;
   patch.customer_user_ids = nextCustomerIds;
-  patch.customer_profile_id = safeCustomer.customer_profile_id || '';
+  // 未显式清除归属时,新 primary 若无 customer_profile_id 则保留已有值,不静默清空
+  patch.customer_profile_id = primaryWasCleared
+    ? ''
+    : (safeCustomer.customer_profile_id || existing.customer_profile_id || '');
   patch.customer = {
     ...existingCustomerSafeKeys,
     ...safeCustomer,
   };
+  if (!primaryWasCleared && !patch.customer.customer_profile_id) {
+    patch.customer.customer_profile_id = existing.customer_profile_id || existingCustomerSafeKeys.customer_profile_id || '';
+  }
   patch.customer_display_name = safeCustomer.display_name || '';
   patch.customer_name = safeCustomer.name || safeCustomer.display_name || '';
 

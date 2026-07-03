@@ -1909,7 +1909,17 @@ const customerHomePageConfig = {
     };
   },
 
+  // 091 兜底仅在酒店确属 091 时生效(stay_/091_ 前缀 id 或 trip_no 2026XBC091);
+  // 否则任意 elong 酒店名字含 hyatt/kop 就会被注入 091 写死的日期/确认号。C4 将整体删除。
+  isTrip091HotelContext(hotel = {}) {
+    const tripNo = String(hotel.trip_no || hotel.external_trip_id || '');
+    if (tripNo === '2026XBC091') return true;
+    const idKey = String(hotel.card_id || hotel.stay_id || hotel.hotel_stay_id || '');
+    return idKey.indexOf('091_') === 0 || idKey.indexOf('stay_') === 0;
+  },
+
   resolveKnownTrip091HotelDates(hotel = {}) {
+    if (!this.isTrip091HotelContext(hotel)) return {};
     const key = [
       hotel.stay_id,
       hotel.hotel_stay_id,
@@ -1943,6 +1953,7 @@ const customerHomePageConfig = {
   },
 
   resolveKnownTrip091HotelBookingInfo(hotel = {}) {
+    if (!this.isTrip091HotelContext(hotel)) return {};
     const key = [
       hotel.stay_id,
       hotel.hotel_stay_id,

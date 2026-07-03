@@ -377,11 +377,18 @@ Page({
     return true;
   },
 
+  clientOrderTokenKey() {
+    const previewId = (this.data.preview && this.data.preview.preview_id) || 'nopreview';
+    return `hotelManualOrderToken_${previewId}`;
+  },
+
+  // token 按 preview 作用域:换了报价(新 preview_id)就换 token,避免超时后复用旧 token 串到别的草稿
   makeClientOrderToken() {
-    const existing = wx.getStorageSync('hotelManualOrderToken');
+    const key = this.clientOrderTokenKey();
+    const existing = wx.getStorageSync(key);
     if (existing) return existing;
     const token = `hotel_manual_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    wx.setStorageSync('hotelManualOrderToken', token);
+    wx.setStorageSync(key, token);
     return token;
   },
 
@@ -431,7 +438,7 @@ Page({
         stayText: this.data.stayText,
         searchMeta: this.data.searchMeta,
       });
-      wx.removeStorageSync('hotelManualOrderToken');
+      wx.removeStorageSync(this.clientOrderTokenKey());
       wx.redirectTo({ url: '/pages/hotel/manual-success/manual-success' });
     } catch (error) {
       this.setData({ submitting: false });
