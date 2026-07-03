@@ -6,6 +6,8 @@ const db = cloud.database();
 const _ = db.command;
 
 const TERMINAL_STATUSES = ['assigned', 'confirmed', 'completed', 'settled', 'cancelled'];
+// 司机已选定/派定的状态:此时 force_new_request 不得静默重发,须人工裁决(conflict_locked)
+const DRIVER_COMMITTED_STATUSES = ['assigned', 'confirmed', 'completed', 'settled'];
 const REQUIRED_FIELDS = [
   'ops_transfer_id',
   'service_type',
@@ -125,7 +127,9 @@ function verifyRequest(headers, rawBody) {
   }
 
   const signature = text(headers['x-ops-sync-signature'] || headers['x-farland-signature']).replace(/^sha256=/i, '');
-  const expected = hmacSha256(sharedSecret, rawBody);
+  // 时间戳纳入签名内容:否则截获一对 (body, signature) 可换新时间戳永久重放。
+  // Web 侧须对 `${x-ops-sync-timestamp}.${rawBody}` 计算 HMAC。
+  const expected = hmacSha256(sharedSecret, `${timestamp}.${rawBody}`);
   if (!signature || !safeEqual(signature, expected)) {
     throw createError('BAD_SIGNATURE', 'Bad sync signature.', 401);
   }
@@ -268,6 +272,39 @@ exports.main = async (event = {}) => {
     let supersedesRequestId = '';
 
     if (forceNewRequest) {
+      // 终态保护:被替换请求若司机已选定/派定,force_new_request 不得静默重发,
+      // 否则会杀掉客户已选中的报价面并生成重复请求。改为 conflict_locked 人工裁决。
+      const supersededStatus = text(existing && existing.status);
+      if (existing && DRIVER_COMMITTED_STATUSES.includes(supersededStatus)) {
+        await writeAuditLog({
+          actor_openid: '',
+          actor_user_id: 'cloudflare_ops',
+          actor_role: 'system',
+          action: 'ops_sync_ride_request_conflict_locked',
+          target_type: 'ride_request',
+          target_id: requestId,
+          related_request_id: requestId,
+          detail: {
+            ops_transfer_id: opsTransferId,
+            superseded_request_id: requestId,
+            superseded_status: supersededStatus,
+            incoming_version: incomingVersion,
+          },
+          created_at: now,
+        });
+        return {
+          success: false,
+          ok: false,
+          error: 'CONFLICT_LOCKED',
+          error_code: 'CONFLICT_LOCKED',
+          message: '原请求已进入派单流程（司机已选定），force_new_request 需人工裁决。',
+          request_id: requestId,
+          miniapp_request_id: requestId,
+          request_no: existing.request_no || '',
+          request_status: supersededStatus,
+          driver_workflow_status: workflowStatus(supersededStatus),
+        };
+      }
       supersedesRequestId = requestId;
       requestId = buildRepushRequestId(opsTransferId, incomingVersion, now);
       docRef = db.collection('ride_requests').doc(requestId);
@@ -319,7 +356,9 @@ exports.main = async (event = {}) => {
       };
     }
 
-    if (existing && existingVersion === incomingVersion && existingHash && existingHash === incomingHash) {
+    // 同版本且非(hash 明确不同)→ 视为幂等,不重写。覆盖 hash 相等以及任一方缺 hash 的情况,
+    // 避免"缺 hash 同版本"落到全量 update 而静默改写字段。
+    if (existing && existingVersion === incomingVersion) {
       return {
         success: true,
         ok: true,
@@ -347,6 +386,10 @@ exports.main = async (event = {}) => {
       });
     }
     if (supersedesRequestId) {
+      // 旧 doc 打上 superseded 标记,避免运营视图继续把它当作在途请求
+      await db.collection('ride_requests').doc(supersedesRequestId).update({
+        data: { superseded_by_request_id: requestId, updated_at: now },
+      }).catch(() => null);
       await retireCustomerVisibleQuoteSurface(supersedesRequestId, now);
     }
 

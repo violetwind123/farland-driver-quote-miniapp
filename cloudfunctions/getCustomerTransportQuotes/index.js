@@ -395,6 +395,10 @@ exports.main = async (event = {}) => {
   }
 
   const operatorPreview = isOperator(caller.user);
+  // customer_visible=false(ops 台账标记未对客户开放)时,非运营调用一律拒绝
+  if (!operatorPreview && request.customer_visible === false) {
+    return { success: false, code: 403, error_code: 'NOT_CUSTOMER_VISIBLE', message: '该用车方案尚未对客户开放' };
+  }
   let accessSource = operatorPreview ? 'operator_preview' : '';
   let customerTripAccessId = '';
   if (!operatorPreview) {
@@ -518,7 +522,6 @@ exports.main = async (event = {}) => {
       route_text: request.route_text || [request.pickup || request.pickup_location || '', request.dropoff || request.dropoff_location || ''].filter(Boolean).join(' -> '),
       time_summary: request.time_summary || '',
       flight_summary: request.flight_summary || '',
-      execution_note: request.execution_note || '',
       estimated_drive_time: request.estimated_drive_time || '',
       estimated_distance: request.estimated_distance || '',
       flight_no: request.flight_no || '',
