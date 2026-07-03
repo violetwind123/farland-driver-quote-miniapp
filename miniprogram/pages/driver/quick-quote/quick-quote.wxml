@@ -73,9 +73,7 @@
 
     <view wx:if="{{driverStatus === 'unregistered' && !quoteLocked}}" class="card">
       <view class="card-title">司机信息（选填）</view>
-      <button class="profile-btn" bindtap="onGetWechatProfile">{{wechatProfileName ? '已获取微信昵称' : '获取微信昵称'}}</button>
-      <view wx:if="{{wechatProfileName}}" class="optional-hint">当前昵称：{{wechatProfileName}}</view>
-      <view class="input-row"><text>司机姓名</text><input placeholder="选填" value="{{formDriverName}}" data-field="formDriverName" bindinput="onInputChange" /></view>
+      <view class="input-row"><text>司机姓名</text><input placeholder="选填，请填写真实姓名" value="{{formDriverName}}" data-field="formDriverName" bindinput="onInputChange" /></view>
       <view class="input-row"><text>司机电话</text><input placeholder="选填" value="{{formDriverPhone}}" data-field="formDriverPhone" bindinput="onInputChange" /></view>
     </view>
 

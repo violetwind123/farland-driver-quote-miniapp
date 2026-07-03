@@ -159,27 +159,6 @@ Page({
     });
   },
 
-  async onGetWechatProfile() {
-    if (!wx.getUserProfile) {
-      wx.showToast({ title: '当前微信版本暂不支持获取昵称', icon: 'none' });
-      return;
-    }
-    try {
-      const profile = await wx.getUserProfile({
-        desc: '用于司机报价身份识别',
-      });
-      const userInfo = profile.userInfo || {};
-      const nickName = userInfo.nickName || '';
-      this.setData({
-        wechatProfileName: nickName,
-        wechatProfileAvatarUrl: userInfo.avatarUrl || '',
-        formDriverName: this.data.formDriverName || nickName,
-      });
-    } catch (error) {
-      wx.showToast({ title: '未获取微信昵称，可直接报价', icon: 'none' });
-    }
-  },
-
   async onSubmit() {
     const {
       token,

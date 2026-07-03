@@ -124,7 +124,17 @@ Page({
     };
   },
 
+  // 091 兜底仅在确认是 091 行程时生效:否则任意 elong 酒店只要名字含 hyatt/kop 就会被
+  // 注入 091 写死的入住日期/确认号(经酒店分享卡泄漏)。这是硬编码清单层③,C4 将整体删除。
+  isTrip091HotelContext(hotel = {}) {
+    const tripNo = String(this.data.tripId || hotel.trip_no || hotel.external_trip_id || '');
+    if (tripNo === '2026XBC091') return true;
+    const idKey = String(hotel.card_id || hotel.stay_id || hotel.hotel_stay_id || '');
+    return idKey.indexOf('091_') === 0 || idKey.indexOf('stay_') === 0;
+  },
+
   resolveKnownTrip091HotelDates(hotel = {}) {
+    if (!this.isTrip091HotelContext(hotel)) return {};
     const key = [
       hotel.stay_id,
       hotel.hotel_stay_id,
@@ -158,6 +168,7 @@ Page({
   },
 
   resolveKnownTrip091HotelBookingInfo(hotel = {}) {
+    if (!this.isTrip091HotelContext(hotel)) return {};
     const key = [
       hotel.stay_id,
       hotel.hotel_stay_id,
