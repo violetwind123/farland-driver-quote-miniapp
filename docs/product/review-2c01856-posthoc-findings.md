@@ -6,6 +6,30 @@
 
 ---
 
+## ✅ 修复状态(2026-07-03,全部 11 项 P0 已修)
+
+| 项 | commit | 备注 |
+| --- | --- | --- |
+| #1 force 绕过终态保护 | F1 修复 commit | `DRIVER_COMMITTED_STATUSES` + CONFLICT_LOCKED + audit + superseded 标记 |
+| #2 HMAC 重放 / 缺 hash 全量写 | 同上 | 签 `timestamp.rawBody`;同版本一律幂等 |
+| #3 customer_visible 未生效 | 同上 | getCustomerTransportQuotes 非运营 + `===false` 拒绝 |
+| #4 execution_note 泄客户 | 同上 | getCustomerHome/Quotes 停止返回;task_description 兜底 |
+| #5 定价信任客户端 | 酒店修复 commit | preview 服务端持久化 + 下单按 preview_id 回查用存储价 |
+| #6 25s 超时 | 同上 | 单调用 25s→8s;**控制台函数超时须提到 ~60s(部署动作)** |
+| #7 searchElongHotels 零鉴权 | 同上 | active user 门控(空 OPENID=可信脚本);**per-openid 限频留 P1** |
+| #8 城市缓存投毒 | 同上 | 仅 `cities.length>0` 才缓存 |
+| #9 幂等 token 串草稿 | 同上 | 幂等键加 preview_id(服务端加固) |
+| #10 091 酒店硬编码泄漏 | 前端修复 commit | `isTrip091HotelContext` 门;终态删除留 C4 |
+| #11 司机昵称死功能 | 同上 | 删 getUserProfile 按钮+自动填名 |
+
+**部署前两个配置动作(非代码):**
+1. `searchElongHotels` 控制台函数超时提到 ~60s(单调用降到 8s 后仍需覆盖多次串联)。
+2. Web 侧 HMAC 须改为对 `${x-ops-sync-timestamp}.${rawBody}` 签名(与 F1 新验签一致)。
+
+**放行结论:** P0 全清 → **F1 与酒店流可进入联调/部署**;前端 #10/#11 已随线上代码修复。P1(见下)部署后一周内跟进。
+
+---
+
 ## 判定依据(一句话版)
 
 - **F1**:终态保护可被 `force_new_request` 绕过(直接违反 `ops-dispatch-boundary-decision.md` 的 conflict_locked 强制条款,且会杀掉客户已选中的报价面)+ HMAC 未签时间戳(可永久重放)。
