@@ -1489,6 +1489,7 @@ async function searchHotelPreview(event, openid = '') {
         rate: preview.rate,
         price: preview.price,
         cancellation: preview.cancellation,
+        request_snapshot: preview.request_snapshot || {},
         search: {
           check_in_date: event.check_in_date,
           check_out_date: event.check_out_date,

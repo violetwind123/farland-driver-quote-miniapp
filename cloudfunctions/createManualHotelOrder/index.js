@@ -231,7 +231,7 @@ exports.main = async (event = {}) => {
     preview_id: text(serverPreview.preview_id),
     preview_lock_expires_at: text(serverPreview.lock_expires_at),
     preview_snapshot: serverPreview,
-    provider_request_snapshot: (serverPreview.rate && serverPreview.rate.request_snapshot) || {},
+    provider_request_snapshot: serverPreview.request_snapshot || {},
     ops_note: '客户选择手动支付；请运营联系客户确认付款方式，付款后再创建供应商订单。',
     created_at: now,
     updated_at: now,
