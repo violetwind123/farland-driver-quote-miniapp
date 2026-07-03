@@ -4,9 +4,45 @@ const { writeAuditLog } = require('./lib/audit');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 function safeString(value) {
   return value === undefined || value === null ? '' : String(value);
+}
+
+// 与 createHotelOrderInvite.sharePath 保持一致的客户酒店分享路径
+function hotelSharePath(tripId, hotelId, inviteCode) {
+  return `/pages/customer/hotel-detail/hotel-detail?trip_id=${encodeURIComponent(tripId)}&hotel_id=${encodeURIComponent(hotelId)}&invite_code=${encodeURIComponent(inviteCode)}`;
+}
+
+// 回带该行程当前 active 的酒店分享卡(revoked/expired/cancelled 不回带),供运营页预填撤销入口。
+// 仅运营读路径(requireRole 已门控),invite_code 不进客户侧数据面。
+async function activeHotelInvitesForTrip(trip, canonicalTripId) {
+  const ids = Array.from(new Set([
+    trip.trip_id, trip.external_trip_id, trip.trip_no, trip._id, canonicalTripId,
+  ].map((value) => safeString(value).trim()).filter(Boolean)));
+  if (!ids.length) return [];
+  const res = await db.collection('hotel_order_invites')
+    .where({ trip_id: _.in(ids), status: 'active' })
+    .limit(100)
+    .get()
+    .catch(() => ({ data: [] }));
+  const nowMs = Date.now();
+  return (res.data || [])
+    .filter((invite) => {
+      if (!invite || invite.status !== 'active') return false;
+      if (!invite.expires_at) return true;
+      const t = new Date(invite.expires_at).getTime();
+      return Number.isNaN(t) || t > nowMs;
+    })
+    .map((invite) => ({
+      hotel_id: safeString(invite.hotel_id),
+      hotel_index: Number(invite.hotel_index || 0),
+      hotel_name: safeString(invite.hotel_name),
+      invite_code: safeString(invite.invite_code),
+      share_path: hotelSharePath(canonicalTripId, safeString(invite.hotel_id), safeString(invite.invite_code)),
+      expires_at: invite.expires_at || '',
+    }));
 }
 
 async function findTrip(tripId) {
@@ -339,6 +375,7 @@ exports.main = async (event = {}) => {
     return { success: false, code: 404, error_code: 'TRIP_NOT_FOUND', message: '行程不存在' };
   }
 
+  const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
   const now = new Date().toISOString();
   await writeAuditLog(db, {
     actor_openid: auth.openid,
@@ -372,5 +409,6 @@ exports.main = async (event = {}) => {
     ownership: ownershipProjection(trip),
     published_version: trip.published_version || 0,
     diff_summary: diffSummary(trip),
+    active_hotel_invites: await activeHotelInvitesForTrip(trip, canonicalTripId),
   };
 };

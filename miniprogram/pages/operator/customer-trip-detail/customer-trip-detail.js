@@ -54,6 +54,7 @@ Page({
     inviteExpiresAt: '',
     inviteReused: false,
     hotelInviteMap: {},
+    activeHotelInvites: [],
     creatingHotelInviteKey: '',
     revokingHotelInviteKey: '',
     hotelShareKey: '',
@@ -172,6 +173,8 @@ Page({
       ownershipSearchKeyword: '',
       ownershipSearchResults: [],
     };
+    // 回带该行程 active 酒店分享卡,预填撤销入口(重进页面也能撤销历史链接);云端为唯一真源
+    const activeHotelInvites = Array.isArray(result.active_hotel_invites) ? result.active_hotel_invites : [];
     this.setData({
       loading: false,
       refreshing: false,
@@ -199,6 +202,8 @@ Page({
         ? '091 暂未迁移到数据驱动管线，暂不支持 JSON 覆盖。'
         : '',
       error: '',
+      activeHotelInvites,
+      hotelInviteMap: this.buildHotelInviteMap(nextActive, activeHotelInvites),
       ...this.deriveDisplayMeta(nextActive),
       ...ownershipFormPatch,
     });
@@ -1000,6 +1005,30 @@ Page({
     ).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80);
   },
 
+  // 把回带的 active 酒店 invite 映射到当前快照酒店卡的 share_key(与撤销按钮用的键一致)。
+  // 匹配优先 hotel_id,兜底 hotel_index;只用卡自己的 share_key,保证一致。
+  buildHotelInviteMap(snapshot, invites) {
+    const map = {};
+    const list = Array.isArray(invites) ? invites : [];
+    const cards = snapshot && Array.isArray(snapshot.hotel_cards) ? snapshot.hotel_cards : [];
+    if (!list.length || !cards.length) return map;
+    list.forEach((invite) => {
+      if (!invite || !invite.invite_code) return;
+      const card = (invite.hotel_id && cards.find((c) => c && c.hotel_id && c.hotel_id === invite.hotel_id))
+        || cards.find((c) => c && Number(c.hotel_index) === Number(invite.hotel_index));
+      if (!card || !card.share_key) return;
+      map[card.share_key] = {
+        hotel_key: card.share_key,
+        hotel_id: invite.hotel_id || card.hotel_id || '',
+        hotel_name: invite.hotel_name || card.name || card.hotel_name || '',
+        invite_code: invite.invite_code,
+        share_path: invite.share_path || '',
+        expires_at: invite.expires_at || '',
+      };
+    });
+    return map;
+  },
+
   getStateCopy(result, hasDraft, hasPublished) {
     const reviewStatus = result.review_status || '';
     const visibilityStatus = result.visibility_status || '';
@@ -1043,6 +1072,8 @@ Page({
       activeSnapshot: nextActive,
       activeSnapshotLabel: this.getSnapshotLabel(type, this.data.preview && this.data.preview.published_version),
       dayStatusText: this.getDayStatusText(this.data.bizState, type),
+      // share_key 随快照重算,重建 invite 映射保证撤销按钮键一致
+      hotelInviteMap: this.buildHotelInviteMap(nextActive, this.data.activeHotelInvites),
       ...this.deriveDisplayMeta(nextActive),
     });
   },
