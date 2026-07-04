@@ -1,5 +1,10 @@
 # P4 · 运营主流程规格(行程管理 → 预览发布 → 客户查看 → 每日评价)
 
+> ⚠️ **已被 F5 更新(2026-07):行程创作改为 web 权威。** 小程序 JSON 导入口子(`customer-import`、
+> 覆盖 JSON 面板、`importCustomerTripJSON` 云函数)已全部删除;行程由 web 端写 `customer_trips` source,
+> 运营在小程序只做「生成草稿 → 预览 → 发布 → 分享卡」。**本文中所有"粘贴/覆盖 JSON"节点视为历史**,
+> 现行合约见 `f5-web-authored-trips-contract.md`。下文其余(build/publish/分享/评价)仍准确。
+
 > 目的:把"运营怎么管一条行程"的**目标流程**定清楚,标出每个节点的现状(✅有 / ⚠️半 / ❌缺),
 > 并把缺口的完整逻辑补上。这是干净的**数据驱动主流程**——普通行程都走它;091 是唯一例外(单独处理)。
 >
@@ -42,10 +47,10 @@
 | 节点 | 现状 | 实现位置 |
 | --- | --- | --- |
 | 运营中心 → 行程管理(列表 + 状态) | ✅ | `trip-management`(B1 `569b754`/`73b68f6`);读 `listOperatorTrips` |
-| 增加行程(粘贴 JSON) | ⚠️ 半 | `trip-management` 有"导入"→ `customer-import`,但是**独立页、非引导流** |
+| ~~增加行程(粘贴 JSON)~~ | ❌ 已删(F5) | 小程序 JSON 导入已移除;行程由 web 端写 `customer_trips`,见 `f5-web-authored-trips-contract.md` |
 | 生成预览(build draft) | ✅ | `customer-trip-detail` "生成客户可见草稿" → `buildCustomerTripVisibleDraft`(091 例外) |
 | 进入预览界面 | ✅ | "进入客户真实页面"(D2A `73b68f6`)→ `getOperatorCustomerHomePreview` → mobile-preview |
-| 覆盖 JSON 改行程 | ✅ | 覆盖面板(D2C `1ceb771`)→ `importCustomerTripJSON` + rebuild |
+| ~~覆盖 JSON 改行程~~ | ❌ 已删(F5) | 覆盖面板 + `importCustomerTripJSON` 已移除;改行程走 web 重写 source + 运营重新发布 |
 | 发布 + 分享卡 | ✅ | `publishCustomerTrip` / `createCustomerTripInvite` |
 | 客户查看 | ✅ | `getCustomerHome`(已保存)/ `getCustomerTripByInvite`(invite) |
 | 行程概览折叠 | ⚠️ 小缺 | 概览/每日卡缺折叠交互(纯 UI) |

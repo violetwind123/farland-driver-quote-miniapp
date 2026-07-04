@@ -58,6 +58,20 @@ function sanitizeCustomerObject(value) {
   }, {});
 }
 
+// 客户自己的联系方式不进可转发响应(第三方拿到分享链接即见)。只作用于 customer 对象,不动酒店电话。
+const CUSTOMER_CONTACT_KEYS = [
+  'phone', 'mobile', 'tel', 'telephone', 'wechat', 'wechat_id', 'weixin',
+  'email', 'contact', 'contact_phone', 'contact_mobile', 'contact_info',
+];
+function stripCustomerContact(value) {
+  if (!isPlainObject(value)) return value;
+  return Object.keys(value).reduce((acc, key) => {
+    if (CUSTOMER_CONTACT_KEYS.includes(key)) return acc;
+    acc[key] = value[key];
+    return acc;
+  }, {});
+}
+
 function firstText(values) {
   for (const value of values) {
     const text = safeString(value).trim();
@@ -620,6 +634,10 @@ function normalizePublishedSnapshot(rawSnapshot) {
     ...snapshot,
     itinerary_days: days,
   };
+  // 客户对象只保留展示字段,剥离本人联系方式(web 直写快照或旧快照的兜底防线)
+  if (isPlainObject(snapshot.customer)) {
+    normalized.customer = stripCustomerContact(snapshot.customer);
+  }
   const hotelCards = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
     ? snapshot.hotel_cards.map((hotel, index) => normalizeTopLevelHotel(hotel, index)).filter(Boolean)
     : deriveHotelCards(normalized);
