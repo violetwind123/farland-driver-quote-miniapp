@@ -85,7 +85,7 @@ const webSource = {
   external_trip_id: 'WEB-TEST-001',
   trip_id: 'WEB-TEST-001',
   trip_no: 'WEB-TEST-001',
-  trip_type: 'campus_tour',
+  trip_type: 'mixed',
   customer_profile_id: 'prof_123',
   source_type: 'cloudflare_ops',
   source_id: 'ops_abc',

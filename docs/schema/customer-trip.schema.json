@@ -301,7 +301,7 @@
       "properties": {
         "source_type": {
           "type": "string",
-          "enum": ["ride_request", "import_json", "manual", "manual_json", "pdf_import"]
+          "enum": ["ride_request", "import_json", "manual", "manual_json", "pdf_import", "web_ops", "cloudflare_ops"]
         },
         "source_id": { "type": "string" },
         "request_id": { "type": "string" },

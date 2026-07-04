@@ -94,6 +94,8 @@ function sanitizeCustomerObject(value) {
     'customer_openid',
     'customer_user_id',
     'user_id',
+    'customer_phone',
+    'customer_wechat_id',
   ]);
   if (Array.isArray(value)) {
     return value.map((item) => sanitizeCustomerObject(item));

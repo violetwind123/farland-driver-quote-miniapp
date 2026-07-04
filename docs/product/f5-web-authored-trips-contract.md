@@ -37,7 +37,7 @@ web 端授权 + 校验 → 写 customer_trips 的 source 文档(draft/published 
   "external_trip_id": "WEB-2026-0001",   // 唯一,upsert 键
   "trip_id": "WEB-2026-0001",            // 默认 = external_trip_id
   "trip_no": "WEB-2026-0001",            // 默认 = external_trip_id;客户/运营展示号
-  "trip_type": "campus_tour",
+  "trip_type": "mixed",                  // schema 枚举:transfer/charter/mixed/hotel_only
   "customer_profile_id": "prof_123",     // 顶层,运营归属
 
   // —— source 溯源 ——

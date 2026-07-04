@@ -13,6 +13,8 @@ const REQUIRED_FIELDS = [
   'external_trip_id', 'trip_type', 'title', 'status',
   'city', 'country', 'timezone', 'start_at', 'end_at',
 ];
+// status 枚举(对齐 schema);'discarded' 等运营生命周期态不得由 web 写,否则可隐藏已发布行程
+const ALLOWED_STATUS = ['draft', 'active', 'completed', 'cancelled', 'archived'];
 
 // customer 子对象只保留展示字段;联系方式提到顶层,不进快照
 const CUSTOMER_CONTACT_KEYS = [
@@ -158,6 +160,10 @@ function validatePayload(payload) {
     error.missing = missing;
     throw error;
   }
+  // status 必须是合法枚举:挡住 web 写 'discarded' 等运营态隐藏已发布行程
+  if (!ALLOWED_STATUS.includes(text(payload.status))) {
+    throw createError('VALIDATION_ERROR', `status must be one of ${ALLOWED_STATUS.join('/')}.`, 400);
+  }
   // web 不得写快照
   for (const key of REJECT_TOP_KEYS) {
     if (payload[key] !== undefined && isPlainObject(payload[key]) && Object.keys(payload[key]).length) {
@@ -291,7 +297,8 @@ exports.main = async (event = {}) => {
 
     // 更新:只改 source 字段,保留运营端已建/已发布状态边界(draft/published/version 不由 web 写)
     const published = (existing.published_version || 0) > 0;
-    const discarded = existing.visibility_status === 'discarded' || existing.status === 'discarded';
+    // discarded 只认运营态 visibility_status(source 的 status 由 web 写,不能据它改可见性)
+    const discarded = existing.visibility_status === 'discarded';
     await db.collection('customer_trips').doc(existing._id).update({
       data: {
         ...baseWrite,

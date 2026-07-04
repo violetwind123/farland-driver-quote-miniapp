@@ -9,6 +9,8 @@ const BLOCKED_SNAPSHOT_KEYS = new Set([
   'customer_openid',
   'customer_user_id',
   'user_id',
+  'customer_phone',
+  'customer_wechat_id',
   'draft_snapshot',
   'raw_imported_json',
   'raw_json',

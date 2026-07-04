@@ -91,7 +91,7 @@
 | F2 小程序建单入口收口 | `create-request` 降级为应急手工建单或移除 dashboard 入口,防双真源 | 🟡 待做 |
 | F3 回流通道 | 选派后 `transport_orders` 快照/状态回 D1(pull 起步,callback 后续) | 🟡 待 F1 稳定 |
 | F4 Pilot 灰度 | 1 笔真实 transfer 全链路(建→push→报价→选派→回流)+ 评价归因命中验证 | 🟡 待 F1/F2 |
-| **F5 web 权威建行程** | 行程创作收到 web 端;小程序 JSON 导入(`customer-import`/覆盖面板/`importCustomerTripJSON`)已删;web 按合约写 `customer_trips` source,运营 build/publish/分享;客户读路径加 PII 兜底剥离 | ✅ 小程序侧收口(`0f31b07` + 本轮);合约见 `f5-web-authored-trips-contract.md`;web 写入通道(直连或 `opsUpsertCustomerTrip`)待建 |
+| **F5 web 权威建行程** | 行程创作收到 web 端;小程序 JSON 导入(`customer-import`/覆盖面板/`importCustomerTripJSON`)已删;`opsUpsertCustomerTrip` 为 web 写入落点(HMAC 门控 + PII/司机/成本剥离 + status 枚举校验 + 091 保护 + 幂等 + 保留发布态);客户读路径 PII 兜底剥离(含顶层 `customer_phone`/`customer_wechat_id`);web 端接入已本地完成 | ✅ **F5 代码完成,待部署 CloudBase function + web env 联调/发布**。合约:`f5-web-authored-trips-contract.md` / `f5-ops-upsert-customer-trip-http-contract.md`。测试:`scripts/ops-upsert-customer-trip-test.js`(13/13)+ `scripts/web-trip-flow-static-check.js` |
 
 ---
 

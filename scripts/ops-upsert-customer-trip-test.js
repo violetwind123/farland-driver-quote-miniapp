@@ -85,7 +85,7 @@ function signedEvent(payloadObj, { ts, secret = SECRET, sign = true } = {}) {
 const validPayload = {
   schema_version: '1.0.0',
   external_trip_id: 'WEB-INT-001',
-  trip_type: 'campus_tour',
+  trip_type: 'mixed',
   title: '美东访校',
   status: 'active',
   city: 'New York', country: 'US', timezone: 'America/New_York',
@@ -161,6 +161,13 @@ async function check(name, fn) {
     const main = loadMain({});
     const r = await main(signedEvent({ ...validPayload, published_snapshot: { itinerary_days: [{}] } }));
     return !r.success && r.error_code === 'SNAPSHOT_NOT_ALLOWED';
+  });
+
+  // 5b. status='discarded'(运营态)→ rejected(web 不得隐藏已发布行程)
+  await check("status='discarded' → rejected (enum)", async () => {
+    const main = loadMain({});
+    const r = await main(signedEvent({ ...validPayload, status: 'discarded' }));
+    return !r.success && r.error_code === 'VALIDATION_ERROR';
   });
 
   // 6. 091 external_trip_id → rejected
