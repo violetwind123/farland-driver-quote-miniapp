@@ -49,13 +49,6 @@
       <view class="chevron">›</view>
     </view>
 
-    <view class="utility-card" bindtap="openCustomerImport">
-      <view>
-        <view class="utility-title">导入客户行程</view>
-        <view class="utility-desc">粘贴 JSON，预览校验后写入客户行程</view>
-      </view>
-      <view class="chevron">›</view>
-    </view>
 
     <view class="utility-card customer-invite-entry" bindtap="openCustomerInviteRequests">
       <view>

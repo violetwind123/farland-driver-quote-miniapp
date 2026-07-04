@@ -18,7 +18,6 @@
     "pages/operator/trip-management/trip-management",
     "pages/operator/review-summary/review-summary",
     "pages/operator/request-hall/request-hall",
-    "pages/operator/customer-import/customer-import",
     "pages/operator/customer-home-preview/customer-home-preview",
     "pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview",
     "pages/operator/customer-trip-detail/customer-trip-detail",

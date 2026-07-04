@@ -59,10 +59,6 @@ Page({
     wx.navigateTo({ url: '/pages/operator/hotel-orders/hotel-orders' });
   },
 
-  openCustomerImport() {
-    wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
-  },
-
   openTripManagement() {
     wx.navigateTo({ url: '/pages/operator/trip-management/trip-management' });
   },

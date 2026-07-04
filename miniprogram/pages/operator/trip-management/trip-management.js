@@ -191,7 +191,4 @@ Page({
     });
   },
 
-  openCustomerImport() {
-    wx.navigateTo({ url: '/pages/operator/customer-import/customer-import' });
-  },
 });
