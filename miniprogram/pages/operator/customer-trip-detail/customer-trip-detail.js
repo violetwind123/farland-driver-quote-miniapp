@@ -854,7 +854,7 @@ Page({
         return;
       }
       const app = getApp();
-      app.globalData.operatorCustomerHomePreview = {
+      app.globalData.operatorMobileItineraryDraftPreview = {
         customer_home: result.customer_home,
         preview_meta: {
           ...(result.preview_meta || {}),
@@ -862,10 +862,11 @@ Page({
         },
         preview_customer: result.preview_customer || {},
       };
+      delete app.globalData.operatorCustomerHomePreview;
       delete app.globalData.operatorCustomerSharePreview;
       this.setData({ previewingDraft: false });
       wx.navigateTo({
-        url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview?operator_customer_preview=1',
+        url: '/pages/customer/mobile-itinerary/mobile-itinerary?operator_mobile_preview=1',
         fail: (error) => {
           console.error('[customer-trip-detail] open mobile itinerary draft failed', error);
           wx.showToast({ title: '草稿预览打开失败', icon: 'none' });
@@ -1028,6 +1029,7 @@ Page({
         preview_customer: result.preview_customer || {},
       };
       delete app.globalData.operatorCustomerHomePreview;
+      delete app.globalData.operatorMobileItineraryDraftPreview;
       this.setData({ openingCustomerView: false });
       wx.navigateTo({
         url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview',

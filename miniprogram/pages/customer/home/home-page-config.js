@@ -81,6 +81,11 @@ const customerHomePageConfig = {
   },
 
   onLoad(options = {}) {
+    const operatorMobileDraftPreview = this.consumeOperatorMobileItineraryDraftPreview();
+    if (operatorMobileDraftPreview) {
+      this.applyOperatorMobileItineraryDraftPreview(operatorMobileDraftPreview);
+      return;
+    }
     const operatorCustomerSharePreview = this.consumeOperatorCustomerSharePreview();
     if (operatorCustomerSharePreview) {
       this.applyOperatorCustomerSharePreview(operatorCustomerSharePreview);
@@ -112,6 +117,11 @@ const customerHomePageConfig = {
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
+    }
+    const operatorMobileDraftPreview = this.consumeOperatorMobileItineraryDraftPreview();
+    if (operatorMobileDraftPreview) {
+      this.applyOperatorMobileItineraryDraftPreview(operatorMobileDraftPreview);
+      return;
     }
     const operatorCustomerSharePreview = this.consumeOperatorCustomerSharePreview();
     if (operatorCustomerSharePreview) {
@@ -165,12 +175,21 @@ const customerHomePageConfig = {
     return preview;
   },
 
+  consumeOperatorMobileItineraryDraftPreview() {
+    const app = getApp();
+    const preview = app.globalData && app.globalData.operatorMobileItineraryDraftPreview;
+    if (!preview || !preview.customer_home) return null;
+    delete app.globalData.operatorMobileItineraryDraftPreview;
+    return preview;
+  },
+
   consumeOperatorCustomerSharePreview() {
     const app = getApp();
     const preview = app.globalData && app.globalData.operatorCustomerSharePreview;
     if (!preview || !preview.customer_share_preview) return null;
     delete app.globalData.operatorCustomerSharePreview;
     delete app.globalData.operatorCustomerHomePreview;
+    delete app.globalData.operatorMobileItineraryDraftPreview;
     return preview;
   },
 
@@ -3312,15 +3331,24 @@ const customerHomePageConfig = {
     });
   },
 
-  previewOperatorDraftFromWaiting() {
-    const payload = this.data.operatorDraftPreviewPayload;
-    if (!payload || !payload.customer_home) {
-      wx.showToast({ title: '暂无草稿预览', icon: 'none' });
-      return;
-    }
-    const meta = payload.preview_meta || {};
-    const previewCustomer = payload.preview_customer || {};
-    const trip = this.normalizeCustomerHomePreviewTrip(payload.customer_home, meta, previewCustomer);
+  applyOperatorMobileItineraryDraftPreview(previewPayload) {
+    const home = previewPayload.customer_home || {};
+    const previewCustomer = previewPayload.preview_customer || {};
+    const meta = {
+      ...(previewPayload.preview_meta || {}),
+      operator_draft_preview: true,
+      customer_would_see: 'draft_preview',
+    };
+    const trip = this.normalizeCustomerHomePreviewTrip(home, meta, previewCustomer);
+    this.cacheTripDetailContext(trip.days, {
+      trip_id: meta.trip_id || trip.trip_id || '',
+      trip_no: trip.displayTripNo,
+      overview: {
+        trip_id: meta.trip_id || trip.trip_id || '',
+        trip_no: trip.displayTripNo,
+        city_summary: trip.displayCity,
+      },
+    });
     const inviteSurface = this.buildTripInviteSurfaceState(trip, {
       syncStatusText: '运营草稿预览',
     });
@@ -3328,19 +3356,19 @@ const customerHomePageConfig = {
       ...inviteSurface,
       loading: false,
       tripInviteMode: true,
-      tripInviteId: meta.trip_id || this.data.tripInviteId || '',
+      tripInviteId: meta.trip_id || trip.trip_id || '',
       tripInviteTrip: trip,
       tripInviteWaiting: false,
       tripInviteMessage: '',
       tripInviteError: '',
+      tripInviteAccessSource: 'operator_mobile_draft_preview',
+      tripInviteAutoSaved: false,
+      tripInviteAlreadySaved: false,
       tripInviteCanSave: false,
       tripInviteShowSaveForm: false,
       operatorCustomerPreviewMode: true,
-      operatorCustomerPreviewMeta: {
-        ...meta,
-        operator_draft_preview: true,
-        customer_would_see: 'draft_preview',
-      },
+      operatorCustomerPreviewMeta: meta,
+      operatorDraftPreviewPayload: null,
       profile: {
         name: trip.displayCustomer || previewCustomer.display_name || '客户分享卡预览',
         member_level: '运营草稿预览',
@@ -3352,9 +3380,24 @@ const customerHomePageConfig = {
       inviteTodayOverviewExpanded: false,
       phoneDateKey: this.getTodayDateKey(),
       advisorPhone: trip.advisorPhone || '',
+      needsInviteClaim: false,
+      inviteMode: false,
+      operatorPreview: false,
+      showProfileUpgrade: false,
+      showProfileUpgradeForm: false,
     }, () => {
       this.centerProgressAxisDay(trip.selectedDayNo || 0, 'invite');
+      this.scrollToPendingCustomerHomeTarget();
     });
+  },
+
+  previewOperatorDraftFromWaiting() {
+    const payload = this.data.operatorDraftPreviewPayload;
+    if (!payload || !payload.customer_home) {
+      wx.showToast({ title: '暂无草稿预览', icon: 'none' });
+      return;
+    }
+    this.applyOperatorMobileItineraryDraftPreview(payload);
   },
 
   normalizeOperatorCustomerHomePreview(home, meta, previewCustomer) {
