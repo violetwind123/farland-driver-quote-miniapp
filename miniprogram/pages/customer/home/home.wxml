@@ -1,4 +1,16 @@
-<view class="trip-page">
+<view wx:if="{{legacyHomeRedirecting}}" class="trip-page">
+  <view class="customer-loading-screen">
+    <view class="customer-entry-splash">
+      <image class="customer-splash-logo" src="/assets/images/logo-farland-splash.png" mode="aspectFit" />
+      <view class="customer-loading-line">
+        <view class="customer-loading-bar"></view>
+      </view>
+      <view class="trip-invite-state-copy muted">正在打开手机行程单</view>
+    </view>
+  </view>
+</view>
+
+<view wx:else class="trip-page">
   <view wx:if="{{loading}}" class="customer-loading-screen">
     <view class="customer-entry-splash">
       <image class="customer-splash-logo" src="/assets/images/logo-farland-splash.png" mode="aspectFit" />

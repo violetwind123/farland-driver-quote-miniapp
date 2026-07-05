@@ -78,6 +78,7 @@ const customerHomePageConfig = {
     operatorPreviewFlights: [],
     hideModules: {},
     phoneDateKey: '',
+    legacyHomeRedirecting: false,
   },
 
   onLoad(options = {}) {
@@ -178,10 +179,26 @@ const customerHomePageConfig = {
     );
     if (isTransferInvite || hasTransferOperatorPreview) return false;
 
+    const url = this.buildMobileItineraryRedirectUrl(options);
+    if (typeof this.setData === 'function') {
+      this.setData({ legacyHomeRedirecting: true });
+    }
     wx.redirectTo({
-      url: this.buildMobileItineraryRedirectUrl(options),
+      url,
       fail: (error) => {
         console.error('[customer-home] redirect legacy home to mobile itinerary failed', error);
+        wx.navigateTo({
+          url,
+          fail: (navigateError) => {
+            console.error('[customer-home] navigate legacy home to mobile itinerary failed', navigateError);
+            wx.reLaunch({
+              url,
+              fail: (relaunchError) => {
+                console.error('[customer-home] relaunch legacy home to mobile itinerary failed', relaunchError);
+              },
+            });
+          },
+        });
       },
     });
     return true;
