@@ -544,12 +544,12 @@ Page({
     }
     if (published && review === 'needs_review') {
       return {
-        state_text: `已发布 v${version}，有新草稿待复核`,
-        customer_seeing_text: `仍是上一版 v${version}（新草稿未发布）`,
-        next_step_text: '审阅新草稿 → 重新发布',
-        flow_step: 1,
-        day_status_text: '待复核',
-        draft_day_status_text: '待复核',
+        state_text: `已发布 v${version}，有新手机版行程单待转发`,
+        customer_seeing_text: `准备转发时会同步最新版本`,
+        next_step_text: '准备手机版行程单 → 微信转发',
+        flow_step: 2,
+        day_status_text: '待转发',
+        draft_day_status_text: '已同步',
       };
     }
     const legacy = this.getStateCopy(result, hasDraft, hasPublished);
@@ -743,8 +743,8 @@ Page({
     }
     if (reviewStatus === 'needs_review') {
       return {
-        text: '有新草稿待复核',
-        hint: '客户仍会看到上一次发布版本。确认新草稿无误后再发布。',
+        text: '有新手机版行程单待转发',
+        hint: '点击准备手机版行程单时，会先同步最新版本，再生成微信转发链接。',
       };
     }
     return {
@@ -918,6 +918,7 @@ Page({
         inviteReused: Boolean(result.reused),
       });
       wx.showToast({ title: result.reused ? '已复用行程单' : '行程单已准备', icon: 'success' });
+      this.loadPreview({ silent: true });
     } catch (error) {
       console.error('[customer-trip-detail] createCustomerTripInvite failed', error);
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';

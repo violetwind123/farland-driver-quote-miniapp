@@ -69,18 +69,15 @@
         </view>
         <block wx:else>
           <view wx:if="{{preview.review_status === 'needs_review'}}" class="share-note">
-            有新草稿待复核：分享卡指向已发布的 v{{preview.published_version || 0}}，新草稿发布前客户不会看到变化。
+            检测到网页端新手机版行程单：点击准备时会先同步为客户可见版本，再生成转发链接。
           </view>
           <button
             wx:if="{{!invitePath}}"
             class="primary-wide-btn"
             loading="{{creatingInvite}}"
-            disabled="{{creatingInvite || preview.review_status === 'needs_review'}}"
+            disabled="{{creatingInvite}}"
             bindtap="createTripInvite"
           >准备手机版行程单</button>
-          <view wx:if="{{!invitePath && preview.review_status === 'needs_review'}}" class="share-note">
-            建议先发布新草稿，再准备手机版行程单。
-          </view>
           <view wx:if="{{invitePath}}" class="invite-box">
             <view class="invite-row">
               <view class="invite-label">invite_code</view>
@@ -114,7 +111,7 @@
         >预览客户页面</button>
       </view>
 
-      <view wx:if="{{!hasPublished || preview.review_status === 'needs_review'}}" class="workflow-step-card">
+      <view wx:if="{{!hasPublished}}" class="workflow-step-card">
         <view class="workflow-step-head">
           <view class="workflow-step-index">3</view>
           <view class="workflow-step-copy">
@@ -126,7 +123,7 @@
         <button class="secondary-wide-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见快照</button>
       </view>
 
-      <view wx:if="{{!hasPublished || preview.review_status === 'needs_review'}}" class="workflow-step-card">
+      <view wx:if="{{!hasPublished}}" class="workflow-step-card">
         <view class="workflow-step-head">
           <view class="workflow-step-index">4</view>
           <view class="workflow-step-copy">

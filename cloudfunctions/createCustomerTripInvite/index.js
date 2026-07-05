@@ -9,6 +9,10 @@ function safeString(value) {
   return value === undefined || value === null ? '' : String(value);
 }
 
+function hasObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+}
+
 function generateInviteCode() {
   const time = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -82,6 +86,96 @@ function buildTripSharePath(canonicalTripId, inviteCode) {
   return `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
 }
 
+function hasMobileItinerarySheet(snapshot) {
+  return Boolean(
+    hasObject(snapshot)
+    && hasObject(snapshot.itinerary_sheet)
+    && safeString(snapshot.itinerary_sheet.png_url).trim()
+  );
+}
+
+function sanitizeSnapshotForPublish(snapshot) {
+  if (!hasObject(snapshot)) return {};
+  const cloned = JSON.parse(JSON.stringify(snapshot));
+  delete cloned.customer_phone;
+  delete cloned.customer_wechat_id;
+  if (hasObject(cloned.customer)) {
+    [
+      'phone',
+      'mobile',
+      'tel',
+      'telephone',
+      'wechat',
+      'wechat_id',
+      'weixin',
+      'email',
+      'contact',
+      'contact_phone',
+      'contact_mobile',
+      'contact_info',
+    ].forEach((key) => {
+      delete cloned.customer[key];
+    });
+  }
+  return cloned;
+}
+
+function canAutoPublishPendingMobileTrip(trip) {
+  if (!trip || trip.visibility_status === 'discarded' || trip.review_status === 'discarded' || trip.status === 'discarded') {
+    return false;
+  }
+  if (trip.review_status !== 'needs_review' && trip.review_status !== 'pending_review') return false;
+  return hasMobileItinerarySheet(trip.draft_snapshot);
+}
+
+async function autoPublishPendingMobileTrip({ trip, auth, canonicalTripId, nowIso }) {
+  const publishedSnapshot = sanitizeSnapshotForPublish(trip.draft_snapshot);
+  const nextVersion = Number(trip.published_version || 0) + 1;
+  const updateData = {
+    trip_id: canonicalTripId,
+    external_trip_id: trip.external_trip_id || canonicalTripId,
+    published_snapshot: publishedSnapshot,
+    published_version: nextVersion,
+    review_status: 'approved',
+    visibility_status: 'published',
+    reviewed_by: auth.user._id,
+    reviewed_by_openid: auth.openid,
+    reviewed_at: nowIso,
+    published_by: auth.user._id,
+    published_by_openid: auth.openid,
+    published_at: nowIso,
+    review_note: 'Auto-published mobile itinerary draft while preparing share card',
+    auto_published_reason: 'mobile_itinerary_invite_prepared',
+    updated_by: auth.user._id,
+    updated_by_openid: auth.openid,
+    updated_at: nowIso,
+  };
+
+  await db.collection('customer_trips').doc(trip._id).update({ data: updateData });
+
+  await writeAuditLog(db, {
+    actor_openid: auth.openid,
+    actor_user_id: auth.user._id,
+    actor_role: auth.user.role,
+    action: 'customer_trip_auto_published_for_invite',
+    target_type: 'customer_trip',
+    target_id: trip._id,
+    detail: {
+      trip_id: canonicalTripId,
+      external_trip_id: trip.external_trip_id || '',
+      previous_review_status: trip.review_status || '',
+      previous_visibility_status: trip.visibility_status || '',
+      published_version: nextVersion,
+    },
+    created_at: nowIso,
+  }).catch(() => null);
+
+  return {
+    ...trip,
+    ...updateData,
+  };
+}
+
 exports.main = async (event = {}) => {
   try {
     const auth = await requireRole(cloud, db, ['operator', 'super_admin']);
@@ -99,8 +193,15 @@ exports.main = async (event = {}) => {
       return { success: false, code: 404, error_code: 'TRIP_NOT_FOUND', message: '行程不存在' };
     }
 
+    const now = new Date();
+    const nowIso = now.toISOString();
     const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
-    if (trip.visibility_status !== 'published' || !trip.published_snapshot || !Object.keys(trip.published_snapshot).length) {
+    const autoPublished = canAutoPublishPendingMobileTrip(trip);
+    const effectiveTrip = autoPublished
+      ? await autoPublishPendingMobileTrip({ trip, auth, canonicalTripId, nowIso })
+      : trip;
+
+    if (effectiveTrip.visibility_status !== 'published' || !hasObject(effectiveTrip.published_snapshot)) {
       return {
         success: false,
         code: 409,
@@ -110,8 +211,6 @@ exports.main = async (event = {}) => {
       };
     }
 
-    const now = new Date();
-    const nowIso = now.toISOString();
     const safeDays = Math.max(1, Math.min(Number(event.expires_in_days || 30), 90));
     const expiresAt = new Date(now.getTime() + safeDays * 24 * 60 * 60 * 1000);
     const customerUserId = safeString(event.customer_user_id || event.user_id).trim();
@@ -139,13 +238,17 @@ exports.main = async (event = {}) => {
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0];
     if (existingInvite) {
       const intendedFields = buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso });
-      if (Object.keys(intendedFields).length) {
+      if (Object.keys(intendedFields).length || autoPublished) {
         await db.collection('customer_trip_invites').doc(existingInvite._id).update({
           data: {
             ...intendedFields,
+            visibility_status_snapshot: effectiveTrip.visibility_status || '',
+            published_version_snapshot: effectiveTrip.published_version || 0,
             updated_at: nowIso,
           },
         });
+      }
+      if (Object.keys(intendedFields).length) {
         await writeAuditLog(db, {
           actor_openid: auth.openid,
           actor_user_id: auth.user._id,
@@ -197,11 +300,11 @@ exports.main = async (event = {}) => {
     const inviteData = {
       invite_code: inviteCode,
       trip_id: canonicalTripId,
-      external_trip_id: trip.external_trip_id || canonicalTripId,
-      trip_no: trip.trip_no || trip.external_trip_id || canonicalTripId,
+      external_trip_id: effectiveTrip.external_trip_id || canonicalTripId,
+      trip_no: effectiveTrip.trip_no || effectiveTrip.external_trip_id || canonicalTripId,
       status: 'active',
-      visibility_status_snapshot: trip.visibility_status || '',
-      published_version_snapshot: trip.published_version || 0,
+      visibility_status_snapshot: effectiveTrip.visibility_status || '',
+      published_version_snapshot: effectiveTrip.published_version || 0,
       expires_at: expiresAt,
       created_by: auth.user._id,
       created_by_openid: auth.openid,
@@ -221,10 +324,10 @@ exports.main = async (event = {}) => {
       target_id: addRes._id,
       detail: {
         trip_id: canonicalTripId,
-        external_trip_id: trip.external_trip_id || '',
+        external_trip_id: effectiveTrip.external_trip_id || '',
         invite_code: inviteCode,
         expires_at: expiresAt.toISOString(),
-        published_version: trip.published_version || 0,
+        published_version: effectiveTrip.published_version || 0,
         customer_user_id: customer ? customer._id : '',
         intended_customer_user_id: customer ? customer._id : '',
         intended_customer_name: customer ? (customer.display_name || customer.name || '') : '',
