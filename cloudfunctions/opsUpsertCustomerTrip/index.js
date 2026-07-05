@@ -490,7 +490,7 @@ exports.main = async (event = {}) => {
     });
     await writeAudit('ops_sync_customer_trip_updated_auto_published', existing._id, externalTripId, sourceHash, now);
     return {
-      success: true, code: 0, action: 'updated',
+      success: true, code: 0, action: 'auto_published',
       trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
       review_status: lifecycle.review_status,
       visibility_status: lifecycle.visibility_status,

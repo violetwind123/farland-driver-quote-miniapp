@@ -247,7 +247,7 @@ async function check(name, fn) {
     doc.published_snapshot = { title: '旧发布版', marker: 'PUBLISHED_V2' };
     const edited = { ...validPayload, title: '美东访校(改)' };
     const r = await main(signedEvent(edited));
-    return r.success && r.action === 'updated' && r.review_status === 'approved'
+    return r.success && r.action === 'auto_published' && r.review_status === 'approved'
       && r.visibility_status === 'published' && r.auto_published === true
       && doc.published_version === 3
       && doc.published_snapshot.marker === undefined
@@ -266,7 +266,7 @@ async function check(name, fn) {
     doc.published_snapshot = { itinerary_days: [{ day_no: 1 }], marker: 'PUBLISHED_V3' };
     const edited = { ...noSheetPayload, title: '无行程单改动' };
     const r = await main(signedEvent(edited));
-    return r.success && r.action === 'updated' && r.review_status === 'approved'
+    return r.success && r.action === 'auto_published' && r.review_status === 'approved'
       && r.visibility_status === 'published' && r.auto_published === true
       && doc.published_version === 4 && doc.published_snapshot.marker === undefined
       && doc.published_snapshot.title === '无行程单改动'
