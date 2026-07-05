@@ -40,10 +40,10 @@
       <view class="error-text">{{error}}</view>
     </view>
 
-    <!-- 模块一 · 行程管理 -->
+    <!-- 模块一 · 手机版行程单 -->
     <view class="panel workflow-panel">
-      <view class="section-title">行程管理</view>
-      <view class="workflow-sub">网页同步后，小程序直接启用客户版行程总览和行程卡片；成交后再处理酒店、用车和每日评价等后续内容。</view>
+      <view class="section-title">手机版行程单</view>
+      <view class="workflow-sub">网页端生成手机行程单图片并同步到小程序后，这里可预览客户真实看到的行程单并微信转发。</view>
 
       <view wx:if="{{criticalWarningList.length || warningList.length}}" class="workflow-alert">
         <view class="warning-title">同步提醒</view>
@@ -58,16 +58,30 @@
         <view class="workflow-step-head">
           <view class="workflow-step-index priority">1</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">预览手机版行程单</view>
-            <view class="workflow-step-sub">按客户真实界面预览行程总览和行程卡片。</view>
+            <view class="workflow-step-title">手机行程单预览与转发</view>
+            <view class="workflow-step-sub">只展示网页生成的手机版行程单图片，不再由小程序重新渲染行程内容。</view>
           </view>
-          <view class="workflow-step-status">{{hasDraft ? '可预览' : '待同步'}}</view>
+          <view class="workflow-step-status">{{canForwardSheet ? '已生成' : '待网页生成'}}</view>
         </view>
-        <view wx:if="{{!hasDraft}}" class="share-empty">
-          <view class="empty-title">等待网页端同步手机行程单</view>
-          <view class="empty-sub">网页生成并同步后，这里会显示客户真实界面的手机版行程。</view>
+        <view wx:if="{{!canForwardSheet}}" class="share-empty">
+          <view class="empty-title">等待网页端生成手机行程单</view>
+          <view class="empty-sub">请在网站后台打开该行程，点击「推送客户 Push」生成并同步图片。同步成功后，小程序会在这里直接预览和转发。</view>
+          <view class="workflow-btn-row">
+            <button class="secondary-wide-btn" disabled="{{true}}">预览手机版行程单</button>
+            <button class="primary-wide-btn" disabled="{{true}}">转发客户</button>
+          </view>
         </view>
         <block wx:else>
+          <view wx:if="{{preview.itinerary_sheet}}" class="sheet-meta">
+            <view class="sheet-meta-item">
+              <view class="sheet-meta-label">图片版本</view>
+              <view class="sheet-meta-value">v{{preview.itinerary_sheet.version || preview.published_version || 1}}</view>
+            </view>
+            <view class="sheet-meta-item" wx:if="{{preview.itinerary_sheet.width}}">
+              <view class="sheet-meta-label">宽度</view>
+              <view class="sheet-meta-value">{{preview.itinerary_sheet.width}} px</view>
+            </view>
+          </view>
           <view class="workflow-btn-row">
             <button
               class="secondary-wide-btn"
@@ -78,94 +92,17 @@
             <button
               class="primary-wide-btn"
               loading="{{creatingInvite}}"
-              disabled="{{creatingInvite || !canForward}}"
+              disabled="{{creatingInvite}}"
               bindtap="createTripInvite"
-            >{{invitePath ? '重新转发' : '转发客户'}}</button>
+            >{{invitePath ? '刷新转发卡' : '准备转发客户'}}</button>
           </view>
-          <view wx:if="{{!canForward}}" class="workflow-btn-hint">网页端同步手机版行程单后即可转发，无需先启用。</view>
-        </block>
-      </view>
-
-      <view class="workflow-step-card">
-        <view class="workflow-step-head">
-          <view class="workflow-step-index">2</view>
-          <view class="workflow-step-copy">
-            <view class="workflow-step-title">客户行程启用状态</view>
-            <view class="workflow-step-sub">网页同步成功后会自动启用客户版；这里用于处理历史未启用记录。</view>
-          </view>
-          <view class="workflow-step-status">{{preview.visibility_status === 'published' && preview.review_status === 'approved' ? '已启用' : (hasDraft ? '待启用' : '待同步')}}</view>
-        </view>
-        <view wx:if="{{preview.visibility_status === 'published' && preview.review_status === 'approved'}}" class="share-empty">
-          <view class="empty-title">客户版已启用</view>
-          <view class="empty-sub">客户打开手机版行程单会看到当前行程总览和行程卡片。</view>
-        </view>
-        <button
-          wx:else
-          class="primary-wide-btn"
-          loading="{{publishing}}"
-          disabled="{{publishing || !hasDraft || criticalWarningList.length}}"
-          bindtap="publishTrip"
-        >手动启用客户行程</button>
-      </view>
-
-      <view class="workflow-step-card">
-        <view class="workflow-step-head">
-          <view class="workflow-step-index">3</view>
-          <view class="workflow-step-copy">
-            <view class="workflow-step-title">转发客户第一版行程</view>
-            <view class="workflow-step-sub">生成微信转发链接，客户看到同一套真实行程界面。</view>
-          </view>
-          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished && preview.review_status === 'approved' ? '待准备' : '待启用')}}</view>
-        </view>
-        <view wx:if="{{!canForwardSheet && (preview.visibility_status !== 'published' || !hasPublished || preview.review_status !== 'approved')}}" class="share-empty">
-          <block wx:if="{{hasPublished && preview.visibility_status === 'published'}}">
-            <view class="empty-title">客户当前看到 v{{preview.published_version || 1}}</view>
-            <view class="empty-sub">当前状态不是 approved；请刷新或手动启用后再转发。</view>
-          </block>
-          <block wx:else>
-            <view class="empty-title">手机版行程单尚未生成</view>
-            <view class="empty-sub">网页端同步手机版行程单后，即可预览并转发；无需先正式发布。</view>
-          </block>
-        </view>
-        <block wx:else>
-          <button
-            wx:if="{{!invitePath}}"
-            class="primary-wide-btn"
-            loading="{{creatingInvite}}"
-            disabled="{{creatingInvite}}"
-            bindtap="createTripInvite"
-          >准备客户分享链接</button>
           <view wx:if="{{invitePath}}" class="invite-box">
-            <view class="invite-row">
-              <view class="invite-label">invite_code</view>
-              <view class="invite-value">{{inviteCode}}</view>
-            </view>
-            <view class="invite-row">
-              <view class="invite-label">有效期至</view>
-              <view class="invite-value">{{inviteExpiresAt}}</view>
-            </view>
-            <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
+            <view class="invite-title">{{inviteReused ? '已复用当前有效分享卡' : '客户转发卡已准备'}}</view>
+            <view wx:if="{{inviteExpiresAt}}" class="invite-sub">有效期至 {{inviteExpiresAt}}</view>
             <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户行程</button>
             <button class="secondary-wide-btn" bindtap="openMobileItineraryPreview">预览手机版行程单</button>
           </view>
         </block>
-      </view>
-
-      <view class="workflow-step-card">
-        <view class="workflow-step-head">
-          <view class="workflow-step-index">4</view>
-          <view class="workflow-step-copy">
-            <view class="workflow-step-title">预览客户真实手机版行程</view>
-            <view class="workflow-step-sub">已启用时进入客户真实手机版行程单；未启用时会显示等待页。</view>
-          </view>
-          <view class="workflow-step-status">可预览</view>
-        </view>
-        <button
-          class="secondary-wide-btn"
-          loading="{{openingCustomerView}}"
-          disabled="{{openingCustomerView}}"
-          bindtap="openCustomerFacingPreview"
-        >预览客户真实手机版行程</button>
       </view>
 
     </view>
@@ -175,7 +112,7 @@
       <view class="section-toggle-head">
         <view>
           <view class="section-title no-margin">行程内容核对（运营用）</view>
-          <view class="snapshot-hint compact-hint">此为运营字段核对视图；客户页面请用上方预览入口打开。</view>
+          <view class="snapshot-hint compact-hint">此为运营字段核对视图；客户真实页面只展示网页生成的手机版行程单图片。</view>
         </view>
         <button class="mini-action" disabled="{{!activeSnapshot}}" bindtap="toggleDraftReview">
           {{draftReviewOpen ? '收起核对' : '展开核对'}}

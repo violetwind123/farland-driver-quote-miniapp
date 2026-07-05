@@ -22,6 +22,7 @@ const homeConfig = require(path.join(ROOT, 'miniprogram/pages/customer/home/home
 const createInviteSource = read('cloudfunctions/createCustomerTripInvite/index.js');
 const opsUpsertCustomerTripSource = read('cloudfunctions/opsUpsertCustomerTrip/index.js');
 const mobileWxml = read('miniprogram/pages/customer/mobile-itinerary/mobile-itinerary.wxml');
+const mobileJs = read('miniprogram/pages/customer/mobile-itinerary/mobile-itinerary.js');
 const itineraryTabWxml = read('miniprogram/pages/customer/itinerary-tab/itinerary-tab.wxml');
 const itineraryTabWxss = read('miniprogram/pages/customer/itinerary-tab/itinerary-tab.wxss');
 const customTab = read('miniprogram/custom-tab-bar/index.js');
@@ -133,6 +134,9 @@ assert(!mobileWxml.includes('wx:elif="{{tripInviteTrip}}"'), 'mobile UI does not
 assert(!mobileWxml.includes('wx:elif="{{todayCard}}"'), 'mobile UI does not render old formal today-card branch');
 assert(!mobileWxml.includes('mi-section-title">行程概览'), 'mobile UI does not render miniapp itinerary overview section');
 assert(!mobileWxml.includes('mi-section-title">行程卡片'), 'mobile UI does not render miniapp itinerary card section');
+assert(!mobileWxml.includes('联系顾问'), 'mobile UI waiting/error state has no advisor-contact fallback');
+assert(mobileJs.includes('/pages/customer/mobile-itinerary/mobile-itinerary?trip_id='), 'mobile sheet share path stays on mobile itinerary');
+assert(!mobileJs.includes('/pages/customer/home/home?trip_id='), 'mobile sheet share path never falls back to customer/home');
 assert(operatorTripDetail.includes('/pages/customer/mobile-itinerary/mobile-itinerary?operator_mobile_preview=1'), 'operator preview opens mobile itinerary page');
 
 assert(opsUpsertCustomerTripSource.includes('buildAutoPublishLifecycle'), 'web customer-trip sync has auto-publish lifecycle');
@@ -144,6 +148,8 @@ assert(createInviteSource.includes('/pages/customer/mobile-itinerary/mobile-itin
 assert(/share_path:\s*sharePath/.test(createInviteSource), 'createCustomerTripInvite persists share_path');
 assert(/path:\s*sharePath/.test(createInviteSource), 'createCustomerTripInvite persists path');
 assert(!createInviteSource.includes('/pages/customer/home/home?trip_id='), 'createCustomerTripInvite no longer emits customer/home trip path');
+assert(!createInviteSource.includes("'official'"), 'createCustomerTripInvite no longer allows official rich-trip bypass');
+assert(createInviteSource.includes("'itinerary_sheet'"), 'createCustomerTripInvite uses itinerary_sheet invite stage');
 
 console.log(failed ? `\nFAILED: ${failed} assertion(s)` : '\nPASS: mobile itinerary routes are locked to the new UI');
 process.exit(failed ? 1 : 0);

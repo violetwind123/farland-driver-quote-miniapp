@@ -9,7 +9,6 @@
   <view wx:elif="{{error}}" class="mi-state">
     <view class="mi-state-title">暂时无法打开</view>
     <view class="mi-state-text">{{error}}</view>
-    <button class="mi-btn ghost" bindtap="onContactAdvisor">联系顾问</button>
   </view>
 
   <block wx:elif="{{sheetUrl}}">
@@ -30,7 +29,6 @@
 
   <view wx:else class="mi-state">
     <view class="mi-state-title">手机版行程单生成中</view>
-    <view class="mi-state-text">请稍后查看，或在 Farland 客户群联系顾问。</view>
-    <button class="mi-btn ghost" bindtap="onContactAdvisor">联系顾问</button>
+    <view class="mi-state-text">网页端生成并同步后，这里会显示完整手机版行程单。</view>
   </view>
 </view>

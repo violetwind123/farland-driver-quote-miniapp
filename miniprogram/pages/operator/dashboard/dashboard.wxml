@@ -28,7 +28,7 @@
     <view class="utility-card trip-management-entry" bindtap="openTripManagement">
       <view>
         <view class="utility-title">行程管理</view>
-        <view class="utility-desc">网页同步后自动启用客户版，先预览并转发客户第一版手机版行程单。</view>
+        <view class="utility-desc">网页端生成手机行程单后，先预览并转发客户第一版行程单。</view>
       </view>
       <view class="chevron">›</view>
     </view>

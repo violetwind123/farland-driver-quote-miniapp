@@ -104,21 +104,12 @@ Page({
     }
   },
 
-  onContactAdvisor() {
-    wx.showModal({
-      title: '联系 Farland 顾问',
-      content: '如需调整行程，请在 Farland 客户群中联系您的专属顾问。',
-      showCancel: false,
-      confirmText: '知道了',
-    });
-  },
-
   onShareAppMessage() {
     const tripId = this.data.tripId || '';
     const inviteCode = this.data.inviteCode || '';
     return {
       title: 'Farland 手机版行程单',
-      path: `/pages/customer/home/home?trip_id=${encodeURIComponent(tripId)}&invite_code=${encodeURIComponent(inviteCode)}`,
+      path: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(tripId)}&invite_code=${encodeURIComponent(inviteCode)}`,
     };
   },
 });

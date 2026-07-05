@@ -9,10 +9,6 @@ function safeString(value) {
   return value === undefined || value === null ? '' : String(value);
 }
 
-function hasObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
-}
-
 function generateInviteCode() {
   const time = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -118,13 +114,9 @@ exports.main = async (event = {}) => {
     const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
     const effectiveTrip = trip;
 
-    // 两层可转发规则:已正式发布 → official invite;否则有手机版行程单图 → sheet_draft invite;都没有 → 拒
-    const isOfficialReady = effectiveTrip.visibility_status === 'published'
-      && effectiveTrip.review_status === 'approved'
-      && hasObject(effectiveTrip.published_snapshot);
-    const inviteStage = isOfficialReady
-      ? 'official'
-      : (itinerarySheetReady(effectiveTrip.itinerary_sheet) ? 'sheet_draft' : '');
+    // 手机版行程单分享只认 web 生成并持久化的 itinerary_sheet 图。
+    // 已发布的旧 rich trip 不能绕过该条件,避免客户打开旧版自渲染 UI 或空等待页。
+    const inviteStage = itinerarySheetReady(effectiveTrip.itinerary_sheet) ? 'itinerary_sheet' : '';
     if (!inviteStage) {
       return {
         success: false,
