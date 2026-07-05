@@ -163,7 +163,7 @@
           <view wx:elif="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
           <view wx:if="{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}" class="today-next-teaser">{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}</view>
           <view class="p4-action-row">
-            <button class="p4-action-primary single" bindtap="contactAdvisor">{{tripInviteTrip.todayOverviewCard.contactAdvisorLabel || '联系 Farland 顾问'}}</button>
+            <button class="p4-action-primary single" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.day_no || tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看行程卡片</button>
           </view>
         </view>
       </view>
@@ -349,8 +349,7 @@
                   <view wx:if="{{todayCard.nextDayTeaserText}}" class="today-next-teaser">{{todayCard.nextDayTeaserText}}</view>
 
                   <view class="p4-action-row">
-                    <button class="p4-action-secondary" bindtap="contactAdvisor">{{todayCard.contactAdvisorLabel}}</button>
-                    <button class="p4-action-primary" bindtap="openTodayDetail">查看当日行程</button>
+                    <button class="p4-action-primary single" bindtap="openTodayDetail">查看行程卡片</button>
                   </view>
                 </view>
               </view>
@@ -570,8 +569,7 @@
         <view wx:if="{{todayCard.nextDayTeaserText}}" class="today-next-teaser">{{todayCard.nextDayTeaserText}}</view>
 
         <view class="p4-action-row">
-          <button class="p4-action-secondary" bindtap="contactAdvisor">{{todayCard.contactAdvisorLabel}}</button>
-          <button class="p4-action-primary" bindtap="openTodayDetail">查看当日行程</button>
+          <button class="p4-action-primary single" bindtap="openTodayDetail">查看行程卡片</button>
         </view>
       </view>
     </view>
