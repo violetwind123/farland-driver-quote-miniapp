@@ -148,15 +148,16 @@ exports.main = async (event = {}) => {
       .filter((invite) => isActiveInvite(invite, now))
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0];
     if (existingInvite) {
+      const sharePath = buildTripSharePath(canonicalTripId, existingInvite.invite_code);
       const intendedFields = buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso });
-      if (Object.keys(intendedFields).length) {
-        await db.collection('customer_trip_invites').doc(existingInvite._id).update({
-          data: {
-            ...intendedFields,
-            updated_at: nowIso,
-          },
-        });
-      }
+      await db.collection('customer_trip_invites').doc(existingInvite._id).update({
+        data: {
+          share_path: sharePath,
+          path: sharePath,
+          ...intendedFields,
+          updated_at: nowIso,
+        },
+      });
       if (Object.keys(intendedFields).length) {
         await writeAuditLog(db, {
           actor_openid: auth.openid,
@@ -176,7 +177,6 @@ exports.main = async (event = {}) => {
           created_at: nowIso,
         }).catch(() => null);
       }
-      const sharePath = buildTripSharePath(canonicalTripId, existingInvite.invite_code);
       return {
         success: true,
         code: 0,
@@ -206,11 +206,14 @@ exports.main = async (event = {}) => {
       inviteCode = generateInviteCode();
     }
 
+    const sharePath = buildTripSharePath(canonicalTripId, inviteCode);
     const inviteData = {
       invite_code: inviteCode,
       trip_id: canonicalTripId,
       external_trip_id: effectiveTrip.external_trip_id || canonicalTripId,
       trip_no: effectiveTrip.trip_no || effectiveTrip.external_trip_id || canonicalTripId,
+      share_path: sharePath,
+      path: sharePath,
       status: 'active',
       visibility_status_snapshot: effectiveTrip.visibility_status || '',
       published_version_snapshot: effectiveTrip.published_version || 0,
@@ -222,7 +225,6 @@ exports.main = async (event = {}) => {
       ...buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso }),
     };
     const addRes = await db.collection('customer_trip_invites').add({ data: inviteData });
-    const sharePath = buildTripSharePath(canonicalTripId, inviteCode);
 
     await writeAuditLog(db, {
       actor_openid: auth.openid,
