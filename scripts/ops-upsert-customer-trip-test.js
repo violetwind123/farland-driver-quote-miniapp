@@ -61,7 +61,17 @@ function loadMain(store) {
   const source = fs.readFileSync(INDEX, 'utf8');
   const localRequire = createRequire(INDEX);
   const db = makeDb(store);
-  const fakeCloud = { DYNAMIC_CURRENT_ENV: 'local', init() {}, getWXContext() { return {}; }, database() { return db; } };
+  const fakeCloud = {
+    DYNAMIC_CURRENT_ENV: 'local',
+    init() {},
+    getWXContext() { return {}; },
+    database() { return db; },
+    async uploadFile({ cloudPath, fileContent }) {
+      store.__uploads = store.__uploads || [];
+      store.__uploads.push({ cloudPath, size: fileContent.length });
+      return { fileID: `cloud://test-env/${cloudPath}` };
+    },
+  };
   const moduleObject = { exports: {} };
   const sandbox = {
     console, Buffer, Date, JSON, Number, RegExp, Set, String, Array, Object, Math, process,
@@ -292,6 +302,40 @@ async function check(name, fn) {
     const r2 = await main(signedEvent({ ...validPayload, itinerary_sheet: { png_url: 'wxfile://tmp/x.png' } }));
     return !r.success && r.error_code === 'VALIDATION_ERROR'
       && !r2.success && r2.error_code === 'VALIDATION_ERROR';
+  });
+
+  // 14. itinerary_sheet png_base64 → uploaded to CloudBase storage, DB keeps only cloud:// URL/meta
+  await check('itinerary_sheet png_base64 → uploaded and stored as cloud url only', async () => {
+    const store = {}; const main = loadMain(store);
+    const pngBase64 = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex').toString('base64');
+    const p = {
+      ...validPayload,
+      itinerary_sheet: {
+        format: 'png',
+        width: 750,
+        height: 4958,
+        order_no: '2026NBC102',
+        version: 4,
+        generated_at: '2026-07-05T12:00:00-04:00',
+        png_base64: pngBase64,
+      },
+    };
+    const r = await main(signedEvent(p));
+    const doc = store.customer_trips[0];
+    return r.success
+      && store.__uploads && store.__uploads.length === 1
+      && /customer-itinerary-sheets\/2026NBC102\/v4-/.test(store.__uploads[0].cloudPath)
+      && doc.itinerary_sheet && doc.itinerary_sheet.png_url.startsWith('cloud://test-env/customer-itinerary-sheets/2026NBC102/v4-')
+      && doc.itinerary_sheet.width === 750 && doc.itinerary_sheet.height === 4958
+      && doc.itinerary_sheet.png_base64 === undefined
+      && !doc.draft_snapshot.itinerary_sheet && !doc.published_snapshot.itinerary_sheet;
+  });
+
+  // 15. itinerary_sheet png_base64 must be a PNG
+  await check('itinerary_sheet png_base64 non-png → VALIDATION_ERROR', async () => {
+    const store = {}; const main = loadMain(store);
+    const r = await main(signedEvent({ ...validPayload, itinerary_sheet: { format: 'png', png_base64: Buffer.from('not png').toString('base64') } }));
+    return !r.success && r.error_code === 'VALIDATION_ERROR' && !(store.__uploads && store.__uploads.length);
   });
 
   console.log(failed ? `\nFAILED: ${failed}` : '\nPASS: all opsUpsertCustomerTrip cases');

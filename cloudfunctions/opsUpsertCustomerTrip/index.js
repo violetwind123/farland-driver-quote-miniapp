@@ -74,9 +74,56 @@ function createError(errorCode, message, code) {
 // itinerary_sheet:web 生成的手机版行程单图,写在 customer_trips 顶层,两层读取共用。
 // 后端持久 URL 仅允许 https/cloud;wxfile 是设备本地临时路径,不能作 web 持久 URL。
 const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
+const MAX_ITINERARY_SHEET_BYTES = 6 * 1024 * 1024;
 function itinerarySheetSchemeAllowed(url) {
   const m = /^([a-z][a-z0-9+.-]*:)/i.exec(text(url));
   return m ? ITINERARY_SHEET_URL_SCHEMES.includes(m[1].toLowerCase()) : false;
+}
+function safeCloudPathSegment(value, fallback) {
+  const cleaned = text(value).replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+  return cleaned || fallback;
+}
+function decodePngBase64(value) {
+  let raw = text(value);
+  if (!raw) return null;
+  raw = raw.replace(/^data:image\/png;base64,/i, '').replace(/\s+/g, '');
+  if (!/^[A-Za-z0-9+/=]+$/.test(raw)) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_base64 must be valid base64 PNG data.', 400);
+  }
+  const buffer = Buffer.from(raw, 'base64');
+  if (!buffer.length || buffer.length > MAX_ITINERARY_SHEET_BYTES) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_base64 is empty or too large.', 400);
+  }
+  const pngSignature = '89504e470d0a1a0a';
+  if (buffer.subarray(0, 8).toString('hex') !== pngSignature) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_base64 must be a PNG image.', 400);
+  }
+  return buffer;
+}
+async function persistItinerarySheetIfNeeded(payload) {
+  const sheet = isPlainObject(payload && payload.itinerary_sheet) ? payload.itinerary_sheet : null;
+  if (!sheet || itinerarySheetSchemeAllowed(sheet.png_url)) return payload;
+  if (!text(sheet.png_base64)) return payload;
+
+  const buffer = decodePngBase64(sheet.png_base64);
+  const orderNo = safeCloudPathSegment(sheet.order_no || payload.external_trip_id || payload.trip_no || payload.trip_id, 'trip');
+  const version = safeCloudPathSegment(sheet.version || sheet.source_hash || Date.now(), 'latest');
+  const contentHash = crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 16);
+  const cloudPath = `customer-itinerary-sheets/${orderNo}/v${version}-${contentHash}.png`;
+  const uploadRes = await cloud.uploadFile({ cloudPath, fileContent: buffer });
+  const pngUrl = text(uploadRes && (uploadRes.fileID || uploadRes.fileId));
+  if (!pngUrl || !itinerarySheetSchemeAllowed(pngUrl)) {
+    throw createError('STORAGE_UPLOAD_FAILED', 'Failed to persist itinerary_sheet PNG.', 500);
+  }
+  return {
+    ...payload,
+    itinerary_sheet: {
+      ...sheet,
+      png_url: pngUrl,
+      png_base64: undefined,
+      format: text(sheet.format) || 'png',
+    },
+  };
 }
 function normalizeItinerarySheetSource(value) {
   if (!isPlainObject(value) || !itinerarySheetSchemeAllowed(value.png_url)) return null;
@@ -207,6 +254,10 @@ function validatePayload(payload) {
   if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.png_url)
       && !itinerarySheetSchemeAllowed(payload.itinerary_sheet.png_url)) {
     throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_url must be an https:// or cloud:// URL.', 400);
+  }
+  if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.png_base64)
+      && text(payload.itinerary_sheet.format || 'png').toLowerCase() !== 'png') {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.format must be png.', 400);
   }
 }
 
@@ -397,7 +448,8 @@ exports.main = async (event = {}) => {
     verifyRequest(headers, rawBody);
     validatePayload(payload);
 
-    const sourceDoc = buildSourceDoc(payload);
+    const persistedPayload = await persistItinerarySheetIfNeeded(payload);
+    const sourceDoc = buildSourceDoc(persistedPayload);
     const sourceHash = stableHash(sourceDoc);
     const externalTripId = sourceDoc.external_trip_id;
     const now = new Date().toISOString();
