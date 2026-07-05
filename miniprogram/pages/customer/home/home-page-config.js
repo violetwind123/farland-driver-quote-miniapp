@@ -2826,11 +2826,34 @@ const customerHomePageConfig = {
         return;
       }
 
+      // Layer 1:未正式发布但已有手机版行程单 → 只显「查看手机行程单草稿」入口(不是空等待页,也没有正式 UI)
+      if (result.stage === 'sheet_draft') {
+        this.setData({
+          loading: false,
+          tripInviteTrip: null,
+          tripInviteWaiting: false,
+          tripInviteSheetDraft: true,
+          tripInviteSheet: result.itinerary_sheet || null,
+          tripInviteMessage: result.message || '手机版行程单已生成，请查看。',
+          tripInviteError: '',
+          tripInviteAccessSource: result.access_source || '',
+          tripInviteAutoSaved: Boolean(result.auto_saved),
+          tripInviteAlreadySaved: Boolean(result.already_saved),
+          tripInviteCanSave: false,
+          selectedTripDayNo: 0,
+          phoneDateKey: this.getTodayDateKey(),
+          needsInviteClaim: false,
+        });
+        return;
+      }
+
       if (result.waiting) {
         this.setData({
           loading: false,
           tripInviteTrip: null,
           tripInviteWaiting: true,
+          tripInviteSheetDraft: false,
+          tripInviteSheet: null,
           tripInviteMessage: result.message || 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
           tripInviteError: '',
           tripInviteAccessSource: result.access_source || '',
@@ -2862,6 +2885,8 @@ const customerHomePageConfig = {
         loading: false,
         tripInviteTrip: trip,
         tripInviteWaiting: false,
+        tripInviteSheetDraft: false,
+        tripInviteSheet: result.itinerary_sheet || null,
         tripInviteMessage: '',
         tripInviteError: '',
         tripInviteAccessSource: result.access_source || '',
@@ -4255,6 +4280,19 @@ const customerHomePageConfig = {
       console.warn('[customer-home] cache invite hotel detail failed', error);
     }
     wx.navigateTo({ url: '/pages/customer/hotel-detail/hotel-detail' });
+  },
+
+  // 打开手机版行程单(web 图查看器):sheet_draft 入口 + official 次要「查看完整行程单」共用
+  openMobileItinerarySheet() {
+    const tripId = this.data.tripInviteId || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '';
+    const inviteCode = this.data.inviteCode || '';
+    if (!tripId) {
+      wx.showToast({ title: '缺少行程信息', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({
+      url: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(tripId)}&invite_code=${encodeURIComponent(inviteCode)}`,
+    });
   },
 
   cacheTripDetailContext(days, context = {}) {

@@ -2763,3 +2763,43 @@
 .trip-invite-summary {
   margin-bottom: 18rpx;
 }
+
+/* 手机版行程单:sheet_draft 查看按钮 + official 次要入口 */
+.sheet-draft-btn {
+  margin-top: 24rpx;
+  width: 100%;
+}
+
+.itinerary-sheet-entry {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 32rpx;
+}
+
+.itinerary-sheet-entry-hover {
+  opacity: 0.9;
+}
+
+.itinerary-sheet-entry-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.itinerary-sheet-entry-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.itinerary-sheet-entry-sub {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--ink-400);
+}
+
+.itinerary-sheet-entry-chevron {
+  flex-shrink: 0;
+  color: var(--ink-300);
+  font-size: 32rpx;
+}

@@ -57,6 +57,14 @@
       >预览行程草稿</button>
     </view>
 
+    <!-- Layer 1:未正式发布但已有手机版行程单 → 只显查看草稿入口 -->
+    <view wx:elif="{{tripInviteSheetDraft}}" class="trip-invite-state card-surface">
+      <view class="trip-invite-state-kicker">FARLAND 手机版行程单</view>
+      <view class="trip-invite-state-title">您的手机版行程单已生成</view>
+      <view class="trip-invite-state-copy">点击查看行程单草稿；确认后 Farland 会为您发布正式行程。</view>
+      <button class="cta-primary sheet-draft-btn" bindtap="openMobileItinerarySheet">查看手机行程单草稿</button>
+    </view>
+
     <block wx:else>
       <view wx:if="{{customerSummaryBar && customerSummaryBar.visible}}" class="customer-summary-bar trip-invite-summary card-surface">
         <view class="summary-main">
@@ -100,6 +108,17 @@
             bindinput="onTripInviteSaveNameInput"
           />
           <button class="profile-upgrade-btn" loading="{{tripInviteSaving}}" bindtap="saveTripInviteToProfile">保存</button>
+        </view>
+      </view>
+
+      <!-- Layer 2 次要入口:发布后仍可查看/转发手机版行程单图 -->
+      <view wx:if="{{tripInviteSheet.png_url}}" class="section-shell">
+        <view class="itinerary-sheet-entry card-surface" bindtap="openMobileItinerarySheet" hover-class="itinerary-sheet-entry-hover">
+          <view class="itinerary-sheet-entry-main">
+            <view class="itinerary-sheet-entry-title">查看完整行程单</view>
+            <view class="itinerary-sheet-entry-sub">Farland 手机版行程单 · 可保存 / 转发</view>
+          </view>
+          <view class="itinerary-sheet-entry-chevron">›</view>
         </view>
       </view>
 
