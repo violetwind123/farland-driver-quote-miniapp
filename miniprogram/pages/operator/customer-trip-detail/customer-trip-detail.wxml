@@ -108,14 +108,14 @@
           </view>
           <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished && preview.review_status === 'approved' ? '待准备' : '待启用')}}</view>
         </view>
-        <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished || preview.review_status !== 'approved'}}" class="share-empty">
+        <view wx:if="{{!canForwardSheet && (preview.visibility_status !== 'published' || !hasPublished || preview.review_status !== 'approved')}}" class="share-empty">
           <block wx:if="{{hasPublished && preview.visibility_status === 'published'}}">
             <view class="empty-title">客户当前看到 v{{preview.published_version || 1}}</view>
             <view class="empty-sub">当前状态不是 approved；请刷新或手动启用后再转发。</view>
           </block>
           <block wx:else>
-            <view class="empty-title">客户行程尚未启用</view>
-            <view class="empty-sub">请确认网页同步成功；必要时使用上方手动启用。</view>
+            <view class="empty-title">手机版行程单尚未生成</view>
+            <view class="empty-sub">网页端同步手机版行程单后，即可预览并转发；无需先正式发布。</view>
           </block>
         </view>
         <block wx:else>

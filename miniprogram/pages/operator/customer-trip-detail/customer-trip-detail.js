@@ -43,6 +43,8 @@ Page({
     changedSections: [],
     hasDraft: false,
     hasPublished: false,
+    canForwardSheet: false,
+    sheetStatus: '',
     stateText: '',
     stateHint: '',
     invitePath: '',
@@ -175,6 +177,8 @@ Page({
       changedSections,
       hasDraft,
       hasPublished,
+      canForwardSheet: Boolean(result.can_forward_sheet),
+      sheetStatus: result.sheet_status || (result.itinerary_sheet ? 'ready' : 'generating'),
       stateText: state.text,
       stateHint: state.hint,
       bizState,
@@ -788,8 +792,10 @@ Page({
   async createTripInvite() {
     if (this.data.creatingInvite) return;
     const preview = this.data.preview || {};
-    if (preview.visibility_status !== 'published' || preview.review_status !== 'approved' || !this.data.hasPublished) {
-      wx.showToast({ title: '请先启用客户行程', icon: 'none' });
+    // 两层:有手机版行程单图(sheet ready)或已正式发布,均可转发;都没有才拦
+    const officialReady = preview.visibility_status === 'published' && preview.review_status === 'approved' && this.data.hasPublished;
+    if (!this.data.canForwardSheet && !officialReady) {
+      wx.showToast({ title: '手机版行程单尚未生成，无法转发', icon: 'none' });
       return;
     }
     this.setData({ creatingInvite: true, error: '' });
@@ -949,7 +955,7 @@ Page({
       wx.showToast({ title: '请先准备行程单', icon: 'none' });
       return {
         title: 'Farland 行程',
-        path: 'pages/customer/mobile-itinerary/mobile-itinerary',
+        path: 'pages/customer/home/home',
       };
     }
     const snapshot = publishedSnapshot || activeSnapshot || {};
