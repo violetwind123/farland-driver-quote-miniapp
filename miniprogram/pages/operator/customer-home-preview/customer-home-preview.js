@@ -14,7 +14,7 @@ function createDefaultPreviewMeta() {
     release_step_title: '客户真实打开仍是等待页',
     release_step_copy: '请先输入正确 trip_id 并点击预览；生成客户草稿并发布后，客户才会看到正式行程。',
     release_step_tip: '发布成功后这里会变成 PUBLISHED CUSTOMER VIEW。',
-    customer_preview_button_text: '进入客户真实页面',
+    customer_preview_button_text: '预览客户正式手机版',
     customer_preview_button_class: 'primary-wide-btn',
     release_steps: [
       { key: 'preview', label: '1 预览', status: 'pending' },
@@ -67,7 +67,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
         ? '客户客户端已可查看该行程。可再次进入客户页面核对展示效果。'
         : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并生成客户分享链接。',
       release_step_tip: delivered ? '如需重新发送，可继续生成并转发客户分享链接。' : '下一步：生成并转发客户分享链接。',
-      customer_preview_button_text: '进入客户真实页面',
+      customer_preview_button_text: '预览客户正式手机版',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
@@ -79,7 +79,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: '存在关键警告，暂不能发布',
       release_step_copy: '请先处理 Critical warnings，再重新生成客户草稿。当前客户真实打开只会看到等待页。',
       release_step_tip: '关键警告清空后再点击 Publish After Review。',
-      customer_preview_button_text: '进入客户真实页面',
+      customer_preview_button_text: '预览客户正式手机版',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
@@ -91,7 +91,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: '草稿已可审核，尚未发布',
       release_step_copy: '运营可以审核下方摘要。确认无误后点击 Publish After Review，客户页面才会显示正式行程。',
       release_step_tip: '未发布前客户真实打开仍是等待页。',
-      customer_preview_button_text: '进入客户真实页面',
+      customer_preview_button_text: '预览客户正式手机版',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
     };
@@ -102,7 +102,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
     release_step_title: '客户真实打开仍是等待页',
     release_step_copy: '请确认 Preview Target 已填正确 trip_id，然后按顺序点击 Build Customer Draft 和 Publish After Review。',
     release_step_tip: '未发布草稿不会展示给客户，这是客户数据安全规则。',
-    customer_preview_button_text: '进入客户真实页面',
+    customer_preview_button_text: '预览客户正式手机版',
     customer_preview_button_class: 'primary-wide-btn',
     release_steps: releaseSteps,
   };

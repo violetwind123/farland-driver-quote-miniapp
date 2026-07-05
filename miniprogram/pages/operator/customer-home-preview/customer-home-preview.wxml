@@ -157,18 +157,18 @@
       <button class="primary-btn" loading="{{publishing}}" bindtap="publishTrip">Publish After Review</button>
     </view>
     <view class="preview-action-split">
-      <button class="secondary-wide-btn preview-open-btn" bindtap="openOperatorDraftPreview">查看运营草稿预览</button>
+      <button class="secondary-wide-btn preview-open-btn" bindtap="openOperatorDraftPreview">预览手机版草稿</button>
       <button class="{{previewMeta.customer_preview_button_class || 'primary-wide-btn'}} preview-open-btn" bindtap="openCustomerFacingPreview">
-        {{previewMeta.customer_preview_button_text || '进入客户真实页面'}}
+        {{previewMeta.customer_preview_button_text || '预览客户正式手机版'}}
       </button>
     </view>
     <view wx:if="{{previewMeta.customer_would_see !== 'published'}}" class="release-open-hint">
-      运营草稿预览会显示 draft 内容；客户真实页面在未发布前只显示等待状态，不显示草稿。
+      手机版草稿预览会显示 draft 内容；客户正式手机版在未发布前只显示等待状态，不显示草稿。
     </view>
   </view>
 
   <view class="panel customer-preview">
-    <view class="section-title">客户真实页面入口</view>
+    <view class="section-title">手机版行程单入口</view>
     <view wx:if="{{!customerHome}}" class="empty-card">
       <view class="empty-title">暂无预览</view>
       <view class="empty-sub">输入 trip_id 或从行程管理进入后，先生成运营审核摘要。</view>
@@ -177,17 +177,17 @@
     <block wx:else>
       <view class="customer-preview-note">
         <view class="customer-kicker">CUSTOMER VIEW</view>
-        <view class="customer-title">这里不是客户真实页面</view>
-        <view class="customer-sub">如需审核草稿，点击“查看运营草稿预览”；如需验收客户真实状态，点击“进入客户真实页面”。两个预览入口都不创建访问记录。</view>
-        <button class="secondary-wide-btn" bindtap="openOperatorDraftPreview">查看运营草稿预览</button>
+        <view class="customer-title">这里是运营核对面板</view>
+        <view class="customer-sub">如需审核草稿，点击“预览手机版草稿”；如需验收客户当前正式版本，点击“预览客户正式手机版”。两个入口都打开手机版行程单，且不创建访问记录。</view>
+        <button class="secondary-wide-btn" bindtap="openOperatorDraftPreview">预览手机版草稿</button>
         <button class="{{previewMeta.customer_preview_button_class || 'primary-wide-btn'}}" bindtap="openCustomerFacingPreview">
-          {{previewMeta.customer_preview_button_text || '进入客户真实页面'}}
+          {{previewMeta.customer_preview_button_text || '预览客户正式手机版'}}
         </button>
       </view>
 
       <view wx:if="{{previewMeta.customer_would_see === 'waiting'}}" class="waiting-card">
         <view class="waiting-title">Farland 顾问正在核对行程</view>
-        <view class="waiting-sub">当前未发布。客户真实打开时只会看到等待状态，不会看到草稿。</view>
+        <view class="waiting-sub">当前未发布。客户打开手机版行程单时只会看到等待状态，不会看到草稿。</view>
       </view>
 
       <view wx:if="{{customerHome.trip_overview.length}}" class="preview-section">
