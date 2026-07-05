@@ -2728,6 +2728,20 @@ const customerHomePageConfig = {
       });
   },
 
+  formatDisplayDateRange(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    const matches = text.match(/\d{4}-\d{2}-\d{2}/g);
+    if (!matches || !matches.length) return text;
+    const dates = [];
+    matches.forEach((item) => {
+      const normalized = item.replace(/-/g, '/');
+      if (!dates.includes(normalized)) dates.push(normalized);
+    });
+    if (dates.length === 1) return dates[0];
+    return dates.slice(0, 2).join(' - ');
+  },
+
   async loadTripInviteHome() {
     this.setData({
       loading: true,
@@ -3084,7 +3098,8 @@ const customerHomePageConfig = {
       statusText: Number(day.dayNo || index + 1) === initialDayNo ? '当前' : '待前往',
     })), initialDayNo, initialDayNo);
     const displayTripNo = hero.trip_no || snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '';
-    const displayDateRange = hero.date_range || tripSummary.date_range_text || [snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''].filter(Boolean).join(' - ');
+    const rawDisplayDateRange = hero.date_range || tripSummary.date_range_text || [snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''].filter(Boolean).join(' - ');
+    const displayDateRange = this.formatDisplayDateRange(rawDisplayDateRange);
     const displayTitle = hero.title || snapshot.title || 'Farland 行程';
     const displayCustomer = this.normalizeCustomerDisplayName(customer.display_name || customer.name || '')
       || this.resolveDefaultCustomerNameForTrip(displayTripNo);

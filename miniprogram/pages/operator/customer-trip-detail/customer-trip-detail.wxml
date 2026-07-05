@@ -133,7 +133,7 @@
             </view>
             <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
             <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户行程</button>
-            <button class="secondary-wide-btn" bindtap="openMobileItineraryPreview">预览客户真实界面</button>
+            <button class="secondary-wide-btn" bindtap="openMobileItineraryPreview">预览手机版行程单</button>
           </view>
         </block>
       </view>
@@ -142,8 +142,8 @@
         <view class="workflow-step-head">
           <view class="workflow-step-index">4</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">预览客户真实首页</view>
-            <view class="workflow-step-sub">未发布时应只显示等待页，并提供运营可用的草稿预览入口。</view>
+            <view class="workflow-step-title">预览客户真实手机版行程</view>
+            <view class="workflow-step-sub">未发布时只显示等待页；已发布时进入客户真实手机版行程单。</view>
           </view>
           <view class="workflow-step-status">可预览</view>
         </view>
@@ -152,7 +152,7 @@
           loading="{{openingCustomerView}}"
           disabled="{{openingCustomerView}}"
           bindtap="openCustomerFacingPreview"
-        >预览客户真实首页</button>
+        >预览客户真实手机版行程</button>
       </view>
 
     </view>

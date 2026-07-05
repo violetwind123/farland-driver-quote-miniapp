@@ -410,7 +410,7 @@ Page({
     delete app.globalData.operatorCustomerHomePreview;
     delete app.globalData.operatorMobileItineraryDraftPreview;
     wx.navigateTo({
-      url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview',
+      url: '/pages/customer/mobile-itinerary/mobile-itinerary?operator_mobile_preview=1',
       fail: (error) => {
         console.error('[customer-home-preview] open customer page failed', error);
         wx.showToast({ title: '客户页面打开失败', icon: 'none' });

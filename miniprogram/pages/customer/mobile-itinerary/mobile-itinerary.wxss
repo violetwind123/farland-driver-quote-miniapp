@@ -1,1 +1,498 @@
-@import "/pages/customer/home/home.wxss";
+@import "/styles/theme.wxss";
+
+.mi-page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx calc(56rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background:
+    linear-gradient(180deg, #F6F7FB 0%, #F5F5F8 46%, #FFFFFF 100%);
+  color: var(--ink-900);
+}
+
+.mi-preview-banner {
+  margin-bottom: 18rpx;
+  padding: 22rpx 24rpx;
+  border: 1rpx solid rgba(166, 136, 91, 0.18);
+  border-radius: 24rpx;
+  background: #FFF8E9;
+}
+
+.mi-preview-title {
+  color: #8A6F44;
+  font-size: 24rpx;
+  font-weight: 760;
+}
+
+.mi-preview-copy {
+  margin-top: 6rpx;
+  color: var(--ink-600);
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.mi-state-card,
+.mi-section,
+.mi-hero {
+  border: 1rpx solid rgba(27, 35, 64, 0.07);
+  border-radius: 32rpx;
+  background: #FFFFFF;
+  box-shadow: 0 20rpx 52rpx rgba(27, 35, 64, 0.055);
+  box-sizing: border-box;
+}
+
+.mi-state-card {
+  margin-top: 24rpx;
+  padding: 48rpx 34rpx;
+  text-align: center;
+}
+
+.mi-state-logo {
+  width: 300rpx;
+  height: 112rpx;
+  opacity: 0.92;
+}
+
+.mi-state-icon {
+  width: 78rpx;
+  height: 78rpx;
+  margin: 0 auto 22rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 34rpx;
+  font-weight: 760;
+}
+
+.mi-state-icon.pending {
+  background: var(--brand-500);
+  letter-spacing: 2rpx;
+}
+
+.mi-state-icon.error {
+  background: var(--danger);
+}
+
+.mi-state-title {
+  color: var(--ink-900);
+  font-family: var(--font-serif);
+  font-size: 36rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.mi-state-copy {
+  margin-top: 12rpx;
+  color: var(--ink-600);
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+.mi-state-btn,
+.mi-primary-btn {
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 22rpx;
+  background: var(--brand-600);
+  color: #FFFFFF;
+  font-size: 27rpx;
+  font-weight: 700;
+  box-shadow: 0 14rpx 28rpx rgba(87, 99, 158, 0.24);
+}
+
+.mi-state-btn {
+  margin: 30rpx 0 0;
+}
+
+.mi-state-btn::after,
+.mi-primary-btn::after {
+  border: none;
+}
+
+.mi-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 268rpx;
+  padding: 30rpx;
+  color: #FFFFFF;
+  background:
+    radial-gradient(circle at 84% 0%, rgba(255, 255, 255, 0.22), transparent 34%),
+    linear-gradient(145deg, #232B4A 0%, #56619B 56%, #7C86B9 100%);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.mi-hero-kicker {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 20rpx;
+  line-height: 1.2;
+  letter-spacing: 3rpx;
+  font-weight: 700;
+}
+
+.mi-hero-title {
+  margin-top: 16rpx;
+  color: #FFFFFF;
+  font-family: var(--font-serif);
+  font-size: 43rpx;
+  line-height: 1.22;
+  font-weight: 700;
+}
+
+.mi-hero-meta,
+.mi-hero-route {
+  margin-top: 12rpx;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.mi-hero-route {
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 650;
+}
+
+.mi-hero-chip {
+  position: absolute;
+  right: 26rpx;
+  top: 26rpx;
+  max-width: 220rpx;
+  height: 48rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  font-size: 21rpx;
+  font-weight: 700;
+}
+
+.mi-section {
+  margin-top: 22rpx;
+  padding: 28rpx;
+}
+
+.mi-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.mi-kicker {
+  color: var(--ink-400);
+  font-size: 19rpx;
+  letter-spacing: 3rpx;
+  font-weight: 700;
+}
+
+.mi-kicker.gold {
+  color: var(--gold-500);
+}
+
+.mi-section-title {
+  margin-top: 6rpx;
+  color: var(--ink-900);
+  font-family: var(--font-serif);
+  font-size: 34rpx;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.mi-section-meta {
+  flex-shrink: 0;
+  max-width: 260rpx;
+  color: var(--ink-400);
+  font-size: 22rpx;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.mi-progress-scroll {
+  width: 100%;
+  margin-top: 22rpx;
+  white-space: nowrap;
+}
+
+.mi-progress-track {
+  display: inline-flex;
+  min-width: 100%;
+  padding: 8rpx 0 4rpx;
+}
+
+.mi-progress-node {
+  position: relative;
+  width: 168rpx;
+  min-height: 112rpx;
+  padding: 14rpx 12rpx;
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  color: var(--ink-400);
+}
+
+.mi-progress-node::before {
+  content: '';
+  position: absolute;
+  left: -84rpx;
+  top: 25rpx;
+  width: 120rpx;
+  height: 2rpx;
+  background: rgba(102, 114, 168, 0.18);
+}
+
+.mi-progress-node:first-child::before {
+  display: none;
+}
+
+.mi-progress-node.selected {
+  background: var(--brand-50);
+  color: var(--brand-600);
+}
+
+.mi-progress-dot {
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 999rpx;
+  background: #CDD2E8;
+  box-shadow: 0 0 0 8rpx rgba(102, 114, 168, 0.10);
+}
+
+.mi-progress-node.selected .mi-progress-dot,
+.mi-progress-node.current .mi-progress-dot {
+  background: var(--brand-600);
+}
+
+.mi-progress-label {
+  margin-top: 14rpx;
+  font-size: 25rpx;
+  line-height: 1.2;
+  font-weight: 760;
+}
+
+.mi-progress-sub {
+  margin-top: 6rpx;
+  color: currentColor;
+  font-size: 21rpx;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.mi-day-row {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 18rpx;
+  padding: 20rpx;
+  border-radius: 26rpx;
+  background: #F7F8FC;
+  border: 1rpx solid transparent;
+}
+
+.mi-day-row.active {
+  background: #FFFFFF;
+  border-color: rgba(102, 114, 168, 0.22);
+  box-shadow: 0 14rpx 32rpx rgba(27, 35, 64, 0.06);
+}
+
+.mi-day-index {
+  width: 62rpx;
+  height: 62rpx;
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-600);
+  color: #FFFFFF;
+  font-size: 22rpx;
+  font-weight: 760;
+}
+
+.mi-day-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.mi-day-title {
+  color: var(--ink-900);
+  font-size: 28rpx;
+  line-height: 1.35;
+  font-weight: 760;
+}
+
+.mi-day-meta {
+  margin-top: 6rpx;
+  color: var(--ink-400);
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.mi-day-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.mi-day-highlight {
+  max-width: 100%;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(166, 136, 91, 0.10);
+  color: var(--gold-700);
+  font-size: 20rpx;
+  line-height: 1.25;
+}
+
+.mi-time-block {
+  flex-shrink: 0;
+  color: var(--brand-600);
+  text-align: right;
+}
+
+.mi-time-block view {
+  font-family: var(--font-serif);
+  font-size: 44rpx;
+  line-height: 1;
+  font-weight: 760;
+}
+
+.mi-time-block text {
+  color: var(--ink-400);
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.mi-today-card {
+  margin-top: 22rpx;
+}
+
+.mi-today-title {
+  color: var(--ink-900);
+  font-size: 32rpx;
+  line-height: 1.32;
+  font-weight: 780;
+}
+
+.mi-today-subtitle {
+  margin-top: 8rpx;
+  color: var(--ink-600);
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.mi-trust-line,
+.mi-service-window {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
+  color: var(--success);
+  font-size: 22rpx;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.mi-trust-line text {
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: var(--success-bg);
+}
+
+.mi-service-window {
+  color: var(--ink-600);
+}
+
+.mi-route-list {
+  margin-top: 22rpx;
+}
+
+.mi-route-row {
+  display: flex;
+  gap: 18rpx;
+  padding: 18rpx 0;
+  border-top: 1rpx dashed rgba(102, 114, 168, 0.22);
+}
+
+.mi-route-row:first-child {
+  border-top: none;
+}
+
+.mi-route-time {
+  width: 76rpx;
+  flex-shrink: 0;
+  color: var(--brand-600);
+  font-size: 25rpx;
+  line-height: 1.35;
+  font-weight: 760;
+}
+
+.mi-route-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.mi-route-title {
+  color: var(--ink-900);
+  font-size: 27rpx;
+  line-height: 1.38;
+  font-weight: 760;
+}
+
+.mi-route-subtitle,
+.mi-route-drive {
+  margin-top: 6rpx;
+  color: var(--ink-400);
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.mi-traffic {
+  margin-left: 10rpx;
+  color: var(--success);
+  font-weight: 650;
+}
+
+.mi-fold-line,
+.mi-summary-count {
+  margin-top: 14rpx;
+  color: var(--brand-600);
+  font-size: 23rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mi-primary-btn {
+  margin: 24rpx 0 0;
+}
+
+.mi-hotel-card {
+  margin-top: 22rpx;
+  padding: 24rpx;
+  border-radius: 28rpx;
+  background: #F9F7F2;
+  border: 1rpx solid rgba(166, 136, 91, 0.16);
+}
+
+.mi-hotel-name {
+  color: var(--ink-900);
+  font-size: 30rpx;
+  line-height: 1.35;
+  font-weight: 780;
+}
+
+.mi-hotel-meta,
+.mi-hotel-arrival,
+.mi-hotel-address {
+  margin-top: 8rpx;
+  color: var(--ink-600);
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.mi-card-link {
+  margin-top: 18rpx;
+  color: var(--gold-700);
+  font-size: 24rpx;
+  font-weight: 760;
+}

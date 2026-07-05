@@ -998,7 +998,7 @@ Page({
     return this.buildTripInviteShare();
   },
 
-  // 只读：走客户真实渲染链路（customer-trip-mobile-preview 复用客户 home 配置）。
+  // 只读：走客户真实渲染链路（mobile-itinerary 复用客户数据配置）。
   // 不创建 invite、不创建 customer_trip_access、不改 viewed 状态。
   // 未同步到客户可见版本时 customer_share_preview 返回等待页，与客户真实所见一致。
   async openCustomerFacingPreview() {
@@ -1032,7 +1032,7 @@ Page({
       delete app.globalData.operatorMobileItineraryDraftPreview;
       this.setData({ openingCustomerView: false });
       wx.navigateTo({
-        url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview',
+        url: '/pages/customer/mobile-itinerary/mobile-itinerary?operator_mobile_preview=1',
         fail: (error) => {
           console.error('[customer-trip-detail] open customer view failed', error);
           wx.showToast({ title: '客户页面打开失败', icon: 'none' });

@@ -1,1 +1,228 @@
-<include src="../home/home.wxml" />
+<view class="mi-page">
+  <view wx:if="{{operatorCustomerPreviewMode}}" class="mi-preview-banner">
+    <view class="mi-preview-title">运营预览</view>
+    <view class="mi-preview-copy">当前页面模拟客户打开手机版行程单后的真实显示。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="mi-state-card">
+    <image class="mi-state-logo" src="/assets/images/logo-farland-splash.png" mode="aspectFit" />
+    <view class="mi-state-title">正在加载手机版行程单</view>
+    <view class="mi-state-copy">Farland 正在打开最新客户可见版本。</view>
+  </view>
+
+  <view wx:elif="{{tripInviteError}}" class="mi-state-card">
+    <view class="mi-state-icon error">!</view>
+    <view class="mi-state-title">行程单暂不可用</view>
+    <view class="mi-state-copy">{{tripInviteError}}</view>
+  </view>
+
+  <view wx:elif="{{tripInviteWaiting}}" class="mi-state-card">
+    <view class="mi-state-icon pending">···</view>
+    <view class="mi-state-title">顾问正在核对行程安排</view>
+    <view class="mi-state-copy">{{tripInviteMessage || 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。'}}</view>
+    <button
+      wx:if="{{operatorCustomerPreviewMode && operatorDraftPreviewPayload}}"
+      class="mi-state-btn"
+      bindtap="previewOperatorDraftFromWaiting"
+    >预览行程草稿</button>
+  </view>
+
+  <block wx:elif="{{tripInviteTrip}}">
+    <view class="mi-hero">
+      <view class="mi-hero-kicker">FARLAND 行程</view>
+      <view class="mi-hero-title">{{tripInviteTrip.displayTitle || tripInviteTrip.displayCompactTitle || '手机版行程单'}}</view>
+      <view class="mi-hero-meta">
+        <text wx:if="{{tripInviteTrip.displayTripNo}}">{{tripInviteTrip.displayTripNo}}</text>
+        <text wx:if="{{tripInviteTrip.displayTripNo && tripInviteTrip.displayDateRange}}"> · </text>
+        <text wx:if="{{tripInviteTrip.displayDateRange}}">{{tripInviteTrip.displayDateRange}}</text>
+      </view>
+      <view wx:if="{{tripInviteTrip.displayCity}}" class="mi-hero-route">{{tripInviteTrip.displayCity}}</view>
+      <view wx:if="{{customerSummaryBar && customerSummaryBar.sync_status_text}}" class="mi-hero-chip">{{customerSummaryBar.sync_status_text}}</view>
+    </view>
+
+    <view wx:if="{{tripInviteTrip.progressNodes && tripInviteTrip.progressNodes.length}}" class="mi-section">
+      <view class="mi-section-head">
+        <view>
+          <view class="mi-kicker">OVERVIEW</view>
+          <view class="mi-section-title">行程概览</view>
+        </view>
+        <view wx:if="{{tripInviteTrip.displayDateRange}}" class="mi-section-meta">{{tripInviteTrip.displayDateRange}}</view>
+      </view>
+      <scroll-view scroll-x class="mi-progress-scroll" scroll-left="{{inviteProgressAxisScrollLeft}}" id="progress-strip-invite" enhanced="{{true}}" show-scrollbar="{{false}}">
+        <view class="mi-progress-track">
+          <view
+            wx:for="{{tripInviteTrip.progressNodes}}"
+            wx:key="node_id"
+            id="progress-day-invite-{{item.day_no}}"
+            class="mi-progress-node {{item.status}} {{(item.selected || item.isSelected) ? 'selected' : ''}} {{item.isPast ? 'past' : ''}} {{item.isToday ? 'today' : ''}}"
+            data-source="invite"
+            data-day-no="{{item.day_no}}"
+            bindtap="selectTripProgressDay"
+          >
+            <view class="mi-progress-dot"></view>
+            <view class="mi-progress-label">{{item.label}}</view>
+            <view class="mi-progress-sub">{{item.short_location || item.shortLocation || '行程'}}</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view wx:if="{{tripInviteTrip.days && tripInviteTrip.days.length}}" class="mi-section">
+      <view class="mi-section-head">
+        <view>
+          <view class="mi-kicker">DAYS</view>
+          <view class="mi-section-title">每日安排</view>
+        </view>
+        <view class="mi-section-meta">{{tripInviteTrip.days.length}} 天</view>
+      </view>
+      <view
+        wx:for="{{tripInviteTrip.days}}"
+        wx:key="dayNo"
+        wx:for-item="day"
+        class="mi-day-row {{selectedTripDayNo == (day.dayNo || day.day_no) ? 'active' : ''}}"
+        data-source="invite"
+        data-day-no="{{day.dayNo || day.day_no}}"
+        bindtap="selectTripProgressDay"
+      >
+        <view class="mi-day-index">D{{day.dayNo || day.day_no}}</view>
+        <view class="mi-day-body">
+          <view wx:if="{{day.title}}" class="mi-day-title">{{day.title}}</view>
+          <view wx:else class="mi-day-title">Day {{day.dayNo || day.day_no}}</view>
+          <view class="mi-day-meta">
+            <text wx:if="{{day.date}}">{{day.date}}</text>
+            <text wx:if="{{day.date && day.city}}"> · </text>
+            <text wx:if="{{day.city}}">{{day.city}}</text>
+          </view>
+          <view wx:if="{{day.highlightItems && day.highlightItems.length}}" class="mi-day-highlights">
+            <text wx:for="{{day.highlightItems}}" wx:key="*this" wx:for-item="highlight" class="mi-day-highlight">{{highlight}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{tripInviteTrip.todayOverviewCard}}" class="mi-section">
+      <view class="mi-section-head">
+        <view>
+          <view class="mi-kicker">CARD</view>
+          <view class="mi-section-title">行程卡片</view>
+        </view>
+        <view wx:if="{{tripInviteTrip.todayOverviewCard.departureTime || tripInviteTrip.todayOverviewCard.startTime}}" class="mi-time-block">
+          <view>{{tripInviteTrip.todayOverviewCard.departureTime || tripInviteTrip.todayOverviewCard.startTime}}</view>
+          <text>出发</text>
+        </view>
+      </view>
+      <view class="mi-today-card">
+        <view class="mi-today-title">{{tripInviteTrip.todayOverviewCard.sectionTitle || '今日行程概览'}}</view>
+        <view wx:if="{{tripInviteTrip.todayOverviewCard.overviewSubtitle || tripInviteTrip.todayOverviewCard.dateRouteText}}" class="mi-today-subtitle">{{tripInviteTrip.todayOverviewCard.overviewSubtitle || tripInviteTrip.todayOverviewCard.dateRouteText}}</view>
+        <view wx:if="{{tripInviteTrip.todayOverviewCard.trustStatusText || tripInviteTrip.todayOverviewCard.updatedAtText || tripInviteTrip.todayOverviewCard.changeSummaryText}}" class="mi-trust-line">
+          <text wx:if="{{tripInviteTrip.todayOverviewCard.trustStatusText}}">{{tripInviteTrip.todayOverviewCard.trustStatusText}}</text>
+          <text wx:if="{{tripInviteTrip.todayOverviewCard.updatedAtText}}">{{tripInviteTrip.todayOverviewCard.updatedAtText}}</text>
+          <text wx:if="{{tripInviteTrip.todayOverviewCard.changeSummaryText}}">{{tripInviteTrip.todayOverviewCard.changeSummaryText}}</text>
+        </view>
+        <view wx:if="{{tripInviteTrip.todayOverviewCard.serviceWindowLine}}" class="mi-service-window">{{tripInviteTrip.todayOverviewCard.serviceWindowLine}}</view>
+        <view class="mi-route-list">
+          <view wx:for="{{tripInviteTrip.todayOverviewCard.displayRouteStops || tripInviteTrip.todayOverviewCard.routeStops}}" wx:key="id" wx:for-item="stop" class="mi-route-row">
+            <view class="mi-route-time">{{stop.time}}</view>
+            <view class="mi-route-main">
+              <view class="mi-route-title">{{stop.title}}</view>
+              <view wx:if="{{stop.subtitle}}" class="mi-route-subtitle">{{stop.subtitle}}</view>
+              <view wx:if="{{stop.connectorTravelMeta && stop.connectorTravelMeta.hasContent}}" class="mi-route-drive">
+                <text wx:if="{{stop.connectorTravelMeta.drive_time_text}}">{{stop.connectorTravelMeta.drive_time_text}}</text>
+                <text wx:if="{{stop.connectorTravelMeta.distance_text}}">{{stop.connectorTravelMeta.drive_time_text ? ' · ' : ''}}{{stop.connectorTravelMeta.distance_text}}</text>
+                <text wx:if="{{stop.connectorTravelMeta.traffic_text}}" class="mi-traffic">{{stop.connectorTravelMeta.traffic_text}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view wx:if="{{tripInviteTrip.todayOverviewCard.overviewCanExpand}}" class="mi-fold-line" data-source="invite" bindtap="toggleTodayOverviewExpanded">{{inviteTodayOverviewExpanded ? tripInviteTrip.todayOverviewCard.overviewCollapseLabel : tripInviteTrip.todayOverviewCard.overviewExpandLabel}}</view>
+        <view wx:elif="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="mi-summary-count">当日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
+        <button class="mi-primary-btn" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.day_no || tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看行程卡片</button>
+      </view>
+    </view>
+
+    <view wx:if="{{tripInviteTrip.todayHotelCard}}" class="mi-section">
+      <view class="mi-section-head">
+        <view>
+          <view class="mi-kicker gold">HOTEL</view>
+          <view class="mi-section-title">{{tripInviteTrip.todayHotelCard.sectionTitle || '今晚住宿'}}</view>
+        </view>
+      </view>
+      <view class="mi-hotel-card" bindtap="openTripInviteHotelDetail">
+        <view class="mi-hotel-name">{{tripInviteTrip.todayHotelCard.name}}</view>
+        <view wx:if="{{tripInviteTrip.todayHotelCard.metaText}}" class="mi-hotel-meta">{{tripInviteTrip.todayHotelCard.metaText}}</view>
+        <view wx:if="{{tripInviteTrip.todayHotelCard.arrivalText}}" class="mi-hotel-arrival">{{tripInviteTrip.todayHotelCard.arrivalText}}</view>
+        <view class="mi-hotel-address">{{tripInviteTrip.todayHotelCard.address || tripInviteTrip.todayHotelCard.city || '酒店信息将由 Farland 同步。'}}</view>
+        <view class="mi-card-link">查看酒店信息</view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{todayCard}}">
+    <view class="mi-hero">
+      <view class="mi-hero-kicker">FARLAND 行程</view>
+      <view class="mi-hero-title">{{customerSummaryBar.display_title || '手机版行程单'}}</view>
+      <view wx:if="{{customerSummaryBar.display_meta || customerSummaryBar.date_range_text}}" class="mi-hero-meta">{{customerSummaryBar.display_meta || customerSummaryBar.date_range_text}}</view>
+      <view wx:if="{{customerSummaryBar.city_route_text}}" class="mi-hero-route">{{customerSummaryBar.city_route_text}}</view>
+    </view>
+
+    <view wx:if="{{tripProgress && tripProgress.nodes && tripProgress.nodes.length}}" class="mi-section">
+      <view class="mi-section-head">
+        <view>
+          <view class="mi-kicker">OVERVIEW</view>
+          <view class="mi-section-title">行程概览</view>
+        </view>
+      </view>
+      <scroll-view scroll-x class="mi-progress-scroll" scroll-left="{{progressAxisScrollLeft}}" id="progress-strip-home" enhanced="{{true}}" show-scrollbar="{{false}}">
+        <view class="mi-progress-track">
+          <view
+            wx:for="{{tripProgress.nodes}}"
+            wx:key="node_id"
+            id="progress-day-home-{{item.day_no}}"
+            class="mi-progress-node {{item.status}} {{(item.selected || item.isSelected) ? 'selected' : ''}} {{item.isPast ? 'past' : ''}} {{item.isToday ? 'today' : ''}}"
+            data-source="home"
+            data-day-no="{{item.day_no}}"
+            bindtap="selectTripProgressDay"
+          >
+            <view class="mi-progress-dot"></view>
+            <view class="mi-progress-label">{{item.label}}</view>
+            <view class="mi-progress-sub">{{item.short_location || item.shortLocation || '行程'}}</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="mi-section">
+      <view class="mi-section-head">
+        <view>
+          <view class="mi-kicker">CARD</view>
+          <view class="mi-section-title">行程卡片</view>
+        </view>
+        <view wx:if="{{todayCard.departureTime || todayCard.startTime}}" class="mi-time-block">
+          <view>{{todayCard.departureTime || todayCard.startTime}}</view>
+          <text>出发</text>
+        </view>
+      </view>
+      <view class="mi-today-card">
+        <view class="mi-today-title">{{todayCard.sectionTitle || '今日行程概览'}}</view>
+        <view wx:if="{{todayCard.overviewSubtitle || todayCard.dateRouteText}}" class="mi-today-subtitle">{{todayCard.overviewSubtitle || todayCard.dateRouteText}}</view>
+        <view wx:if="{{todayCard.serviceWindowLine}}" class="mi-service-window">{{todayCard.serviceWindowLine}}</view>
+        <view class="mi-route-list">
+          <view wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id" wx:for-item="stop" class="mi-route-row">
+            <view class="mi-route-time">{{stop.time}}</view>
+            <view class="mi-route-main">
+              <view class="mi-route-title">{{stop.title}}</view>
+              <view wx:if="{{stop.subtitle}}" class="mi-route-subtitle">{{stop.subtitle}}</view>
+            </view>
+          </view>
+        </view>
+        <button class="mi-primary-btn" bindtap="openTodayDetail">查看行程卡片</button>
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="mi-state-card">
+    <view class="mi-state-icon pending">···</view>
+    <view class="mi-state-title">顾问正在核对行程安排</view>
+    <view class="mi-state-copy">确认后将在这里显示手机版行程单。</view>
+  </view>
+</view>
