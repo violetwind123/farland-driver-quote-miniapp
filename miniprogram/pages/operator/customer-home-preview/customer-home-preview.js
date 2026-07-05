@@ -65,8 +65,8 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: delivered ? '已推送客户端' : '已发布客户可见版本',
       release_step_copy: delivered
         ? '客户客户端已可查看该行程。可再次进入客户页面核对展示效果。'
-        : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并准备手机版行程单直接微信转发。',
-      release_step_tip: delivered ? '如需重新发送，可继续准备并转发手机版行程单。' : '下一步：准备并转发手机版行程单。',
+        : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并生成客户分享链接。',
+      release_step_tip: delivered ? '如需重新发送，可继续生成并转发客户分享链接。' : '下一步：生成并转发客户分享链接。',
       customer_preview_button_text: '进入客户真实页面',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
@@ -532,7 +532,7 @@ Page({
         },
       });
       if (!result || !result.success) {
-        this.setData({ creatingInvite: false, error: (result && result.message) || '手机版行程单生成失败' });
+        this.setData({ creatingInvite: false, error: (result && result.message) || '客户分享链接生成失败' });
         wx.showToast({ title: '生成失败', icon: 'none' });
         return;
       }
@@ -547,7 +547,7 @@ Page({
     } catch (error) {
       console.error('[customer-home-preview] create invite failed', error);
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
-      this.setData({ creatingInvite: false, error: `手机版行程单生成失败：${errMsg}` });
+      this.setData({ creatingInvite: false, error: `客户分享链接生成失败：${errMsg}` });
     }
   },
 

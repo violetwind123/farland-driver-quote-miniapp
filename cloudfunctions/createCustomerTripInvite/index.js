@@ -86,96 +86,6 @@ function buildTripSharePath(canonicalTripId, inviteCode) {
   return `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
 }
 
-function hasMobileItinerarySheet(snapshot) {
-  return Boolean(
-    hasObject(snapshot)
-    && hasObject(snapshot.itinerary_sheet)
-    && safeString(snapshot.itinerary_sheet.png_url).trim()
-  );
-}
-
-function sanitizeSnapshotForPublish(snapshot) {
-  if (!hasObject(snapshot)) return {};
-  const cloned = JSON.parse(JSON.stringify(snapshot));
-  delete cloned.customer_phone;
-  delete cloned.customer_wechat_id;
-  if (hasObject(cloned.customer)) {
-    [
-      'phone',
-      'mobile',
-      'tel',
-      'telephone',
-      'wechat',
-      'wechat_id',
-      'weixin',
-      'email',
-      'contact',
-      'contact_phone',
-      'contact_mobile',
-      'contact_info',
-    ].forEach((key) => {
-      delete cloned.customer[key];
-    });
-  }
-  return cloned;
-}
-
-function canAutoPublishPendingMobileTrip(trip) {
-  if (!trip || trip.visibility_status === 'discarded' || trip.review_status === 'discarded' || trip.status === 'discarded') {
-    return false;
-  }
-  if (trip.review_status !== 'needs_review' && trip.review_status !== 'pending_review') return false;
-  return hasMobileItinerarySheet(trip.draft_snapshot);
-}
-
-async function autoPublishPendingMobileTrip({ trip, auth, canonicalTripId, nowIso }) {
-  const publishedSnapshot = sanitizeSnapshotForPublish(trip.draft_snapshot);
-  const nextVersion = Number(trip.published_version || 0) + 1;
-  const updateData = {
-    trip_id: canonicalTripId,
-    external_trip_id: trip.external_trip_id || canonicalTripId,
-    published_snapshot: publishedSnapshot,
-    published_version: nextVersion,
-    review_status: 'approved',
-    visibility_status: 'published',
-    reviewed_by: auth.user._id,
-    reviewed_by_openid: auth.openid,
-    reviewed_at: nowIso,
-    published_by: auth.user._id,
-    published_by_openid: auth.openid,
-    published_at: nowIso,
-    review_note: 'Auto-published mobile itinerary draft while preparing share card',
-    auto_published_reason: 'mobile_itinerary_invite_prepared',
-    updated_by: auth.user._id,
-    updated_by_openid: auth.openid,
-    updated_at: nowIso,
-  };
-
-  await db.collection('customer_trips').doc(trip._id).update({ data: updateData });
-
-  await writeAuditLog(db, {
-    actor_openid: auth.openid,
-    actor_user_id: auth.user._id,
-    actor_role: auth.user.role,
-    action: 'customer_trip_auto_published_for_invite',
-    target_type: 'customer_trip',
-    target_id: trip._id,
-    detail: {
-      trip_id: canonicalTripId,
-      external_trip_id: trip.external_trip_id || '',
-      previous_review_status: trip.review_status || '',
-      previous_visibility_status: trip.visibility_status || '',
-      published_version: nextVersion,
-    },
-    created_at: nowIso,
-  }).catch(() => null);
-
-  return {
-    ...trip,
-    ...updateData,
-  };
-}
-
 exports.main = async (event = {}) => {
   try {
     const auth = await requireRole(cloud, db, ['operator', 'super_admin']);
@@ -196,17 +106,18 @@ exports.main = async (event = {}) => {
     const now = new Date();
     const nowIso = now.toISOString();
     const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
-    const autoPublished = canAutoPublishPendingMobileTrip(trip);
-    const effectiveTrip = autoPublished
-      ? await autoPublishPendingMobileTrip({ trip, auth, canonicalTripId, nowIso })
-      : trip;
+    const effectiveTrip = trip;
 
-    if (effectiveTrip.visibility_status !== 'published' || !hasObject(effectiveTrip.published_snapshot)) {
+    if (
+      effectiveTrip.visibility_status !== 'published'
+      || effectiveTrip.review_status !== 'approved'
+      || !hasObject(effectiveTrip.published_snapshot)
+    ) {
       return {
         success: false,
         code: 409,
         error_code: 'TRIP_NOT_PUBLISHED',
-        message: '请先同步手机版行程单，再生成分享卡',
+        message: '请先正式发布最新客户行程，再生成分享卡',
         trip_id: canonicalTripId,
       };
     }
@@ -238,12 +149,10 @@ exports.main = async (event = {}) => {
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0];
     if (existingInvite) {
       const intendedFields = buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso });
-      if (Object.keys(intendedFields).length || autoPublished) {
+      if (Object.keys(intendedFields).length) {
         await db.collection('customer_trip_invites').doc(existingInvite._id).update({
           data: {
             ...intendedFields,
-            visibility_status_snapshot: effectiveTrip.visibility_status || '',
-            published_version_snapshot: effectiveTrip.published_version || 0,
             updated_at: nowIso,
           },
         });

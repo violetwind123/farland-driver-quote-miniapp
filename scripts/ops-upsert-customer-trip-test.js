@@ -93,7 +93,7 @@ const validPayload = {
   customer: { display_name: '张女士', phone: '13800000000', wechat_id: 'zh_wx', email: 'z@e.com' },
   source: { source_type: 'cloudflare_ops', source_id: 'ops_1' },
   advisor: { name: 'Farland' },
-  itinerary_sheet: { png_url: 'https://cdn.myfarland.com/mobile-itinerary/web-int-001.png', order_no: 'MI-001', width: 1080, height: 2400 },
+  itinerary_sheet: { png_url: 'https://cdn.myfarland.com/mobile-itinerary/web-int-001.png', order_no: 'LEGACY-IGNORED', width: 1080, height: 2400 },
   hotels: [{ hotel_id: 'h1', name: 'Riu', phone: '212-555', check_in_date: '2026-08-01', supplier_note: 'x', linked_day_no: 1 }],
   itinerary_days: [{ day_no: 1, date: '2026-08-01', title: 'D1', timeline_items: [{ item_id: 'i1', title: 'NYU', internal_note: 'secret' }] }],
 };
@@ -113,25 +113,27 @@ async function check(name, fn) {
 (async () => {
   console.log('opsUpsertCustomerTrip test');
 
-  // 1. valid signed payload with mobile itinerary sheet → created + auto-published, PII stripped
-  await check('valid payload with itinerary_sheet → created + auto-published', async () => {
+  // 1. valid signed payload with legacy itinerary_sheet → created structured draft, not published
+  await check('valid payload ignores legacy itinerary_sheet → created draft, not customer-visible', async () => {
     const store = {}; const main = loadMain(store);
     const r = await main(signedEvent(validPayload));
     const doc = (store.customer_trips || [])[0];
-    return r.success && r.action === 'created' && r.auto_published === true
-      && r.review_status === 'approved' && r.visibility_status === 'published'
-      && r.published_version === 1
-      && doc && doc.published_snapshot && doc.published_snapshot.itinerary_sheet
-      && doc.published_snapshot.itinerary_sheet.png_url === validPayload.itinerary_sheet.png_url;
+    return r.success && r.action === 'created' && r.auto_published === false
+      && r.review_status === 'pending_review' && r.visibility_status === 'hidden'
+      && r.published_version === 0
+      && doc && doc.draft_snapshot && !doc.draft_snapshot.itinerary_sheet
+      && doc.draft_snapshot.itinerary_days && doc.draft_snapshot.itinerary_days.length === 1
+      && doc.published_snapshot && Object.keys(doc.published_snapshot).length === 0;
   });
 
-  await check('payload without itinerary_sheet → hidden pending draft lifecycle', async () => {
+  await check('payload without legacy itinerary_sheet → hidden pending draft lifecycle', async () => {
     const store = {}; const main = loadMain(store);
     const r = await main(signedEvent(noSheetPayload));
     const doc = (store.customer_trips || [])[0];
     return r.success && r.action === 'created' && r.auto_published === false
       && r.review_status === 'pending_review' && r.visibility_status === 'hidden'
-      && doc && Object.keys(doc.published_snapshot).length === 0;
+      && doc && doc.draft_snapshot && doc.draft_snapshot.itinerary_days
+      && Object.keys(doc.published_snapshot).length === 0;
   });
 
   await check('customer PII stripped to top-level', async () => {
@@ -143,16 +145,16 @@ async function check(name, fn) {
       && doc.customer_phone === '13800000000' && doc.customer_wechat_id === 'zh_wx';
   });
 
-  await check('published_snapshot customer has no PII', async () => {
+  await check('draft_snapshot customer has no PII', async () => {
     const store = {}; const main = loadMain(store);
     await main(signedEvent(validPayload));
     const doc = store.customer_trips[0];
-    const customer = doc.published_snapshot && doc.published_snapshot.customer;
+    const customer = doc.draft_snapshot && doc.draft_snapshot.customer;
     return customer && customer.display_name === '张女士'
       && customer.phone === undefined
       && customer.wechat_id === undefined
-      && doc.published_snapshot.customer_phone === undefined
-      && doc.published_snapshot.customer_wechat_id === undefined;
+      && doc.draft_snapshot.customer_phone === undefined
+      && doc.draft_snapshot.customer_wechat_id === undefined;
   });
 
   await check('internal_note / supplier_note deep-stripped from source', async () => {
@@ -233,23 +235,27 @@ async function check(name, fn) {
     return r2.success && r2.idempotent === true && r2.action === 'unchanged' && store.customer_trips.length === 1;
   });
 
-  // 10. update existing published trip with itinerary_sheet → auto-publish new version
-  await check('update published trip with itinerary_sheet → auto-published new version', async () => {
+  // 10. update existing published trip with legacy itinerary_sheet → update draft only, preserve published
+  await check('update published trip with legacy itinerary_sheet → needs_review, published preserved', async () => {
     const store = {}; const main = loadMain(store);
     await main(signedEvent(validPayload));
     const doc = store.customer_trips[0];
-    const oldVersion = doc.published_version;
+    doc.published_version = 2;
+    doc.visibility_status = 'published';
+    doc.review_status = 'approved';
+    doc.published_snapshot = { title: '旧发布版', marker: 'PUBLISHED_V2' };
     const edited = { ...validPayload, title: '美东访校(改)' };
     const r = await main(signedEvent(edited));
-    return r.success && r.action === 'updated' && r.review_status === 'approved'
-      && r.auto_published === true
-      && doc.published_version === oldVersion + 1
-      && doc.published_snapshot.title === '美东访校(改)'
+    return r.success && r.action === 'updated' && r.review_status === 'needs_review'
+      && r.auto_published === false
+      && doc.published_version === 2
+      && doc.published_snapshot.marker === 'PUBLISHED_V2'
+      && doc.draft_snapshot.title === '美东访校(改)'
       && doc.title === '美东访校(改)' && doc.visibility_status === 'published';
   });
 
-  // 11. update existing published trip without sheet → old review boundary preserved
-  await check('update published trip without itinerary_sheet → needs_review, published preserved', async () => {
+  // 11. update existing published trip without legacy sheet → old review boundary preserved
+  await check('update published trip without legacy itinerary_sheet → needs_review, published preserved', async () => {
     const store = {}; const main = loadMain(store);
     await main(signedEvent(noSheetPayload));
     const doc = store.customer_trips[0];

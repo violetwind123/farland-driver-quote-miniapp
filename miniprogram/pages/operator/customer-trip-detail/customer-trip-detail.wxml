@@ -40,10 +40,10 @@
       <view class="error-text">{{error}}</view>
     </view>
 
-    <!-- 模块一 · 手机版行程单转发 -->
+    <!-- 模块一 · 行程管理 -->
     <view class="panel workflow-panel">
-      <view class="section-title">手机版行程单转发</view>
-      <view class="workflow-sub">客户第一版先看手机版行程单；成交后再处理酒店、用车和每日评价等后续内容。</view>
+      <view class="section-title">行程管理</view>
+      <view class="workflow-sub">客户第一版先看正式发布后的行程总览和行程卡片；成交后再处理酒店、用车和每日评价等后续内容。</view>
 
       <view wx:if="{{criticalWarningList.length || warningList.length}}" class="workflow-alert">
         <view class="warning-title">同步提醒</view>
@@ -51,33 +51,70 @@
         <view wx:for="{{warningList}}" wx:key="*this" class="warning-row">{{item}}</view>
       </view>
       <view wx:if="{{changedSections.length}}" class="workflow-diff-note">
-        最新同步内容与当前客户版本有 {{changedSections.length}} 项差异；准备转发时会同步最新手机版行程单。
+        最新同步内容与当前客户版本有 {{changedSections.length}} 项差异；正式发布后客户才会看到新行程卡片。
       </view>
 
       <view class="workflow-step-card priority-share-card">
         <view class="workflow-step-head">
           <view class="workflow-step-index priority">1</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">转发客户第一版行程单</view>
-            <view class="workflow-step-sub">客户第一眼看到的手机版行程单，可先预览再微信转发。</view>
+            <view class="workflow-step-title">预览手机版行程单草稿</view>
+            <view class="workflow-step-sub">按客户真实界面预览行程总览和行程卡片；不会推送给客户。</view>
           </view>
-          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished ? '待准备' : '待同步')}}</view>
+          <view class="workflow-step-status">{{hasDraft ? '可预览' : '待同步'}}</view>
         </view>
-        <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
+        <view wx:if="{{!hasDraft}}" class="share-empty">
           <view class="empty-title">等待网页端同步手机行程单</view>
-          <view class="empty-sub">网页生成手机确认单并同步后，这里会直接变成可预览、可转发。</view>
+          <view class="empty-sub">网页生成并同步后，这里会显示客户真实界面的草稿预览。</view>
         </view>
         <block wx:else>
-          <view wx:if="{{preview.review_status === 'needs_review'}}" class="share-note">
-            检测到网页端新手机版行程单：点击准备时会先同步为客户可见版本，再生成转发链接。
+          <button
+            class="secondary-wide-btn"
+            loading="{{previewingDraft}}"
+            disabled="{{previewingDraft}}"
+            bindtap="previewMobileItineraryDraft"
+          >预览行程草稿</button>
+        </block>
+      </view>
+
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">2</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">正式发布客户行程</view>
+            <view class="workflow-step-sub">发布后，客户打开手机版行程单才会看到行程总览和行程卡片。</view>
           </view>
+          <view class="workflow-step-status">{{preview.visibility_status === 'published' && preview.review_status === 'approved' ? '已发布' : (hasDraft ? '待发布' : '待同步')}}</view>
+        </view>
+        <button
+          class="primary-wide-btn"
+          loading="{{publishing}}"
+          disabled="{{publishing || !hasDraft || criticalWarningList.length}}"
+          bindtap="publishTrip"
+        >正式发布客户行程</button>
+      </view>
+
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">3</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">转发客户第一版行程</view>
+            <view class="workflow-step-sub">正式发布后生成微信转发链接，客户看到同一套真实行程界面。</view>
+          </view>
+          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished && preview.review_status === 'approved' ? '待准备' : '待发布')}}</view>
+        </view>
+        <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished || preview.review_status !== 'approved'}}" class="share-empty">
+          <view class="empty-title">客户行程尚未正式发布</view>
+          <view class="empty-sub">客户真实打开仍是等待页；请先预览草稿并正式发布。</view>
+        </view>
+        <block wx:else>
           <button
             wx:if="{{!invitePath}}"
             class="primary-wide-btn"
             loading="{{creatingInvite}}"
             disabled="{{creatingInvite}}"
             bindtap="createTripInvite"
-          >准备手机版行程单</button>
+          >准备客户分享链接</button>
           <view wx:if="{{invitePath}}" class="invite-box">
             <view class="invite-row">
               <view class="invite-label">invite_code</view>
@@ -88,27 +125,27 @@
               <view class="invite-value">{{inviteExpiresAt}}</view>
             </view>
             <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
-            <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发手机版行程单</button>
-            <button class="secondary-wide-btn" bindtap="openMobileItineraryPreview">预览手机版行程单</button>
+            <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户行程</button>
+            <button class="secondary-wide-btn" bindtap="openMobileItineraryPreview">预览客户真实界面</button>
           </view>
         </block>
       </view>
 
       <view class="workflow-step-card">
         <view class="workflow-step-head">
-          <view class="workflow-step-index">2</view>
+          <view class="workflow-step-index">4</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">预览完整客户页</view>
-            <view class="workflow-step-sub">用于检查成交后的酒店、用车和每日评价等完整客户界面。</view>
+            <view class="workflow-step-title">预览客户真实首页</view>
+            <view class="workflow-step-sub">未发布时应只显示等待页，并提供运营可用的草稿预览入口。</view>
           </view>
-          <view class="workflow-step-status">{{hasPublished ? '可预览' : '待同步'}}</view>
+          <view class="workflow-step-status">可预览</view>
         </view>
         <button
           class="secondary-wide-btn"
           loading="{{openingCustomerView}}"
-          disabled="{{openingCustomerView || !hasPublished}}"
+          disabled="{{openingCustomerView}}"
           bindtap="openCustomerFacingPreview"
-        >预览完整客户页</button>
+        >预览客户真实首页</button>
       </view>
 
     </view>

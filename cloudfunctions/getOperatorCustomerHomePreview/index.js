@@ -493,23 +493,6 @@ function buildTripSummary(snapshot, trip, hotelCards) {
   });
 }
 
-// P5 行程单 PNG:仅回传 url + 展示 meta;scheme 必须 ∈ {https:,cloud:,wxfile:},否则整对象归一化为 null
-// (阻断 http:// / data: / 跟踪像素;此处覆盖 ...snapshot 展开,防未净化 url 透传)
-const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:', 'wxfile:'];
-function normalizeItinerarySheet(x) {
-  if (!isObject(x)) return null;
-  const pngUrl = safeString(x.png_url).trim();
-  const match = pngUrl.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
-  if (!match || !ITINERARY_SHEET_URL_SCHEMES.includes(match[1].toLowerCase())) return null;
-  return {
-    png_url: pngUrl,
-    width: x.width,
-    height: x.height,
-    order_no: safeString(x.order_no),
-    version: x.version,
-  };
-}
-
 function ensureSnapshotV2(snapshot, trip) {
   if (!isObject(snapshot) || !Object.keys(snapshot).length) return null;
   const days = Array.isArray(snapshot.itinerary_days)
@@ -519,6 +502,7 @@ function ensureSnapshotV2(snapshot, trip) {
     ...snapshot,
     itinerary_days: days,
   };
+  delete normalized.itinerary_sheet;
   const hotelCards = Array.isArray(snapshot.hotel_cards) && snapshot.hotel_cards.length
     ? snapshot.hotel_cards.map((hotel, index) => normalizeTopLevelHotel(hotel, index)).filter(Boolean)
     : deriveHotelCards(normalized);
@@ -543,8 +527,6 @@ function ensureSnapshotV2(snapshot, trip) {
     // 覆盖 ...normalized 展开:原始 visits 不下发,仅保留白名单 visit_cards(权威赋值置于最后)
     visits: undefined,
     visit_cards: visitCards,
-    // 覆盖 ...normalized 展开:强制走 scheme 白名单归一化,缺失/非法 → null(入口隐藏)
-    itinerary_sheet: normalizeItinerarySheet(snapshot.itinerary_sheet),
   });
 }
 

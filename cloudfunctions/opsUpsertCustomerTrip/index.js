@@ -16,15 +16,6 @@ const REQUIRED_FIELDS = [
 // status 枚举(对齐 schema);'discarded' 等运营生命周期态不得由 web 写,否则可隐藏已发布行程
 const ALLOWED_STATUS = ['draft', 'active', 'completed', 'cancelled', 'archived'];
 
-// P5 行程单 PNG:仅接受稳定/受控地址;拒 http:// / data: / 相对路径 / 跟踪像素
-const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:', 'wxfile:'];
-function itinerarySheetSchemeAllowed(pngUrl) {
-  const url = text(pngUrl);
-  if (!url) return false;
-  const match = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
-  return Boolean(match) && ITINERARY_SHEET_URL_SCHEMES.includes(match[1].toLowerCase());
-}
-
 // customer 子对象只保留展示字段;联系方式提到顶层,不进快照
 const CUSTOMER_CONTACT_KEYS = [
   'phone', 'mobile', 'tel', 'telephone', 'wechat', 'wechat_id', 'weixin',
@@ -189,11 +180,6 @@ function validatePayload(payload) {
   if (ids.includes(TRIP_091_NO)) {
     throw createError('TRIP_091_PROTECTED', '091 is a hardcoded trip and cannot be written via web sync.', 409);
   }
-  // P5 行程单 PNG:若带 itinerary_sheet.png_url,scheme 必须在白名单内(拒 http:// / data: / 相对路径)
-  if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.png_url)
-    && !itinerarySheetSchemeAllowed(payload.itinerary_sheet.png_url)) {
-    throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_url scheme must be https:/cloud:/wxfile:.', 400);
-  }
 }
 
 // 只组装白名单 canonical source 字段;customer 剥离联系方式并提到顶层;深度剥内部/成本/供应商
@@ -241,19 +227,6 @@ function buildSourceDoc(payload) {
   };
   // 二次保险:customer 子对象绝不含联系方式
   CUSTOMER_CONTACT_KEYS.forEach((k) => { delete source.customer[k]; });
-  // P5 行程单 PNG:仅白名单展示键(显式挑字段,绝不 raw spread),url 已在 validatePayload 过 scheme 校验
-  if (isPlainObject(stripped.itinerary_sheet) && text(stripped.itinerary_sheet.png_url)) {
-    const sheet = stripped.itinerary_sheet;
-    source.itinerary_sheet = {
-      png_url: text(sheet.png_url),
-      width: sheet.width,
-      height: sheet.height,
-      order_no: text(sheet.order_no),
-      version: sheet.version,
-      generated_at: text(sheet.generated_at),
-      source_hash: text(sheet.source_hash),
-    };
-  }
   return source;
 }
 
@@ -313,7 +286,7 @@ function buildTripSummary(sourceDoc, hotelCards, flightCards) {
   }, STRIP_KEYS);
 }
 
-function buildAutoPublishedSnapshot(sourceDoc) {
+function buildDraftSnapshot(sourceDoc) {
   const days = Array.isArray(sourceDoc.itinerary_days) ? deepStrip(sourceDoc.itinerary_days, STRIP_KEYS) : [];
   const hotelCards = Array.isArray(sourceDoc.hotels) ? deepStrip(sourceDoc.hotels, STRIP_KEYS) : [];
   const flightCards = Array.isArray(sourceDoc.flights) ? deepStrip(sourceDoc.flights, STRIP_KEYS) : [];
@@ -358,12 +331,7 @@ function buildAutoPublishedSnapshot(sourceDoc) {
     transfers,
     charter_services: charterServices,
     documents,
-    itinerary_sheet: sourceDoc.itinerary_sheet || null,
   }, STRIP_KEYS);
-}
-
-function hasAutoPublishSheet(sourceDoc) {
-  return Boolean(isPlainObject(sourceDoc.itinerary_sheet) && text(sourceDoc.itinerary_sheet.png_url));
 }
 
 exports.main = async (event = {}) => {
@@ -376,8 +344,7 @@ exports.main = async (event = {}) => {
     const sourceHash = stableHash(sourceDoc);
     const externalTripId = sourceDoc.external_trip_id;
     const now = new Date().toISOString();
-    const shouldAutoPublish = hasAutoPublishSheet(sourceDoc);
-    const autoPublishedSnapshot = shouldAutoPublish ? buildAutoPublishedSnapshot(sourceDoc) : null;
+    const draftSnapshot = buildDraftSnapshot(sourceDoc);
 
     const existingRes = await db.collection('customer_trips')
       .where({ external_trip_id: externalTripId })
@@ -390,40 +357,27 @@ exports.main = async (event = {}) => {
       return { success: false, code: 409, error_code: 'TRIP_091_PROTECTED', message: '091 cannot be written via web sync.' };
     }
 
-    // 幂等:同 external_trip_id + 同 source_hash → 不重写；但旧版本若同 hash 仍未发布,需要补一次自动发布。
+    // 幂等:同 external_trip_id + 同 source_hash → 不重写；若旧版本缺 draft,补一次草稿。
     if (existing && text(existing.source_hash) === sourceHash) {
-      const needsPublishBackfill = shouldAutoPublish
-        && !(existing.visibility_status === 'published'
-          && existing.published_snapshot
-          && Object.keys(existing.published_snapshot).length);
-      if (needsPublishBackfill) {
-        const nextVersion = Math.max(1, Number(existing.published_version || 0) || 0);
+      const needsDraftBackfill = !isPlainObject(existing.draft_snapshot) || !Object.keys(existing.draft_snapshot).length;
+      if (needsDraftBackfill) {
         await db.collection('customer_trips').doc(existing._id).update({
           data: {
-            draft_snapshot: autoPublishedSnapshot,
-            published_snapshot: autoPublishedSnapshot,
-            published_version: nextVersion,
-            review_status: 'approved',
-            visibility_status: 'published',
-            warning_codes: [],
-            critical_warning_codes: [],
-            auto_published_from_web: true,
-            auto_published_reason: 'itinerary_sheet_synced',
-            published_at: existing.published_at || now,
-            reviewed_at: existing.reviewed_at || now,
+            draft_snapshot: draftSnapshot,
+            review_status: (existing.published_version || 0) > 0 ? 'needs_review' : 'pending_review',
             updated_by: 'web_ops',
             updated_at: now,
           },
         });
-        await writeAudit('ops_sync_customer_trip_auto_published_backfill', existing._id, externalTripId, sourceHash, now);
+        await writeAudit('ops_sync_customer_trip_draft_backfilled', existing._id, externalTripId, sourceHash, now);
         return {
-          success: true, code: 0, idempotent: true, action: 'auto_published',
+          success: true, code: 0, idempotent: true, action: 'draft_backfilled',
           trip_id: existing.trip_id || existing.external_trip_id || externalTripId,
           external_trip_id: externalTripId,
-          review_status: 'approved',
-          visibility_status: 'published',
-          published_version: nextVersion,
-          auto_published: true,
+          review_status: (existing.published_version || 0) > 0 ? 'needs_review' : 'pending_review',
+          visibility_status: existing.visibility_status || 'hidden',
+          published_version: existing.published_version || 0,
+          auto_published: false,
         };
       }
       return {
@@ -444,28 +398,14 @@ exports.main = async (event = {}) => {
     };
 
     if (!existing) {
-      // 新建:如果 web 已带手机行程单,直接生成客户可见发布版；否则沿用旧的隐藏待处理状态。
-      const initialLifecycle = shouldAutoPublish ? {
-        review_status: 'approved',
-        visibility_status: 'published',
-        warning_codes: [],
-        critical_warning_codes: [],
-        published_version: 1,
-        draft_snapshot: autoPublishedSnapshot,
-        published_snapshot: autoPublishedSnapshot,
-        auto_published_from_web: true,
-        auto_published_reason: 'itinerary_sheet_synced',
-        reviewed_by: 'web_ops',
-        reviewed_at: now,
-        published_by: 'web_ops',
-        published_at: now,
-      } : {
+      // 新建:Web 只生成待发布草稿；客户正式可见必须经过 publishCustomerTrip。
+      const initialLifecycle = {
         review_status: 'pending_review',
         visibility_status: 'hidden',
         warning_codes: [],
         critical_warning_codes: [],
         published_version: 0,
-        draft_snapshot: {},
+        draft_snapshot: draftSnapshot,
         published_snapshot: {},
       };
       const created = await db.collection('customer_trips').add({
@@ -476,59 +416,29 @@ exports.main = async (event = {}) => {
           created_at: now,
         },
       });
-      await writeAudit(shouldAutoPublish ? 'ops_sync_customer_trip_created_auto_published' : 'ops_sync_customer_trip_created', created._id, externalTripId, sourceHash, now);
+      await writeAudit('ops_sync_customer_trip_created', created._id, externalTripId, sourceHash, now);
       return {
         success: true, code: 0, action: 'created',
         trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
         review_status: initialLifecycle.review_status,
         visibility_status: initialLifecycle.visibility_status,
         published_version: initialLifecycle.published_version,
-        auto_published: shouldAutoPublish,
+        auto_published: false,
       };
     }
 
-    // 更新:有手机行程单则 web canonical source 直接成为客户可见版本;否则沿用旧的待复核边界。
+    // 更新:Web 只更新草稿；已发布客户仍看旧 published,直到运营正式发布。
     const published = (existing.published_version || 0) > 0;
     const discarded = existing.visibility_status === 'discarded';
-    if (shouldAutoPublish) {
-      const nextVersion = Number(existing.published_version || 0) + 1;
-      await db.collection('customer_trips').doc(existing._id).update({
-        data: {
-          ...baseWrite,
-          draft_snapshot: autoPublishedSnapshot,
-          published_snapshot: autoPublishedSnapshot,
-          published_version: nextVersion,
-          review_status: 'approved',
-          visibility_status: 'published',
-          warning_codes: [],
-          critical_warning_codes: [],
-          auto_published_from_web: true,
-          auto_published_reason: 'itinerary_sheet_synced',
-          reviewed_by: 'web_ops',
-          reviewed_at: now,
-          published_by: 'web_ops',
-          published_at: now,
-        },
-      });
-      await writeAudit('ops_sync_customer_trip_updated_auto_published', existing._id, externalTripId, sourceHash, now);
-      return {
-        success: true, code: 0, action: 'updated',
-        trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
-        review_status: 'approved',
-        visibility_status: 'published',
-        published_version: nextVersion,
-        auto_published: true,
-      };
-    }
-
     // discarded 只认运营态 visibility_status(source 的 status 由 web 写,不能据它改可见性)
     await db.collection('customer_trips').doc(existing._id).update({
       data: {
         ...baseWrite,
+        draft_snapshot: draftSnapshot,
         // 已发布过 → 标记待复核(客户仍看旧 published,直到运营重新发布);未发布 → 待复核
         review_status: published && !discarded ? 'needs_review' : 'pending_review',
         visibility_status: discarded ? 'hidden' : (existing.visibility_status || 'hidden'),
-        // 不触碰 published_version / draft_snapshot / published_snapshot
+        // 不触碰 published_version / published_snapshot
       },
     });
     await writeAudit('ops_sync_customer_trip_updated', existing._id, externalTripId, sourceHash, now);
@@ -538,6 +448,7 @@ exports.main = async (event = {}) => {
       review_status: published && !discarded ? 'needs_review' : 'pending_review',
       visibility_status: discarded ? 'hidden' : (existing.visibility_status || 'hidden'),
       published_version: existing.published_version || 0,
+      auto_published: false,
       note: published ? 'Customer still sees the last published version until an operator republishes.' : '',
     };
   } catch (error) {

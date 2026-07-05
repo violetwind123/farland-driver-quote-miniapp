@@ -71,9 +71,9 @@ const customerHomePageConfig = {
     tripInviteSaveName: '',
     tripInviteShowSaveForm: false,
     tripInviteSaving: false,
-    autoPreviewedItinerarySheetKey: '',
     operatorCustomerPreviewMode: false,
     operatorCustomerPreviewMeta: null,
+    operatorDraftPreviewPayload: null,
     operatorPreviewDays: [],
     operatorPreviewFlights: [],
     hideModules: {},
@@ -2660,22 +2660,6 @@ const customerHomePageConfig = {
     });
   },
 
-  // R5-5d 访校卡 VM:仅从后端已确认 + 白名单化的 visit_cards 派生展示文案,不臆造数据。
-  // P5 行程单 PNG:客户端二次 scheme 兜底。scheme 必须 ∈ {https:,cloud:,wxfile:},否则整对象 → null(入口隐藏)。
-  normalizeItinerarySheet(x) {
-    if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
-    const pngUrl = (x.png_url == null ? '' : String(x.png_url)).trim();
-    const match = pngUrl.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
-    if (!match || ['https:', 'cloud:', 'wxfile:'].indexOf(match[1].toLowerCase()) === -1) return null;
-    return {
-      png_url: pngUrl,
-      width: x.width,
-      height: x.height,
-      order_no: x.order_no == null ? '' : String(x.order_no),
-      version: x.version,
-    };
-  },
-
   normalizeCustomerVisitCards(list) {
     return (Array.isArray(list) ? list : [])
       .filter((card) => card && card.start_time && card.school_name)
@@ -2814,7 +2798,6 @@ const customerHomePageConfig = {
       }, () => {
         this.centerProgressAxisDay(trip.selectedDayNo || 0, 'invite');
         this.scrollToPendingCustomerHomeTarget();
-        this.openRequestedItinerarySheet(trip);
       });
     } catch (error) {
       console.error('[customer-home] getCustomerTripByInvite failed', error);
@@ -2826,38 +2809,6 @@ const customerHomePageConfig = {
         tripInviteCanSave: false,
       });
     }
-  },
-
-  isItinerarySheetEntry(entry) {
-    return ['itinerary_sheet', 'mobile_itinerary', 'sheet'].includes(String(entry || '').trim());
-  },
-
-  openRequestedItinerarySheet(trip) {
-    if (!this.isItinerarySheetEntry(this.data.tripInviteEntry)) return;
-    const url = trip && trip.itinerarySheet ? trip.itinerarySheet.png_url : '';
-    const key = [this.data.tripInviteId, this.data.inviteCode, url || 'missing'].join('|');
-    if (this.data.autoPreviewedItinerarySheetKey === key) return;
-    this.setData({ autoPreviewedItinerarySheetKey: key });
-    if (this.data.tripInviteId) {
-      wx.redirectTo({
-        url: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(this.data.tripInviteId)}&invite_code=${encodeURIComponent(this.data.inviteCode || '')}`,
-        fail: () => {
-          if (url) {
-            wx.previewImage({ urls: [url], current: url });
-          } else {
-            wx.showToast({ title: '手机行程单生成中', icon: 'none' });
-          }
-        },
-      });
-      return;
-    }
-    setTimeout(() => {
-      if (url) {
-        wx.previewImage({ urls: [url], current: url });
-      } else {
-        wx.showToast({ title: '手机行程单生成中', icon: 'none' });
-      }
-    }, 250);
   },
 
   buildTripInviteSurfaceState(trip, options = {}) {
@@ -3151,8 +3102,6 @@ const customerHomePageConfig = {
       todayDriverCard: null,
       todayOverviewCard: null,
       todayHotelCard: null,
-      // P5 行程单 PNG:客户端 scheme 兜底;缺失/非法 → null(wxml 入口隐藏,gated)
-      itinerarySheet: this.normalizeItinerarySheet(snapshot.itinerary_sheet),
       visitCards: this.normalizeCustomerVisitCards(snapshot.visit_cards || []),
       hotels,
       flights,
@@ -3166,6 +3115,7 @@ const customerHomePageConfig = {
 
   applyOperatorCustomerSharePreview(previewPayload) {
     const sharePreview = previewPayload.customer_share_preview || {};
+    const draftCustomerHome = previewPayload.draft_customer_home || null;
     const meta = {
       ...(previewPayload.preview_meta || {}),
       customer_would_see: sharePreview.waiting ? 'waiting' : 'published',
@@ -3195,6 +3145,14 @@ const customerHomePageConfig = {
       tripInviteSaving: false,
       operatorCustomerPreviewMode: true,
       operatorCustomerPreviewMeta: meta,
+      operatorDraftPreviewPayload: draftCustomerHome ? {
+        customer_home: draftCustomerHome,
+        preview_meta: {
+          ...meta,
+          operator_draft_preview: true,
+        },
+        preview_customer: previewCustomer,
+      } : null,
       operatorPreviewDays: [],
       operatorPreviewFlights: [],
       showHomeEmpty: false,
@@ -3302,6 +3260,7 @@ const customerHomePageConfig = {
       tripInviteAlreadySaved: Boolean(previewCustomer.is_registered),
       operatorCustomerPreviewMode: true,
       operatorCustomerPreviewMeta: meta,
+      operatorDraftPreviewPayload: null,
       needsInviteClaim: false,
       inviteMode: false,
       operatorPreview: false,
@@ -3350,6 +3309,51 @@ const customerHomePageConfig = {
       trip_id: meta.trip_id || '',
       trip_no: (previewHome.tripOverview[0] && previewHome.tripOverview[0].trip_no) || '',
       overview: previewHome.tripOverview[0] || {},
+    });
+  },
+
+  previewOperatorDraftFromWaiting() {
+    const payload = this.data.operatorDraftPreviewPayload;
+    if (!payload || !payload.customer_home) {
+      wx.showToast({ title: '暂无草稿预览', icon: 'none' });
+      return;
+    }
+    const meta = payload.preview_meta || {};
+    const previewCustomer = payload.preview_customer || {};
+    const trip = this.normalizeCustomerHomePreviewTrip(payload.customer_home, meta, previewCustomer);
+    const inviteSurface = this.buildTripInviteSurfaceState(trip, {
+      syncStatusText: '运营草稿预览',
+    });
+    this.setData({
+      ...inviteSurface,
+      loading: false,
+      tripInviteMode: true,
+      tripInviteId: meta.trip_id || this.data.tripInviteId || '',
+      tripInviteTrip: trip,
+      tripInviteWaiting: false,
+      tripInviteMessage: '',
+      tripInviteError: '',
+      tripInviteCanSave: false,
+      tripInviteShowSaveForm: false,
+      operatorCustomerPreviewMode: true,
+      operatorCustomerPreviewMeta: {
+        ...meta,
+        operator_draft_preview: true,
+        customer_would_see: 'draft_preview',
+      },
+      profile: {
+        name: trip.displayCustomer || previewCustomer.display_name || '客户分享卡预览',
+        member_level: '运营草稿预览',
+        points_balance: 0,
+        subtitle: '当前页面仅供运营核对，客户正式发布前不会看到。',
+      },
+      selectedTripDayNo: trip.selectedDayNo || 0,
+      todayOverviewExpanded: false,
+      inviteTodayOverviewExpanded: false,
+      phoneDateKey: this.getTodayDateKey(),
+      advisorPhone: trip.advisorPhone || '',
+    }, () => {
+      this.centerProgressAxisDay(trip.selectedDayNo || 0, 'invite');
     });
   },
 
@@ -3609,6 +3613,28 @@ const customerHomePageConfig = {
   normalizeCustomerHomePreviewTrip(home, meta, previewCustomer) {
     const overview = (home.trip_overview || [])[0] || {};
     const profile = home.profile || {};
+    const tripSummary = home.trip_summary || {
+      trip_id: overview.trip_id || meta.trip_id || '',
+      external_trip_id: overview.external_trip_id || overview.trip_id || meta.trip_id || '',
+      trip_no: overview.trip_no || '',
+      title: overview.title || 'Farland 行程',
+      date_range_text: overview.date_range_text || '',
+      city_route_text: overview.city_route_text || overview.city_summary || '',
+      days_count: overview.days_count || 0,
+      hotels_count: overview.hotels_count || 0,
+      flights_count: overview.flights_count || 0,
+      transport_count: overview.transport_count || 0,
+      next_day_label: overview.next_day_label || '',
+      last_hotel_name: overview.last_hotel_name || '',
+    };
+    const hotelCards = Array.isArray(home.hotel_cards) && home.hotel_cards.length
+      ? home.hotel_cards
+      : (Array.isArray(home.hotel_requests) ? home.hotel_requests : []);
+    const flightCards = Array.isArray(home.flight_cards) ? home.flight_cards : [];
+    const transferRequests = [
+      ...(Array.isArray(home.transportation_appointments) ? home.transportation_appointments : []),
+      ...(Array.isArray(home.transfer_requests) ? home.transfer_requests : []),
+    ];
     const snapshot = {
       title: overview.title || 'Farland 行程',
       trip_id: meta.trip_id || overview.trip_id || '',
@@ -3616,23 +3642,32 @@ const customerHomePageConfig = {
       start_at: overview.date_range_text || '',
       city: overview.city_summary || '',
       summary: overview.status_text || '',
+      trip_summary: tripSummary,
+      daily_summary_cards: Array.isArray(home.daily_summary_cards) ? home.daily_summary_cards : [],
       customer: {
         display_name: previewCustomer.display_name || profile.display_name || '',
       },
       advisor: {
         name: profile.advisor_name || 'Farland 顾问',
+        phone: profile.advisor_phone || '',
       },
       hero: {
         title: overview.title || 'Farland 行程',
         trip_no: overview.trip_no || '',
         date_range: overview.date_range_text || '',
-        city_summary: overview.city_summary || '',
+        city_summary: overview.city_route_text || overview.city_summary || '',
       },
       itinerary_days: Array.isArray(home.itinerary_days) ? home.itinerary_days : [],
-      hotels: Array.isArray(home.hotel_requests) ? home.hotel_requests : [],
-      flights: Array.isArray(home.flight_cards) ? home.flight_cards : [],
-      transfers: Array.isArray(home.transfer_requests) ? home.transfer_requests : [],
+      hotel_cards: hotelCards,
+      hotels: hotelCards,
+      flight_cards: flightCards,
+      flights: flightCards,
+      transfer_requests: transferRequests,
+      transportation_appointments: Array.isArray(home.transportation_appointments) ? home.transportation_appointments : [],
+      transfers: transferRequests,
+      transport_orders: Array.isArray(home.transport_orders) ? home.transport_orders : [],
       charter_services: Array.isArray(home.charter_services) ? home.charter_services : [],
+      visit_cards: Array.isArray(home.visit_cards) ? home.visit_cards : [],
     };
     const trip = this.normalizePublishedTrip(snapshot);
     const transportOrders = Array.isArray(home.transport_orders) ? home.transport_orders : [];
@@ -4059,26 +4094,6 @@ const customerHomePageConfig = {
       urls: [this.data.advisorQrPath],
       current: this.data.advisorQrPath,
     });
-  },
-
-  // P5 行程单 PNG:点开走 wx.previewImage(不内联大图);无 url 则提示生成中
-  previewItinerarySheet(e) {
-    const url = e.currentTarget.dataset.url;
-    if (!url) {
-      wx.showToast({ title: '手机行程单生成中', icon: 'none' });
-      return;
-    }
-    wx.previewImage({ urls: [url], current: url });
-  },
-
-  openMobileItineraryPage(e) {
-    if (this.data.tripInviteId) {
-      wx.navigateTo({
-        url: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(this.data.tripInviteId)}&invite_code=${encodeURIComponent(this.data.inviteCode || '')}`,
-      });
-      return;
-    }
-    this.previewItinerarySheet(e);
   },
 
   noop() {},

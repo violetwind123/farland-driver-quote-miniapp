@@ -27,6 +27,8 @@ Page({
     loading: true,
     refreshing: false,
     creatingInvite: false,
+    previewingDraft: false,
+    publishing: false,
     openingCustomerView: false,
     tripId: '',
     error: '',
@@ -499,9 +501,9 @@ Page({
     }
     if (!hasDraft && !published) {
       return {
-        state_text: '等待网页端手机行程单同步',
+        state_text: '等待网页端行程同步',
         customer_seeing_text: '客户看不到此行程',
-        next_step_text: '网页生成手机确认单后会自动同步，可直接预览和转发',
+        next_step_text: '网页同步后先预览草稿，再正式发布',
         flow_step: 1,
         day_status_text: '待同步',
         draft_day_status_text: '待同步',
@@ -511,7 +513,7 @@ Page({
       return {
         state_text: '已同步，等待客户可见版本',
         customer_seeing_text: '等待页（暂无行程内容）',
-        next_step_text: '请从网页端重新生成手机版行程单',
+        next_step_text: '预览草稿 → 正式发布',
         flow_step: 1,
         day_status_text: '待同步',
         draft_day_status_text: '最新同步',
@@ -521,7 +523,7 @@ Page({
       return {
         state_text: `客户版本 v${version}，有网页端更新待同步`,
         customer_seeing_text: `客户当前看到 v${version}`,
-        next_step_text: '准备手机版行程单 → 微信转发',
+        next_step_text: '预览新草稿 → 重新发布',
         flow_step: 1,
         day_status_text: '待转发',
         draft_day_status_text: '最新同步',
@@ -531,7 +533,7 @@ Page({
       return {
         state_text: `客户版本 v${version}，可直接转发`,
         customer_seeing_text: `当前客户版 v${version}`,
-        next_step_text: '转发手机版行程单',
+        next_step_text: '生成客户分享链接并转发',
         flow_step: 3,
         day_status_text: '客户版',
         draft_day_status_text: '已同步',
@@ -539,9 +541,9 @@ Page({
     }
     if (published && review === 'needs_review') {
       return {
-        state_text: `客户版本 v${version}，有新手机版行程单待转发`,
-        customer_seeing_text: `准备转发时会同步最新版本`,
-        next_step_text: '准备手机版行程单 → 微信转发',
+        state_text: `客户版本 v${version}，有新草稿待复核`,
+        customer_seeing_text: `客户当前仍看到 v${version}`,
+        next_step_text: '预览草稿 → 重新发布',
         flow_step: 2,
         day_status_text: '待转发',
         draft_day_status_text: '已同步',
@@ -726,25 +728,25 @@ Page({
     const visibilityStatus = result.visibility_status || '';
     if (!hasDraft) {
       return {
-        text: '等待网页端手机行程单同步',
-        hint: '网页生成手机确认单后会自动推送到小程序，运营可直接预览和转发。',
+        text: '等待网页端行程同步',
+        hint: '网页同步结构化行程后，运营可先按客户真实界面预览草稿。',
       };
     }
     if (visibilityStatus === 'published' && hasPublished && reviewStatus === 'approved') {
       return {
         text: '客户版已同步，可直接转发',
-        hint: `客户当前会看到版本 v${result.published_version || 1}。网页重新生成手机确认单后会自动同步更新。`,
+        hint: `客户当前会看到版本 v${result.published_version || 1}。网页重新同步后需运营复核并重新发布。`,
       };
     }
     if (reviewStatus === 'needs_review') {
       return {
-        text: '有新手机版行程单待转发',
-        hint: '点击准备手机版行程单时，会先同步最新版本，再生成微信转发链接。',
+        text: '有新行程草稿待复核',
+        hint: '请先预览草稿并重新发布，客户才会看到更新后的行程卡片。',
       };
     }
     return {
       text: '等待客户可见版本',
-      hint: '请从网页端重新生成并同步手机版行程单。',
+      hint: '请预览草稿并正式发布，客户打开分享页后才会看到行程卡片。',
     };
   },
 
@@ -786,8 +788,8 @@ Page({
   async createTripInvite() {
     if (this.data.creatingInvite) return;
     const preview = this.data.preview || {};
-    if (preview.visibility_status !== 'published' || !this.data.hasPublished) {
-      wx.showToast({ title: '请先同步手机版行程单', icon: 'none' });
+    if (preview.visibility_status !== 'published' || preview.review_status !== 'approved' || !this.data.hasPublished) {
+      wx.showToast({ title: '请先正式发布客户行程', icon: 'none' });
       return;
     }
     this.setData({ creatingInvite: true, error: '' });
@@ -802,7 +804,7 @@ Page({
       if (!result || !result.success) {
         this.setData({
           creatingInvite: false,
-          error: (result && result.message) || '手机版行程单生成失败',
+          error: (result && result.message) || '客户分享链接生成失败',
         });
         wx.showToast({ title: '生成失败', icon: 'none' });
         return;
@@ -821,9 +823,122 @@ Page({
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
       this.setData({
         creatingInvite: false,
-        error: `手机版行程单生成失败：${errMsg}`,
+        error: `客户分享链接生成失败：${errMsg}`,
       });
       wx.showToast({ title: '生成失败', icon: 'none' });
+    }
+  },
+
+  async previewMobileItineraryDraft() {
+    if (this.data.previewingDraft) return;
+    if (!this.data.tripId) {
+      wx.showToast({ title: '缺少 trip_id', icon: 'none' });
+      return;
+    }
+    if (!this.data.hasDraft) {
+      wx.showToast({ title: '暂无行程草稿', icon: 'none' });
+      return;
+    }
+    this.setData({ previewingDraft: true, error: '' });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'getOperatorCustomerHomePreview',
+        data: {
+          trip_id: this.data.tripId,
+          preview_access_mode: 'temporary_guest',
+        },
+      });
+      if (!result || !result.success || !result.customer_home) {
+        this.setData({ previewingDraft: false });
+        wx.showToast({ title: (result && result.message) || '草稿预览加载失败', icon: 'none' });
+        return;
+      }
+      const app = getApp();
+      app.globalData.operatorCustomerHomePreview = {
+        customer_home: result.customer_home,
+        preview_meta: {
+          ...(result.preview_meta || {}),
+          operator_draft_preview: true,
+        },
+        preview_customer: result.preview_customer || {},
+      };
+      delete app.globalData.operatorCustomerSharePreview;
+      this.setData({ previewingDraft: false });
+      wx.navigateTo({
+        url: '/pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview?operator_customer_preview=1',
+        fail: (error) => {
+          console.error('[customer-trip-detail] open mobile itinerary draft failed', error);
+          wx.showToast({ title: '草稿预览打开失败', icon: 'none' });
+        },
+      });
+    } catch (error) {
+      console.error('[customer-trip-detail] previewMobileItineraryDraft failed', error);
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      this.setData({
+        previewingDraft: false,
+        error: `草稿预览加载失败：${errMsg}`,
+      });
+      wx.showToast({ title: '草稿预览加载失败', icon: 'none' });
+    }
+  },
+
+  async publishTrip() {
+    if (this.data.publishing) return;
+    if (!this.data.hasDraft) {
+      wx.showToast({ title: '暂无行程草稿', icon: 'none' });
+      return;
+    }
+    if (this.data.criticalWarningList.length) {
+      wx.showToast({ title: '关键提醒未处理', icon: 'none' });
+      return;
+    }
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '正式发布客户行程',
+        content: '发布后，客户打开手机版行程单会看到当前行程总览和行程卡片。',
+        confirmText: '发布',
+        cancelText: '再检查',
+        success: (res) => resolve(Boolean(res.confirm)),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+    this.setData({ publishing: true, error: '' });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'publishCustomerTrip',
+        data: {
+          trip_id: this.data.tripId,
+          review_note: 'Published from mobile itinerary workflow',
+        },
+      });
+      if (!result || !result.success) {
+        this.setData({
+          publishing: false,
+          error: (result && result.message) || '发布失败',
+        });
+        wx.showToast({ title: '发布失败', icon: 'none' });
+        return;
+      }
+      this.setData({
+        publishing: false,
+        activeSnapshotType: 'published',
+        activeSnapshotLabel: this.getSnapshotLabel('published', result.published_version || (this.data.preview && this.data.preview.published_version)),
+        invitePath: '',
+        inviteCode: '',
+        inviteExpiresAt: '',
+        inviteReused: false,
+      });
+      wx.showToast({ title: '客户行程已发布', icon: 'success' });
+      this.loadPreview({ silent: true });
+    } catch (error) {
+      console.error('[customer-trip-detail] publishCustomerTrip failed', error);
+      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
+      this.setData({
+        publishing: false,
+        error: `发布失败：${errMsg}`,
+      });
+      wx.showToast({ title: '发布失败', icon: 'none' });
     }
   },
 
@@ -908,6 +1023,7 @@ Page({
       const app = getApp();
       app.globalData.operatorCustomerSharePreview = {
         customer_share_preview: result.customer_share_preview,
+        draft_customer_home: result.customer_home || null,
         preview_meta: result.preview_meta || {},
         preview_customer: result.preview_customer || {},
       };

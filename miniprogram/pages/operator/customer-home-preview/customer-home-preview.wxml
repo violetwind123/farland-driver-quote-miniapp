@@ -130,18 +130,18 @@
     </view>
 
     <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
-      <view class="share-title">手机版行程单转发</view>
+      <view class="share-title">客户行程转发</view>
       <view class="share-sub">
         {{selectedCustomer ? '将当前选中客户记录为分享对象；客户主动保存后才计入已保存人数。' : '未选择客户时只准备临时行程单链接，不写 customer_trip_access。'}}
       </view>
       <button wx:if="{{!invitePath}}" class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createInvite">
-        准备手机版行程单
+        准备客户分享链接
       </button>
       <view wx:else class="invite-ready-box">
-        <view class="invite-ready-title">手机版行程单已准备</view>
+        <view class="invite-ready-title">客户分享链接已准备</view>
         <view class="invite-ready-sub">{{inviteReused ? '已复用当前有效行程单。' : '可直接通过微信转发给客户。'}}</view>
         <view wx:if="{{inviteExpiresAt}}" class="invite-ready-sub">有效期至 {{inviteExpiresAt}}</view>
-        <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发手机版行程单</button>
+        <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户行程</button>
       </view>
     </view>
 

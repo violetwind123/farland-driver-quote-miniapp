@@ -38,17 +38,14 @@
       <view class="trip-invite-state-title">顾问正在核对行程安排</view>
       <view class="trip-invite-state-copy">{{tripInviteMessage}}</view>
       <view class="trip-invite-state-copy muted">如需调整，请在 Farland 客户群内沟通。</view>
+      <button
+        wx:if="{{operatorCustomerPreviewMode && operatorDraftPreviewPayload}}"
+        class="trip-invite-preview-btn"
+        bindtap="previewOperatorDraftFromWaiting"
+      >预览行程草稿</button>
     </view>
 
     <block wx:else>
-      <view wx:if="{{tripInviteTrip.itinerarySheet.png_url}}" class="itinerary-sheet-entry card-surface" data-url="{{tripInviteTrip.itinerarySheet.png_url}}" bindtap="openMobileItineraryPage" hover-class="itinerary-sheet-entry-hover">
-        <view class="itinerary-sheet-entry-main">
-          <view class="itinerary-sheet-entry-title">查看完整行程单</view>
-          <view class="itinerary-sheet-entry-sub">长图版行程单，可保存或转发</view>
-        </view>
-        <view class="itinerary-sheet-entry-arrow">›</view>
-      </view>
-
       <view wx:if="{{customerSummaryBar && customerSummaryBar.visible}}" class="customer-summary-bar trip-invite-summary card-surface">
         <view class="summary-main">
           <view class="summary-kicker">FARLAND 行程</view>
@@ -166,8 +163,7 @@
           <view wx:elif="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
           <view wx:if="{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}" class="today-next-teaser">{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}</view>
           <view class="p4-action-row">
-            <button class="p4-action-secondary" bindtap="contactAdvisor">{{tripInviteTrip.todayOverviewCard.contactAdvisorLabel}}</button>
-            <button class="p4-action-primary" bindtap="contactAdvisor">行程调整联系顾问</button>
+            <button class="p4-action-primary single" bindtap="contactAdvisor">{{tripInviteTrip.todayOverviewCard.contactAdvisorLabel || '联系 Farland 顾问'}}</button>
           </view>
         </view>
       </view>

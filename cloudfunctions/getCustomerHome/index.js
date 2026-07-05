@@ -1364,23 +1364,6 @@ function buildSnapshotTripSummary(snapshot, hotelCards, flightCards) {
   });
 }
 
-// P5 行程单 PNG:仅回传 url + 展示 meta;scheme 必须 ∈ {https:,cloud:,wxfile:},否则整对象归一化为 null
-// (阻断 http:// / data: / 跟踪像素;此处覆盖 ...snapshot 展开,防未净化 url 透传)
-const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:', 'wxfile:'];
-function normalizeItinerarySheet(x) {
-  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
-  const pngUrl = safeString(x.png_url).trim();
-  const match = pngUrl.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
-  if (!match || !ITINERARY_SHEET_URL_SCHEMES.includes(match[1].toLowerCase())) return null;
-  return {
-    png_url: pngUrl,
-    width: x.width,
-    height: x.height,
-    order_no: safeString(x.order_no),
-    version: x.version,
-  };
-}
-
 function normalizePublishedTripSnapshot(trip) {
   if (!trip || trip.visibility_status !== 'published' || !trip.published_snapshot || !Object.keys(trip.published_snapshot).length) return null;
   const snapshot = sanitizeCustomerObject(trip.published_snapshot || {});
@@ -1391,6 +1374,7 @@ function normalizePublishedTripSnapshot(trip) {
     ...snapshot,
     itinerary_days: days,
   };
+  delete normalized.itinerary_sheet;
   // 客户对象只保留展示字段,剥离本人联系方式(web 直写快照或旧快照的兜底防线)
   if (snapshot.customer && typeof snapshot.customer === 'object' && !Array.isArray(snapshot.customer)) {
     normalized.customer = stripCustomerContact(snapshot.customer);
@@ -1417,8 +1401,6 @@ function normalizePublishedTripSnapshot(trip) {
     // 覆盖 ...normalized 展开:原始 visits 不下发,仅保留白名单 visit_cards(权威赋值置于最后)
     visits: undefined,
     visit_cards: visitCards,
-    // 覆盖 ...normalized 展开:强制走 scheme 白名单归一化,缺失/非法 → null(入口隐藏)
-    itinerary_sheet: normalizeItinerarySheet(snapshot.itinerary_sheet),
   });
 }
 

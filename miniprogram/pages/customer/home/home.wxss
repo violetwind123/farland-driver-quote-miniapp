@@ -2310,6 +2310,21 @@
   line-height: 1.6;
 }
 
+.trip-invite-preview-btn {
+  margin-top: 24rpx;
+  height: 78rpx;
+  line-height: 78rpx;
+  border-radius: 999rpx;
+  background: rgba(102, 114, 168, 0.10);
+  color: var(--brand-600);
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.trip-invite-preview-btn::after {
+  border: none;
+}
+
 .trip-invite-hero {
   position: relative;
   overflow: hidden;
@@ -2745,43 +2760,6 @@
 .wx-rain { background: transparent; border: 2rpx solid var(--wx-rain); }
 .wx-snow { background: transparent; border: 2rpx solid var(--wx-cloud); }
 
-/* P5 行程单 PNG 入口(gated:仅当 itinerarySheet.png_url 存在时渲染) */
-.itinerary-sheet-entry {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-  margin-top: 20rpx;
-  padding: 24rpx 28rpx;
-}
-.trip-invite-view .itinerary-sheet-entry {
-  margin-top: 0;
-  margin-bottom: 18rpx;
-}
 .trip-invite-summary {
   margin-bottom: 18rpx;
-}
-.itinerary-sheet-entry-hover {
-  opacity: 0.86;
-}
-.itinerary-sheet-entry-main {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-.itinerary-sheet-entry-title {
-  color: var(--ink-900);
-  font-size: 28rpx;
-  font-weight: 620;
-  line-height: 1.3;
-}
-.itinerary-sheet-entry-sub {
-  color: var(--ink-400);
-  font-size: 23rpx;
-  line-height: 1.4;
-}
-.itinerary-sheet-entry-arrow {
-  color: var(--brand-500);
-  font-size: 40rpx;
-  line-height: 1;
 }
