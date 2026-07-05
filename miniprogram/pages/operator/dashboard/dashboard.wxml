@@ -27,8 +27,8 @@
 
     <view class="utility-card trip-management-entry" bindtap="openTripManagement">
       <view>
-        <view class="utility-title">手机版行程单转发</view>
-        <view class="utility-desc">网页同步后，先审核、发布并转发客户第一版行程。</view>
+        <view class="utility-title">行程管理</view>
+        <view class="utility-desc">网页同步后，先审核、发布并转发客户第一版手机行程单。</view>
       </view>
       <view class="chevron">›</view>
     </view>
