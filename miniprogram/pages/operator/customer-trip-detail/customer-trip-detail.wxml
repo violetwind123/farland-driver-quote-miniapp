@@ -43,7 +43,7 @@
     <!-- 模块一 · 行程管理 -->
     <view class="panel workflow-panel">
       <view class="section-title">行程管理</view>
-      <view class="workflow-sub">客户第一版先看正式发布后的行程总览和行程卡片；成交后再处理酒店、用车和每日评价等后续内容。</view>
+      <view class="workflow-sub">网页同步后，小程序直接启用客户版行程总览和行程卡片；成交后再处理酒店、用车和每日评价等后续内容。</view>
 
       <view wx:if="{{criticalWarningList.length || warningList.length}}" class="workflow-alert">
         <view class="warning-title">同步提醒</view>
@@ -51,21 +51,21 @@
         <view wx:for="{{warningList}}" wx:key="*this" class="warning-row">{{item}}</view>
       </view>
       <view wx:if="{{changedSections.length}}" class="workflow-diff-note">
-        最新同步内容与当前客户版本有 {{changedSections.length}} 项差异；正式发布后客户才会看到新行程卡片。
+        最新同步内容与当前客户版本有 {{changedSections.length}} 项差异；请刷新状态并确认客户版已启用最新行程卡片。
       </view>
 
       <view class="workflow-step-card priority-share-card">
         <view class="workflow-step-head">
           <view class="workflow-step-index priority">1</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">预览手机版行程单草稿</view>
-            <view class="workflow-step-sub">按客户真实界面预览行程总览和行程卡片；不会推送给客户。</view>
+            <view class="workflow-step-title">预览手机版行程单</view>
+            <view class="workflow-step-sub">按客户真实界面预览行程总览和行程卡片。</view>
           </view>
           <view class="workflow-step-status">{{hasDraft ? '可预览' : '待同步'}}</view>
         </view>
         <view wx:if="{{!hasDraft}}" class="share-empty">
           <view class="empty-title">等待网页端同步手机行程单</view>
-          <view class="empty-sub">网页生成并同步后，这里会显示客户真实界面的草稿预览。</view>
+          <view class="empty-sub">网页生成并同步后，这里会显示客户真实界面的手机版行程。</view>
         </view>
         <block wx:else>
           <button
@@ -73,7 +73,7 @@
             loading="{{previewingDraft}}"
             disabled="{{previewingDraft}}"
             bindtap="previewMobileItineraryDraft"
-          >预览行程草稿</button>
+          >预览手机版行程单</button>
         </block>
       </view>
 
@@ -81,17 +81,22 @@
         <view class="workflow-step-head">
           <view class="workflow-step-index">2</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">正式发布客户行程</view>
-            <view class="workflow-step-sub">发布后，客户打开手机版行程单才会看到行程总览和行程卡片。</view>
+            <view class="workflow-step-title">客户行程启用状态</view>
+            <view class="workflow-step-sub">网页同步成功后会自动启用客户版；这里用于处理历史未启用记录。</view>
           </view>
-          <view class="workflow-step-status">{{preview.visibility_status === 'published' && preview.review_status === 'approved' ? '已发布' : (hasDraft ? '待发布' : '待同步')}}</view>
+          <view class="workflow-step-status">{{preview.visibility_status === 'published' && preview.review_status === 'approved' ? '已启用' : (hasDraft ? '待启用' : '待同步')}}</view>
+        </view>
+        <view wx:if="{{preview.visibility_status === 'published' && preview.review_status === 'approved'}}" class="share-empty">
+          <view class="empty-title">客户版已启用</view>
+          <view class="empty-sub">客户打开手机版行程单会看到当前行程总览和行程卡片。</view>
         </view>
         <button
+          wx:else
           class="primary-wide-btn"
           loading="{{publishing}}"
           disabled="{{publishing || !hasDraft || criticalWarningList.length}}"
           bindtap="publishTrip"
-        >正式发布客户行程</button>
+        >手动启用客户行程</button>
       </view>
 
       <view class="workflow-step-card">
@@ -99,19 +104,18 @@
           <view class="workflow-step-index">3</view>
           <view class="workflow-step-copy">
             <view class="workflow-step-title">转发客户第一版行程</view>
-            <view class="workflow-step-sub">正式发布后生成微信转发链接，客户看到同一套真实行程界面。</view>
+            <view class="workflow-step-sub">生成微信转发链接，客户看到同一套真实行程界面。</view>
           </view>
-          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished && preview.review_status === 'approved' ? '待准备' : '待发布')}}</view>
+          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished && preview.review_status === 'approved' ? '待准备' : '待启用')}}</view>
         </view>
         <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished || preview.review_status !== 'approved'}}" class="share-empty">
-          <!-- 已发布但有新版本未重新发布：客户仍看上一版，不是等待页。 -->
           <block wx:if="{{hasPublished && preview.visibility_status === 'published'}}">
             <view class="empty-title">客户当前看到 v{{preview.published_version || 1}}</view>
-            <view class="empty-sub">本次更新尚未重新发布；重新发布后客户才会看到新版本，届时可再转发。</view>
+            <view class="empty-sub">当前状态不是 approved；请刷新或手动启用后再转发。</view>
           </block>
           <block wx:else>
-            <view class="empty-title">客户行程尚未正式发布</view>
-            <view class="empty-sub">客户真实打开仍是等待页；请先预览草稿并正式发布。</view>
+            <view class="empty-title">客户行程尚未启用</view>
+            <view class="empty-sub">请确认网页同步成功；必要时使用上方手动启用。</view>
           </block>
         </view>
         <block wx:else>
@@ -143,7 +147,7 @@
           <view class="workflow-step-index">4</view>
           <view class="workflow-step-copy">
             <view class="workflow-step-title">预览客户真实手机版行程</view>
-            <view class="workflow-step-sub">未发布时只显示等待页；已发布时进入客户真实手机版行程单。</view>
+            <view class="workflow-step-sub">已启用时进入客户真实手机版行程单；未启用时会显示等待页。</view>
           </view>
           <view class="workflow-step-status">可预览</view>
         </view>

@@ -334,6 +334,32 @@ function buildDraftSnapshot(sourceDoc) {
   }, STRIP_KEYS);
 }
 
+function hasSnapshot(snapshot) {
+  return isPlainObject(snapshot) && Object.keys(snapshot).length > 0;
+}
+
+function buildAutoPublishLifecycle(draftSnapshot, now, previousVersion = 0, options = {}) {
+  const existingVersion = Number(previousVersion || 0);
+  const nextVersion = options.keepVersion ? Math.max(1, existingVersion) : existingVersion + 1;
+  return {
+    review_status: 'approved',
+    visibility_status: 'published',
+    warning_codes: [],
+    critical_warning_codes: [],
+    published_version: nextVersion || 1,
+    draft_snapshot: draftSnapshot,
+    published_snapshot: draftSnapshot,
+    reviewed_by: 'web_ops',
+    reviewed_by_openid: '',
+    reviewed_at: now,
+    published_by: 'web_ops',
+    published_by_openid: '',
+    published_at: now,
+    auto_published_by: 'web_ops',
+    auto_published_at: now,
+  };
+}
+
 exports.main = async (event = {}) => {
   try {
     const { headers, rawBody, payload } = parseEvent(event);
@@ -357,27 +383,40 @@ exports.main = async (event = {}) => {
       return { success: false, code: 409, error_code: 'TRIP_091_PROTECTED', message: '091 cannot be written via web sync.' };
     }
 
-    // 幂等:同 external_trip_id + 同 source_hash → 不重写；若旧版本缺 draft,补一次草稿。
+    // 幂等:同 external_trip_id + 同 source_hash → 不重写；若旧记录缺客户版快照,补齐自动启用。
     if (existing && text(existing.source_hash) === sourceHash) {
-      const needsDraftBackfill = !isPlainObject(existing.draft_snapshot) || !Object.keys(existing.draft_snapshot).length;
-      if (needsDraftBackfill) {
+      const discarded = existing.visibility_status === 'discarded';
+      const needsDraftBackfill = !hasSnapshot(existing.draft_snapshot);
+      const needsPublishBackfill = !discarded && (
+        existing.visibility_status !== 'published'
+        || existing.review_status !== 'approved'
+        || !hasSnapshot(existing.published_snapshot)
+        || !(Number(existing.published_version || 0) > 0)
+      );
+      if (needsDraftBackfill || needsPublishBackfill) {
+        const lifecycle = needsPublishBackfill
+          ? buildAutoPublishLifecycle(draftSnapshot, now, existing.published_version, {
+            keepVersion: Number(existing.published_version || 0) > 0 && hasSnapshot(existing.published_snapshot),
+          })
+          : { draft_snapshot: draftSnapshot };
         await db.collection('customer_trips').doc(existing._id).update({
           data: {
-            draft_snapshot: draftSnapshot,
-            review_status: (existing.published_version || 0) > 0 ? 'needs_review' : 'pending_review',
+            ...lifecycle,
             updated_by: 'web_ops',
             updated_at: now,
           },
         });
-        await writeAudit('ops_sync_customer_trip_draft_backfilled', existing._id, externalTripId, sourceHash, now);
+        await writeAudit(needsPublishBackfill ? 'ops_sync_customer_trip_auto_publish_backfilled' : 'ops_sync_customer_trip_draft_backfilled', existing._id, externalTripId, sourceHash, now);
         return {
-          success: true, code: 0, idempotent: true, action: 'draft_backfilled',
+          success: true, code: 0, idempotent: true, action: needsPublishBackfill ? 'auto_published_backfilled' : 'draft_backfilled',
           trip_id: existing.trip_id || existing.external_trip_id || externalTripId,
           external_trip_id: externalTripId,
-          review_status: (existing.published_version || 0) > 0 ? 'needs_review' : 'pending_review',
-          visibility_status: existing.visibility_status || 'hidden',
-          published_version: existing.published_version || 0,
-          auto_published: false,
+          review_status: needsPublishBackfill ? 'approved' : (existing.review_status || 'pending_review'),
+          visibility_status: needsPublishBackfill ? 'published' : (existing.visibility_status || 'hidden'),
+          published_version: needsPublishBackfill
+            ? (lifecycle.published_version || 1)
+            : (existing.published_version || 0),
+          auto_published: Boolean(needsPublishBackfill),
         };
       }
       return {
@@ -387,6 +426,7 @@ exports.main = async (event = {}) => {
         review_status: existing.review_status || 'pending_review',
         visibility_status: existing.visibility_status || 'hidden',
         published_version: existing.published_version || 0,
+        auto_published: existing.review_status === 'approved' && existing.visibility_status === 'published' && hasSnapshot(existing.published_snapshot),
       };
     }
 
@@ -398,16 +438,8 @@ exports.main = async (event = {}) => {
     };
 
     if (!existing) {
-      // 新建:Web 只生成待发布草稿；客户正式可见必须经过 publishCustomerTrip。
-      const initialLifecycle = {
-        review_status: 'pending_review',
-        visibility_status: 'hidden',
-        warning_codes: [],
-        critical_warning_codes: [],
-        published_version: 0,
-        draft_snapshot: draftSnapshot,
-        published_snapshot: {},
-      };
+      // 新建:Web 仍只发送 canonical source;小程序侧构建安全快照后直接发布给客户可见入口。
+      const initialLifecycle = buildAutoPublishLifecycle(draftSnapshot, now, 0);
       const created = await db.collection('customer_trips').add({
         data: {
           ...baseWrite,
@@ -416,40 +448,54 @@ exports.main = async (event = {}) => {
           created_at: now,
         },
       });
-      await writeAudit('ops_sync_customer_trip_created', created._id, externalTripId, sourceHash, now);
+      await writeAudit('ops_sync_customer_trip_created_auto_published', created._id, externalTripId, sourceHash, now);
       return {
         success: true, code: 0, action: 'created',
         trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
         review_status: initialLifecycle.review_status,
         visibility_status: initialLifecycle.visibility_status,
         published_version: initialLifecycle.published_version,
+        auto_published: true,
+      };
+    }
+
+    const discarded = existing.visibility_status === 'discarded';
+    if (discarded) {
+      await db.collection('customer_trips').doc(existing._id).update({
+        data: {
+          ...baseWrite,
+          draft_snapshot: draftSnapshot,
+          review_status: 'pending_review',
+          visibility_status: 'hidden',
+        },
+      });
+      await writeAudit('ops_sync_customer_trip_updated_hidden_from_discarded', existing._id, externalTripId, sourceHash, now);
+      return {
+        success: true, code: 0, action: 'updated_hidden',
+        trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
+        review_status: 'pending_review',
+        visibility_status: 'hidden',
+        published_version: existing.published_version || 0,
         auto_published: false,
       };
     }
 
-    // 更新:Web 只更新草稿；已发布客户仍看旧 published,直到运营正式发布。
-    const published = (existing.published_version || 0) > 0;
-    const discarded = existing.visibility_status === 'discarded';
-    // discarded 只认运营态 visibility_status(source 的 status 由 web 写,不能据它改可见性)
+    // 更新:Web 仍只写 canonical source;小程序侧重建安全快照后直接替换客户可见版本。
+    const lifecycle = buildAutoPublishLifecycle(draftSnapshot, now, existing.published_version || 0);
     await db.collection('customer_trips').doc(existing._id).update({
       data: {
         ...baseWrite,
-        draft_snapshot: draftSnapshot,
-        // 已发布过 → 标记待复核(客户仍看旧 published,直到运营重新发布);未发布 → 待复核
-        review_status: published && !discarded ? 'needs_review' : 'pending_review',
-        visibility_status: discarded ? 'hidden' : (existing.visibility_status || 'hidden'),
-        // 不触碰 published_version / published_snapshot
+        ...lifecycle,
       },
     });
-    await writeAudit('ops_sync_customer_trip_updated', existing._id, externalTripId, sourceHash, now);
+    await writeAudit('ops_sync_customer_trip_updated_auto_published', existing._id, externalTripId, sourceHash, now);
     return {
       success: true, code: 0, action: 'updated',
       trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
-      review_status: published && !discarded ? 'needs_review' : 'pending_review',
-      visibility_status: discarded ? 'hidden' : (existing.visibility_status || 'hidden'),
-      published_version: existing.published_version || 0,
-      auto_published: false,
-      note: published ? 'Customer still sees the last published version until an operator republishes.' : '',
+      review_status: lifecycle.review_status,
+      visibility_status: lifecycle.visibility_status,
+      published_version: lifecycle.published_version,
+      auto_published: true,
     };
   } catch (error) {
     return {

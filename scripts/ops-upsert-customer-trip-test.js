@@ -113,27 +113,28 @@ async function check(name, fn) {
 (async () => {
   console.log('opsUpsertCustomerTrip test');
 
-  // 1. valid signed payload with legacy itinerary_sheet → created structured draft, not published
-  await check('valid payload ignores legacy itinerary_sheet → created draft, not customer-visible', async () => {
+  // 1. valid signed payload with legacy itinerary_sheet → created structured snapshot and auto-published
+  await check('valid payload ignores legacy itinerary_sheet → created and auto-published', async () => {
     const store = {}; const main = loadMain(store);
     const r = await main(signedEvent(validPayload));
     const doc = (store.customer_trips || [])[0];
-    return r.success && r.action === 'created' && r.auto_published === false
-      && r.review_status === 'pending_review' && r.visibility_status === 'hidden'
-      && r.published_version === 0
+    return r.success && r.action === 'created' && r.auto_published === true
+      && r.review_status === 'approved' && r.visibility_status === 'published'
+      && r.published_version === 1
       && doc && doc.draft_snapshot && !doc.draft_snapshot.itinerary_sheet
       && doc.draft_snapshot.itinerary_days && doc.draft_snapshot.itinerary_days.length === 1
-      && doc.published_snapshot && Object.keys(doc.published_snapshot).length === 0;
+      && doc.published_snapshot && !doc.published_snapshot.itinerary_sheet
+      && doc.published_snapshot.itinerary_days && doc.published_snapshot.itinerary_days.length === 1;
   });
 
-  await check('payload without legacy itinerary_sheet → hidden pending draft lifecycle', async () => {
+  await check('payload without legacy itinerary_sheet → published customer-visible lifecycle', async () => {
     const store = {}; const main = loadMain(store);
     const r = await main(signedEvent(noSheetPayload));
     const doc = (store.customer_trips || [])[0];
-    return r.success && r.action === 'created' && r.auto_published === false
-      && r.review_status === 'pending_review' && r.visibility_status === 'hidden'
+    return r.success && r.action === 'created' && r.auto_published === true
+      && r.review_status === 'approved' && r.visibility_status === 'published'
       && doc && doc.draft_snapshot && doc.draft_snapshot.itinerary_days
-      && Object.keys(doc.published_snapshot).length === 0;
+      && doc.published_snapshot && doc.published_snapshot.itinerary_days;
   });
 
   await check('customer PII stripped to top-level', async () => {
@@ -235,8 +236,8 @@ async function check(name, fn) {
     return r2.success && r2.idempotent === true && r2.action === 'unchanged' && store.customer_trips.length === 1;
   });
 
-  // 10. update existing published trip with legacy itinerary_sheet → update draft only, preserve published
-  await check('update published trip with legacy itinerary_sheet → needs_review, published preserved', async () => {
+  // 10. update existing published trip with legacy itinerary_sheet → auto-publish fresh customer-visible version
+  await check('update published trip with legacy itinerary_sheet → auto-published fresh version', async () => {
     const store = {}; const main = loadMain(store);
     await main(signedEvent(validPayload));
     const doc = store.customer_trips[0];
@@ -246,16 +247,17 @@ async function check(name, fn) {
     doc.published_snapshot = { title: '旧发布版', marker: 'PUBLISHED_V2' };
     const edited = { ...validPayload, title: '美东访校(改)' };
     const r = await main(signedEvent(edited));
-    return r.success && r.action === 'updated' && r.review_status === 'needs_review'
-      && r.auto_published === false
-      && doc.published_version === 2
-      && doc.published_snapshot.marker === 'PUBLISHED_V2'
+    return r.success && r.action === 'updated' && r.review_status === 'approved'
+      && r.visibility_status === 'published' && r.auto_published === true
+      && doc.published_version === 3
+      && doc.published_snapshot.marker === undefined
+      && doc.published_snapshot.title === '美东访校(改)'
       && doc.draft_snapshot.title === '美东访校(改)'
       && doc.title === '美东访校(改)' && doc.visibility_status === 'published';
   });
 
-  // 11. update existing published trip without legacy sheet → old review boundary preserved
-  await check('update published trip without legacy itinerary_sheet → needs_review, published preserved', async () => {
+  // 11. update existing published trip without legacy sheet → auto-publish fresh customer-visible version
+  await check('update published trip without legacy itinerary_sheet → auto-published fresh version', async () => {
     const store = {}; const main = loadMain(store);
     await main(signedEvent(noSheetPayload));
     const doc = store.customer_trips[0];
@@ -264,8 +266,10 @@ async function check(name, fn) {
     doc.published_snapshot = { itinerary_days: [{ day_no: 1 }], marker: 'PUBLISHED_V3' };
     const edited = { ...noSheetPayload, title: '无行程单改动' };
     const r = await main(signedEvent(edited));
-    return r.success && r.action === 'updated' && r.review_status === 'needs_review'
-      && doc.published_version === 3 && doc.published_snapshot.marker === 'PUBLISHED_V3'
+    return r.success && r.action === 'updated' && r.review_status === 'approved'
+      && r.visibility_status === 'published' && r.auto_published === true
+      && doc.published_version === 4 && doc.published_snapshot.marker === undefined
+      && doc.published_snapshot.title === '无行程单改动'
       && doc.title === '无行程单改动' && doc.visibility_status === 'published';
   });
 

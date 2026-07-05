@@ -20,6 +20,7 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const app = JSON.parse(read('miniprogram/app.json'));
 const homeConfig = require(path.join(ROOT, 'miniprogram/pages/customer/home/home-page-config.js'));
 const createInviteSource = read('cloudfunctions/createCustomerTripInvite/index.js');
+const opsUpsertCustomerTripSource = read('cloudfunctions/opsUpsertCustomerTrip/index.js');
 const mobileWxml = read('miniprogram/pages/customer/mobile-itinerary/mobile-itinerary.wxml');
 const itineraryTabWxml = read('miniprogram/pages/customer/itinerary-tab/itinerary-tab.wxml');
 const itineraryTabWxss = read('miniprogram/pages/customer/itinerary-tab/itinerary-tab.wxss');
@@ -128,6 +129,11 @@ assert(mobileWxml.includes('wx:elif="{{todayCard}}"'), 'mobile UI has formal tab
 assert(mobileWxml.includes('mi-section-title">行程概览'), 'mobile UI renders itinerary overview section');
 assert(mobileWxml.includes('mi-section-title">行程卡片'), 'mobile UI renders itinerary card section');
 assert(operatorTripDetail.includes('/pages/customer/mobile-itinerary/mobile-itinerary?operator_mobile_preview=1'), 'operator preview opens mobile itinerary page');
+
+assert(opsUpsertCustomerTripSource.includes('buildAutoPublishLifecycle'), 'web customer-trip sync has auto-publish lifecycle');
+assert(opsUpsertCustomerTripSource.includes('published_snapshot: draftSnapshot'), 'web customer-trip sync writes the customer-visible snapshot');
+assert(!opsUpsertCustomerTripSource.includes('Customer still sees the last published version until an operator republishes.'), 'web sync no longer preserves stale published customer version');
+assert(!opsUpsertCustomerTripSource.includes("review_status: published && !discarded ? 'needs_review'"), 'web sync no longer forces published trips into needs_review');
 
 assert(createInviteSource.includes('/pages/customer/mobile-itinerary/mobile-itinerary?trip_id='), 'createCustomerTripInvite returns mobile itinerary path');
 assert(/share_path:\s*sharePath/.test(createInviteSource), 'createCustomerTripInvite persists share_path');
