@@ -59,6 +59,7 @@ const customerHomePageConfig = {
     autoClaimedInviteKey: '',
     tripInviteMode: false,
     tripInviteId: '',
+    tripInviteEntry: '',
     tripInviteTrip: null,
     tripInviteWaiting: false,
     tripInviteMessage: '',
@@ -70,6 +71,7 @@ const customerHomePageConfig = {
     tripInviteSaveName: '',
     tripInviteShowSaveForm: false,
     tripInviteSaving: false,
+    autoPreviewedItinerarySheetKey: '',
     operatorCustomerPreviewMode: false,
     operatorCustomerPreviewMeta: null,
     operatorPreviewDays: [],
@@ -90,12 +92,14 @@ const customerHomePageConfig = {
       : null;
     const tripInviteId = this.decodeQueryValue(options.trip_id || options.external_trip_id || options.trip_no || '');
     const inviteCode = this.decodeQueryValue(options.invite_code || '');
+    const tripInviteEntry = this.decodeQueryValue(options.entry || options.open || '');
     if (operatorCustomerPreview) {
       this.applyOperatorCustomerHomePreview(operatorCustomerPreview);
       return;
     }
     this.setData({
       tripInviteId,
+      tripInviteEntry,
       tripInviteMode: Boolean(tripInviteId),
       inviteCode,
       inviteRequestId: tripInviteId ? '' : (options.request_id || preview.requestId || ''),
@@ -2801,6 +2805,7 @@ const customerHomePageConfig = {
       }, () => {
         this.centerProgressAxisDay(trip.selectedDayNo || 0, 'invite');
         this.scrollToPendingCustomerHomeTarget();
+        this.openRequestedItinerarySheet(trip);
       });
     } catch (error) {
       console.error('[customer-home] getCustomerTripByInvite failed', error);
@@ -2812,6 +2817,25 @@ const customerHomePageConfig = {
         tripInviteCanSave: false,
       });
     }
+  },
+
+  isItinerarySheetEntry(entry) {
+    return ['itinerary_sheet', 'mobile_itinerary', 'sheet'].includes(String(entry || '').trim());
+  },
+
+  openRequestedItinerarySheet(trip) {
+    if (!this.isItinerarySheetEntry(this.data.tripInviteEntry)) return;
+    const url = trip && trip.itinerarySheet ? trip.itinerarySheet.png_url : '';
+    const key = [this.data.tripInviteId, this.data.inviteCode, url || 'missing'].join('|');
+    if (this.data.autoPreviewedItinerarySheetKey === key) return;
+    this.setData({ autoPreviewedItinerarySheetKey: key });
+    setTimeout(() => {
+      if (url) {
+        wx.previewImage({ urls: [url], current: url });
+      } else {
+        wx.showToast({ title: '手机行程单生成中', icon: 'none' });
+      }
+    }, 250);
   },
 
   applySelectedDayToPublishedTrip(trip, preferredDayNo = 0) {
@@ -3926,7 +3950,7 @@ const customerHomePageConfig = {
   previewItinerarySheet(e) {
     const url = e.currentTarget.dataset.url;
     if (!url) {
-      wx.showToast({ title: '行程单生成中', icon: 'none' });
+      wx.showToast({ title: '手机行程单生成中', icon: 'none' });
       return;
     }
     wx.previewImage({ urls: [url], current: url });

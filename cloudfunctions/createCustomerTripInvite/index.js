@@ -78,6 +78,10 @@ function buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso 
   };
 }
 
+function buildTripSharePath(canonicalTripId, inviteCode) {
+  return `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}&entry=itinerary_sheet`;
+}
+
 exports.main = async (event = {}) => {
   try {
     const auth = await requireRole(cloud, db, ['operator', 'super_admin']);
@@ -160,7 +164,7 @@ exports.main = async (event = {}) => {
           created_at: nowIso,
         }).catch(() => null);
       }
-      const sharePath = `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(existingInvite.invite_code)}`;
+      const sharePath = buildTripSharePath(canonicalTripId, existingInvite.invite_code);
       return {
         success: true,
         code: 0,
@@ -206,7 +210,7 @@ exports.main = async (event = {}) => {
       ...buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso }),
     };
     const addRes = await db.collection('customer_trip_invites').add({ data: inviteData });
-    const sharePath = `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
+    const sharePath = buildTripSharePath(canonicalTripId, inviteCode);
 
     await writeAuditLog(db, {
       actor_openid: auth.openid,
