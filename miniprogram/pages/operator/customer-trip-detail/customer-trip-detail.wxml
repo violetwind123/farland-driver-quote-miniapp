@@ -104,8 +104,15 @@
           <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished && preview.review_status === 'approved' ? '待准备' : '待发布')}}</view>
         </view>
         <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished || preview.review_status !== 'approved'}}" class="share-empty">
-          <view class="empty-title">客户行程尚未正式发布</view>
-          <view class="empty-sub">客户真实打开仍是等待页；请先预览草稿并正式发布。</view>
+          <!-- 已发布但有新版本未重新发布：客户仍看上一版，不是等待页。 -->
+          <block wx:if="{{hasPublished && preview.visibility_status === 'published'}}">
+            <view class="empty-title">客户当前看到 v{{preview.published_version || 1}}</view>
+            <view class="empty-sub">本次更新尚未重新发布；重新发布后客户才会看到新版本，届时可再转发。</view>
+          </block>
+          <block wx:else>
+            <view class="empty-title">客户行程尚未正式发布</view>
+            <view class="empty-sub">客户真实打开仍是等待页；请先预览草稿并正式发布。</view>
+          </block>
         </view>
         <block wx:else>
           <button
