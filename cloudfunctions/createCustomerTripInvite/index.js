@@ -82,8 +82,18 @@ function buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso 
   };
 }
 
+// 客户分享主路径 = customer/home;home 按 stage 判定显示手机行程单草稿入口 or 正式行程 UI,
+// 同一链接在正式发布后自动升级。mobile-itinerary 仅作图片查看子页,不作分享主入口。
 function buildTripSharePath(canonicalTripId, inviteCode) {
-  return `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
+  return `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
+}
+
+// itinerary_sheet:顶层字段,持久 URL(https/cloud)才算已生成
+function itinerarySheetReady(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const url = safeString(value.png_url).trim();
+  const m = /^([a-z][a-z0-9+.-]*:)/i.exec(url);
+  return Boolean(m && ['https:', 'cloud:'].includes(m[1].toLowerCase()));
 }
 
 exports.main = async (event = {}) => {
@@ -108,16 +118,19 @@ exports.main = async (event = {}) => {
     const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
     const effectiveTrip = trip;
 
-    if (
-      effectiveTrip.visibility_status !== 'published'
-      || effectiveTrip.review_status !== 'approved'
-      || !hasObject(effectiveTrip.published_snapshot)
-    ) {
+    // 两层可转发规则:已正式发布 → official invite;否则有手机版行程单图 → sheet_draft invite;都没有 → 拒
+    const isOfficialReady = effectiveTrip.visibility_status === 'published'
+      && effectiveTrip.review_status === 'approved'
+      && hasObject(effectiveTrip.published_snapshot);
+    const inviteStage = isOfficialReady
+      ? 'official'
+      : (itinerarySheetReady(effectiveTrip.itinerary_sheet) ? 'sheet_draft' : '');
+    if (!inviteStage) {
       return {
         success: false,
         code: 409,
-        error_code: 'TRIP_NOT_PUBLISHED',
-        message: '请先正式发布最新客户行程，再生成分享卡',
+        error_code: 'ITINERARY_NOT_READY',
+        message: '手机版行程单尚未生成，无法转发',
         trip_id: canonicalTripId,
       };
     }
@@ -187,6 +200,7 @@ exports.main = async (event = {}) => {
         path: sharePath,
         expires_at: existingInvite.expires_at instanceof Date ? existingInvite.expires_at.toISOString() : existingInvite.expires_at,
         reused: true,
+        stage: inviteStage,
         customer_bound: false,
         customer_trip_access_id: '',
         access_reused: false,
@@ -215,6 +229,7 @@ exports.main = async (event = {}) => {
       share_path: sharePath,
       path: sharePath,
       status: 'active',
+      stage: inviteStage,
       visibility_status_snapshot: effectiveTrip.visibility_status || '',
       published_version_snapshot: effectiveTrip.published_version || 0,
       expires_at: expiresAt,
@@ -259,6 +274,7 @@ exports.main = async (event = {}) => {
       path: sharePath,
       expires_at: expiresAt.toISOString(),
       reused: false,
+      stage: inviteStage,
       customer_bound: false,
       customer_trip_access_id: '',
       access_reused: false,

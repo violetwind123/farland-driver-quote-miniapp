@@ -359,6 +359,25 @@ function diffSummary(trip) {
   };
 }
 
+// itinerary_sheet:顶层字段(scheme 校验),运营页据此渲染 Layer-1 转发按钮/状态
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
+function normalizeItinerarySheet(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const url = String(value.png_url == null ? '' : value.png_url).trim();
+  const m = /^([a-z][a-z0-9+.-]*:)/i.exec(url);
+  if (!m || !ITINERARY_SHEET_URL_SCHEMES.includes(m[1].toLowerCase())) return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : undefined);
+  const out = {
+    png_url: url,
+    width: num(value.width),
+    height: num(value.height),
+    order_no: String(value.order_no == null ? '' : value.order_no).trim(),
+    version: num(value.version),
+  };
+  Object.keys(out).forEach((k) => { if (out[k] === undefined || out[k] === '') delete out[k]; });
+  return out;
+}
+
 exports.main = async (event = {}) => {
   const auth = await requireRole(cloud, db, ['operator', 'super_admin']);
   if (!auth.ok) {
@@ -409,6 +428,10 @@ exports.main = async (event = {}) => {
     ownership: ownershipProjection(trip),
     published_version: trip.published_version || 0,
     diff_summary: diffSummary(trip),
+    // Layer 1 手机版行程单状态:运营据此渲染"预览/转发"按钮(转发不需要发布)
+    itinerary_sheet: normalizeItinerarySheet(trip.itinerary_sheet),
+    sheet_status: normalizeItinerarySheet(trip.itinerary_sheet) ? 'ready' : 'generating',
+    can_forward_sheet: Boolean(normalizeItinerarySheet(trip.itinerary_sheet)),
     active_hotel_invites: await activeHotelInvitesForTrip(trip, canonicalTripId),
   };
 };
