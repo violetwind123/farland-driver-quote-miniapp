@@ -5,9 +5,9 @@
  * Guards the P0 customer-trip surface contract:
  * - Legacy customer/home trip links redirect to the standalone mobile itinerary.
  * - Transfer quote links may still use customer/home and must not be redirected.
- * - The formal "My Trip" tab uses the mobile itinerary UI.
+ * - The formal "My Trip" tab uses the standalone sheet-image viewer.
  * - Customer trip invites return and persist the mobile itinerary path.
- * - The formal tab can select today/next trip day for its card surface.
+ * - The mobile itinerary page must not reintroduce miniapp-rendered itinerary cards.
  *
  * No cloud calls, no production data.
  */
@@ -124,10 +124,15 @@ assert(
   'formal tab selects the next future day when today is between trip days',
 );
 
-assert(mobileWxml.includes('wx:elif="{{tripInviteTrip}}"'), 'mobile UI has invite/share branch');
-assert(mobileWxml.includes('wx:elif="{{todayCard}}"'), 'mobile UI has formal tab today-card branch');
-assert(mobileWxml.includes('mi-section-title">行程概览'), 'mobile UI renders itinerary overview section');
-assert(mobileWxml.includes('mi-section-title">行程卡片'), 'mobile UI renders itinerary card section');
+assert(mobileWxml.includes('src="{{sheetUrl}}"'), 'mobile UI renders the web-generated itinerary sheet image');
+assert(mobileWxml.includes('mode="widthFix"'), 'mobile sheet image keeps generated aspect ratio');
+assert(mobileWxml.includes('bindtap="onPreview"'), 'mobile sheet supports previewing the real customer image');
+assert(mobileWxml.includes('bindtap="onSave"'), 'mobile sheet supports saving the image');
+assert(mobileWxml.includes('open-type="share"'), 'mobile sheet supports WeChat forwarding');
+assert(!mobileWxml.includes('wx:elif="{{tripInviteTrip}}"'), 'mobile UI does not render old invite trip branch');
+assert(!mobileWxml.includes('wx:elif="{{todayCard}}"'), 'mobile UI does not render old formal today-card branch');
+assert(!mobileWxml.includes('mi-section-title">行程概览'), 'mobile UI does not render miniapp itinerary overview section');
+assert(!mobileWxml.includes('mi-section-title">行程卡片'), 'mobile UI does not render miniapp itinerary card section');
 assert(operatorTripDetail.includes('/pages/customer/mobile-itinerary/mobile-itinerary?operator_mobile_preview=1'), 'operator preview opens mobile itinerary page');
 
 assert(opsUpsertCustomerTripSource.includes('buildAutoPublishLifecycle'), 'web customer-trip sync has auto-publish lifecycle');

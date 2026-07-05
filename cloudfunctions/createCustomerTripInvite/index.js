@@ -82,10 +82,10 @@ function buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso 
   };
 }
 
-// 客户分享主路径 = customer/home;home 按 stage 判定显示手机行程单草稿入口 or 正式行程 UI,
-// 同一链接在正式发布后自动升级。mobile-itinerary 仅作图片查看子页,不作分享主入口。
+// 客户分享主路径 = 独立手机版行程单页。该页只展示 web 生成的 itinerary_sheet 图,
+// 不再经过 customer/home 的旧版自渲染行程 UI。
 function buildTripSharePath(canonicalTripId, inviteCode) {
-  return `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
+  return `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
 }
 
 // itinerary_sheet:顶层字段,持久 URL(https/cloud)才算已生成
