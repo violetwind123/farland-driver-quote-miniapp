@@ -811,6 +811,26 @@ function hasPublishedSnapshot(trip) {
   );
 }
 
+// itinerary_sheet:web 生成的手机版行程单图,customer_trips 顶层字段,两层读取共用。
+// 只读顶层这一个字段(scheme 校验),绝不从 draft_snapshot 取任何其他字段。
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
+function normalizeItinerarySheet(value) {
+  if (!isPlainObject(value)) return null;
+  const url = safeString(value.png_url).trim();
+  const m = /^([a-z][a-z0-9+.-]*:)/i.exec(url);
+  if (!m || !ITINERARY_SHEET_URL_SCHEMES.includes(m[1].toLowerCase())) return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : undefined);
+  const out = {
+    png_url: url,
+    width: num(value.width),
+    height: num(value.height),
+    order_no: safeString(value.order_no).trim(),
+    version: num(value.version),
+  };
+  Object.keys(out).forEach((k) => { if (out[k] === undefined || out[k] === '') delete out[k]; });
+  return out;
+}
+
 function isInviteUsable(invite, now) {
   if (!invite) return false;
   if (invite.status !== 'active') return false;
@@ -931,26 +951,48 @@ exports.main = async (event = {}) => {
     return { success: false, code: 403, error_code: 'INVALID_INVITE', message: '行程链接无效' };
   }
 
+  // Layer 1 手机版行程单:顶层 itinerary_sheet 图,可见性只靠 access,与是否发布无关
+  const itinerarySheet = normalizeItinerarySheet(trip.itinerary_sheet);
+
   if (!hasPublishedSnapshot(trip)) {
     await writeAuditLog({
       actor_openid: OPENID,
       actor_user_id: user ? user._id : '',
       actor_role: user ? (user.role || '') : 'temporary_guest',
-      action: 'customer_trip_waiting_viewed',
+      action: itinerarySheet ? 'customer_trip_sheet_draft_viewed' : 'customer_trip_waiting_viewed',
       target_type: 'customer_trip',
       target_id: trip._id || tripId,
       detail: {
         trip_id: tripId,
+        stage: itinerarySheet ? 'sheet_draft' : 'waiting',
         access_source: activeAccess ? 'customer_trip_access' : 'temporary_invite',
         invite_id: invite ? invite._id : '',
       },
       created_at: nowIso,
     });
+    // 未正式发布但已有手机版行程单 → sheet_draft:只下发这一个顶层字段,trip 为 null
+    if (itinerarySheet) {
+      return {
+        success: true,
+        code: 0,
+        trip_id: tripId,
+        waiting: false,
+        stage: 'sheet_draft',
+        itinerary_sheet: itinerarySheet,
+        trip: null,
+        access_source: activeAccess ? 'customer_trip_access' : 'temporary_invite',
+        auto_saved: false,
+        already_saved: Boolean(activeAccess),
+        can_save_to_profile: false,
+        message: '手机版行程单已生成，请查看。',
+      };
+    }
     return {
       success: true,
       code: 0,
       trip_id: tripId,
       waiting: true,
+      stage: 'waiting',
       access_source: activeAccess ? 'customer_trip_access' : 'temporary_invite',
       auto_saved: false,
       already_saved: Boolean(activeAccess),
@@ -984,6 +1026,8 @@ exports.main = async (event = {}) => {
     code: 0,
     trip_id: tripId,
     waiting: false,
+    stage: 'official',
+    itinerary_sheet: itinerarySheet,
     access_source: accessSource,
     auto_saved: false,
     already_saved: alreadySaved,

@@ -1364,6 +1364,25 @@ function buildSnapshotTripSummary(snapshot, hotelCards, flightCards) {
   });
 }
 
+// itinerary_sheet:web 生成的手机版行程单图,customer_trips 顶层字段(scheme 校验)。自包含,不依赖其他工具函数。
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
+function normalizeItinerarySheet(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const url = String(value.png_url == null ? '' : value.png_url).trim();
+  const m = /^([a-z][a-z0-9+.-]*:)/i.exec(url);
+  if (!m || !ITINERARY_SHEET_URL_SCHEMES.includes(m[1].toLowerCase())) return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : undefined);
+  const out = {
+    png_url: url,
+    width: num(value.width),
+    height: num(value.height),
+    order_no: String(value.order_no == null ? '' : value.order_no).trim(),
+    version: num(value.version),
+  };
+  Object.keys(out).forEach((k) => { if (out[k] === undefined || out[k] === '') delete out[k]; });
+  return out;
+}
+
 function normalizePublishedTripSnapshot(trip) {
   if (!trip || trip.visibility_status !== 'published' || !trip.published_snapshot || !Object.keys(trip.published_snapshot).length) return null;
   const snapshot = sanitizeCustomerObject(trip.published_snapshot || {});
@@ -1405,13 +1424,21 @@ function normalizePublishedTripSnapshot(trip) {
 }
 
 function buildWaitingTripOverview(trips) {
-  return trips.map((trip) => ({
-    trip_id: trip.trip_id || trip.external_trip_id || trip._id || '',
-    trip_no: trip.trip_no || trip.external_trip_id || trip.trip_id || '',
-    title: trip.title || 'Farland 行程',
-    status_text: '待发布',
-    waiting_message: 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
-  }));
+  return trips.map((trip) => {
+    // Layer 1:未发布但已有手机版行程单 → sheet_draft(客户可查看图,不是空等待页)
+    const itinerarySheet = normalizeItinerarySheet(trip.itinerary_sheet);
+    return {
+      trip_id: trip.trip_id || trip.external_trip_id || trip._id || '',
+      trip_no: trip.trip_no || trip.external_trip_id || trip.trip_id || '',
+      title: trip.title || 'Farland 行程',
+      stage: itinerarySheet ? 'sheet_draft' : 'waiting',
+      itinerary_sheet: itinerarySheet,
+      status_text: itinerarySheet ? '手机版行程单已生成' : '待发布',
+      waiting_message: itinerarySheet
+        ? '手机版行程单已生成，请查看。'
+        : 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。',
+    };
+  });
 }
 
 function collectTripData(trips) {

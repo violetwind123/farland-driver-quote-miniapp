@@ -999,11 +999,27 @@ function buildCustomerHome({ snapshot, trip, customer, request, assignedTranspor
   };
 }
 
+// itinerary_sheet:顶层字段,scheme 校验,两层读取共用(只读这一个字段)
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
+function normalizeItinerarySheet(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const url = safeString(value.png_url).trim();
+  const m = /^([a-z][a-z0-9+.-]*:)/i.exec(url);
+  if (!m || !ITINERARY_SHEET_URL_SCHEMES.includes(m[1].toLowerCase())) return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : undefined);
+  const out = { png_url: url, width: num(value.width), height: num(value.height), order_no: safeString(value.order_no).trim(), version: num(value.version) };
+  Object.keys(out).forEach((k) => { if (out[k] === undefined || out[k] === '') delete out[k]; });
+  return out;
+}
+
 function buildCustomerSharePreview(trip, isPublished) {
   const tripId = trip ? (trip.trip_id || trip.external_trip_id || trip.trip_no || trip._id || '') : '';
+  const itinerarySheet = trip ? normalizeItinerarySheet(trip.itinerary_sheet) : null;
   const base = {
     trip_id: tripId,
     waiting: true,
+    stage: 'waiting',
+    itinerary_sheet: itinerarySheet,
     message: CUSTOMER_SHARE_WAITING_MESSAGE,
     access_source: 'operator_preview',
     auto_saved: false,
@@ -1011,12 +1027,17 @@ function buildCustomerSharePreview(trip, isPublished) {
     can_save_to_profile: false,
     trip: null,
   };
+  // Layer 1:未发布但有手机版行程单 → sheet_draft(只 sheet,trip 为 null)
+  if (trip && !isPublished && itinerarySheet) {
+    return { ...base, waiting: false, stage: 'sheet_draft', message: '' };
+  }
   if (!trip || !isPublished) return base;
   const snapshot = normalizeSnapshot(trip.published_snapshot);
   if (!snapshot) return base;
   return {
     ...base,
     waiting: false,
+    stage: 'official',
     message: '',
     trip: snapshot,
   };
@@ -1095,7 +1116,7 @@ exports.main = async (event = {}) => {
       review_status: trip ? (trip.review_status || 'pending_review') : '',
       visibility_status: trip ? (trip.visibility_status || 'hidden') : '',
       published_version: trip ? (trip.published_version || 0) : 0,
-      customer_would_see: isPublished ? 'published' : 'waiting',
+      customer_would_see: isPublished ? 'published' : (normalizeItinerarySheet(trip && trip.itinerary_sheet) ? 'sheet_draft' : 'waiting'),
       warnings: Array.from(new Set(warnings)),
       critical_warnings: criticalWarnings,
       unpublished: Boolean(trip && !isPublished),
