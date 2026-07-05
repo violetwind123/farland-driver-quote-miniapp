@@ -41,7 +41,28 @@
     </view>
 
     <block wx:else>
-      <view class="trip-invite-hero compact card-surface">
+      <view wx:if="{{tripInviteTrip.itinerarySheet.png_url}}" class="itinerary-sheet-entry card-surface" data-url="{{tripInviteTrip.itinerarySheet.png_url}}" bindtap="previewItinerarySheet" hover-class="itinerary-sheet-entry-hover">
+        <view class="itinerary-sheet-entry-main">
+          <view class="itinerary-sheet-entry-title">查看完整行程单</view>
+          <view class="itinerary-sheet-entry-sub">长图版行程单，可保存或转发</view>
+        </view>
+        <view class="itinerary-sheet-entry-arrow">›</view>
+      </view>
+
+      <view wx:if="{{customerSummaryBar && customerSummaryBar.visible}}" class="customer-summary-bar trip-invite-summary card-surface">
+        <view class="summary-main">
+          <view class="summary-kicker">FARLAND 行程</view>
+          <view class="summary-thanks">{{customerSummaryBar.thank_you_text}}</view>
+          <view class="summary-title">{{customerSummaryBar.display_title || customerSummaryBar.customer_display_name}}</view>
+          <view wx:if="{{customerSummaryBar.display_meta || customerSummaryBar.trip_no || customerSummaryBar.date_range_text}}" class="summary-meta">
+            {{customerSummaryBar.display_meta || (customerSummaryBar.trip_no + (customerSummaryBar.trip_no && customerSummaryBar.date_range_text ? ' · ' : '') + customerSummaryBar.date_range_text)}}
+          </view>
+          <view wx:if="{{customerSummaryBar.city_route_text}}" class="summary-trip-text">{{customerSummaryBar.city_route_text}}</view>
+        </view>
+        <view class="summary-status">{{operatorCustomerPreviewMode ? '运营预览' : customerSummaryBar.sync_status_text}}</view>
+      </view>
+
+      <view wx:else class="trip-invite-hero compact card-surface">
         <view class="trip-identity-head">
           <view class="section-kicker hero-kicker">FARLAND 行程</view>
           <view wx:if="{{operatorCustomerPreviewMode}}" class="trip-invite-sync muted">运营预览</view>
@@ -54,14 +75,6 @@
           {{tripInviteTrip.displayCompactMeta || (tripInviteTrip.displayTripNo + (tripInviteTrip.displayTripNo && tripInviteTrip.displayDateRange ? ' · ' : '') + tripInviteTrip.displayDateRange)}}
         </view>
         <view wx:if="{{tripInviteTrip.displayCity}}" class="trip-invite-route">{{tripInviteTrip.displayCity}}</view>
-      </view>
-
-      <view wx:if="{{tripInviteTrip.itinerarySheet.png_url}}" class="itinerary-sheet-entry card-surface" data-url="{{tripInviteTrip.itinerarySheet.png_url}}" bindtap="previewItinerarySheet" hover-class="itinerary-sheet-entry-hover">
-        <view class="itinerary-sheet-entry-main">
-          <view class="itinerary-sheet-entry-title">查看完整行程单</view>
-          <view class="itinerary-sheet-entry-sub">长图版行程单，可保存或转发</view>
-        </view>
-        <view class="itinerary-sheet-entry-arrow">›</view>
       </view>
 
       <view wx:if="{{tripInviteCanSave && !operatorCustomerPreviewMode}}" class="profile-upgrade card-surface">

@@ -590,6 +590,7 @@ const customerHomePageConfig = {
     if (this.data.tripInviteMode && this.data.tripInviteTrip && Array.isArray(this.data.tripInviteTrip.days) && this.data.tripInviteTrip.days.length) {
       const trip = this.applySelectedDayToPublishedTrip(this.data.tripInviteTrip, 0);
       this.setData({
+        ...this.buildTripInviteSurfaceState(trip),
         phoneDateKey,
         tripInviteTrip: trip,
         selectedTripDayNo: trip.selectedDayNo || trip.selected_day_no || 0,
@@ -2553,8 +2554,10 @@ const customerHomePageConfig = {
       const currentDayNo = Number(trip.selectedDayNo || trip.selected_day_no || this.data.selectedTripDayNo || 0);
       const nextDayNo = this.resolveAdjacentTripDayNo(trip.days, currentDayNo, delta);
       if (!nextDayNo || nextDayNo === currentDayNo) return false;
+      const nextTrip = this.applySelectedDayToPublishedTrip(trip, nextDayNo);
       this.setData({
-        tripInviteTrip: this.applySelectedDayToPublishedTrip(trip, nextDayNo),
+        ...this.buildTripInviteSurfaceState(nextTrip),
+        tripInviteTrip: nextTrip,
         selectedTripDayNo: nextDayNo,
         inviteTodayOverviewExpanded: false,
       }, () => {
@@ -2607,8 +2610,10 @@ const customerHomePageConfig = {
     if (source === 'invite') {
       const trip = this.data.tripInviteTrip;
       if (!trip || !Array.isArray(trip.days) || !trip.days.length) return;
+      const nextTrip = this.applySelectedDayToPublishedTrip(trip, dayNo);
       this.setData({
-        tripInviteTrip: this.applySelectedDayToPublishedTrip(trip, dayNo),
+        ...this.buildTripInviteSurfaceState(nextTrip),
+        tripInviteTrip: nextTrip,
         selectedTripDayNo: dayNo,
         inviteTodayOverviewExpanded: false,
       }, () => {
@@ -2779,7 +2784,11 @@ const customerHomePageConfig = {
           city_summary: trip.displayCity,
         },
       });
+      const inviteSurface = this.buildTripInviteSurfaceState(trip, {
+        syncStatusText: result.auto_saved || result.already_saved ? '行程已同步' : '临时查看',
+      });
       this.setData({
+        ...inviteSurface,
         loading: false,
         tripInviteTrip: trip,
         tripInviteWaiting: false,
@@ -2836,6 +2845,95 @@ const customerHomePageConfig = {
         wx.showToast({ title: '手机行程单生成中', icon: 'none' });
       }
     }, 250);
+  },
+
+  buildTripInviteSurfaceState(trip, options = {}) {
+    const sourceTrip = trip || {};
+    const days = Array.isArray(sourceTrip.days) ? sourceTrip.days : [];
+    const selectedDayNo = Number(sourceTrip.selectedDayNo || sourceTrip.selected_day_no || this.resolveInitialTripDayNo(days) || 0);
+    const selectedDay = days.find((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo) || days[0] || null;
+    const progressNodes = Array.isArray(sourceTrip.progressNodes) ? sourceTrip.progressNodes : [];
+    const tripProgress = progressNodes.length > 1 ? {
+      visible: true,
+      mode: 'daily_nodes',
+      current_day_no: sourceTrip.currentDayNo || sourceTrip.actualCurrentDayNo || selectedDayNo,
+      selected_day_no: selectedDayNo,
+      actual_current_day_no: sourceTrip.actualCurrentDayNo || sourceTrip.currentDayNo || selectedDayNo,
+      current_node_id: (progressNodes.find((node) => Number(node.day_no || 0) === Number(sourceTrip.actualCurrentDayNo || sourceTrip.currentDayNo || selectedDayNo)) || progressNodes[0] || {}).node_id || '',
+      nodes: progressNodes,
+    } : null;
+    const overview = {
+      trip_id: sourceTrip.trip_id || sourceTrip.external_trip_id || this.data.tripInviteId || '',
+      trip_no: sourceTrip.displayTripNo || sourceTrip.trip_no || '',
+      title: sourceTrip.displayTitle || sourceTrip.title || 'Farland 行程',
+      city_summary: sourceTrip.displayCity || sourceTrip.city || '',
+      city_route_text: sourceTrip.displayCity || sourceTrip.city || '',
+      date_range_text: sourceTrip.displayDateRange || '',
+    };
+    const todayItinerary = selectedDay ? this.buildTodayItineraryFromTripDay(selectedDay, overview) : null;
+    const hasContent = Boolean(
+      days.length
+      || progressNodes.length
+      || sourceTrip.todayOverviewCard
+      || sourceTrip.todayHotelCard
+      || (sourceTrip.visitCards && sourceTrip.visitCards.length)
+      || (sourceTrip.hotels && sourceTrip.hotels.length)
+      || (sourceTrip.flights && sourceTrip.flights.length)
+    );
+    const syncStatusText = options.syncStatusText
+      || (this.data.operatorCustomerPreviewMode ? '运营预览' : (this.data.tripInviteAutoSaved || this.data.tripInviteAlreadySaved ? '行程已同步' : '临时查看'));
+
+    return {
+      customerSummaryBar: {
+        visible: true,
+        customer_display_name: sourceTrip.displayCustomer || 'Farland 客户',
+        trip_no: sourceTrip.displayTripNo || '',
+        date_range_text: sourceTrip.displayDateRange || '',
+        display_title: sourceTrip.displayCompactTitle || sourceTrip.displayTitle || 'Farland 行程',
+        display_meta: sourceTrip.displayCompactMeta || [sourceTrip.displayTripNo || '', sourceTrip.displayDateRange || ''].filter(Boolean).join(' · '),
+        city_route_text: sourceTrip.displayCity || '',
+        trip_summary_text: sourceTrip.displaySummary || '',
+        thank_you_text: '感谢您使用 Farland 的服务',
+        sync_status_text: syncStatusText,
+        communication_note: '后续沟通请以客户群为准',
+      },
+      tripProgress,
+      progressStrip: tripProgress,
+      currentProgressSummary: sourceTrip.currentProgressSummary || this.buildCurrentProgressSummary(tripProgress),
+      selectedTripDayNo: selectedDayNo,
+      todayCard: sourceTrip.todayOverviewCard || null,
+      dailyCharter: null,
+      todayDriverCard: sourceTrip.todayDriverCard || null,
+      todayHotelCard: sourceTrip.todayHotelCard || null,
+      visitCards: sourceTrip.visitCards || [],
+      todayItinerary,
+      showHomeEmpty: !hasContent,
+      showLegacyTransport: false,
+      nextConfirmed: selectedDay ? {
+        title: selectedDay.title || '今日行程',
+        date: [selectedDay.weekday, selectedDay.date].filter(Boolean).join(' · '),
+        time: selectedDay.startTime || '',
+        city: selectedDay.city || '',
+      } : {
+        title: sourceTrip.displayTitle || 'Farland 行程',
+        date: sourceTrip.displayDateRange || '',
+        time: '',
+        city: sourceTrip.displayCity || '',
+      },
+      tripOverview: [overview],
+      tripDayCards: days,
+      flightCards: sourceTrip.flights || [],
+      hotelCards: sourceTrip.hotels || [],
+      transferRequests: [],
+      primaryTransfer: null,
+      transportOrders: [],
+      showTransferRequests: false,
+      useHomePaneSwiper: false,
+      homePaneIndex: 0,
+      hasCharterHomeSurface: hasContent,
+      hasTemporaryTransportSurface: false,
+      charterServices: [],
+    };
   },
 
   applySelectedDayToPublishedTrip(trip, preferredDayNo = 0) {
@@ -3146,8 +3244,12 @@ const customerHomePageConfig = {
         city_summary: trip.displayCity,
       },
     });
+    const inviteSurface = this.buildTripInviteSurfaceState(trip, {
+      syncStatusText: '运营预览',
+    });
     this.setData({
       ...commonState,
+      ...inviteSurface,
       tripInviteTrip: trip,
       tripInviteWaiting: false,
       tripInviteMessage: '',

@@ -2754,6 +2754,13 @@
   margin-top: 20rpx;
   padding: 24rpx 28rpx;
 }
+.trip-invite-view .itinerary-sheet-entry {
+  margin-top: 0;
+  margin-bottom: 18rpx;
+}
+.trip-invite-summary {
+  margin-bottom: 18rpx;
+}
 .itinerary-sheet-entry-hover {
   opacity: 0.86;
 }
