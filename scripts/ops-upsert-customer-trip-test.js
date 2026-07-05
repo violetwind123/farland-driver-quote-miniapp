@@ -273,6 +273,27 @@ async function check(name, fn) {
       && doc.title === '无行程单改动' && doc.visibility_status === 'published';
   });
 
+  // 12. valid itinerary_sheet (https/cloud) → written to TOP-LEVEL customer_trips doc, still excluded from snapshots
+  await check('itinerary_sheet https/cloud → written top-level, excluded from snapshots', async () => {
+    const store = {}; const main = loadMain(store);
+    const p = { ...validPayload, itinerary_sheet: { png_url: 'cloud://prod/itin/2026NBC102.png', width: 750, height: 5200, order_no: '2026NBC102', version: 3, evil_extra: 'x' } };
+    const r = await main(signedEvent(p));
+    const doc = store.customer_trips[0];
+    return r.success
+      && doc.itinerary_sheet && doc.itinerary_sheet.png_url === 'cloud://prod/itin/2026NBC102.png'
+      && doc.itinerary_sheet.version === 3 && doc.itinerary_sheet.evil_extra === undefined
+      && !doc.draft_snapshot.itinerary_sheet && !doc.published_snapshot.itinerary_sheet;
+  });
+
+  // 13. itinerary_sheet with non-persistent scheme (http/wxfile/data) → VALIDATION_ERROR, nothing written
+  await check('itinerary_sheet http/wxfile scheme → VALIDATION_ERROR', async () => {
+    const store = {}; const main = loadMain(store);
+    const r = await main(signedEvent({ ...validPayload, itinerary_sheet: { png_url: 'http://a/x.png' } }));
+    const r2 = await main(signedEvent({ ...validPayload, itinerary_sheet: { png_url: 'wxfile://tmp/x.png' } }));
+    return !r.success && r.error_code === 'VALIDATION_ERROR'
+      && !r2.success && r2.error_code === 'VALIDATION_ERROR';
+  });
+
   console.log(failed ? `\nFAILED: ${failed}` : '\nPASS: all opsUpsertCustomerTrip cases');
   process.exit(failed ? 1 : 0);
 })();

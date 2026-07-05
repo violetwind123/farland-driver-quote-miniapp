@@ -71,6 +71,29 @@ function createError(errorCode, message, code) {
   return error;
 }
 
+// itinerary_sheet:web 生成的手机版行程单图,写在 customer_trips 顶层,两层读取共用。
+// 后端持久 URL 仅允许 https/cloud;wxfile 是设备本地临时路径,不能作 web 持久 URL。
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
+function itinerarySheetSchemeAllowed(url) {
+  const m = /^([a-z][a-z0-9+.-]*:)/i.exec(text(url));
+  return m ? ITINERARY_SHEET_URL_SCHEMES.includes(m[1].toLowerCase()) : false;
+}
+function normalizeItinerarySheetSource(value) {
+  if (!isPlainObject(value) || !itinerarySheetSchemeAllowed(value.png_url)) return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : undefined);
+  const out = {
+    png_url: text(value.png_url),
+    width: num(value.width),
+    height: num(value.height),
+    order_no: text(value.order_no),
+    version: num(value.version),
+    generated_at: text(value.generated_at),
+    source_hash: text(value.source_hash),
+  };
+  Object.keys(out).forEach((k) => { if (out[k] === undefined || out[k] === '') delete out[k]; });
+  return out.png_url ? out : null;
+}
+
 // 与 opsUpsertRideRequest 一致的 HTTP 事件解析(HTTP 触发 or 直连 callFunction 回退)
 function parseEvent(event) {
   const headers = normalizeHeaders((event && (event.headers || event.header)) || {});
@@ -180,6 +203,11 @@ function validatePayload(payload) {
   if (ids.includes(TRIP_091_NO)) {
     throw createError('TRIP_091_PROTECTED', '091 is a hardcoded trip and cannot be written via web sync.', 409);
   }
+  // itinerary_sheet(可选):给了 png_url 就必须是持久 URL(https/cloud),拒 wxfile/http/data/相对路径
+  if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.png_url)
+      && !itinerarySheetSchemeAllowed(payload.itinerary_sheet.png_url)) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_url must be an https:// or cloud:// URL.', 400);
+  }
 }
 
 // 只组装白名单 canonical source 字段;customer 剥离联系方式并提到顶层;深度剥内部/成本/供应商
@@ -227,6 +255,9 @@ function buildSourceDoc(payload) {
   };
   // 二次保险:customer 子对象绝不含联系方式
   CUSTOMER_CONTACT_KEYS.forEach((k) => { delete source.customer[k]; });
+  // 手机版行程单图:顶层字段(scheme 已校验),仅在有效时写入,不入快照
+  const itinerarySheet = normalizeItinerarySheetSource(stripped.itinerary_sheet);
+  if (itinerarySheet) source.itinerary_sheet = itinerarySheet;
   return source;
 }
 
