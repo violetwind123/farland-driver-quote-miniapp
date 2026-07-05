@@ -81,6 +81,7 @@ const customerHomePageConfig = {
   },
 
   onLoad(options = {}) {
+    if (this.redirectLegacyCustomerHome(options)) return;
     const operatorMobileDraftPreview = this.consumeOperatorMobileItineraryDraftPreview();
     if (operatorMobileDraftPreview) {
       this.applyOperatorMobileItineraryDraftPreview(operatorMobileDraftPreview);
@@ -98,15 +99,6 @@ const customerHomePageConfig = {
     const tripInviteId = this.decodeQueryValue(options.trip_id || options.external_trip_id || options.trip_no || '');
     const inviteCode = this.decodeQueryValue(options.invite_code || '');
     const tripInviteEntry = this.decodeQueryValue(options.entry || options.open || '');
-    if (this.shouldRedirectLegacyHomeTripInvite(options, tripInviteId, inviteCode)) {
-      wx.redirectTo({
-        url: this.buildMobileItineraryRedirectUrl(options),
-        fail: (error) => {
-          console.error('[customer-home] redirect legacy trip invite failed', error);
-        },
-      });
-      return;
-    }
     if (operatorCustomerPreview) {
       this.applyOperatorCustomerHomePreview(operatorCustomerPreview);
       return;
@@ -168,12 +160,31 @@ const customerHomePageConfig = {
     }
   },
 
-  shouldRedirectLegacyHomeTripInvite(options = {}, tripInviteId = '', inviteCode = '') {
-    if (!tripInviteId || !inviteCode) return false;
-    if (options.operator_mobile_preview === '1' || options.operator_customer_preview === '1') return false;
+  redirectLegacyCustomerHome(options = {}) {
     const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
     const currentPage = pages[pages.length - 1] || {};
-    return currentPage.route === 'pages/customer/home/home';
+    if (currentPage.route !== 'pages/customer/home/home') return false;
+
+    const tripInviteId = this.decodeQueryValue(options.trip_id || options.external_trip_id || options.trip_no || '');
+    const inviteCode = this.decodeQueryValue(options.invite_code || '');
+    const requestId = this.decodeQueryValue(options.request_id || '');
+    const isTransferInvite = Boolean(requestId && inviteCode && !tripInviteId);
+    const app = getApp();
+    const hasTransferOperatorPreview = Boolean(
+      app.globalData
+      && app.globalData.customerHomePreview
+      && app.globalData.customerHomePreview.requestId
+      && !tripInviteId
+    );
+    if (isTransferInvite || hasTransferOperatorPreview) return false;
+
+    wx.redirectTo({
+      url: this.buildMobileItineraryRedirectUrl(options),
+      fail: (error) => {
+        console.error('[customer-home] redirect legacy home to mobile itinerary failed', error);
+      },
+    });
+    return true;
   },
 
   buildMobileItineraryRedirectUrl(options = {}) {

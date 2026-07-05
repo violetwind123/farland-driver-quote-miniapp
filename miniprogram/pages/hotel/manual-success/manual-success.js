@@ -107,8 +107,8 @@ Page({
 
   backToTrips() {
     wx.switchTab({
-      url: '/pages/customer/mobile-itinerary/mobile-itinerary',
-      fail: () => wx.reLaunch({ url: '/pages/customer/mobile-itinerary/mobile-itinerary' }),
+      url: '/pages/customer/itinerary-tab/itinerary-tab',
+      fail: () => wx.reLaunch({ url: '/pages/customer/itinerary-tab/itinerary-tab' }),
     });
   },
 });

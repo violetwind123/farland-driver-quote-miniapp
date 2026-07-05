@@ -8,6 +8,7 @@
     "pages/hotel/manual-success/manual-success",
     "pages/customer/home/home",
     "pages/customer/mobile-itinerary/mobile-itinerary",
+    "pages/customer/itinerary-tab/itinerary-tab",
     "pages/customer/day-detail/day-detail",
     "pages/customer/hotel-detail/hotel-detail",
     "pages/customer/transfer-detail/transfer-detail",
@@ -21,7 +22,6 @@
     "pages/operator/review-summary/review-summary",
     "pages/operator/request-hall/request-hall",
     "pages/operator/customer-home-preview/customer-home-preview",
-    "pages/operator/customer-trip-mobile-preview/customer-trip-mobile-preview",
     "pages/operator/customer-trip-detail/customer-trip-detail",
     "pages/operator/create-request/create-request",
     "pages/operator/request-detail/request-detail",
@@ -49,7 +49,7 @@
         "text": "酒店预订"
       },
       {
-        "pagePath": "pages/customer/mobile-itinerary/mobile-itinerary",
+        "pagePath": "pages/customer/itinerary-tab/itinerary-tab",
         "text": "我的行程"
       }
     ]
