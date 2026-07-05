@@ -40,18 +40,18 @@
       <view class="error-text">{{error}}</view>
     </view>
 
-    <!-- 模块一 · 发布工作流 -->
+    <!-- 模块一 · 手机版行程单转发 -->
     <view class="panel workflow-panel">
       <view class="section-title">手机版行程单转发</view>
       <view class="workflow-sub">客户第一版先看手机版行程单；成交后再处理酒店、用车和每日评价等后续内容。</view>
 
       <view wx:if="{{criticalWarningList.length || warningList.length}}" class="workflow-alert">
-        <view class="warning-title">发布前提醒</view>
+        <view class="warning-title">同步提醒</view>
         <view wx:for="{{criticalWarningList}}" wx:key="*this" class="warning-row critical">{{item}}</view>
         <view wx:for="{{warningList}}" wx:key="*this" class="warning-row">{{item}}</view>
       </view>
       <view wx:if="{{changedSections.length}}" class="workflow-diff-note">
-        当前草稿与已发布版本有 {{changedSections.length}} 项差异；详细内容可在下方「草稿内容审阅」展开查看。
+        最新同步内容与当前客户版本有 {{changedSections.length}} 项差异；准备转发时会同步最新手机版行程单。
       </view>
 
       <view class="workflow-step-card priority-share-card">
@@ -111,57 +111,27 @@
         >预览客户页面</button>
       </view>
 
-      <view wx:if="{{!hasPublished}}" class="workflow-step-card">
-        <view class="workflow-step-head">
-          <view class="workflow-step-index">3</view>
-          <view class="workflow-step-copy">
-            <view class="workflow-step-title">补救：生成客户可见快照</view>
-            <view class="workflow-step-sub">正常情况下 Web 同步会自动生成；仅在历史数据或异常状态下使用。</view>
-          </view>
-          <view class="workflow-step-status">{{hasDraft ? '已生成' : '待生成'}}</view>
-        </view>
-        <button class="secondary-wide-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见快照</button>
-      </view>
-
-      <view wx:if="{{!hasPublished}}" class="workflow-step-card">
-        <view class="workflow-step-head">
-          <view class="workflow-step-index">4</view>
-          <view class="workflow-step-copy">
-            <view class="workflow-step-title">补救：确认发布</view>
-            <view class="workflow-step-sub">仅用于历史草稿或异常状态；新网页手机确认单会自动发布。</view>
-          </view>
-          <view class="workflow-step-status">{{canPublish ? '可发布' : '待检查'}}</view>
-        </view>
-        <textarea
-          class="note-input"
-          value="{{reviewNote}}"
-          placeholder="发布备注，可选"
-          maxlength="300"
-          bindinput="onReviewNoteInput"
-        />
-        <button class="primary-wide-btn" loading="{{publishing}}" disabled="{{publishing || building || !canPublish}}" bindtap="publishTrip">确认发布</button>
-      </view>
     </view>
 
-    <!-- 模块二 · 草稿内容审阅（运营核对用） -->
+    <!-- 模块二 · 行程内容核对（运营用） -->
     <view class="panel" id="draft-review">
       <view class="section-toggle-head">
         <view>
-          <view class="section-title no-margin">草稿内容审阅（运营核对用）</view>
-          <view class="snapshot-hint compact-hint">此为运营字段核对视图，不是客户最终页面；客户页面请用上方「进入客户真实页面」。</view>
+          <view class="section-title no-margin">行程内容核对（运营用）</view>
+          <view class="snapshot-hint compact-hint">此为运营字段核对视图；客户页面请用上方「预览客户页面」。</view>
         </view>
         <button class="mini-action" disabled="{{!activeSnapshot}}" bindtap="toggleDraftReview">
-          {{draftReviewOpen ? '收起审阅' : '展开审阅'}}
+          {{draftReviewOpen ? '收起核对' : '展开核对'}}
         </button>
       </view>
       <view class="snapshot-tabs">
-        <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">新草稿</view>
-        <view class="snapshot-tab {{activeSnapshotType === 'published' ? 'active' : ''}}" data-type="published" bindtap="selectSnapshot">已发布 v{{preview.published_version || 0}}</view>
+        <view class="snapshot-tab {{activeSnapshotType === 'draft' ? 'active' : ''}}" data-type="draft" bindtap="selectSnapshot">最新同步版</view>
+        <view class="snapshot-tab {{activeSnapshotType === 'published' ? 'active' : ''}}" data-type="published" bindtap="selectSnapshot">当前客户版 v{{preview.published_version || 0}}</view>
       </view>
 
       <view class="review-summary-grid">
         <view class="review-summary-item">
-          <view class="review-summary-label">审阅对象</view>
+          <view class="review-summary-label">查看对象</view>
           <view class="review-summary-value">{{activeSnapshotLabel}}</view>
         </view>
         <view class="review-summary-item">
@@ -169,14 +139,14 @@
           <view class="review-summary-value">{{changedSections.length || 0}} 项</view>
         </view>
         <view class="review-summary-item">
-          <view class="review-summary-label">warnings</view>
+          <view class="review-summary-label">提醒</view>
           <view class="review-summary-value">{{warningList.length || 0}}</view>
         </view>
       </view>
 
       <view wx:if="{{!activeSnapshot}}" class="empty-preview">
         <view class="empty-title">暂无客户可见内容</view>
-        <view class="empty-sub">请先点击“生成客户可见草稿”。</view>
+        <view class="empty-sub">等待网页端同步手机版行程单。</view>
       </view>
 
       <block wx:elif="{{draftReviewOpen}}">
@@ -190,7 +160,7 @@
 
         <block wx:if="{{draftReviewSection === 'overview'}}">
           <view class="customer-hero">
-            <view class="audit-tag">运营审阅</view>
+            <view class="audit-tag">运营核对</view>
             <view class="customer-kicker">{{activeSnapshot.display_trip_no || 'Farland Trip'}}</view>
             <view class="customer-title">{{activeSnapshot.display_title}}</view>
             <view wx:if="{{displayDateRange}}" class="customer-sub">{{displayDateRange}}</view>

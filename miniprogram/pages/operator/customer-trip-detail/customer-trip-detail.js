@@ -6,7 +6,7 @@ const WARNING_TEXT = {
   missing_drive_time: '部分节点缺少车程时间',
   missing_distance: '部分节点缺少距离信息',
   arrival_after_start_time: '到达时间晚于预约开始时间，请核对',
-  unpublished_trip: '行程尚未发布',
+  unpublished_trip: '行程尚未同步到客户可见版本',
   preview_from_source_data: '预览内容来自网页端同步源数据',
 };
 
@@ -26,19 +26,16 @@ Page({
   data: {
     loading: true,
     refreshing: false,
-    building: false,
-    publishing: false,
     creatingInvite: false,
     openingCustomerView: false,
     tripId: '',
     error: '',
-    reviewNote: '',
     preview: null,
     draftSnapshot: null,
     publishedSnapshot: null,
     activeSnapshotType: 'draft',
     activeSnapshot: null,
-    activeSnapshotLabel: '新草稿',
+    activeSnapshotLabel: '最新同步版',
     warningList: [],
     criticalWarningList: [],
     changedSections: [],
@@ -46,7 +43,6 @@ Page({
     hasPublished: false,
     stateText: '',
     stateHint: '',
-    canPublish: false,
     invitePath: '',
     inviteCode: '',
     inviteExpiresAt: '',
@@ -181,7 +177,6 @@ Page({
       stateHint: state.hint,
       bizState,
       dayStatusText: this.getDayStatusText(bizState, nextActiveType),
-      canPublish: hasDraft && !(result.critical_warning_codes || []).length,
       error: '',
       activeHotelInvites,
       hotelInviteMap: this.buildHotelInviteMap(nextActive, activeHotelInvites),
@@ -495,7 +490,7 @@ Page({
     if (review === 'discarded' || visibility === 'discarded' || result.status === 'discarded') {
       return {
         state_text: '行程已废弃',
-        customer_seeing_text: published ? `当前发布版 v${version}` : '客户看不到此行程',
+        customer_seeing_text: published ? `当前客户版 v${version}` : '客户看不到此行程',
         next_step_text: '如需继续使用，请从网页端重新同步或恢复行程',
         flow_step: 0,
         day_status_text: '已废弃',
@@ -506,45 +501,45 @@ Page({
       return {
         state_text: '等待网页端手机行程单同步',
         customer_seeing_text: '客户看不到此行程',
-        next_step_text: '网页生成手机确认单后会自动发布，可直接预览和转发',
+        next_step_text: '网页生成手机确认单后会自动同步，可直接预览和转发',
         flow_step: 1,
-        day_status_text: '未发布',
-        draft_day_status_text: '未发布',
+        day_status_text: '待同步',
+        draft_day_status_text: '待同步',
       };
     }
     if (hasDraft && !published) {
       return {
-        state_text: '草稿待审阅，尚未发布',
+        state_text: '已同步，等待客户可见版本',
         customer_seeing_text: '等待页（暂无行程内容）',
-        next_step_text: '审阅草稿 → 预览客户页面 → 发布',
+        next_step_text: '请从网页端重新生成手机版行程单',
         flow_step: 1,
-        day_status_text: '草稿',
-        draft_day_status_text: '草稿',
+        day_status_text: '待同步',
+        draft_day_status_text: '最新同步',
       };
     }
     if (published && review === 'approved' && hasUnpublishedChanges) {
       return {
-        state_text: `已发布 v${version}，存在未发布的草稿改动`,
-        customer_seeing_text: `客户仍看到当前发布版 v${version}`,
-        next_step_text: '审阅草稿差异 → 重新发布',
+        state_text: `客户版本 v${version}，有网页端更新待同步`,
+        customer_seeing_text: `客户当前看到 v${version}`,
+        next_step_text: '准备手机版行程单 → 微信转发',
         flow_step: 1,
-        day_status_text: '待发布',
-        draft_day_status_text: '待发布',
+        day_status_text: '待转发',
+        draft_day_status_text: '最新同步',
       };
     }
     if (published && review === 'approved') {
       return {
-        state_text: `已发布 v${version}，可直接转发`,
-        customer_seeing_text: `当前发布版 v${version}`,
+        state_text: `客户版本 v${version}，可直接转发`,
+        customer_seeing_text: `当前客户版 v${version}`,
         next_step_text: '转发手机版行程单',
         flow_step: 3,
-        day_status_text: '已发布',
+        day_status_text: '客户版',
         draft_day_status_text: '已同步',
       };
     }
     if (published && review === 'needs_review') {
       return {
-        state_text: `已发布 v${version}，有新手机版行程单待转发`,
+        state_text: `客户版本 v${version}，有新手机版行程单待转发`,
         customer_seeing_text: `准备转发时会同步最新版本`,
         next_step_text: '准备手机版行程单 → 微信转发',
         flow_step: 2,
@@ -555,22 +550,22 @@ Page({
     const legacy = this.getStateCopy(result, hasDraft, hasPublished);
     return {
       state_text: legacy.text,
-      customer_seeing_text: published ? `当前发布版 v${version}` : '等待页（暂无行程内容）',
+      customer_seeing_text: published ? `当前客户版 v${version}` : '等待页（暂无行程内容）',
       next_step_text: '状态异常，请联系开发核查',
       flow_step: 1,
-      day_status_text: published ? '已发布' : '草稿',
-      draft_day_status_text: published ? '草稿' : '草稿',
+      day_status_text: published ? '客户版' : '待同步',
+      draft_day_status_text: '最新同步',
     };
   },
 
   getDayStatusText(bizState = {}, snapshotType = 'draft') {
-    if (snapshotType === 'published') return '已发布';
-    return bizState.draft_day_status_text || bizState.day_status_text || '草稿';
+    if (snapshotType === 'published') return '客户版';
+    return bizState.draft_day_status_text || bizState.day_status_text || '最新同步';
   },
 
   getSnapshotLabel(snapshotType = 'draft', publishedVersion = 0) {
-    if (snapshotType === 'published') return `已发布 v${publishedVersion || 0}`;
-    return '新草稿';
+    if (snapshotType === 'published') return `当前客户版 v${publishedVersion || 0}`;
+    return '最新同步版';
   },
 
   deriveDisplayMeta(snapshot) {
@@ -732,13 +727,13 @@ Page({
     if (!hasDraft) {
       return {
         text: '等待网页端手机行程单同步',
-        hint: '网页生成手机确认单后会自动推送并发布到小程序，运营可直接预览和转发。',
+        hint: '网页生成手机确认单后会自动推送到小程序，运营可直接预览和转发。',
       };
     }
     if (visibilityStatus === 'published' && hasPublished && reviewStatus === 'approved') {
       return {
-        text: '已发布，可直接转发',
-        hint: `客户当前会看到已发布版本 v${result.published_version || 1}。网页重新生成手机确认单后会自动同步更新。`,
+        text: '客户版已同步，可直接转发',
+        hint: `客户当前会看到版本 v${result.published_version || 1}。网页重新生成手机确认单后会自动同步更新。`,
       };
     }
     if (reviewStatus === 'needs_review') {
@@ -748,19 +743,19 @@ Page({
       };
     }
     return {
-      text: '客户草稿待审核',
-      hint: '请预览下方客户视图，确认日期、酒店、航班、每日节点无误后发布。',
+      text: '等待客户可见版本',
+      hint: '请从网页端重新生成并同步手机版行程单。',
     };
   },
 
   selectSnapshot(e) {
     const type = e.currentTarget.dataset.type;
     if (type === 'published' && !this.data.publishedSnapshot) {
-      wx.showToast({ title: '暂无已发布版本', icon: 'none' });
+      wx.showToast({ title: '暂无当前客户版', icon: 'none' });
       return;
     }
     if (type === 'draft' && !this.data.draftSnapshot) {
-      wx.showToast({ title: '请先生成草稿', icon: 'none' });
+      wx.showToast({ title: '暂无最新同步内容', icon: 'none' });
       return;
     }
     const nextActive = type === 'draft' ? this.data.draftSnapshot : this.data.publishedSnapshot;
@@ -777,7 +772,7 @@ Page({
 
   toggleDraftReview() {
     if (!this.data.activeSnapshot) {
-      wx.showToast({ title: '暂无可审阅内容', icon: 'none' });
+      wx.showToast({ title: '暂无可核对内容', icon: 'none' });
       return;
     }
     this.setData({ draftReviewOpen: !this.data.draftReviewOpen });
@@ -788,109 +783,11 @@ Page({
     this.setData({ draftReviewSection: section });
   },
 
-  onReviewNoteInput(e) {
-    this.setData({ reviewNote: e.detail.value || '' });
-  },
-
-  async buildDraft() {
-    if (this.data.building || !this.data.tripId) return;
-    this.setData({ building: true, error: '' });
-    try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'buildCustomerTripVisibleDraft',
-        data: { trip_id: this.data.tripId },
-      });
-      if (!result || !result.success) {
-        this.setData({
-          building: false,
-          error: (result && result.message) || '生成客户草稿失败',
-        });
-        wx.showToast({ title: '生成失败', icon: 'none' });
-        return;
-      }
-      wx.showToast({ title: '草稿已生成', icon: 'success' });
-      this.setData({
-        building: false,
-        activeSnapshotType: 'draft',
-        activeSnapshotLabel: this.getSnapshotLabel('draft', this.data.preview && this.data.preview.published_version),
-      });
-      this.loadPreview({ silent: true });
-    } catch (error) {
-      console.error('[customer-trip-detail] buildCustomerTripVisibleDraft failed', error);
-      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
-      this.setData({
-        building: false,
-        error: `生成客户草稿失败：${errMsg}`,
-      });
-      wx.showToast({ title: '生成失败', icon: 'none' });
-    }
-  },
-
-  async publishTrip() {
-    if (this.data.publishing) return;
-    if (!this.data.hasDraft) {
-      wx.showToast({ title: '请先生成草稿', icon: 'none' });
-      return;
-    }
-    if (this.data.criticalWarningList.length) {
-      wx.showToast({ title: '关键警告未处理', icon: 'none' });
-      return;
-    }
-    const confirmed = await new Promise((resolve) => {
-      wx.showModal({
-        title: '确认发布',
-        content: '发布后，手机版行程单将读取该客户可见版本。请确认预览内容无误。',
-        confirmText: '发布',
-        success: (res) => resolve(res.confirm),
-        fail: () => resolve(false),
-      });
-    });
-    if (!confirmed) return;
-
-    this.setData({ publishing: true, error: '' });
-    try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'publishCustomerTrip',
-        data: {
-          trip_id: this.data.tripId,
-          review_note: this.data.reviewNote,
-        },
-      });
-      if (!result || !result.success) {
-        this.setData({
-          publishing: false,
-          error: (result && result.message) || '发布失败',
-        });
-        wx.showToast({ title: '发布失败', icon: 'none' });
-        return;
-      }
-      wx.showToast({ title: '已发布', icon: 'success' });
-      this.setData({
-        publishing: false,
-        activeSnapshotType: 'published',
-        activeSnapshotLabel: this.getSnapshotLabel('published', (result && result.published_version) || (this.data.preview && this.data.preview.published_version)),
-        invitePath: '',
-        inviteCode: '',
-        inviteExpiresAt: '',
-        inviteReused: false,
-      });
-      this.loadPreview({ silent: true });
-    } catch (error) {
-      console.error('[customer-trip-detail] publishCustomerTrip failed', error);
-      const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
-      this.setData({
-        publishing: false,
-        error: `发布失败：${errMsg}`,
-      });
-      wx.showToast({ title: '发布失败', icon: 'none' });
-    }
-  },
-
   async createTripInvite() {
     if (this.data.creatingInvite) return;
     const preview = this.data.preview || {};
     if (preview.visibility_status !== 'published' || !this.data.hasPublished) {
-      wx.showToast({ title: '请先发布行程', icon: 'none' });
+      wx.showToast({ title: '请先同步手机版行程单', icon: 'none' });
       return;
     }
     this.setData({ creatingInvite: true, error: '' });
@@ -971,7 +868,7 @@ Page({
 
   // 只读：走客户真实渲染链路（customer-trip-mobile-preview 复用客户 home 配置）。
   // 不创建 invite、不创建 customer_trip_access、不改 viewed 状态。
-  // 未发布时 customer_share_preview 返回等待页，与客户真实所见一致。
+  // 未同步到客户可见版本时 customer_share_preview 返回等待页，与客户真实所见一致。
   async openCustomerFacingPreview() {
     if (this.data.openingCustomerView) return;
     if (!this.data.tripId) {
@@ -1177,7 +1074,7 @@ Page({
 
   scrollToReview() {
     if (!this.data.hasDraft) {
-      wx.showToast({ title: '请先生成草稿', icon: 'none' });
+      wx.showToast({ title: '暂无可核对内容', icon: 'none' });
       return;
     }
     if (this.data.activeSnapshotType !== 'draft' && this.data.draftSnapshot) {

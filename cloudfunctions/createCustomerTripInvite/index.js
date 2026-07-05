@@ -206,7 +206,7 @@ exports.main = async (event = {}) => {
         success: false,
         code: 409,
         error_code: 'TRIP_NOT_PUBLISHED',
-        message: '请先发布客户可见行程，再生成分享卡',
+        message: '请先同步手机版行程单，再生成分享卡',
         trip_id: canonicalTripId,
       };
     }
