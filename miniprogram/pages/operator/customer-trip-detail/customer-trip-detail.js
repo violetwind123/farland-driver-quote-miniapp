@@ -44,6 +44,7 @@ Page({
     hasDraft: false,
     hasPublished: false,
     canForwardSheet: false,
+    canForward: false,
     sheetStatus: '',
     stateText: '',
     stateHint: '',
@@ -179,6 +180,8 @@ Page({
       hasPublished,
       canForwardSheet: Boolean(result.can_forward_sheet),
       sheetStatus: result.sheet_status || (result.itinerary_sheet ? 'ready' : 'generating'),
+      canForward: Boolean(result.can_forward_sheet)
+        || (result.visibility_status === 'published' && result.review_status === 'approved' && hasPublished),
       stateText: state.text,
       stateHint: state.hint,
       bizState,

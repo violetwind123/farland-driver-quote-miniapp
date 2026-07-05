@@ -1185,3 +1185,21 @@
 button::after {
   border: none;
 }
+
+/* 手机版行程单层:预览 + 转发 两按钮并排 */
+.workflow-btn-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 18rpx;
+}
+.workflow-btn-row .primary-wide-btn,
+.workflow-btn-row .secondary-wide-btn {
+  flex: 1;
+  width: auto;
+  margin-top: 0;
+}
+.workflow-btn-hint {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #8A91A1;
+}

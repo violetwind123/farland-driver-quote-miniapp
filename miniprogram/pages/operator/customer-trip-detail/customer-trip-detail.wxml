@@ -68,12 +68,21 @@
           <view class="empty-sub">网页生成并同步后，这里会显示客户真实界面的手机版行程。</view>
         </view>
         <block wx:else>
-          <button
-            class="secondary-wide-btn"
-            loading="{{previewingDraft}}"
-            disabled="{{previewingDraft}}"
-            bindtap="previewMobileItineraryDraft"
-          >预览手机版行程单</button>
+          <view class="workflow-btn-row">
+            <button
+              class="secondary-wide-btn"
+              loading="{{previewingDraft}}"
+              disabled="{{previewingDraft}}"
+              bindtap="previewMobileItineraryDraft"
+            >预览手机版行程单</button>
+            <button
+              class="primary-wide-btn"
+              loading="{{creatingInvite}}"
+              disabled="{{creatingInvite || !canForward}}"
+              bindtap="createTripInvite"
+            >{{invitePath ? '重新转发' : '转发客户'}}</button>
+          </view>
+          <view wx:if="{{!canForward}}" class="workflow-btn-hint">网页端同步手机版行程单后即可转发，无需先启用。</view>
         </block>
       </view>
 
