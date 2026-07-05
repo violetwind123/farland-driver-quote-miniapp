@@ -79,7 +79,7 @@ function buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso 
 }
 
 function buildTripSharePath(canonicalTripId, inviteCode) {
-  return `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}&entry=itinerary_sheet`;
+  return `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
 }
 
 exports.main = async (event = {}) => {

@@ -41,7 +41,7 @@
     </view>
 
     <block wx:else>
-      <view wx:if="{{tripInviteTrip.itinerarySheet.png_url}}" class="itinerary-sheet-entry card-surface" data-url="{{tripInviteTrip.itinerarySheet.png_url}}" bindtap="previewItinerarySheet" hover-class="itinerary-sheet-entry-hover">
+      <view wx:if="{{tripInviteTrip.itinerarySheet.png_url}}" class="itinerary-sheet-entry card-surface" data-url="{{tripInviteTrip.itinerarySheet.png_url}}" bindtap="openMobileItineraryPage" hover-class="itinerary-sheet-entry-hover">
         <view class="itinerary-sheet-entry-main">
           <view class="itinerary-sheet-entry-title">查看完整行程单</view>
           <view class="itinerary-sheet-entry-sub">长图版行程单，可保存或转发</view>
@@ -167,7 +167,7 @@
           <view wx:if="{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}" class="today-next-teaser">{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}</view>
           <view class="p4-action-row">
             <button class="p4-action-secondary" bindtap="contactAdvisor">{{tripInviteTrip.todayOverviewCard.contactAdvisorLabel}}</button>
-            <button class="p4-action-primary" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.day_no || tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看当日行程</button>
+            <button class="p4-action-primary" bindtap="contactAdvisor">行程调整联系顾问</button>
           </view>
         </view>
       </view>

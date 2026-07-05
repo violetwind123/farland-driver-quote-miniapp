@@ -2838,6 +2838,19 @@ const customerHomePageConfig = {
     const key = [this.data.tripInviteId, this.data.inviteCode, url || 'missing'].join('|');
     if (this.data.autoPreviewedItinerarySheetKey === key) return;
     this.setData({ autoPreviewedItinerarySheetKey: key });
+    if (this.data.tripInviteId) {
+      wx.redirectTo({
+        url: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(this.data.tripInviteId)}&invite_code=${encodeURIComponent(this.data.inviteCode || '')}`,
+        fail: () => {
+          if (url) {
+            wx.previewImage({ urls: [url], current: url });
+          } else {
+            wx.showToast({ title: '手机行程单生成中', icon: 'none' });
+          }
+        },
+      });
+      return;
+    }
     setTimeout(() => {
       if (url) {
         wx.previewImage({ urls: [url], current: url });
@@ -4056,6 +4069,16 @@ const customerHomePageConfig = {
       return;
     }
     wx.previewImage({ urls: [url], current: url });
+  },
+
+  openMobileItineraryPage(e) {
+    if (this.data.tripInviteId) {
+      wx.navigateTo({
+        url: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(this.data.tripInviteId)}&invite_code=${encodeURIComponent(this.data.inviteCode || '')}`,
+      });
+      return;
+    }
+    this.previewItinerarySheet(e);
   },
 
   noop() {},

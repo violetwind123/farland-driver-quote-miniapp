@@ -7,6 +7,7 @@
     "pages/hotel/order-preview/order-preview",
     "pages/hotel/manual-success/manual-success",
     "pages/customer/home/home",
+    "pages/customer/mobile-itinerary/mobile-itinerary",
     "pages/customer/day-detail/day-detail",
     "pages/customer/hotel-detail/hotel-detail",
     "pages/customer/transfer-detail/transfer-detail",
