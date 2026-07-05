@@ -147,7 +147,7 @@ Page({
     const currentType = this.data.activeSnapshotType;
     const nextActiveType = currentType === 'published' && hasPublished
       ? 'published'
-      : (hasDraft ? 'draft' : (hasPublished ? 'published' : 'draft'));
+      : (hasPublished && result.review_status === 'approved' ? 'published' : (hasDraft ? 'draft' : (hasPublished ? 'published' : 'draft')));
     const state = this.getStateCopy(result, hasDraft, hasPublished);
     const nextActive = nextActiveType === 'draft' ? draftSnapshot : publishedSnapshot;
     const changedSections = (result.diff_summary && result.diff_summary.changed_sections) || [];
@@ -504,9 +504,9 @@ Page({
     }
     if (!hasDraft && !published) {
       return {
-        state_text: '网页端已同步，待生成草稿',
+        state_text: '等待网页端手机行程单同步',
         customer_seeing_text: '客户看不到此行程',
-        next_step_text: '生成客户可见草稿',
+        next_step_text: '网页生成手机确认单后会自动发布，可直接预览和转发',
         flow_step: 1,
         day_status_text: '未发布',
         draft_day_status_text: '未发布',
@@ -534,12 +534,12 @@ Page({
     }
     if (published && review === 'approved') {
       return {
-        state_text: `已发布 v${version}，内容已确认`,
+        state_text: `已发布 v${version}，可直接转发`,
         customer_seeing_text: `当前发布版 v${version}`,
         next_step_text: '转发手机版行程单',
         flow_step: 3,
         day_status_text: '已发布',
-        draft_day_status_text: '草稿',
+        draft_day_status_text: '已同步',
       };
     }
     if (published && review === 'needs_review') {
@@ -731,14 +731,14 @@ Page({
     const visibilityStatus = result.visibility_status || '';
     if (!hasDraft) {
       return {
-        text: '网页端已同步，待生成客户草稿',
-        hint: '先生成客户可见草稿，系统会移除内部字段，再供运营预览。',
+        text: '等待网页端手机行程单同步',
+        hint: '网页生成手机确认单后会自动推送并发布到小程序，运营可直接预览和转发。',
       };
     }
     if (visibilityStatus === 'published' && hasPublished && reviewStatus === 'approved') {
       return {
-        text: '已发布',
-        hint: `客户当前会看到已发布版本 v${result.published_version || 1}。如源数据变更，请重新生成草稿并发布。`,
+        text: '已发布，可直接转发',
+        hint: `客户当前会看到已发布版本 v${result.published_version || 1}。网页重新生成手机确认单后会自动同步更新。`,
       };
     }
     if (reviewStatus === 'needs_review') {

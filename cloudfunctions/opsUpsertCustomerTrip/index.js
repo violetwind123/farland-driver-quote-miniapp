@@ -257,6 +257,115 @@ function buildSourceDoc(payload) {
   return source;
 }
 
+function unique(values) {
+  return Array.from(new Set((values || []).map((value) => text(value)).filter(Boolean)));
+}
+
+function buildDateText(start, end) {
+  return [text(start), text(end)].filter(Boolean).join(' - ');
+}
+
+function buildDailySummaryCards(sourceDoc) {
+  const days = Array.isArray(sourceDoc.itinerary_days) ? sourceDoc.itinerary_days : [];
+  return days.map((day, index) => {
+    const dayNo = Number(day.day_no || index + 1);
+    const timelineItems = Array.isArray(day.timeline_items)
+      ? day.timeline_items
+      : (Array.isArray(day.items) ? day.items : []);
+    const hotel = isPlainObject(day.hotel) ? day.hotel : null;
+    const transportSummary = isPlainObject(day.transport_summary) ? day.transport_summary : null;
+    return deepStrip({
+      id: `day_${dayNo}`,
+      day_no: dayNo,
+      date: text(day.date),
+      weekday: text(day.weekday),
+      title: text(day.title) || `Day ${dayNo}`,
+      city: text(day.city),
+      start_time_text: text(day.start_time_text || day.estimated_departure_time || day.estimated_departure_time_raw || day.start_time),
+      estimated_departure_time_raw: text(day.estimated_departure_time_raw),
+      estimated_departure_time: text(day.estimated_departure_time),
+      hotel_badge: hotel ? text(hotel.name || hotel.hotel_name || hotel.title) : '',
+      transport_badge: transportSummary ? text(transportSummary.title || transportSummary.vehicle_summary || transportSummary.vehicle_class) : '',
+      highlight_items: timelineItems.map((item) => text(item && item.title)).filter(Boolean).slice(0, 2),
+      item_count: timelineItems.length,
+      clickable: true,
+    }, STRIP_KEYS);
+  });
+}
+
+function buildTripSummary(sourceDoc, hotelCards, flightCards) {
+  const days = Array.isArray(sourceDoc.itinerary_days) ? sourceDoc.itinerary_days : [];
+  const transfers = Array.isArray(sourceDoc.transfers) ? sourceDoc.transfers : [];
+  const charterServices = Array.isArray(sourceDoc.charter_services) ? sourceDoc.charter_services : [];
+  const dateRange = buildDateText(sourceDoc.start_at || sourceDoc.date_start, sourceDoc.end_at || sourceDoc.date_end);
+  return deepStrip({
+    trip_id: sourceDoc.trip_id || sourceDoc.external_trip_id || '',
+    external_trip_id: sourceDoc.external_trip_id || sourceDoc.trip_id || '',
+    trip_no: sourceDoc.trip_no || sourceDoc.external_trip_id || sourceDoc.trip_id || '',
+    title: sourceDoc.title || 'Farland 行程',
+    date_range_text: dateRange,
+    city_route_text: unique(days.map((day) => day && day.city)).join(' → ') || sourceDoc.city || '',
+    days_count: days.length,
+    hotels_count: hotelCards.length,
+    flights_count: flightCards.length,
+    transport_count: transfers.length + charterServices.length,
+    next_day_label: days[0] ? `Day ${days[0].day_no || 1}: ${days[0].title || days[0].city || ''}` : '',
+  }, STRIP_KEYS);
+}
+
+function buildAutoPublishedSnapshot(sourceDoc) {
+  const days = Array.isArray(sourceDoc.itinerary_days) ? deepStrip(sourceDoc.itinerary_days, STRIP_KEYS) : [];
+  const hotelCards = Array.isArray(sourceDoc.hotels) ? deepStrip(sourceDoc.hotels, STRIP_KEYS) : [];
+  const flightCards = Array.isArray(sourceDoc.flights) ? deepStrip(sourceDoc.flights, STRIP_KEYS) : [];
+  const transfers = Array.isArray(sourceDoc.transfers) ? deepStrip(sourceDoc.transfers, STRIP_KEYS) : [];
+  const charterServices = Array.isArray(sourceDoc.charter_services) ? deepStrip(sourceDoc.charter_services, STRIP_KEYS) : [];
+  const documents = Array.isArray(sourceDoc.documents)
+    ? deepStrip(sourceDoc.documents.filter((doc) => doc && doc.visible_to_customer !== false), STRIP_KEYS)
+    : [];
+  const dateRange = buildDateText(sourceDoc.start_at || sourceDoc.date_start, sourceDoc.end_at || sourceDoc.date_end);
+  return deepStrip({
+    snapshot_model_version: 2,
+    trip_id: sourceDoc.trip_id || sourceDoc.external_trip_id || '',
+    external_trip_id: sourceDoc.external_trip_id || sourceDoc.trip_id || '',
+    trip_no: sourceDoc.trip_no || sourceDoc.external_trip_id || sourceDoc.trip_id || '',
+    title: sourceDoc.title || 'Farland 行程',
+    trip_type: sourceDoc.trip_type || '',
+    status: sourceDoc.status || 'active',
+    city: sourceDoc.city || '',
+    country: sourceDoc.country || '',
+    timezone: sourceDoc.timezone || '',
+    start_at: sourceDoc.start_at || sourceDoc.date_start || '',
+    end_at: sourceDoc.end_at || sourceDoc.date_end || '',
+    summary: sourceDoc.summary || '',
+    customer: {
+      display_name: sourceDoc.customer_display_name || (sourceDoc.customer && sourceDoc.customer.display_name) || '',
+      name: sourceDoc.customer_name || (sourceDoc.customer && sourceDoc.customer.name) || '',
+    },
+    advisor: deepStrip(sourceDoc.advisor || {}, STRIP_KEYS),
+    hero: {
+      title: sourceDoc.title || 'Farland 行程',
+      trip_no: sourceDoc.trip_no || sourceDoc.external_trip_id || sourceDoc.trip_id || '',
+      date_range: dateRange,
+      city_summary: sourceDoc.city || '',
+    },
+    trip_summary: buildTripSummary(sourceDoc, hotelCards, flightCards),
+    daily_summary_cards: buildDailySummaryCards(sourceDoc),
+    hotel_cards: hotelCards,
+    flight_cards: flightCards,
+    itinerary_days: days,
+    hotels: hotelCards,
+    flights: flightCards,
+    transfers,
+    charter_services: charterServices,
+    documents,
+    itinerary_sheet: sourceDoc.itinerary_sheet || null,
+  }, STRIP_KEYS);
+}
+
+function hasAutoPublishSheet(sourceDoc) {
+  return Boolean(isPlainObject(sourceDoc.itinerary_sheet) && text(sourceDoc.itinerary_sheet.png_url));
+}
+
 exports.main = async (event = {}) => {
   try {
     const { headers, rawBody, payload } = parseEvent(event);
@@ -267,6 +376,8 @@ exports.main = async (event = {}) => {
     const sourceHash = stableHash(sourceDoc);
     const externalTripId = sourceDoc.external_trip_id;
     const now = new Date().toISOString();
+    const shouldAutoPublish = hasAutoPublishSheet(sourceDoc);
+    const autoPublishedSnapshot = shouldAutoPublish ? buildAutoPublishedSnapshot(sourceDoc) : null;
 
     const existingRes = await db.collection('customer_trips')
       .where({ external_trip_id: externalTripId })
@@ -279,8 +390,42 @@ exports.main = async (event = {}) => {
       return { success: false, code: 409, error_code: 'TRIP_091_PROTECTED', message: '091 cannot be written via web sync.' };
     }
 
-    // 幂等:同 external_trip_id + 同 source_hash → 不重写
+    // 幂等:同 external_trip_id + 同 source_hash → 不重写；但旧版本若同 hash 仍未发布,需要补一次自动发布。
     if (existing && text(existing.source_hash) === sourceHash) {
+      const needsPublishBackfill = shouldAutoPublish
+        && !(existing.visibility_status === 'published'
+          && existing.published_snapshot
+          && Object.keys(existing.published_snapshot).length);
+      if (needsPublishBackfill) {
+        const nextVersion = Math.max(1, Number(existing.published_version || 0) || 0);
+        await db.collection('customer_trips').doc(existing._id).update({
+          data: {
+            draft_snapshot: autoPublishedSnapshot,
+            published_snapshot: autoPublishedSnapshot,
+            published_version: nextVersion,
+            review_status: 'approved',
+            visibility_status: 'published',
+            warning_codes: [],
+            critical_warning_codes: [],
+            auto_published_from_web: true,
+            auto_published_reason: 'itinerary_sheet_synced',
+            published_at: existing.published_at || now,
+            reviewed_at: existing.reviewed_at || now,
+            updated_by: 'web_ops',
+            updated_at: now,
+          },
+        });
+        await writeAudit('ops_sync_customer_trip_auto_published_backfill', existing._id, externalTripId, sourceHash, now);
+        return {
+          success: true, code: 0, idempotent: true, action: 'auto_published',
+          trip_id: existing.trip_id || existing.external_trip_id || externalTripId,
+          external_trip_id: externalTripId,
+          review_status: 'approved',
+          visibility_status: 'published',
+          published_version: nextVersion,
+          auto_published: true,
+        };
+      }
       return {
         success: true, code: 0, idempotent: true, action: 'unchanged',
         trip_id: existing.trip_id || existing.external_trip_id || externalTripId,
@@ -299,33 +444,84 @@ exports.main = async (event = {}) => {
     };
 
     if (!existing) {
-      // 新建:生命周期种子,快照留空
+      // 新建:如果 web 已带手机行程单,直接生成客户可见发布版；否则沿用旧的隐藏待处理状态。
+      const initialLifecycle = shouldAutoPublish ? {
+        review_status: 'approved',
+        visibility_status: 'published',
+        warning_codes: [],
+        critical_warning_codes: [],
+        published_version: 1,
+        draft_snapshot: autoPublishedSnapshot,
+        published_snapshot: autoPublishedSnapshot,
+        auto_published_from_web: true,
+        auto_published_reason: 'itinerary_sheet_synced',
+        reviewed_by: 'web_ops',
+        reviewed_at: now,
+        published_by: 'web_ops',
+        published_at: now,
+      } : {
+        review_status: 'pending_review',
+        visibility_status: 'hidden',
+        warning_codes: [],
+        critical_warning_codes: [],
+        published_version: 0,
+        draft_snapshot: {},
+        published_snapshot: {},
+      };
       const created = await db.collection('customer_trips').add({
         data: {
           ...baseWrite,
-          review_status: 'pending_review',
-          visibility_status: 'hidden',
-          warning_codes: [],
-          critical_warning_codes: [],
-          published_version: 0,
-          draft_snapshot: {},
-          published_snapshot: {},
+          ...initialLifecycle,
           created_by: 'web_ops',
           created_at: now,
         },
       });
-      await writeAudit('ops_sync_customer_trip_created', created._id, externalTripId, sourceHash, now);
+      await writeAudit(shouldAutoPublish ? 'ops_sync_customer_trip_created_auto_published' : 'ops_sync_customer_trip_created', created._id, externalTripId, sourceHash, now);
       return {
         success: true, code: 0, action: 'created',
         trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
-        review_status: 'pending_review', visibility_status: 'hidden', published_version: 0,
+        review_status: initialLifecycle.review_status,
+        visibility_status: initialLifecycle.visibility_status,
+        published_version: initialLifecycle.published_version,
+        auto_published: shouldAutoPublish,
       };
     }
 
-    // 更新:只改 source 字段,保留运营端已建/已发布状态边界(draft/published/version 不由 web 写)
+    // 更新:有手机行程单则 web canonical source 直接成为客户可见版本;否则沿用旧的待复核边界。
     const published = (existing.published_version || 0) > 0;
-    // discarded 只认运营态 visibility_status(source 的 status 由 web 写,不能据它改可见性)
     const discarded = existing.visibility_status === 'discarded';
+    if (shouldAutoPublish) {
+      const nextVersion = Number(existing.published_version || 0) + 1;
+      await db.collection('customer_trips').doc(existing._id).update({
+        data: {
+          ...baseWrite,
+          draft_snapshot: autoPublishedSnapshot,
+          published_snapshot: autoPublishedSnapshot,
+          published_version: nextVersion,
+          review_status: 'approved',
+          visibility_status: 'published',
+          warning_codes: [],
+          critical_warning_codes: [],
+          auto_published_from_web: true,
+          auto_published_reason: 'itinerary_sheet_synced',
+          reviewed_by: 'web_ops',
+          reviewed_at: now,
+          published_by: 'web_ops',
+          published_at: now,
+        },
+      });
+      await writeAudit('ops_sync_customer_trip_updated_auto_published', existing._id, externalTripId, sourceHash, now);
+      return {
+        success: true, code: 0, action: 'updated',
+        trip_id: sourceDoc.trip_id, external_trip_id: externalTripId,
+        review_status: 'approved',
+        visibility_status: 'published',
+        published_version: nextVersion,
+        auto_published: true,
+      };
+    }
+
+    // discarded 只认运营态 visibility_status(source 的 status 由 web 写,不能据它改可见性)
     await db.collection('customer_trips').doc(existing._id).update({
       data: {
         ...baseWrite,

@@ -61,11 +61,11 @@
             <view class="workflow-step-title">转发客户第一版行程单</view>
             <view class="workflow-step-sub">主动作是微信转发；复制路径仅作内部兜底。</view>
           </view>
-          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished ? '待准备' : '待发布')}}</view>
+          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished ? '待准备' : '待同步')}}</view>
         </view>
         <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
-          <view class="empty-title">发布后可转发手机版行程单</view>
-          <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
+          <view class="empty-title">等待网页端同步手机行程单</view>
+          <view class="empty-sub">网页生成手机确认单并同步后，这里会直接变成可预览、可转发。</view>
         </view>
         <block wx:else>
           <view wx:if="{{preview.review_status === 'needs_review'}}" class="share-note">
@@ -101,37 +101,37 @@
         <view class="workflow-step-head">
           <view class="workflow-step-index">2</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">生成客户可见草稿</view>
-            <view class="workflow-step-sub">把源数据转成客户可见快照，移除内部字段。</view>
-          </view>
-          <view class="workflow-step-status">{{hasDraft ? '已生成' : '待生成'}}</view>
-        </view>
-        <button class="primary-wide-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见草稿</button>
-      </view>
-
-      <view class="workflow-step-card">
-        <view class="workflow-step-head">
-          <view class="workflow-step-index">3</view>
-          <view class="workflow-step-copy">
             <view class="workflow-step-title">预览客户页面</view>
             <view class="workflow-step-sub">打开客户真实渲染链路。只读，不创建分享卡或保存记录。</view>
           </view>
-          <view class="workflow-step-status">{{hasDraft || hasPublished ? '可预览' : '待草稿'}}</view>
+          <view class="workflow-step-status">{{hasPublished ? '可预览' : '待同步'}}</view>
         </view>
         <button
           class="secondary-wide-btn"
           loading="{{openingCustomerView}}"
-          disabled="{{openingCustomerView}}"
+          disabled="{{openingCustomerView || !hasPublished}}"
           bindtap="openCustomerFacingPreview"
         >预览客户页面</button>
       </view>
 
-      <view class="workflow-step-card">
+      <view wx:if="{{!hasPublished || preview.review_status === 'needs_review'}}" class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index">3</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">补救：生成客户可见快照</view>
+            <view class="workflow-step-sub">正常情况下 Web 同步会自动生成；仅在历史数据或异常状态下使用。</view>
+          </view>
+          <view class="workflow-step-status">{{hasDraft ? '已生成' : '待生成'}}</view>
+        </view>
+        <button class="secondary-wide-btn" loading="{{building}}" disabled="{{building || publishing}}" bindtap="buildDraft">生成客户可见快照</button>
+      </view>
+
+      <view wx:if="{{!hasPublished || preview.review_status === 'needs_review'}}" class="workflow-step-card">
         <view class="workflow-step-head">
           <view class="workflow-step-index">4</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">确认发布</view>
-            <view class="workflow-step-sub">发布后手机版行程单读取新的已发布版本。</view>
+            <view class="workflow-step-title">补救：确认发布</view>
+            <view class="workflow-step-sub">仅用于历史草稿或异常状态；新网页手机确认单会自动发布。</view>
           </view>
           <view class="workflow-step-status">{{canPublish ? '可发布' : '待检查'}}</view>
         </view>
