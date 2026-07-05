@@ -251,7 +251,7 @@ Page({
 
   backHome() {
     wx.switchTab({
-      url: '/pages/customer/home/home',
+      url: '/pages/customer/mobile-itinerary/mobile-itinerary',
       fail: () => {
         wx.navigateBack({ delta: 1 });
       },
@@ -306,7 +306,7 @@ Page({
     const hotelId = this.data.hotelId || '';
     const path = inviteCode
       ? `/pages/customer/hotel-detail/hotel-detail?trip_id=${encodeURIComponent(tripId)}&hotel_id=${encodeURIComponent(hotelId)}&invite_code=${encodeURIComponent(inviteCode)}`
-      : '/pages/customer/home/home';
+      : '/pages/customer/mobile-itinerary/mobile-itinerary';
     return {
       title: this.data.shareTitle || `${hotel.name || '酒店信息'}｜Farland 酒店确认`,
       path: path.replace(/^\//, ''),

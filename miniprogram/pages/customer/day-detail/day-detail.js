@@ -1527,7 +1527,7 @@ Page({
 
   backHome() {
     wx.switchTab({
-      url: '/pages/customer/home/home',
+      url: '/pages/customer/mobile-itinerary/mobile-itinerary',
       fail: () => {
         wx.navigateBack({ delta: 1 });
       },

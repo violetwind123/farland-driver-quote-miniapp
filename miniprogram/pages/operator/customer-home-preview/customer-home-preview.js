@@ -560,7 +560,7 @@ Page({
       wx.showToast({ title: '请先准备行程单', icon: 'none' });
       return {
         title: 'Farland 行程',
-        path: 'pages/customer/home/home',
+        path: 'pages/customer/mobile-itinerary/mobile-itinerary',
       };
     }
     const overview = customerHome && Array.isArray(customerHome.trip_overview)

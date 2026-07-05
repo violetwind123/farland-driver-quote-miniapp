@@ -49,7 +49,7 @@
         "text": "酒店预订"
       },
       {
-        "pagePath": "pages/customer/home/home",
+        "pagePath": "pages/customer/mobile-itinerary/mobile-itinerary",
         "text": "我的行程"
       }
     ]

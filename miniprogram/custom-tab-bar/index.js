@@ -9,7 +9,7 @@ Component({
         selectedIconPath: '/assets/icons/tab-hotel-filled.svg'
       },
       {
-        pagePath: '/pages/customer/home/home',
+        pagePath: '/pages/customer/mobile-itinerary/mobile-itinerary',
         text: '我的行程',
         iconPath: '/assets/icons/tab-trip-muted.svg',
         selectedIconPath: '/assets/icons/tab-trip-filled.svg'

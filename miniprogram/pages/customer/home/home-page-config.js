@@ -98,6 +98,15 @@ const customerHomePageConfig = {
     const tripInviteId = this.decodeQueryValue(options.trip_id || options.external_trip_id || options.trip_no || '');
     const inviteCode = this.decodeQueryValue(options.invite_code || '');
     const tripInviteEntry = this.decodeQueryValue(options.entry || options.open || '');
+    if (this.shouldRedirectLegacyHomeTripInvite(options, tripInviteId, inviteCode)) {
+      wx.redirectTo({
+        url: this.buildMobileItineraryRedirectUrl(options),
+        fail: (error) => {
+          console.error('[customer-home] redirect legacy trip invite failed', error);
+        },
+      });
+      return;
+    }
     if (operatorCustomerPreview) {
       this.applyOperatorCustomerHomePreview(operatorCustomerPreview);
       return;
@@ -157,6 +166,22 @@ const customerHomePageConfig = {
     } catch (error) {
       return raw;
     }
+  },
+
+  shouldRedirectLegacyHomeTripInvite(options = {}, tripInviteId = '', inviteCode = '') {
+    if (!tripInviteId || !inviteCode) return false;
+    if (options.operator_mobile_preview === '1' || options.operator_customer_preview === '1') return false;
+    const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+    const currentPage = pages[pages.length - 1] || {};
+    return currentPage.route === 'pages/customer/home/home';
+  },
+
+  buildMobileItineraryRedirectUrl(options = {}) {
+    const query = Object.keys(options)
+      .filter((key) => options[key] !== undefined && options[key] !== null && String(options[key]) !== '')
+      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(options[key]))}`)
+      .join('&');
+    return `/pages/customer/mobile-itinerary/mobile-itinerary${query ? `?${query}` : ''}`;
   },
 
   consumeOperatorPreview() {
