@@ -1,60 +1,584 @@
+/* ============================================================
+   Farland 客户端 · 静奢主题 v3
+   对应设计稿:「Farland 客户端优化.dc.html」第 1–5 轮
+   v3 变更:
+   - 危险色统一为 #B4463C 系(冲突/已取消/告警共用,旧 #A05252 废弃)
+   - 新增:天气 chip、访校 8 态状态标、折叠行、日分组头、
+     冲突包裹框、内部信息区、筛选 chip、分段切换、底部动作栏、
+     材料状态行、toast
+   用法:替换 miniprogram/styles/theme.wxss,并在 app.wxss 中
+   @import './styles/theme.wxss';
+   设计稿 px × 2 = rpx(375 设计宽)
+   ============================================================ */
+
+/* ---------- design tokens ---------- */
+page {
+  /* 品牌色 */
+  --brand-500: #6672A8;
+  --brand-600: #57639E;
+  --brand-50: #EEF0F7;
+  --brand-line: rgba(102, 114, 168, 0.14);
+
+  /* 香槟金:推荐徽标 / 确认号 / "今天"标记 / kicker,每屏 ≤2 处 */
+  --gold-500: #A6885B;
+  --gold-700: #8A6F44;
+  --gold-50: #F6F1E7;
+
+  /* 墨色阶 */
+  --ink-900: #1B2340;
+  --ink-600: #5A6178;
+  --ink-400: #9096A8;
+  --ink-300: #B3B8C6;
+
+  /* 背景 */
+  --bg-page: #F5F5F8;
+  --bg-ivory: #F9F7F2;   /* 象牙:提示条 / 顾问贴士 */
+  --bg-card: #FFFFFF;
+  --bg-internal: #ECEDF2; /* 仅内部可见区 */
+
+  /* 线与投影 */
+  --line: rgba(27, 35, 64, 0.07);
+  --shadow-card: 0 20rpx 52rpx rgba(27, 35, 64, 0.05);
+  --shadow-float: 0 28rpx 72rpx rgba(27, 35, 64, 0.10);
+
+  /* 语义色(v3:danger 统一 #B4463C 系) */
+  --success: #3F7A5D;
+  --success-bg: #EAF3EE;
+  --warn: #C08243;
+  --warn-bg: #F9F1E6;
+  --danger: #B4463C;
+  --danger-bg: #FAEDEB;
+  --danger-line: rgba(180, 70, 60, 0.35);
+
+  /* 天气(v3.1 裸排,无胶囊) */
+  --wx-sun-hi: #F5CE85;
+  --wx-sun: #D99E3A;
+  --wx-cloud: #A9AFC6;
+  --wx-rain: #7E9CC0;
+
+  /* 字体 */
+  --font-serif: Georgia, "Songti SC", "STSong", serif;
+
+  background: var(--bg-page);
+  color: var(--ink-900);
+  font-size: 26rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+button::after { border: 0; }
+
+/* ---------- 卡片 ---------- */
 .card-surface {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1rpx solid rgba(102, 114, 168, 0.08);
+  background: var(--bg-card);
+  border: 1rpx solid var(--line);
   border-radius: 32rpx;
-  box-shadow: 0 18rpx 60rpx rgba(17, 24, 39, 0.08);
+  box-shadow: var(--shadow-card);
   box-sizing: border-box;
 }
 
-.section-kicker {
-  color: #7E889A;
-  font-size: 22rpx;
-  letter-spacing: 1.6rpx;
-  text-transform: uppercase;
+.card-ivory {
+  background: var(--bg-ivory);
+  border: 1rpx solid rgba(166, 136, 91, 0.14);
+  border-radius: 28rpx;
+  box-sizing: border-box;
 }
 
-.section-title {
-  color: #182235;
-  font-size: 36rpx;
-  line-height: 1.25;
+/* 仅内部可见区(运营端):灰底 + 虚线,杜绝误当客户内容 */
+.card-internal {
+  background: var(--bg-internal);
+  border: 1rpx dashed rgba(27, 35, 64, 0.18);
+  border-radius: 28rpx;
+  box-sizing: border-box;
+}
+
+.internal-label {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  color: var(--ink-600);
+  font-size: 19rpx;
+  letter-spacing: 3rpx;
+  font-weight: 700;
+}
+
+/* ---------- 文字 ---------- */
+.display-serif {
+  font-family: var(--font-serif);
+  color: var(--ink-900);
+  font-size: 44rpx;
+  line-height: 1.35;
   font-weight: 600;
 }
 
-.body-text {
-  color: #5C6576;
-  font-size: 24rpx;
-  line-height: 1.6;
+.section-kicker {
+  color: var(--ink-400);
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
+.section-kicker.gold { color: var(--gold-500); }
+
+.section-title {
+  font-family: var(--font-serif);
+  color: var(--ink-900);
+  font-size: 34rpx;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.card-title {
+  color: var(--ink-900);
+  font-size: 28rpx;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.body-text { color: var(--ink-600); font-size: 24rpx; line-height: 1.65; }
+.caption   { color: var(--ink-400); font-size: 21rpx; line-height: 1.5; }
+
+.price-serif {
+  font-family: var(--font-serif);
+  color: var(--ink-900);
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.confirmation-no {
+  font-family: var(--font-serif);
+  color: var(--gold-700);
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+}
+
+/* ---------- 状态标(带圆点) ----------
+   访校 8 态映射:
+   pending_query 待查询 .neutral | available 可预约 .success-soft
+   submitted 已提交 .pending | awaiting_school 学校待确认 .warn-soft
+   confirmed 已确认 .confirmed-solid(客户可见态,实底强调)
+   materials_needed 需补材料 .warn-soft(可与 confirmed 并列)
+   conflict 时间冲突 .danger-soft | cancelled 已取消 .neutral + 整行 opacity .55 */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  height: 40rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  font-size: 19rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.status-chip::before {
+  content: '';
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+}
+
+.status-chip.neutral      { background: var(--brand-50);   color: var(--ink-400); }
+.status-chip.pending      { background: var(--brand-50);   color: var(--brand-600); }
+.status-chip.success-soft { background: var(--success-bg); color: var(--success); }
+.status-chip.warn-soft    { background: var(--warn-bg);    color: var(--warn); }
+.status-chip.danger-soft  { background: var(--danger-bg);  color: var(--danger); }
+.status-chip.featured     { background: var(--gold-50);    color: var(--gold-700); }
+
+/* 已确认(实底,唯一客户可见态) */
+.status-chip.confirmed-solid {
+  background: var(--success);
+  color: #FFFFFF;
+}
+.status-chip.confirmed-solid::before { background: #FFFFFF; }
+
+/* 兼容 v2 旧类名 */
+.status-chip.confirmed { background: var(--success-bg); color: var(--success); }
+.status-chip.cancelled { background: var(--danger-bg);  color: var(--danger); }
+
+/* ---------- 天气(v3.1 · 参照访校行程单设计,胶囊样式废弃) ----------
+   样式:无底色裸排「图标 + 高/低温」,如「15/9°C」,tabular-nums
+   图标 28rpx 线条风三态:
+   晴 = 径向渐变圆 #F5CE85→#D99E3A + 射线 #D99E3A
+   多云/雨/雪 = 云廓线 #A9AFC6 + 雨丝 #7E9CC0(雪换雪花)
+   雷阵雨 = 云 #A9AFC6 + 闪电 #D99E3A
+   落点:天级=今日卡头右侧;事件级=卡片时间行右侧(margin-left:auto)
+   禁区:页头/hero/折叠行;每卡至多 1 个;雨雪在「到达」行追加提醒
+   数据源 NOAA/NWS(api.weather.gov),T-1 拉取,页尾/列表尾注明来源 */
+.weather-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 21rpx;
+  color: var(--ink-600);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-source {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 18rpx;
+  color: var(--ink-300);
+}
+.weather-source image {
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 50%;
+}
+
+/* 车程标签颜色即路况(参照行程单):通畅 #35945B(本主题用 --success)
+   轻微拥堵 #D9A13B / 严重拥堵 #BE4A2E;数据源 Google Predictive Traffic */
+.drive-time.smooth { color: var(--success); font-weight: 600; }
+.drive-time.slow   { color: #D9A13B; font-weight: 600; }
+.drive-time.jam    { color: #BE4A2E; font-weight: 600; }
+
+/* ---------- 访校列表(5a / 5b) ---------- */
+/* 日分组头:日期 + n 所 + 冲突红点 + 全部展开 */
+.day-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 0 4rpx 14rpx;
+}
+.day-header .date { font-size: 23rpx; font-weight: 700; color: var(--ink-900); }
+.day-header .count { font-size: 20rpx; color: var(--ink-400); }
+.day-header .conflict-dot { width: 10rpx; height: 10rpx; border-radius: 999rpx; background: var(--danger); }
+.day-header .expand-all { margin-left: auto; font-size: 20rpx; color: var(--brand-600); font-weight: 600; }
+
+/* 折叠行:h96,同日 ≥3 所默认此态;点击单独展开 */
+.visit-row {
+  height: 96rpx;
+  background: var(--bg-card);
+  border: 1rpx solid var(--line);
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+}
+.visit-row + .visit-row { margin-top: 12rpx; }
+.visit-row .dot { width: 14rpx; height: 14rpx; border-radius: 999rpx; flex-shrink: 0; }
+.visit-row .name { font-size: 26rpx; font-weight: 600; color: var(--ink-900); white-space: nowrap; }
+.visit-row .sub  { font-size: 19rpx; color: var(--ink-400); white-space: nowrap; }
+.visit-row.cancelled { opacity: 0.55; }
+.visit-row.conflict  { border-color: rgba(180, 70, 60, 0.4); }
+
+/* 冲突包裹框:两张冲突行强制相邻 */
+.conflict-wrap {
+  border: 1rpx solid var(--danger-line);
+  background: rgba(250, 237, 235, 0.45);
+  border-radius: 28rpx;
+  padding: 14rpx;
+}
+.conflict-wrap .reason {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 2rpx 12rpx 12rpx;
+  font-size: 19rpx;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* ---------- 筛选 chip(5a 顶部,横滑不换行) ---------- */
+.filter-chip {
+  height: 52rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: var(--bg-card);
+  border: 1rpx solid rgba(27, 35, 64, 0.10);
+  color: var(--ink-600);
+  font-size: 20rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  flex-shrink: 0;
+}
+.filter-chip.active {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* ---------- 分段切换(5e 动作抽屉) ---------- */
+.seg-control {
+  display: flex;
+  gap: 10rpx;
+  background: #F1F2F6;
+  border-radius: 999rpx;
+  padding: 6rpx;
+}
+.seg-control .seg {
+  flex: 1;
+  height: 56rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-600);
+  font-size: 20rpx;
+  font-weight: 600;
+}
+.seg-control .seg.active {
+  background: var(--ink-900);
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+/* ---------- 材料状态行(5c) ---------- */
+.material-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 10rpx 0;
+  border-top: 1rpx solid rgba(27, 35, 64, 0.05);
+}
+.material-row:first-child { border-top: 0; }
+.material-row .name { font-size: 22rpx; color: var(--ink-900); }
+.material-row .state { margin-left: auto; font-size: 19rpx; font-weight: 600; }
+.material-row .state.verified  { color: var(--success); }
+.material-row .state.submitted { color: var(--brand-600); }
+.material-row .state.missing   { color: var(--warn); font-weight: 700; }
+
+/* ---------- 底部动作栏(详情页 fixed) ---------- */
+.action-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1rpx solid rgba(27, 35, 64, 0.08);
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 20rpx;
+  box-sizing: border-box;
+}
+
+/* ---------- 按钮 ---------- */
+.cta-primary {
+  height: 88rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #727EB5 0%, #5F6BA6 100%);
+  box-shadow: 0 16rpx 36rpx rgba(95, 107, 166, 0.32);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.cta-ghost {
+  height: 88rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(102, 114, 168, 0.4);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--brand-600);
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.cta-danger-ghost {
+  height: 88rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid var(--danger-line);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--danger);
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.cta-microcopy {
+  margin-top: 18rpx;
+  text-align: center;
+  color: var(--ink-400);
+  font-size: 20rpx;
+}
+
+/* ---------- toast(状态流转反馈) ---------- */
+.toast-dark {
+  height: 68rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: rgba(27, 35, 64, 0.92);
+  color: #FFFFFF;
+  font-size: 21rpx;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 14rpx;
+  box-shadow: 0 20rpx 52rpx rgba(15, 20, 40, 0.3);
+}
+
+/* ---------- 偏好标签 ---------- */
+.pref-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 52rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.pref-chip.add {
+  background: transparent;
+  border: 1rpx dashed rgba(102, 114, 168, 0.4);
+  color: var(--ink-400);
+}
+
+/* ---------- 信息行 ---------- */
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.info-row:last-child { border-bottom: 0; }
+
+.info-label {
+  width: 120rpx;
+  flex-shrink: 0;
+  color: var(--ink-400);
+  font-size: 21rpx;
+}
+
+.info-value {
+  flex: 1;
+  color: var(--ink-900);
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.copy-chip {
+  height: 44rpx;
+  padding: 0 18rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid rgba(27, 35, 64, 0.12);
+  display: flex;
+  align-items: center;
+  font-size: 19rpx;
+  color: var(--ink-600);
+}
+
+.copy-chip.gold {
+  border: 0;
+  background: var(--gold-50);
+  color: var(--gold-700);
+  font-weight: 600;
+}
+
+/* ---------- 推荐方案卡 ---------- */
+.quote-card-recommended {
+  position: relative;
+  border: 2rpx solid rgba(166, 136, 91, 0.5) !important;
+  box-shadow: 0 24rpx 60rpx rgba(166, 136, 91, 0.12);
+}
+
+.recommend-badge {
+  position: absolute;
+  top: -16rpx;
+  left: 32rpx;
+  height: 36rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, #B9975F 0%, #A6885B 100%);
+  color: #FFFFFF;
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- 时间轴 ---------- */
+.timeline-time {
+  width: 68rpx;
+  text-align: right;
+  font-size: 23rpx;
+  font-weight: 600;
+  color: var(--brand-600);
+  flex-shrink: 0;
+}
+
+.timeline-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 999rpx;
+  border: 4rpx solid var(--brand-500);
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+
+.timeline-dot.filled { background: var(--brand-500); }
+.timeline-dot.future { border-color: #C4C8D4; }
+
+.timeline-dot.current {
+  background: var(--brand-500);
+  box-shadow: 0 0 0 6rpx rgba(102, 114, 168, 0.15);
+}
+
+.timeline-line {
+  width: 1rpx;
+  flex: 1;
+  background: rgba(27, 35, 64, 0.10);
+}
+
+/* 固定内容行防压缩:时间轴内所有非弹性行必须 flex-shrink: 0,
+   仅节点行 flex: 1(3a 一屏自适应规则) */
+.no-shrink { flex-shrink: 0; }
+
+.segment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  height: 40rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: #F1F2F7;
+  color: #7A8098;
+  font-size: 19rpx;
+}
+
+/* ---------- 空状态 ---------- */
+.empty-state {
+  padding: 40rpx 32rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-400);
+  font-size: 24rpx;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ---------- 兼容:v2 minimal theme 遗留类 ----------
+   .pill 在 v3 设计中被 .pref-chip / .segment-pill 取代,但 home.wxml 等
+   现有页面仍在使用;保留以免替换 theme 时丢样式(换皮时逐页迁移后可删)。 */
 .pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 52rpx;
   padding: 0 20rpx;
-  background: rgba(102, 114, 168, 0.08);
+  background: var(--brand-50);
   border-radius: 999rpx;
-  color: #6672A8;
+  color: var(--brand-500);
   font-size: 22rpx;
   line-height: 1;
-}
-
-.cta-primary {
-  height: 88rpx;
-  line-height: 88rpx;
-  border-radius: 999rpx;
-  text-align: center;
-  font-size: 28rpx;
-  font-weight: 600;
-  background: #6672A8;
-  color: #FFFFFF;
-}
-
-.empty-state {
-  padding: 32rpx;
-  border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.92);
-  color: #7E889A;
-  font-size: 24rpx;
-  line-height: 1.6;
 }

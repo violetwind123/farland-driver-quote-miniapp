@@ -1,0 +1,129 @@
+<view class="vb-page">
+
+  <view wx:if="{{loading}}" class="empty-state">加载中…</view>
+
+  <block wx:else>
+    <!-- Hero -->
+    <view class="vb-hero">
+      <view class="section-kicker gold">OPS · CAMPUS VISITS</view>
+      <view class="section-title">访校预约管理</view>
+      <view class="vb-sub">{{header.customerLabel}} · {{header.routeLabel}}</view>
+      <view class="vb-stats">
+        <view class="vb-stat week">本周 {{header.weekCount}} 所</view>
+        <view class="vb-stat pending">待确认 {{header.pendingCount}}</view>
+        <view wx:if="{{header.conflictCount > 0}}" class="vb-stat conflict">冲突 {{header.conflictCount}}</view>
+      </view>
+    </view>
+
+    <!-- Search (display-only in R5) -->
+    <view class="vb-search">
+      <text class="vb-search-icon">🔍</text>
+      <text class="vb-search-ph">搜学校 / 学生</text>
+    </view>
+
+    <!-- Filter chips -->
+    <scroll-view scroll-x="{{true}}" class="vb-filters">
+      <view
+        class="filter-chip {{f.active ? 'active' : ''}}"
+        wx:for="{{filters}}"
+        wx:for-item="f"
+        wx:key="key"
+        data-key="{{f.key}}"
+        bindtap="onFilterTap"
+      >{{f.label}}</view>
+    </scroll-view>
+
+    <!-- Day groups -->
+    <view class="vb-day" wx:for="{{dayGroups}}" wx:for-item="day" wx:key="date">
+      <view class="day-header">
+        <text class="date">{{day.dateLabel}}</text>
+        <text class="count">· {{day.count}} 所</text>
+        <view wx:if="{{day.hasConflict}}" class="conflict-dot"></view>
+        <text
+          wx:if="{{day.collapsedMode}}"
+          class="expand-all"
+          data-date="{{day.date}}"
+          bindtap="toggleDayExpand"
+        >{{day.allExpanded ? '全部收起' : '全部展开'}}</text>
+      </view>
+
+      <block wx:for="{{day.items}}" wx:for-item="item" wx:key="key">
+
+        <!-- Conflict wrap: two clashing rows forced adjacent, single reason line -->
+        <view wx:if="{{item.type === 'conflict'}}" class="conflict-wrap">
+          <view class="reason">时间冲突 · 同学生 {{item.studentName}} · 改期任一即解除</view>
+          <view
+            class="visit-row conflict {{row.cancelled ? 'cancelled' : ''}}"
+            wx:for="{{item.rows}}"
+            wx:for-item="row"
+            wx:key="id"
+            data-id="{{row.id}}"
+            bindtap="onRowTap"
+          >
+            <view class="dot" style="background:{{row.dotColor}}"></view>
+            <view class="vb-row-main">
+              <view class="name">{{row.schoolCn}}</view>
+              <view class="sub">{{row.subline}}</view>
+            </view>
+            <view class="status-chip {{row.chipClass}}" style="margin-left:auto">{{row.statusText}}</view>
+          </view>
+        </view>
+
+        <!-- Collapsed row -->
+        <view
+          wx:elif="{{item.type === 'row'}}"
+          class="visit-row {{item.row.cancelled ? 'cancelled' : ''}} {{item.row.conflict ? 'conflict' : ''}}"
+          data-id="{{item.row.id}}"
+          bindtap="onRowTap"
+        >
+          <view class="dot" style="background:{{item.row.dotColor}}"></view>
+          <view class="vb-row-main">
+            <view class="name">{{item.row.schoolCn}}</view>
+            <view class="sub">{{item.row.subline}}</view>
+          </view>
+          <view class="status-chip {{item.row.chipClass}}" style="margin-left:auto">{{item.row.statusText}}</view>
+        </view>
+
+        <!-- Expanded card -->
+        <view
+          wx:elif="{{item.type === 'card'}}"
+          class="card-surface vb-card"
+          data-id="{{item.card.id}}"
+          bindtap="onRowTap"
+        >
+          <view class="vb-card-head">
+            <view class="vb-card-titles">
+              <view class="vb-card-cn">{{item.card.schoolCn}}</view>
+              <view wx:if="{{item.card.schoolEn}}" class="vb-card-en">{{item.card.schoolEn}}</view>
+            </view>
+            <view class="status-chip {{item.card.chipClass}}">{{item.card.statusText}}</view>
+          </view>
+
+          <view class="vb-card-timerow">
+            <view class="vb-time">{{item.card.timeRange}}</view>
+            <view wx:if="{{item.card.weatherLabel}}" class="weather-inline">{{item.card.weatherLabel}}</view>
+          </view>
+
+          <view class="vb-card-meta">
+            <view wx:if="{{item.card.visitTypeLabel}}" class="vb-pill">{{item.card.visitTypeLabel}}</view>
+            <view wx:if="{{item.card.city}}" class="vb-pill ghost">{{item.card.city}}</view>
+            <view wx:if="{{item.card.needMaterials && item.card.materialsLabel}}" class="status-chip warn-soft">{{item.card.materialsLabel}}</view>
+          </view>
+
+          <view wx:if="{{item.card.meetingPointLabel}}" class="vb-line">集合点 · {{item.card.meetingPointLabel}}</view>
+          <view wx:if="{{item.card.studentLabel}}" class="vb-line">学生 · {{item.card.studentLabel}}</view>
+        </view>
+
+      </block>
+    </view>
+
+    <!-- Advisor fallback -->
+    <view class="card-ivory vb-fallback" bindtap="onAdvisorFallback">没找到学校?顾问代查并录入 →</view>
+
+    <!-- Empty -->
+    <view wx:if="{{!loading && dayGroups.length === 0}}" class="empty-state">暂无访校预约</view>
+
+    <view wx:if="{{dataSyncTime}}" class="vb-sync">数据同步 · {{dataSyncTime}}</view>
+  </block>
+
+</view>

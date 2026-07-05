@@ -22,15 +22,15 @@
         </view>
       </view>
 
-      <view class="detail-hero">
-        <view class="hero-kicker">TRANSFER REQUEST</view>
-        <view class="hero-title">{{request.task_title || '接送需求'}}</view>
-        <view class="hero-route">{{request.pickup}} → {{request.dropoff}}</view>
-        <view class="hero-status">{{request.status_text}}</view>
+      <view class="transfer-head">
+        <view class="head-kicker">TRANSFER · {{request.reference_no || request.request_id}}</view>
+        <view class="head-title">接送方案</view>
+        <view class="head-route"><view class="route-dot"></view>{{request.pickup}}<text class="route-arrow">→</text>{{request.dropoff}}</view>
+        <view class="status-chip pending">{{request.status_text}}</view>
       </view>
 
       <view class="detail-card">
-        <view class="section-kicker">REQUEST SNAPSHOT</view>
+        <view class="section-kicker gold">REQUEST SNAPSHOT</view>
         <view class="section-title">需求快照</view>
         <view class="snapshot-grid">
           <view class="snapshot-item">
@@ -102,31 +102,22 @@
         </view>
 
         <view wx:if="{{hasPublishedQuotes}}" class="quote-list">
-          <view wx:for="{{quotes}}" wx:key="quote_id" class="quote-card {{selectedQuoteId === item.quote_id ? 'selected' : ''}}">
+          <view wx:for="{{quotes}}" wx:key="quote_id" class="quote-card {{item.is_recommended ? 'quote-card-recommended' : ''}} {{selectedQuoteId === item.quote_id ? 'selected' : ''}}">
+            <view wx:if="{{item.is_recommended}}" class="recommend-badge">顾问推荐</view>
             <view class="quote-head">
               <view>
                 <view class="quote-title">{{item.public_title}}</view>
                 <view class="quote-sub">{{item.suitable_for}}</view>
               </view>
-              <view wx:if="{{item.is_recommended}}" class="recommend-badge">推荐</view>
             </view>
 
             <view class="quote-profile">{{item.driver_profile_teaser}}</view>
             <view class="quote-meta">{{item.vehicle_class}} · {{item.capacity_text}}</view>
 
-            <view class="price-grid">
-              <view>
-                <view class="price-label">司机报价</view>
-                <view class="price-value">{{item.currency}} {{item.driver_quote_amount}}</view>
-              </view>
-              <view>
-                <view class="price-label">Farland 服务费 {{item.feeRateText}}</view>
-                <view class="price-value">{{item.currency}} {{item.farland_service_fee_amount}}</view>
-              </view>
-              <view>
-                <view class="price-label">预计总价</view>
-                <view class="price-total">{{item.currency}} {{item.client_visible_total}}</view>
-              </view>
+            <view class="quote-price">
+              <view class="price-cap">预计总价</view>
+              <view class="price-serif">{{item.currency}} {{item.client_visible_total}}</view>
+              <view class="price-break">司机 {{item.driver_quote_amount}} + 服务费 {{item.farland_service_fee_amount}}</view>
             </view>
 
             <view class="quote-detail">包含：{{item.includesText}}</view>
@@ -140,7 +131,7 @@
               <view wx:if="{{selectedQuoteId === item.quote_id}}" class="quote-readonly selected">已选择</view>
               <button
                 wx:else
-                class="quote-select-btn"
+                class="quote-select-btn cta-primary"
                 loading="{{choosingQuoteId === item.quote_id}}"
                 disabled="{{!!selectedQuoteId || choosingQuoteId === item.quote_id}}"
                 data-quote-id="{{item.quote_id}}"
@@ -151,14 +142,17 @@
         </view>
       </view>
 
-      <view class="detail-card">
-        <view class="section-kicker">ACTIVITY</view>
+      <view wx:if="{{activityEvents.length}}" class="detail-card">
+        <view class="section-kicker gold">ACTIVITY</view>
         <view class="section-title">处理进度</view>
         <view class="activity-list">
           <view wx:for="{{activityEvents}}" wx:key="time" class="activity-row">
-            <view class="activity-time">{{item.time}}</view>
-            <view class="activity-dot"></view>
-            <view class="activity-message">{{item.message}}</view>
+            <view class="timeline-time">{{item.time}}</view>
+            <view class="timeline-rail">
+              <view class="timeline-dot {{item.current ? 'current' : 'future'}}"></view>
+              <view wx:if="{{!item.last}}" class="timeline-line"></view>
+            </view>
+            <view class="activity-message {{item.current ? 'current' : ''}}">{{item.message}}</view>
           </view>
         </view>
       </view>

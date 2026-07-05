@@ -82,10 +82,13 @@ Page({
     currentCard: null,
     initialIndex: 0,
     hasSwipedDayCards: false,
+    nodeStrip: [],
+    stationHeight: 0,
   },
 
   onLoad(options = {}) {
     const app = getApp();
+    this.resolveStationHeight();
     const route = this.normalizeRouteParams(options);
     const storedCard = (app.globalData && app.globalData.todayCardDetail) || wx.getStorageSync('todayCardDetail') || null;
     const cachedCard = this.findCachedTripDayCard(route);
@@ -113,7 +116,22 @@ Page({
       initialIndex,
       currentCard: cards[initialIndex] || null,
       hasSwipedDayCards: false,
+      nodeStrip: this.buildNodeStrip(cards, initialIndex),
     });
+  },
+
+  // WeChat swiper collapses under height:100vh, so compute an explicit px height
+  // from the window and drive swiper + station layers off it.
+  resolveStationHeight() {
+    try {
+      const info = (wx.getWindowInfo && wx.getWindowInfo())
+        || (wx.getSystemInfoSync && wx.getSystemInfoSync())
+        || {};
+      const h = Number(info.windowHeight || 0);
+      if (h > 0) this.setData({ stationHeight: h });
+    } catch (err) {
+      // graceful degradation: leave stationHeight 0 (CSS fallback applies)
+    }
   },
 
   normalizeRouteParams(options) {
@@ -402,7 +420,8 @@ Page({
       acc[item.index] = item.effectiveTime;
       return acc;
     }, {});
-    return (Array.isArray(cards) ? cards : []).map((card, index) => {
+    const list = Array.isArray(cards) ? cards : [];
+    return list.map((card, index) => {
       const timeStatus = !hasTimedCards
         ? 'upcoming'
         : (index < currentIndex ? 'past' : (index === currentIndex ? 'current' : 'upcoming'));
@@ -411,16 +430,47 @@ Page({
         current: '当前',
         upcoming: '待前往',
       };
+      // Themed status-chip variant driven by time_status (NOT a fabricated
+      // confirmed-solid): past→success-soft, current→pending, upcoming→neutral.
+      const statusChipMap = {
+        past: 'success-soft',
+        current: 'pending',
+        upcoming: 'neutral',
+      };
       const effectiveTime = timeByIndex[index] || this.getCardEffectiveTime(card);
       const effectiveDate = this.buildLocalDate(todayCard.date || card.date || '', effectiveTime);
+      const nextCard = list[index + 1] || null;
+      const nextNodeText = nextCard
+        ? [this.shortTitle(nextCard.primaryName || nextCard.title || ''), nextCard.time || nextCard.arrival_estimate || '']
+          .filter(Boolean).join(' · ')
+        : '';
       return {
         ...card,
         effective_time: effectiveTime,
         effectiveDate: effectiveDate ? effectiveDate.getTime() : 0,
         time_status: timeStatus,
         timeStatusText: statusTextMap[timeStatus],
+        heroStatusClass: statusChipMap[timeStatus] || 'neutral',
+        nextNodeText,
         chipTimeText: effectiveTime || card.time || card.arrival_estimate || '',
         chipTitle: this.shortTitle(card.primaryName || card.title || card.chipText || ''),
+      };
+    });
+  },
+
+  buildNodeStrip(cards = [], currentIndex = 0) {
+    const list = Array.isArray(cards) ? cards : [];
+    const nextIndex = currentIndex + 1;
+    return list.map((card, index) => {
+      let state = 'future';
+      if (index < currentIndex) state = 'past';
+      else if (index === currentIndex) state = 'current';
+      else if (index === nextIndex) state = 'next';
+      return {
+        key: card.card_id || `node-${index}`,
+        time: card.chipTimeText || card.effective_time || '',
+        name: this.shortTitle(card.chipTitle || card.title || ''),
+        state,
       };
     });
   },
@@ -569,12 +619,79 @@ Page({
       detailItems,
       plainDetailItems,
       timeItems,
+      heroTime: card.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || '',
+      heroTimeSub: this.buildHeroTimeSub(timeSnapshot),
+      heroSubtitle: displaySnapshot.location_text || displaySnapshot.address || secondaryName || '',
+      heroWatermark: this.buildHeroWatermark(displaySnapshot.name_en || primaryName),
+      aboutLines: introLines,
+      factCells: this.buildFactCells(cardType, detailItems),
+      highlights: this.buildHighlights(displaySnapshot),
+      practicalRows: this.buildPracticalRows(card, displaySnapshot),
       timeWarningText: timeSnapshot.time_warning_text || '',
       title: primaryName || card.title || '行程节点',
       subtitle: secondaryName || card.subtitle || '',
       time: card.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || '',
       chipText: `${card.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || ''} ${primaryName || card.title || ''}`.trim(),
     };
+  },
+
+  buildHeroTimeSub(timeSnapshot = {}) {
+    const end = timeSnapshot.end_time || '';
+    if (!end) return '';
+    const offset = Number(timeSnapshot.end_time_day_offset || 0) > 0 ? '次日 ' : '';
+    return `– ${offset}${end}`;
+  },
+
+  buildHeroWatermark(name) {
+    const m = String(name || '').match(/^[A-Za-z][A-Za-z .&'-]*/);
+    return m ? (m[0].trim().split(' ')[0] || '') : '';
+  },
+
+  // Fact grid is rendered ONLY for hotel/flight/meeting cards whose detailItems
+  // (built by buildStructuredDetailItems) is non-empty. Scenic 门票/讲解/预约 are
+  // DEFERRED — those fields do not exist on the card VM, so no grid is synthesized.
+  // This is a pure re-shape of already-built detailItems; it does NOT re-invoke
+  // resolveHotelConfirmationNo / the 091 resolvers (detailItems is already resolved).
+  buildFactCells(cardType, detailItems = []) {
+    const isFactType = cardType === 'hotel_arrival_card'
+      || cardType === 'hotel_arrival'
+      || cardType === 'hotel'
+      || cardType === 'flight_card'
+      || cardType === 'flight'
+      || cardType === 'meeting_card'
+      || cardType === 'meeting';
+    if (!isFactType) return [];
+    return (Array.isArray(detailItems) ? detailItems : [])
+      .filter((item) => item && item.value)
+      .slice(0, 3)
+      .map((item) => ({
+        label: item.label || '',
+        value: item.value,
+        tone: item.muted ? 'muted' : '',
+      }));
+  },
+
+  // highlight_tags is string-only, so highlights are title-only. desc is always ''
+  // (the WXML keeps a wx:if h.desc guard so no description element ever renders)
+  // until a structured highlights[{title,desc}] field exists on the card VM.
+  buildHighlights(displaySnapshot = {}) {
+    const tags = Array.isArray(displaySnapshot.highlight_tags) ? displaySnapshot.highlight_tags : [];
+    return tags
+      .map((tag) => String(tag || '').trim())
+      .filter(Boolean)
+      .slice(0, 5)
+      .map((title, i) => ({ idx: String(i + 1).padStart(2, '0'), title, desc: '' }));
+  },
+
+  // 集合 row: ONLY displaySnapshot.address || card.location (grounded fields).
+  // meeting_point_name / meeting_point.name are intentionally NOT read (never
+  // resolve on cards). HARD BLACKLIST: never read materials / advisor_notes /
+  // contact_person / requested_slots / timeline / internal_status / cost / supplier.
+  buildPracticalRows(card = {}, displaySnapshot = {}) {
+    const rows = [];
+    const meet = displaySnapshot.address || card.location || '';
+    if (meet) rows.push({ label: '集合', value: meet });
+    return rows;
   },
 
   normalizeDisplaySnapshot(card = {}) {
@@ -1380,6 +1497,7 @@ Page({
       currentIndex,
       currentCard: this.data.cards[currentIndex] || null,
       hasSwipedDayCards: this.data.hasSwipedDayCards || e.detail.source === 'touch',
+      nodeStrip: this.buildNodeStrip(this.data.cards, currentIndex),
     });
   },
 

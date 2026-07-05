@@ -1,0 +1,130 @@
+@import "/styles/theme.wxss";
+
+/* 字号护栏:确保根字号与设计一致 */
+page { font-size: 28rpx; }
+
+.visit-page {
+  padding: 0 24rpx calc(140rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+.section-kicker { margin-top: 28rpx; }
+
+/* 搜索 */
+.search-pill {
+  margin-top: 24rpx;
+  height: 88rpx;
+  border-radius: 999rpx;
+  background: var(--bg-card);
+  border: 1rpx solid var(--line);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  padding: 0 36rpx;
+}
+.search-input {
+  flex: 1;
+  font-size: 24rpx;
+  color: var(--ink-900);
+}
+.search-ph { color: var(--ink-400); }
+
+/* 筛选 */
+.filter-row {
+  margin-top: 24rpx;
+  white-space: nowrap;
+}
+.filter-row .filter-chip {
+  display: inline-flex;
+  margin-right: 16rpx;
+}
+
+/* 学校卡片(card-surface 供 bg/border/radius/shadow) */
+.school-card {
+  padding: 28rpx 32rpx;
+  margin-top: 24rpx;
+}
+.school-card .card-title {
+  font-family: var(--font-serif);
+}
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.card-head-text { flex: 1; min-width: 0; }
+.visit-meta { margin-top: 16rpx; }
+
+.date-block { margin-top: 18rpx; }
+.date-label { margin-bottom: 4rpx; }
+.date-row {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 8rpx;
+}
+.date-chip {
+  height: 48rpx;
+  padding: 0 20rpx;
+  border-radius: 16rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 20rpx;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.date-chip.more {
+  background: var(--bg-card);
+  border: 1rpx dashed rgba(102, 114, 168, 0.4);
+  color: var(--ink-400);
+  font-weight: 400;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--line);
+}
+.footer-spacer { flex: 1; }
+
+.cta-proxy {
+  height: 60rpx;
+  padding: 0 30rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, #727EB5 0%, #5F6BA6 100%);
+  color: #FFFFFF;
+  font-size: 22rpx;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.cta-ghost.remind {
+  height: 56rpx;
+  padding: 0 26rpx;
+  font-size: 21rpx;
+}
+
+/* 常驻底部顾问兜底条 */
+.advisor-fallback {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(28rpx + env(safe-area-inset-bottom));
+  height: 88rpx;
+  border-radius: 999rpx;
+  background: var(--bg-ivory);
+  border: 1rpx solid rgba(166, 136, 91, 0.25);
+  box-shadow: var(--shadow-float);
+  color: var(--gold-700);
+  font-size: 24rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

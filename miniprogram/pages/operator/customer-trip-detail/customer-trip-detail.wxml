@@ -42,8 +42,8 @@
 
     <!-- 模块一 · 发布工作流 -->
     <view class="panel workflow-panel">
-      <view class="section-title">发布工作流</view>
-      <view class="workflow-sub">按顺序完成生成草稿、客户页预览、确认发布和客户分享卡。</view>
+      <view class="section-title">手机版行程单转发</view>
+      <view class="workflow-sub">客户第一版先看手机版行程单；成交后再处理酒店、用车和每日评价等后续内容。</view>
 
       <view wx:if="{{criticalWarningList.length || warningList.length}}" class="workflow-alert">
         <view class="warning-title">发布前提醒</view>
@@ -54,9 +54,52 @@
         当前草稿与已发布版本有 {{changedSections.length}} 项差异；详细内容可在下方「草稿内容审阅」展开查看。
       </view>
 
+      <view class="workflow-step-card priority-share-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index priority">1</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">转发客户第一版行程单</view>
+            <view class="workflow-step-sub">主动作是微信转发；复制路径仅作内部兜底。</view>
+          </view>
+          <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished ? '待准备' : '待发布')}}</view>
+        </view>
+        <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
+          <view class="empty-title">发布后可转发手机版行程单</view>
+          <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
+        </view>
+        <block wx:else>
+          <view wx:if="{{preview.review_status === 'needs_review'}}" class="share-note">
+            有新草稿待复核：分享卡指向已发布的 v{{preview.published_version || 0}}，新草稿发布前客户不会看到变化。
+          </view>
+          <button
+            wx:if="{{!invitePath}}"
+            class="primary-wide-btn"
+            loading="{{creatingInvite}}"
+            disabled="{{creatingInvite || preview.review_status === 'needs_review'}}"
+            bindtap="createTripInvite"
+          >准备手机版行程单</button>
+          <view wx:if="{{!invitePath && preview.review_status === 'needs_review'}}" class="share-note">
+            建议先发布新草稿，再准备手机版行程单。
+          </view>
+          <view wx:if="{{invitePath}}" class="invite-box">
+            <view class="invite-row">
+              <view class="invite-label">invite_code</view>
+              <view class="invite-value">{{inviteCode}}</view>
+            </view>
+            <view class="invite-row">
+              <view class="invite-label">有效期至</view>
+              <view class="invite-value">{{inviteExpiresAt}}</view>
+            </view>
+            <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
+            <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发手机版行程单</button>
+            <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径（备用）</button>
+          </view>
+        </block>
+      </view>
+
       <view class="workflow-step-card">
         <view class="workflow-step-head">
-          <view class="workflow-step-index">1</view>
+          <view class="workflow-step-index">2</view>
           <view class="workflow-step-copy">
             <view class="workflow-step-title">生成客户可见草稿</view>
             <view class="workflow-step-sub">把源数据转成客户可见快照，移除内部字段。</view>
@@ -68,7 +111,7 @@
 
       <view class="workflow-step-card">
         <view class="workflow-step-head">
-          <view class="workflow-step-index">2</view>
+          <view class="workflow-step-index">3</view>
           <view class="workflow-step-copy">
             <view class="workflow-step-title">预览客户页面</view>
             <view class="workflow-step-sub">打开客户真实渲染链路。只读，不创建分享卡或保存记录。</view>
@@ -85,10 +128,10 @@
 
       <view class="workflow-step-card">
         <view class="workflow-step-head">
-          <view class="workflow-step-index">3</view>
+          <view class="workflow-step-index">4</view>
           <view class="workflow-step-copy">
             <view class="workflow-step-title">确认发布</view>
-            <view class="workflow-step-sub">发布后客户分享卡读取新的已发布版本。</view>
+            <view class="workflow-step-sub">发布后手机版行程单读取新的已发布版本。</view>
           </view>
           <view class="workflow-step-status">{{canPublish ? '可发布' : '待检查'}}</view>
         </view>
@@ -100,49 +143,6 @@
           bindinput="onReviewNoteInput"
         />
         <button class="primary-wide-btn" loading="{{publishing}}" disabled="{{publishing || building || !canPublish}}" bindtap="publishTrip">确认发布</button>
-      </view>
-
-      <view class="workflow-step-card">
-        <view class="workflow-step-head">
-          <view class="workflow-step-index">4</view>
-          <view class="workflow-step-copy">
-            <view class="workflow-step-title">生成 / 转发客户分享卡</view>
-            <view class="workflow-step-sub">主动作是微信转发；复制路径仅作内部兜底。</view>
-          </view>
-          <view class="workflow-step-status">{{invitePath ? '已准备' : '待准备'}}</view>
-        </view>
-        <view wx:if="{{preview.visibility_status !== 'published' || !hasPublished}}" class="share-empty">
-          <view class="empty-title">发布后可生成客户分享卡</view>
-          <view class="empty-sub">客户链接只读取已发布版本，不会展示草稿内容。</view>
-        </view>
-        <block wx:else>
-          <view wx:if="{{preview.review_status === 'needs_review'}}" class="share-note">
-            有新草稿待复核：分享卡指向已发布的 v{{preview.published_version || 0}}，新草稿发布前客户不会看到变化。
-          </view>
-          <button
-            wx:if="{{!invitePath}}"
-            class="primary-wide-btn"
-            loading="{{creatingInvite}}"
-            disabled="{{creatingInvite || preview.review_status === 'needs_review'}}"
-            bindtap="createTripInvite"
-          >准备客户分享卡</button>
-          <view wx:if="{{!invitePath && preview.review_status === 'needs_review'}}" class="share-note">
-            建议先发布新草稿，再生成客户分享卡。
-          </view>
-          <view wx:if="{{invitePath}}" class="invite-box">
-            <view class="invite-row">
-              <view class="invite-label">invite_code</view>
-              <view class="invite-value">{{inviteCode}}</view>
-            </view>
-            <view class="invite-row">
-              <view class="invite-label">有效期至</view>
-              <view class="invite-value">{{inviteExpiresAt}}</view>
-            </view>
-            <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
-            <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户分享卡</button>
-            <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径（备用）</button>
-          </view>
-        </block>
       </view>
     </view>
 

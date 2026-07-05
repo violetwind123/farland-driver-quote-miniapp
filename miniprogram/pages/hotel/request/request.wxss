@@ -1,3 +1,7 @@
+@import "/styles/theme.wxss";
+
+page { font-size: 28rpx; }
+
 .hotel-page {
   position: relative;
   min-height: 100vh;
@@ -423,18 +427,34 @@
   height: 82rpx;
   line-height: 82rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #6874B4 0%, #8993CC 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  background: linear-gradient(180deg, #727EB5 0%, #5F6BA6 100%);
   color: #FFFFFF;
   font-size: 29rpx;
   font-weight: 600;
-  box-shadow:
-    0 1rpx 2rpx rgba(255, 255, 255, 0.22) inset,
-    0 8rpx 22rpx rgba(104, 116, 180, 0.34);
+  box-shadow: 0 16rpx 36rpx rgba(95, 107, 166, 0.32);
   padding: 0;
 }
 
 .query-btn::after {
   border: none;
+}
+
+.query-icon {
+  font-size: 30rpx;
+  color: #FFFFFF;
+  line-height: 1;
+}
+
+.query-note {
+  margin-top: 18rpx;
+  text-align: center;
+  color: var(--ink-400);
+  font-size: 20rpx;
+  line-height: 1.4;
 }
 
 .hotel-results {
@@ -607,7 +627,7 @@
   top: -12rpx;
   padding: 0 12rpx;
   background: #FFFFFF;
-  color: #A6772A;
+  color: var(--gold-500);
   font-size: 19rpx;
   line-height: 1.2;
   letter-spacing: 1.5rpx;

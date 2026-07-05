@@ -1,0 +1,62 @@
+<view class="visit-page">
+  <!-- 头部 -->
+  <view class="section-kicker gold">CAMPUS VISIT</view>
+  <view class="section-title">访校日期查询</view>
+  <view class="caption">官方 Campus Tour / Info Session 可约日期 · {{syncLabel}}</view>
+
+  <!-- 搜索 -->
+  <view class="search-pill">
+    <input class="search-input" placeholder="搜索学校 / 城市" placeholder-class="search-ph" bindinput="onSearchInput" value="{{keyword}}" />
+  </view>
+
+  <!-- 筛选 chips -->
+  <scroll-view class="filter-row" scroll-x="true">
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="filter-chip {{item.active ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onFilterTap"
+    >{{item.label}}</view>
+  </scroll-view>
+
+  <!-- 学校卡片 -->
+  <view wx:for="{{schools}}" wx:key="slug" class="card-surface school-card">
+    <view class="card-head">
+      <view class="card-head-text">
+        <view class="card-title">{{item.name}}</view>
+        <view class="caption">{{item.nameEn}} · {{item.location}}</view>
+      </view>
+      <view class="status-chip {{item.statusClass}}">{{item.statusText}}</view>
+    </view>
+
+    <view class="body-text visit-meta">{{item.visitType}} · {{item.durationText}} · 官方免费</view>
+
+    <view class="date-block">
+      <view class="caption date-label">最近可约</view>
+      <view class="date-row">
+        <view wx:for="{{item.dates}}" wx:for-item="d" wx:key="iso" class="date-chip">{{d.label}}</view>
+        <view class="date-chip more" data-slug="{{item.slug}}" bindtap="onMoreDates">更多 ›</view>
+      </view>
+    </view>
+
+    <view class="card-footer">
+      <view wx:if="{{item.tripDay}}" class="status-chip featured">已在您的行程 · Day {{item.tripDay}}</view>
+      <view wx:else class="footer-spacer"></view>
+      <block wx:if="{{item.statusClass === 'pending'}}">
+        <view class="cta-ghost remind" data-slug="{{item.slug}}" bindtap="onRemindMe">提醒我</view>
+      </block>
+      <block wx:else>
+        <view class="cta-proxy" data-slug="{{item.slug}}" bindtap="onAdvisorProxy">顾问代约</view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 空态 -->
+  <view class="empty-state" wx:if="{{!loading && !schools.length}}">
+    暂无匹配的可约学校，试试下方顾问代查
+  </view>
+</view>
+
+<!-- 常驻底部顾问兜底条 -->
+<view class="advisor-fallback" data-slug="" bindtap="onAdvisorProxy">没找到想去的学校?顾问帮您查并代约 →</view>

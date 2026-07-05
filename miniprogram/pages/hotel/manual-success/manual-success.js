@@ -1,5 +1,10 @@
 const hotelUi = require('../../../utils/hotel-ui');
 
+function pad2(n) {
+  n = String(n);
+  return n.length >= 2 ? n : `0${n}`;
+}
+
 function normalizeHotelForSuccess(hotel = {}) {
   const displayName = hotelUi.normalizeLabel(hotel.displayName || hotel.name || hotel.name_en || '酒店');
   const displayNameEn = hotelUi.normalizeLabel(hotel.displayNameEn || hotel.name_en || '');
@@ -57,12 +62,17 @@ Page({
     stayText: '',
     searchMeta: '',
     payableText: '',
+    submittedTime: '',
   },
 
   onLoad() {
     const order = wx.getStorageSync('hotelManualOrderResult') || {};
     const hotel = normalizeHotelForSuccess(order.hotel || {});
     const room = normalizeRoomForSuccess(order.room || {});
+    // submittedTime is a render-time HH:MM stamp (the order result does not
+    // carry a submission timestamp), used only to label the 已提交 progress step.
+    const now = new Date();
+    const submittedTime = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
     this.setData({
       order,
       hotel,
@@ -72,6 +82,7 @@ Page({
       stayText: order.stayText || '',
       searchMeta: order.searchMeta || '',
       payableText: order.payable_text || (order.preview && order.preview.price && order.preview.price.payable_text) || '待确认',
+      submittedTime,
     });
   },
 
@@ -87,10 +98,17 @@ Page({
     });
   },
 
-  backToHotelSearch() {
+  continueBrowsing() {
     wx.switchTab({
       url: '/pages/hotel/request/request',
       fail: () => wx.reLaunch({ url: '/pages/hotel/request/request' }),
+    });
+  },
+
+  backToTrips() {
+    wx.switchTab({
+      url: '/pages/customer/home/home',
+      fail: () => wx.reLaunch({ url: '/pages/customer/home/home' }),
     });
   },
 });

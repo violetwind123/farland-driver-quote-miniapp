@@ -101,15 +101,18 @@
     </view>
 
     <button class="query-btn" loading="{{submitting}}" bindtap="submitRequest">
-      {{submitting ? '搜索中...' : '搜索酒店'}}
+      <text class="query-icon">⌕</text>
+      <text>{{submitting ? '查询中...' : '查询实时房价'}}</text>
     </button>
+
+    <view class="query-note">价格实时更新 · 预订确认由您的服务群顾问完成</view>
   </view>
 
   <view class="advisor-service-card">
     <view class="service-kicker">FARLAND CONCIERGE</view>
 
     <view class="service-list">
-      <view class="service-row">
+      <view class="service-row" bindtap="openVisitDates">
         <image class="service-icon" src="/assets/icons/service-campus.png" mode="aspectFit" />
         <view class="service-copy">
           <view class="service-name">大学参访预约</view>

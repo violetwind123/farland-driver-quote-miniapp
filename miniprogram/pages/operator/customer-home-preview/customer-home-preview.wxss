@@ -215,6 +215,13 @@
   margin-top: 18rpx;
 }
 
+.share-box {
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: #F7F9FF;
+  border: 1rpx solid rgba(102, 114, 168, 0.22);
+}
+
 .example-card {
   display: grid;
   grid-template-columns: 1fr 150rpx;

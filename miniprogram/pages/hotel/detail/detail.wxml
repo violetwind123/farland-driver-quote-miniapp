@@ -71,13 +71,18 @@
         <view wx:if="{{item.cancelBadge}}" class="policy-badge {{item.isNonCancelable ? 'strict' : ''}}" data-index="{{index}}" catchtap="showCancelPolicy">! {{item.cancelBadge}}</view>
         <view class="room-footer">
           <view class="room-note">预订前将重新确认价格和库存</view>
-          <view class="select-state">{{selectedRoomIndex == index ? '已选择' : '点卡片选择'}}</view>
+          <view class="select-state {{selectedRoomIndex == index ? 'is-selected' : ''}}">{{selectedRoomIndex == index ? '已选择' : '点卡片选择'}}</view>
         </view>
       </view>
     </view>
   </block>
 
   <view class="bottom-actions">
-    <button class="bottom-btn" disabled="{{!selectedRoom}}" bindtap="continueBooking">{{selectedRoom ? ('预订 · ' + selectedRoom.displayPrice) : '选择房型'}}</button>
+    <view class="bottom-summary">
+      <view wx:if="{{selectedRoom}}" class="summary-total price-serif">{{selectedRoom.displayPrice}}</view>
+      <view wx:else class="summary-total price-serif muted">未选房型</view>
+      <view class="summary-hint">无需在线支付，提交后由顾问确认</view>
+    </view>
+    <button class="bottom-btn" disabled="{{!selectedRoom}}" bindtap="continueBooking">{{selectedRoom ? '预订' : '选择房型'}}</button>
   </view>
 </view>

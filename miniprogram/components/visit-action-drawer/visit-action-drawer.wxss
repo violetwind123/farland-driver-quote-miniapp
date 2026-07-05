@@ -1,0 +1,244 @@
+/* visit-action-drawer (design 5e)
+   ONLY shell/panel layout NOT already in theme.
+   No @import here: the HOST page @imports "/styles/theme.wxss"; styleIsolation
+   'apply-shared' (.json, authoritative) makes theme classes AND page-scope
+   CSS custom properties (--ink-900 etc., declared on page{}) visible in-component.
+   apply-shared is load-bearing for BOTH class inheritance and token inheritance.
+   Mint #7ED6A4 (slot-check circle + toast dot) is an intentional shell literal:
+   theme ships no matching bright-mint token (--success is the darker #3F7A5D). */
+
+.drawer-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 26, 50, 0.42);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s;
+  z-index: 50;
+}
+.drawer-mask.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #FFFFFF;
+  border-radius: 44rpx 44rpx 0 0;
+  box-shadow: 0 -16rpx 40rpx rgba(15, 20, 40, 0.25);
+  padding: 20rpx 36rpx calc(68rpx + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 51;
+}
+.drawer.open {
+  transform: translateY(0);
+}
+
+.drawer-handle {
+  width: 72rpx;
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: rgba(27, 35, 64, 0.13);
+  margin: 0 auto 24rpx;
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.drawer-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.school-name-serif {
+  font-family: var(--font-serif);
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.school-sub {
+  font-size: 20rpx;
+  color: var(--ink-400);
+  margin-top: 2rpx;
+}
+.drawer-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 999rpx;
+  background: #F1F2F6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-600);
+  font-size: 22rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+/* theme owns .seg-control internals; only spacing here */
+.seg-control {
+  margin-top: 24rpx;
+}
+
+.panel {
+  margin-top: 4rpx;
+}
+.panel-hint {
+  margin-top: 26rpx;
+  font-size: 21rpx;
+  line-height: 1.6;
+  color: var(--ink-600);
+}
+
+.panel-kicker {
+  font-size: 19rpx;
+  letter-spacing: 3rpx;
+  color: var(--gold-500);
+  font-weight: 700;
+  margin: 28rpx 0 14rpx;
+}
+
+.slot-wrap {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.slot-chip {
+  height: 68rpx;
+  padding: 0 24rpx;
+  border-radius: 20rpx;
+  background: #FFFFFF;
+  border: 1rpx solid rgba(27, 35, 64, 0.12);
+  color: var(--ink-600);
+  font-size: 21rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+.slot-chip.sel {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+.slot-check {
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 999rpx;
+  background: #7ED6A4; /* design mint tick; no matching theme token */
+}
+
+.student-chip {
+  height: 56rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: #FFFFFF;
+  border: 1rpx solid rgba(27, 35, 64, 0.10);
+  color: var(--ink-400);
+  font-size: 21rpx;
+  display: flex;
+  align-items: center;
+}
+.student-chip.sel {
+  background: var(--brand-50);
+  border-color: rgba(102, 114, 168, 0.35);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+
+.note-box {
+  margin-top: 26rpx;
+  background: #F5F5F8;
+  border-radius: 22rpx;
+  padding: 20rpx 26rpx;
+  font-size: 21rpx;
+  color: var(--ink-900);
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 80rpx;
+}
+.note-ph {
+  color: var(--ink-400);
+}
+
+.file-slot {
+  margin-top: 22rpx;
+  height: 96rpx;
+  border-radius: 20rpx;
+  border: 1rpx dashed rgba(27, 35, 64, 0.22);
+  background: #F5F5F8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-400);
+  font-size: 21rpx;
+}
+
+.file-slot.picked {
+  border-style: solid;
+  border-color: rgba(102, 114, 168, 0.35);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 600;
+}
+
+.confirm-input {
+  margin-top: 20rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(27, 35, 64, 0.12);
+  padding: 0 24rpx;
+  font-size: 24rpx;
+  color: var(--ink-900);
+  box-sizing: border-box;
+}
+
+.slot-input-row {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 14rpx;
+}
+.slot-input-row picker {
+  flex: 1;
+}
+.picker-cell {
+  height: 80rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(27, 35, 64, 0.12);
+  padding: 0 24rpx;
+  font-size: 22rpx;
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+}
+
+.action-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 24rpx;
+  align-items: center;
+}
+.action-row .cta-primary {
+  flex: 1;
+}
+
+.drawer-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 152rpx;
+  z-index: 60;
+}
+.toast-dot {
+  width: 26rpx;
+  height: 26rpx;
+  border-radius: 999rpx;
+  background: #7ED6A4; /* design mint dot; no matching theme token */
+  flex-shrink: 0;
+}

@@ -15,35 +15,45 @@
   </view>
 
   <block wx:else>
-    <view class="hotel-hero card-surface">
-      <view class="hotel-kicker">酒店信息</view>
-      <view class="hotel-title">{{hotel.name}}</view>
-      <view wx:if="{{hotel.metaText}}" class="hotel-meta">{{hotel.metaText}}</view>
-      <view class="hotel-status">{{hotel.statusText}}</view>
+    <view class="hotel-hero">
+      <image class="hero-img" src="/assets/images/hotel-lobby-01.jpg" mode="aspectFill" />
+      <view class="hero-scrim"></view>
+      <view wx:if="{{hotel.statusText}}" class="status-chip confirmed hero-chip">{{hotel.statusText}}</view>
+      <view class="hero-copy">
+        <view class="hero-kicker">TONIGHT · 今晚住宿</view>
+        <view class="hero-name display-serif">{{hotel.name}}</view>
+        <view wx:if="{{hotel.metaText}}" class="hero-meta">{{hotel.metaText}}</view>
+      </view>
     </view>
 
-    <view class="detail-card card-surface">
-      <view class="info-detail-grid">
-        <view wx:for="{{hotel.detailItems}}" wx:key="label" wx:for-item="detail" class="info-detail-item {{detail.fullRow ? 'full-row' : ''}} {{detail.muted ? 'muted' : ''}}">
-          <view class="detail-label">{{detail.label}}</view>
-          <view class="detail-value compact">{{detail.value}}</view>
-        </view>
-      </view>
-
-      <button wx:if="{{hotel.hasConfirmationNo}}" class="copy-confirm-btn" bindtap="copyConfirmationNo">复制确认号</button>
-
-      <view wx:if="{{hotel.plainDetailItems && hotel.plainDetailItems.length}}" class="plain-detail-list">
-        <view wx:for="{{hotel.plainDetailItems}}" wx:key="label" wx:for-item="detail" class="plain-detail-row">
-          <view class="plain-detail-label">{{detail.label}}</view>
-          <view class="plain-detail-value">{{detail.value}}</view>
-        </view>
+    <view class="stay-table card-surface">
+      <view wx:for="{{hotel.stayRows}}" wx:key="label" wx:for-item="row" class="stay-row {{row.muted ? 'muted' : ''}}">
+        <view class="stay-label">{{row.label}}</view>
+        <view class="stay-value {{row.gold ? 'confirmation-no' : ''}}">{{row.value}}</view>
+        <view wx:if="{{row.copyable}}" class="stay-copy {{row.gold ? 'gold' : ''}}" catchtap="copyRowValue" data-value="{{row.value}}">复制</view>
       </view>
     </view>
 
     <view class="note-card card-surface">{{hotel.note}}</view>
   </block>
 
-  <view class="bottom-actions">
-    <button class="bottom-btn" bindtap="backHome">返回我的行程</button>
+  <view class="action-bar">
+    <view class="cta-ghost" bindtap="backHome">返回我的行程</view>
+    <view class="cta-primary" bindtap="contactAdvisor">联系顾问</view>
+  </view>
+
+  <view wx:if="{{showAdvisorQr}}" class="advisor-qr-mask" catchtap="closeAdvisorQr">
+    <view class="advisor-qr-modal" catchtap="noop">
+      <view class="advisor-qr-title">添加 Farland 顾问微信</view>
+      <view class="advisor-qr-copy">长按识别二维码，或点击二维码放大查看。</view>
+      <image
+        class="advisor-qr-image"
+        src="{{advisorQrPath}}"
+        mode="aspectFit"
+        show-menu-by-longpress="{{true}}"
+        bindtap="previewAdvisorQr"
+      />
+      <button class="advisor-qr-close" bindtap="closeAdvisorQr">关闭</button>
+    </view>
   </view>
 </view>

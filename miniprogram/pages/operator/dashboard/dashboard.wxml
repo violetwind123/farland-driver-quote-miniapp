@@ -25,6 +25,14 @@
       </view>
     </view>
 
+    <view class="utility-card trip-management-entry" bindtap="openTripManagement">
+      <view>
+        <view class="utility-title">手机版行程单转发</view>
+        <view class="utility-desc">网页同步后，先审核、发布并转发客户第一版行程。</view>
+      </view>
+      <view class="chevron">›</view>
+    </view>
+
     <view class="utility-card" bindtap="openDriverSummary">
       <view>
         <view class="utility-title">司机信息</view>
@@ -33,18 +41,18 @@
       <view class="chevron">›</view>
     </view>
 
-    <view class="utility-card trip-management-entry" bindtap="openTripManagement">
-      <view>
-        <view class="utility-title">行程管理</view>
-        <view class="utility-desc">导入、审核、发布客户行程，并发送每日评价卡。</view>
-      </view>
-      <view class="chevron">›</view>
-    </view>
-
     <view class="utility-card" bindtap="openReviewSummary">
       <view>
         <view class="utility-title">评价汇总</view>
         <view class="utility-desc">按司机 / 行程查看每日评价，低分自动标记跟进</view>
+      </view>
+      <view class="chevron">›</view>
+    </view>
+
+    <view class="utility-card" bindtap="openVisitBookings">
+      <view>
+        <view class="utility-title">访校预约</view>
+        <view class="utility-desc">查看客户提交的大学参访日期预约</view>
       </view>
       <view class="chevron">›</view>
     </view>

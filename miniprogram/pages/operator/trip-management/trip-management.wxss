@@ -37,7 +37,6 @@
   line-height: 1.45;
 }
 
-.import-btn,
 .search-btn,
 .retry-btn {
   margin: 0;
@@ -47,14 +46,6 @@
   color: #FFFFFF;
   font-size: 25rpx;
   font-weight: 650;
-}
-
-.import-btn {
-  flex: 0 0 auto;
-  min-width: 128rpx;
-  height: 68rpx;
-  line-height: 68rpx;
-  padding: 0 26rpx;
 }
 
 .toolbar {
@@ -312,7 +303,6 @@
   color: #8A91A1;
 }
 
-.import-btn::after,
 .search-btn::after,
 .clear-btn::after,
 .retry-btn::after {

@@ -1,8 +1,11 @@
+@import "/styles/theme.wxss";
+page { font-size: 28rpx; }
+
 .results-page {
   min-height: 100vh;
   padding: 28rpx 24rpx 48rpx;
   box-sizing: border-box;
-  background: #F4F5F9;
+  background: var(--bg-page);
 }
 
 .results-header {
@@ -17,12 +20,12 @@
   width: 58rpx;
   height: 58rpx;
   border-radius: 18rpx;
-  background: #FFFFFF;
-  color: #4A56A5;
+  background: var(--bg-card);
+  color: var(--brand-600);
   font-size: 44rpx;
   line-height: 54rpx;
   text-align: center;
-  box-shadow: 0 4rpx 12rpx rgba(28, 27, 41, 0.05);
+  box-shadow: 0 4rpx 12rpx rgba(27, 35, 64, 0.05);
 }
 
 .header-copy {
@@ -31,7 +34,7 @@
 }
 
 .result-title {
-  color: #1C1B29;
+  color: var(--ink-900);
   font-size: 32rpx;
   line-height: 1.32;
   font-weight: 700;
@@ -39,7 +42,7 @@
 
 .result-subtitle {
   margin-top: 6rpx;
-  color: #6E6D82;
+  color: var(--ink-600);
   font-size: 22rpx;
   line-height: 1.4;
 }
@@ -47,26 +50,51 @@
 .result-toolbar {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 18rpx;
-  padding: 8rpx 2rpx 22rpx;
-}
-
-.result-count {
-  flex: 0 0 auto;
-  color: #1C1B29;
-  font-size: 28rpx;
-  line-height: 1.35;
-  font-weight: 700;
+  justify-content: flex-end;
+  padding: 8rpx 2rpx 14rpx;
 }
 
 .result-note {
-  flex: 1;
   min-width: 0;
-  color: #8B8A9C;
+  color: var(--ink-400);
   font-size: 22rpx;
   line-height: 1.45;
   text-align: right;
+}
+
+/* ---------- curated header ---------- */
+.curated-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 4rpx 4rpx 20rpx;
+}
+
+.curated-copy {
+  min-width: 0;
+}
+
+.curated-kicker {
+  font-size: 20rpx;
+  letter-spacing: 5rpx;
+  color: var(--gold-500);
+  font-weight: 600;
+}
+
+.curated-count {
+  margin-top: 4rpx;
+  font-family: var(--font-serif);
+  font-size: 34rpx;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.sort-row {
+  display: flex;
+  gap: 10rpx;
+  flex-shrink: 0;
 }
 
 .loading-block,
@@ -74,14 +102,14 @@
   margin-top: 18rpx;
   padding: 42rpx 30rpx;
   border-radius: 28rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #EEEDF4;
-  box-shadow: 0 10rpx 30rpx rgba(28, 27, 41, 0.05);
+  background: var(--bg-card);
+  border: 1rpx solid var(--line);
+  box-shadow: var(--shadow-card);
 }
 
 .loading-title,
 .empty-title {
-  color: #1C1B29;
+  color: var(--ink-900);
   font-size: 28rpx;
   line-height: 1.35;
   font-weight: 700;
@@ -90,7 +118,7 @@
 .loading-copy,
 .empty-copy {
   margin-top: 10rpx;
-  color: #6E6D82;
+  color: var(--ink-600);
   font-size: 23rpx;
   line-height: 1.5;
 }
@@ -99,15 +127,21 @@
   padding-bottom: 30rpx;
 }
 
+/* ---------- vertical curated hotel card ---------- */
 .hotel-card {
-  display: flex;
-  gap: 18rpx;
-  margin-bottom: 18rpx;
-  padding: 18rpx;
-  border-radius: 28rpx;
-  background: #FFFFFF;
-  box-shadow: 0 1rpx 4rpx rgba(28, 27, 41, 0.04), 0 10rpx 30rpx rgba(28, 27, 41, 0.06);
+  position: relative;
+  margin-bottom: 24rpx;
+  border-radius: 36rpx;
+  background: var(--bg-card);
+  border: 1rpx solid var(--line);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
   box-sizing: border-box;
+}
+
+.hotel-card.recommended {
+  border: 2rpx solid rgba(166, 136, 91, 0.5);
+  box-shadow: 0 24rpx 60rpx rgba(166, 136, 91, 0.12);
 }
 
 .hotel-card.clickable {
@@ -118,36 +152,57 @@
   transform: scale(0.99);
 }
 
-.hotel-thumb {
-  flex: 0 0 auto;
-  width: 164rpx;
-  height: 164rpx;
-  border-radius: 26rpx;
-  background: #EEF0F9;
+.hotel-media {
+  position: relative;
+  height: 236rpx;
+  background: var(--brand-50);
 }
 
-.hotel-card-main {
-  flex: 1;
-  min-width: 0;
+.hotel-cover {
+  width: 100%;
+  height: 100%;
 }
 
-.card-top {
+/* override theme .recommend-badge top:-16rpx/left:32rpx so the badge
+   sits inside the media instead of clipping under overflow:hidden */
+.media-badge {
+  top: 20rpx;
+  left: 20rpx;
+  right: auto;
+}
+
+.score-chip {
+  position: absolute;
+  bottom: 20rpx;
+  right: 20rpx;
+  height: 44rpx;
+  padding: 0 18rpx;
+  border-radius: 16rpx;
+  background: rgba(27, 35, 64, 0.82);
+  color: var(--gold-50);
+  font-size: 21rpx;
+  font-weight: 700;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12rpx;
+  align-items: center;
+  gap: 8rpx;
 }
 
-.hotel-title-block {
-  flex: 1;
-  min-width: 0;
+.score-chip .score-label {
+  font-weight: 400;
+  font-size: 18rpx;
+  color: rgba(246, 241, 231, 0.75);
+}
+
+.hotel-body {
+  padding: 22rpx 28rpx 26rpx;
 }
 
 .hotel-name {
-  color: #1C1B29;
-  font-size: 30rpx;
-  line-height: 1.22;
-  font-weight: 700;
+  font-family: var(--font-serif);
+  color: var(--ink-900);
+  font-size: 31rpx;
+  line-height: 1.24;
+  font-weight: 600;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -155,7 +210,7 @@
 
 .hotel-name-en {
   margin-top: 5rpx;
-  color: #8B8A9C;
+  color: var(--ink-400);
   font-size: 20rpx;
   line-height: 1.25;
   overflow: hidden;
@@ -163,128 +218,103 @@
   text-overflow: ellipsis;
 }
 
-.badge-row {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6rpx;
-  max-width: 170rpx;
-}
-
-.source-pill {
-  max-width: 170rpx;
-  padding: 6rpx 12rpx;
-  border-radius: 999rpx;
-  font-size: 19rpx;
-  line-height: 1.2;
-  font-weight: 650;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.source-pill.live {
-  background: #E7F2E8;
-  color: #4E8F58;
-}
-
-.source-pill.reference,
-.source-pill.farland {
-  background: #FBF1E1;
-  color: #A6772A;
-}
-
-.transport-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-  margin-top: 10rpx;
-}
-
-.transport-pill {
-  max-width: 100%;
-  padding: 6rpx 12rpx;
-  border-radius: 999rpx;
-  background: #EEF0F9;
-  color: #4A56A5;
-  font-size: 20rpx;
-  line-height: 1.2;
-  font-weight: 700;
-  box-sizing: border-box;
-}
-
-.transport-pill.traffic {
-  background: #E7F2E8;
-  color: #4E8F58;
-}
-
-.transport-pill.traffic.moderate,
-.transport-pill.traffic.high {
-  background: #FBF1E1;
-  color: #A6772A;
-}
-
-.hotel-address,
-.hotel-reason,
-.hotel-traffic {
-  margin-top: 9rpx;
-  color: #6E6D82;
-  font-size: 23rpx;
+.hotel-meta {
+  margin-top: 6rpx;
+  color: var(--ink-600);
+  font-size: 21rpx;
   line-height: 1.35;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+.facility-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.facility-tag {
+  height: 42rpx;
+  padding: 0 16rpx;
+  border-radius: 12rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 19rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.facility-tag.free-cancel {
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 600;
+}
+
 .hotel-reason {
-  color: #8B8A9C;
+  margin-top: 12rpx;
+  color: var(--ink-400);
+  font-size: 22rpx;
+  line-height: 1.35;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.hotel-traffic {
-  color: #8B8A9C;
-}
-
-.price-row {
+.hotel-footer {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 14rpx;
-  margin-top: 14rpx;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--line);
+}
+
+.itin-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 40rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: var(--gold-50);
+  color: var(--gold-700);
+  font-size: 18rpx;
+  font-weight: 600;
+  max-width: 60%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.itin-spacer {
+  flex: 1;
 }
 
 .hotel-price {
-  flex: 1;
   min-width: 0;
-  color: #353F8E;
+  color: var(--ink-900);
   line-height: 1;
   white-space: nowrap;
 }
 
 .price-currency {
-  color: #4A56A5;
+  color: var(--brand-600);
   font-size: 22rpx;
   font-weight: 600;
   margin-right: 5rpx;
 }
 
 .price-number {
-  font-family: "Cormorant Garamond", Georgia, "Songti SC", serif;
-  color: #353F8E;
+  font-family: var(--font-serif);
+  color: var(--ink-900);
   font-size: 38rpx;
   font-weight: 700;
 }
 
 .price-suffix {
-  color: #8B8A9C;
+  color: var(--ink-400);
   font-size: 21rpx;
-}
-
-.detail-link {
-  flex: 0 0 auto;
-  color: #4A56A5;
-  font-size: 23rpx;
-  line-height: 1.25;
-  text-align: right;
-  font-weight: 700;
 }

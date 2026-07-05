@@ -7,7 +7,7 @@ const WARNING_TEXT = {
   missing_distance: '部分节点缺少距离信息',
   arrival_after_start_time: '到达时间晚于预约开始时间，请核对',
   unpublished_trip: '行程尚未发布',
-  preview_from_import_source: '预览内容来自导入源数据',
+  preview_from_source_data: '预览内容来自网页端同步源数据',
 };
 
 function translateWarning(code) {
@@ -56,7 +56,6 @@ Page({
     creatingHotelInviteKey: '',
     revokingHotelInviteKey: '',
     hotelShareKey: '',
-    isTrip091: false,
     bizState: {},
     dayStatusText: '',
     dayCards: [],
@@ -150,7 +149,6 @@ Page({
       ? 'published'
       : (hasDraft ? 'draft' : (hasPublished ? 'published' : 'draft'));
     const state = this.getStateCopy(result, hasDraft, hasPublished);
-    const isTrip091 = this.isTrip091(result, draftSnapshot, publishedSnapshot);
     const nextActive = nextActiveType === 'draft' ? draftSnapshot : publishedSnapshot;
     const changedSections = (result.diff_summary && result.diff_summary.changed_sections) || [];
     const bizState = this.deriveBusinessState(result, hasDraft, hasPublished, changedSections);
@@ -184,7 +182,6 @@ Page({
       bizState,
       dayStatusText: this.getDayStatusText(bizState, nextActiveType),
       canPublish: hasDraft && !(result.critical_warning_codes || []).length,
-      isTrip091,
       error: '',
       activeHotelInvites,
       hotelInviteMap: this.buildHotelInviteMap(nextActive, activeHotelInvites),
@@ -499,7 +496,7 @@ Page({
       return {
         state_text: '行程已废弃',
         customer_seeing_text: published ? `当前发布版 v${version}` : '客户看不到此行程',
-        next_step_text: '如需继续使用，请重新导入或恢复行程',
+        next_step_text: '如需继续使用，请从网页端重新同步或恢复行程',
         flow_step: 0,
         day_status_text: '已废弃',
         draft_day_status_text: '已废弃',
@@ -507,7 +504,7 @@ Page({
     }
     if (!hasDraft && !published) {
       return {
-        state_text: '已导入，待生成草稿',
+        state_text: '网页端已同步，待生成草稿',
         customer_seeing_text: '客户看不到此行程',
         next_step_text: '生成客户可见草稿',
         flow_step: 1,
@@ -539,7 +536,7 @@ Page({
       return {
         state_text: `已发布 v${version}，内容已确认`,
         customer_seeing_text: `当前发布版 v${version}`,
-        next_step_text: '生成 / 转发客户分享卡',
+        next_step_text: '转发手机版行程单',
         flow_step: 3,
         day_status_text: '已发布',
         draft_day_status_text: '草稿',
@@ -629,24 +626,6 @@ Page({
         timeline_items: items,
       };
     });
-  },
-
-  isTrip091(result, draftSnapshot, publishedSnapshot) {
-    const candidates = [
-      this.data.tripId,
-      result && result.trip_id,
-      result && result.external_trip_id,
-      result && result.trip_no,
-      result && result.display_trip_no,
-      draftSnapshot && draftSnapshot.display_trip_no,
-      draftSnapshot && draftSnapshot.trip_no,
-      draftSnapshot && draftSnapshot.external_trip_id,
-      publishedSnapshot && publishedSnapshot.display_trip_no,
-      publishedSnapshot && publishedSnapshot.trip_no,
-      publishedSnapshot && publishedSnapshot.external_trip_id,
-    ].filter(Boolean).map((value) => String(value));
-    return candidates.includes('2026XBC091')
-      || candidates.includes('bf757c4c6a2054f800350a925147b32e');
   },
 
   getCurrentExternalTripId() {
@@ -752,7 +731,7 @@ Page({
     const visibilityStatus = result.visibility_status || '';
     if (!hasDraft) {
       return {
-        text: '已导入，待生成客户草稿',
+        text: '网页端已同步，待生成客户草稿',
         hint: '先生成客户可见草稿，系统会移除内部字段，再供运营预览。',
       };
     }
@@ -860,7 +839,7 @@ Page({
     const confirmed = await new Promise((resolve) => {
       wx.showModal({
         title: '确认发布',
-        content: '发布后，客户分享卡将读取该客户可见版本。请确认预览内容无误。',
+        content: '发布后，手机版行程单将读取该客户可见版本。请确认预览内容无误。',
         confirmText: '发布',
         success: (res) => resolve(res.confirm),
         fail: () => resolve(false),
@@ -926,7 +905,7 @@ Page({
       if (!result || !result.success) {
         this.setData({
           creatingInvite: false,
-          error: (result && result.message) || '客户分享卡生成失败',
+          error: (result && result.message) || '手机版行程单生成失败',
         });
         wx.showToast({ title: '生成失败', icon: 'none' });
         return;
@@ -938,13 +917,13 @@ Page({
         inviteExpiresAt: result.expires_at || '',
         inviteReused: Boolean(result.reused),
       });
-      wx.showToast({ title: result.reused ? '已复用分享卡' : '分享卡已生成', icon: 'success' });
+      wx.showToast({ title: result.reused ? '已复用行程单' : '行程单已准备', icon: 'success' });
     } catch (error) {
       console.error('[customer-trip-detail] createCustomerTripInvite failed', error);
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
       this.setData({
         creatingInvite: false,
-        error: `客户分享卡生成失败：${errMsg}`,
+        error: `手机版行程单生成失败：${errMsg}`,
       });
       wx.showToast({ title: '生成失败', icon: 'none' });
     }
@@ -953,7 +932,7 @@ Page({
   buildTripInviteShare() {
     const { invitePath, publishedSnapshot, activeSnapshot, preview, tripId } = this.data;
     if (!invitePath) {
-      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      wx.showToast({ title: '请先准备行程单', icon: 'none' });
       return {
         title: 'Farland 行程',
         path: 'pages/customer/home/home',
@@ -974,7 +953,7 @@ Page({
 
   onTripInviteShareTap() {
     if (!this.data.invitePath) {
-      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      wx.showToast({ title: '请先准备行程单', icon: 'none' });
     }
   },
 
@@ -1052,7 +1031,7 @@ Page({
 
   copyInvitePath() {
     if (!this.data.invitePath) {
-      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      wx.showToast({ title: '请先准备行程单', icon: 'none' });
       return;
     }
     wx.setClipboardData({

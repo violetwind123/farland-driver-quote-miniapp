@@ -7,6 +7,8 @@ Page({
     tripId: '',
     hotelId: '',
     shareTitle: 'Farland 酒店确认',
+    advisorQrPath: '/assets/images/advisor-wechat-qr.jpg',
+    showAdvisorQr: false,
   },
 
   onLoad(options = {}) {
@@ -80,30 +82,47 @@ Page({
     const roomSummary = this.resolveHotelRoomSummary(hotel);
     const roomMuted = this.isEmptyBookingInfo(roomSummary);
     const confirmationDisplay = this.isEmptyBookingInfo(confirmationNo) ? '无酒店预订信息' : confirmationNo;
+    const hasConfirmationNo = !this.isEmptyBookingInfo(confirmationDisplay);
+    const checkInValue = dates.checkInDate || '待同步';
+    const checkOutValue = dates.checkOutDate || '待同步';
+    const arrivalText = this.formatDisplayTime(hotel.arrival_time || '') || '';
+    const address = hotel.address || '';
+    const nights = this.resolveHotelNights(dates.checkInDate, dates.checkOutDate);
+    const checkOutDisplay = nights > 0 ? `${checkOutValue} · 共 ${nights} 晚` : checkOutValue;
+    const stayRows = [
+      { label: '入住', value: checkInValue },
+      { label: '退房', value: checkOutDisplay },
+      { label: '房型', value: roomSummary, muted: roomMuted },
+      ...(arrivalText ? [{ label: '预计抵达', value: arrivalText }] : []),
+      ...(address ? [{ label: '地址', value: address, copyable: true }] : []),
+      ...(hasConfirmationNo ? [{ label: '确认号', value: confirmationDisplay, gold: true, copyable: true }] : []),
+    ];
     return {
       name: hotel.name || hotel.hotel_name || '酒店信息',
       metaText: hotel.metaText || metaParts.join(' · '),
-      checkInDate: dates.checkInDate || '待同步',
-      checkOutDate: dates.checkOutDate || '待同步',
-      arrivalTime: this.formatDisplayTime(hotel.arrival_time || '') || '待同步',
-      address: hotel.address || '',
+      checkInDate: checkInValue,
+      checkOutDate: checkOutValue,
+      arrivalTime: arrivalText || '待同步',
+      address,
       roomSummary,
       confirmationNo: confirmationDisplay,
-      hasConfirmationNo: !this.isEmptyBookingInfo(confirmationDisplay),
+      hasConfirmationNo,
       statusText: hotel.statusText || hotel.status_text || '已同步',
       note: hotel.note || '完整酒店信息将由 Farland 顾问同步。',
-      detailItems: [
-        { label: '入住日期', value: dates.checkInDate || '待同步' },
-        { label: '退房日期', value: dates.checkOutDate || '待同步' },
-        { label: '房型', value: roomSummary, fullRow: true, muted: roomMuted },
-        { label: '确认号', value: confirmationDisplay, fullRow: true, muted: this.isEmptyBookingInfo(confirmationDisplay) },
-      ],
-      plainDetailItems: [
-        { label: '地址', value: hotel.address || '' },
-        { label: '入住人', value: hotel.guest_name || hotel.check_in_name || hotel.primary_guest_name || '' },
-        { label: '预订渠道', value: hotel.booking_source || hotel.source || '' },
-      ].filter((item) => item.value),
+      stayRows,
     };
+  },
+
+  // 客户端计算住宿晚数(仅当入住/退房均为 ISO 日期时);不触碰 091 兜底逻辑。
+  resolveHotelNights(checkInDate, checkOutDate) {
+    const inMatch = String(checkInDate || '').match(/\d{4}-\d{2}-\d{2}/);
+    const outMatch = String(checkOutDate || '').match(/\d{4}-\d{2}-\d{2}/);
+    if (!inMatch || !outMatch) return 0;
+    const start = new Date(`${inMatch[0]}T00:00:00`);
+    const end = new Date(`${outMatch[0]}T00:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+    const diff = Math.round((end - start) / 86400000);
+    return diff > 0 ? diff : 0;
   },
 
   resolveHotelStayDates(hotel = {}) {
@@ -250,6 +269,35 @@ Page({
       success: () => wx.showToast({ title: '已复制确认号', icon: 'success' }),
     });
   },
+
+  copyRowValue(e) {
+    const value = e && e.currentTarget && e.currentTarget.dataset
+      ? e.currentTarget.dataset.value
+      : '';
+    if (!value) return;
+    wx.setClipboardData({
+      data: String(value),
+      success: () => wx.showToast({ title: '已复制', icon: 'success' }),
+    });
+  },
+
+  // 复用全站「联系顾问」约定:打开 Farland 顾问微信二维码弹窗,不拨打任何写死热线。
+  contactAdvisor() {
+    this.setData({ showAdvisorQr: true });
+  },
+
+  closeAdvisorQr() {
+    this.setData({ showAdvisorQr: false });
+  },
+
+  previewAdvisorQr() {
+    wx.previewImage({
+      urls: [this.data.advisorQrPath],
+      current: this.data.advisorQrPath,
+    });
+  },
+
+  noop() {},
 
   onShareAppMessage() {
     const hotel = this.data.hotel || {};

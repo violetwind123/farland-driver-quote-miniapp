@@ -56,6 +56,14 @@
         <view wx:if="{{tripInviteTrip.displayCity}}" class="trip-invite-route">{{tripInviteTrip.displayCity}}</view>
       </view>
 
+      <view wx:if="{{tripInviteTrip.itinerarySheet.png_url}}" class="itinerary-sheet-entry card-surface" data-url="{{tripInviteTrip.itinerarySheet.png_url}}" bindtap="previewItinerarySheet" hover-class="itinerary-sheet-entry-hover">
+        <view class="itinerary-sheet-entry-main">
+          <view class="itinerary-sheet-entry-title">查看完整行程单</view>
+          <view class="itinerary-sheet-entry-sub">长图版行程单，可保存或转发</view>
+        </view>
+        <view class="itinerary-sheet-entry-arrow">›</view>
+      </view>
+
       <view wx:if="{{tripInviteCanSave && !operatorCustomerPreviewMode}}" class="profile-upgrade card-surface">
         <view>
           <view class="profile-upgrade-title">保存到我的 Farland 行程</view>
@@ -116,6 +124,12 @@
               <view class="departure-label">出发</view>
             </view>
           </view>
+          <view wx:if="{{tripInviteTrip.todayOverviewCard.trustStatusText || tripInviteTrip.todayOverviewCard.updatedAtText || tripInviteTrip.todayOverviewCard.changeSummaryText}}" class="today-trust-line">
+            <view wx:if="{{tripInviteTrip.todayOverviewCard.trustStatusText}}" class="today-trust-confirm"><view class="today-trust-dot"></view><text>{{tripInviteTrip.todayOverviewCard.trustStatusText}}</text></view>
+            <text wx:if="{{tripInviteTrip.todayOverviewCard.updatedAtText}}" class="today-trust-updated">{{tripInviteTrip.todayOverviewCard.updatedAtText}}</text>
+            <text wx:if="{{tripInviteTrip.todayOverviewCard.changeSummaryText}}" class="today-trust-change">{{tripInviteTrip.todayOverviewCard.changeSummaryText}}</text>
+          </view>
+          <view wx:if="{{tripInviteTrip.todayOverviewCard.serviceWindowLine}}" class="today-service-window">{{tripInviteTrip.todayOverviewCard.serviceWindowLine}}</view>
           <view class="overview-timeline">
             <view wx:for="{{tripInviteTrip.todayOverviewCard.displayRouteStops || tripInviteTrip.todayOverviewCard.routeStops}}" wx:key="id" class="overview-row">
               <view class="overview-row-time">{{item.time}}</view>
@@ -135,10 +149,12 @@
               </view>
             </view>
           </view>
-          <view wx:if="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
+          <view wx:if="{{tripInviteTrip.todayOverviewCard.overviewCanExpand}}" class="today-fold-line" data-source="invite" bindtap="toggleTodayOverviewExpanded">{{inviteTodayOverviewExpanded ? tripInviteTrip.todayOverviewCard.overviewCollapseLabel : tripInviteTrip.todayOverviewCard.overviewExpandLabel}}</view>
+          <view wx:elif="{{tripInviteTrip.todayOverviewCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{tripInviteTrip.todayOverviewCard.nodeCount}} 个行程节点</view>
+          <view wx:if="{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}" class="today-next-teaser">{{tripInviteTrip.todayOverviewCard.nextDayTeaserText}}</view>
           <view class="p4-action-row">
-            <button wx:if="{{tripInviteTrip.todayOverviewCard.overviewCanExpand}}" class="p4-action-secondary" data-source="invite" bindtap="toggleTodayOverviewExpanded">{{inviteTodayOverviewExpanded ? tripInviteTrip.todayOverviewCard.overviewCollapseLabel : tripInviteTrip.todayOverviewCard.overviewExpandLabel}}</button>
-            <button class="p4-action-primary {{tripInviteTrip.todayOverviewCard.overviewCanExpand ? '' : 'single'}}" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.day_no || tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看当日行程</button>
+            <button class="p4-action-secondary" bindtap="contactAdvisor">{{tripInviteTrip.todayOverviewCard.contactAdvisorLabel}}</button>
+            <button class="p4-action-primary" data-source="invite" data-day-no="{{tripInviteTrip.todayOverviewCard.day_no || tripInviteTrip.todayOverviewCard.dayNo}}" bindtap="openTripDayDetail">查看当日行程</button>
           </view>
         </view>
       </view>
@@ -161,6 +177,38 @@
           </view>
           <view class="trip-card-action">查看酒店信息</view>
         </view>
+      </view>
+
+      <view wx:if="{{tripInviteTrip.visitCards && tripInviteTrip.visitCards.length}}" class="section-shell visit-shell">
+        <view class="section-kicker gold">CAMPUS VISIT</view>
+        <view class="section-title">您的访校安排</view>
+        <view wx:for="{{tripInviteTrip.visitCards}}" wx:key="id" class="visit-card card-surface">
+          <view class="visit-hero">
+            <view class="visit-hero-watermark">{{item.school_name_en}}</view>
+            <view class="visit-hero-badges">
+              <view wx:if="{{item.day_badge_text}}" class="visit-day-badge">{{item.day_badge_text}}</view>
+              <view class="status-chip confirmed-solid">已确认</view>
+            </view>
+            <view class="visit-hero-title">{{item.school_name}}{{item.visit_type_text ? (' · ' + item.visit_type_text) : ''}}</view>
+          </view>
+          <view class="visit-body">
+            <view class="visit-time-row">
+              <view class="visit-time-big">{{item.startTimeText}}</view>
+              <view wx:if="{{item.timeRangeText}}" class="visit-time-range">{{item.timeRangeText}}</view>
+              <view wx:if="{{item.weatherText}}" class="weather-inline visit-weather"><view class="wx-ico wx-{{item.weatherKind}}"></view>{{item.weatherText}}</view>
+            </view>
+            <view wx:if="{{item.meeting_point_name}}" class="visit-info-row">
+              <view class="visit-info-label">集合</view>
+              <view class="visit-info-value">{{item.meeting_point_name}}{{item.meeting_point_addr_en ? (' · ' + item.meeting_point_addr_en) : ''}}</view>
+            </view>
+            <view wx:if="{{item.arriveText}}" class="visit-info-row">
+              <view class="visit-info-label">到达</view>
+              <view class="visit-info-value">{{item.arriveText}}</view>
+            </view>
+          </view>
+        </view>
+        <view class="visit-tail-note">其余学校确认后会出现在这里，顾问会第一时间通知您</view>
+        <view class="weather-source"><text>天气数据来源 美国国家海洋和大气管理局 NOAA · NWS</text></view>
       </view>
     </block>
   </view>
@@ -261,6 +309,12 @@
                       <view class="departure-label">出发</view>
                     </view>
                   </view>
+                  <view wx:if="{{todayCard.trustStatusText || todayCard.updatedAtText || todayCard.changeSummaryText}}" class="today-trust-line">
+                    <view wx:if="{{todayCard.trustStatusText}}" class="today-trust-confirm"><view class="today-trust-dot"></view><text>{{todayCard.trustStatusText}}</text></view>
+                    <text wx:if="{{todayCard.updatedAtText}}" class="today-trust-updated">{{todayCard.updatedAtText}}</text>
+                    <text wx:if="{{todayCard.changeSummaryText}}" class="today-trust-change">{{todayCard.changeSummaryText}}</text>
+                  </view>
+                  <view wx:if="{{todayCard.serviceWindowLine}}" class="today-service-window">{{todayCard.serviceWindowLine}}</view>
 
                   <view class="overview-timeline">
                     <view wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id" class="overview-row">
@@ -281,11 +335,13 @@
                       </view>
                     </view>
                   </view>
-                  <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
+                  <view wx:if="{{todayCard.overviewCanExpand}}" class="today-fold-line" data-source="home" bindtap="toggleTodayOverviewExpanded">{{todayOverviewExpanded ? todayCard.overviewCollapseLabel : todayCard.overviewExpandLabel}}</view>
+                  <view wx:elif="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
+                  <view wx:if="{{todayCard.nextDayTeaserText}}" class="today-next-teaser">{{todayCard.nextDayTeaserText}}</view>
 
                   <view class="p4-action-row">
-                    <button wx:if="{{todayCard.overviewCanExpand}}" class="p4-action-secondary" data-source="home" bindtap="toggleTodayOverviewExpanded">{{todayOverviewExpanded ? todayCard.overviewCollapseLabel : todayCard.overviewExpandLabel}}</button>
-                    <button class="p4-action-primary {{todayCard.overviewCanExpand ? '' : 'single'}}" bindtap="openTodayDetail">查看当日行程</button>
+                    <button class="p4-action-secondary" bindtap="contactAdvisor">{{todayCard.contactAdvisorLabel}}</button>
+                    <button class="p4-action-primary" bindtap="openTodayDetail">查看当日行程</button>
                   </view>
                 </view>
               </view>
@@ -343,6 +399,38 @@
                   </view>
                   <view class="trip-card-action">查看酒店信息</view>
                 </view>
+              </view>
+
+              <view wx:if="{{visitCards && visitCards.length}}" class="section-shell visit-shell">
+                <view class="section-kicker gold">CAMPUS VISIT</view>
+                <view class="section-title">您的访校安排</view>
+                <view wx:for="{{visitCards}}" wx:key="id" class="visit-card card-surface">
+                  <view class="visit-hero">
+                    <view class="visit-hero-watermark">{{item.school_name_en}}</view>
+                    <view class="visit-hero-badges">
+                      <view wx:if="{{item.day_badge_text}}" class="visit-day-badge">{{item.day_badge_text}}</view>
+                      <view class="status-chip confirmed-solid">已确认</view>
+                    </view>
+                    <view class="visit-hero-title">{{item.school_name}}{{item.visit_type_text ? (' · ' + item.visit_type_text) : ''}}</view>
+                  </view>
+                  <view class="visit-body">
+                    <view class="visit-time-row">
+                      <view class="visit-time-big">{{item.startTimeText}}</view>
+                      <view wx:if="{{item.timeRangeText}}" class="visit-time-range">{{item.timeRangeText}}</view>
+                      <view wx:if="{{item.weatherText}}" class="weather-inline visit-weather"><view class="wx-ico wx-{{item.weatherKind}}"></view>{{item.weatherText}}</view>
+                    </view>
+                    <view wx:if="{{item.meeting_point_name}}" class="visit-info-row">
+                      <view class="visit-info-label">集合</view>
+                      <view class="visit-info-value">{{item.meeting_point_name}}{{item.meeting_point_addr_en ? (' · ' + item.meeting_point_addr_en) : ''}}</view>
+                    </view>
+                    <view wx:if="{{item.arriveText}}" class="visit-info-row">
+                      <view class="visit-info-label">到达</view>
+                      <view class="visit-info-value">{{item.arriveText}}</view>
+                    </view>
+                  </view>
+                </view>
+                <view class="visit-tail-note">其余学校确认后会出现在这里，顾问会第一时间通知您</view>
+                <view class="weather-source"><text>天气数据来源 美国国家海洋和大气管理局 NOAA · NWS</text></view>
               </view>
             </view>
           </scroll-view>
@@ -442,6 +530,12 @@
             <view class="departure-label">出发</view>
           </view>
         </view>
+        <view wx:if="{{todayCard.trustStatusText || todayCard.updatedAtText || todayCard.changeSummaryText}}" class="today-trust-line">
+          <view wx:if="{{todayCard.trustStatusText}}" class="today-trust-confirm"><view class="today-trust-dot"></view><text>{{todayCard.trustStatusText}}</text></view>
+          <text wx:if="{{todayCard.updatedAtText}}" class="today-trust-updated">{{todayCard.updatedAtText}}</text>
+          <text wx:if="{{todayCard.changeSummaryText}}" class="today-trust-change">{{todayCard.changeSummaryText}}</text>
+        </view>
+        <view wx:if="{{todayCard.serviceWindowLine}}" class="today-service-window">{{todayCard.serviceWindowLine}}</view>
 
         <view class="overview-timeline">
           <view wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id" class="overview-row">
@@ -462,11 +556,13 @@
             </view>
           </view>
         </view>
-        <view wx:if="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
+        <view wx:if="{{todayCard.overviewCanExpand}}" class="today-fold-line" data-source="home" bindtap="toggleTodayOverviewExpanded">{{todayOverviewExpanded ? todayCard.overviewCollapseLabel : todayCard.overviewExpandLabel}}</view>
+        <view wx:elif="{{todayCard.nodeCount > 3}}" class="p4-summary-count">当日共 {{todayCard.nodeCount}} 个行程节点</view>
+        <view wx:if="{{todayCard.nextDayTeaserText}}" class="today-next-teaser">{{todayCard.nextDayTeaserText}}</view>
 
         <view class="p4-action-row">
-          <button wx:if="{{todayCard.overviewCanExpand}}" class="p4-action-secondary" data-source="home" bindtap="toggleTodayOverviewExpanded">{{todayOverviewExpanded ? todayCard.overviewCollapseLabel : todayCard.overviewExpandLabel}}</button>
-          <button class="p4-action-primary {{todayCard.overviewCanExpand ? '' : 'single'}}" bindtap="openTodayDetail">查看当日行程</button>
+          <button class="p4-action-secondary" bindtap="contactAdvisor">{{todayCard.contactAdvisorLabel}}</button>
+          <button class="p4-action-primary" bindtap="openTodayDetail">查看当日行程</button>
         </view>
       </view>
     </view>
@@ -525,6 +621,38 @@
         </view>
         <view class="trip-card-action">查看酒店信息</view>
       </view>
+    </view>
+
+    <view wx:if="{{!useHomePaneSwiper && !inviteMode && !showHomeEmpty && visitCards && visitCards.length}}" class="section-shell visit-shell">
+      <view class="section-kicker gold">CAMPUS VISIT</view>
+      <view class="section-title">您的访校安排</view>
+      <view wx:for="{{visitCards}}" wx:key="id" class="visit-card card-surface">
+        <view class="visit-hero">
+          <view class="visit-hero-watermark">{{item.school_name_en}}</view>
+          <view class="visit-hero-badges">
+            <view wx:if="{{item.day_badge_text}}" class="visit-day-badge">{{item.day_badge_text}}</view>
+            <view class="status-chip confirmed-solid">已确认</view>
+          </view>
+          <view class="visit-hero-title">{{item.school_name}}{{item.visit_type_text ? (' · ' + item.visit_type_text) : ''}}</view>
+        </view>
+        <view class="visit-body">
+          <view class="visit-time-row">
+            <view class="visit-time-big">{{item.startTimeText}}</view>
+            <view wx:if="{{item.timeRangeText}}" class="visit-time-range">{{item.timeRangeText}}</view>
+            <view wx:if="{{item.weatherText}}" class="weather-inline visit-weather"><view class="wx-ico wx-{{item.weatherKind}}"></view>{{item.weatherText}}</view>
+          </view>
+          <view wx:if="{{item.meeting_point_name}}" class="visit-info-row">
+            <view class="visit-info-label">集合</view>
+            <view class="visit-info-value">{{item.meeting_point_name}}{{item.meeting_point_addr_en ? (' · ' + item.meeting_point_addr_en) : ''}}</view>
+          </view>
+          <view wx:if="{{item.arriveText}}" class="visit-info-row">
+            <view class="visit-info-label">到达</view>
+            <view class="visit-info-value">{{item.arriveText}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="visit-tail-note">其余学校确认后会出现在这里，顾问会第一时间通知您</view>
+      <view class="weather-source"><text>天气数据来源 美国国家海洋和大气管理局 NOAA · NWS</text></view>
     </view>
 
     <view wx:if="{{!useHomePaneSwiper && !inviteMode && !showHomeEmpty && showTransferRequests}}" class="section-shell">

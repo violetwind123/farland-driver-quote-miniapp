@@ -20,7 +20,7 @@ function createDefaultPreviewMeta() {
       { key: 'preview', label: '1 预览', status: 'pending' },
       { key: 'draft', label: '2 生成草稿', status: 'pending' },
       { key: 'publish', label: '3 发布', status: 'pending' },
-      { key: 'card', label: '4 客户卡', status: 'pending' },
+      { key: 'card', label: '4 行程单', status: 'pending' },
     ],
   };
 }
@@ -38,7 +38,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
   const published = customerWouldSee === 'published';
   const hasPreview = Boolean(tripId);
   const hasCriticalWarnings = criticalWarnings.length > 0;
-  const needsDraft = warnings.includes('preview_from_import_source');
+  const needsDraft = warnings.includes('preview_from_source_data');
   const hasDraft = published || (hasPreview && !needsDraft);
   const releaseSteps = [
     { key: 'preview', label: '1 预览', status: hasPreview ? 'done' : 'active' },
@@ -54,7 +54,7 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
     },
     {
       key: 'card',
-      label: '4 客户卡',
+      label: '4 行程单',
       status: delivered ? 'done' : (published ? 'active' : 'pending'),
     },
   ];
@@ -65,8 +65,8 @@ function buildReleaseState({ customerWouldSee, warnings, criticalWarnings, deliv
       release_step_title: delivered ? '已推送客户端' : '已发布客户可见版本',
       release_step_copy: delivered
         ? '客户客户端已可查看该行程。可再次进入客户页面核对展示效果。'
-        : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并准备客户卡直接微信转发。',
-      release_step_tip: delivered ? '如需重新发送，可继续准备并转发客户卡。' : '下一步：准备并转发客户卡。',
+        : '客户真实打开会读取 published_snapshot。现在可以进入客户页面验收，并准备手机版行程单直接微信转发。',
+      release_step_tip: delivered ? '如需重新发送，可继续准备并转发手机版行程单。' : '下一步：准备并转发手机版行程单。',
       customer_preview_button_text: '进入客户真实页面',
       customer_preview_button_class: 'primary-wide-btn',
       release_steps: releaseSteps,
@@ -470,7 +470,7 @@ Page({
     const confirmed = await new Promise((resolve) => {
       wx.showModal({
         title: '确认发布',
-        content: '发布后客户分享卡将读取该版本。请确认预览内容无误。',
+        content: '发布后手机版行程单将读取该版本。请确认预览内容无误。',
         confirmText: '发布',
         success: (res) => resolve(res.confirm),
         fail: () => resolve(false),
@@ -532,7 +532,7 @@ Page({
         },
       });
       if (!result || !result.success) {
-        this.setData({ creatingInvite: false, error: (result && result.message) || '分享卡生成失败' });
+        this.setData({ creatingInvite: false, error: (result && result.message) || '手机版行程单生成失败' });
         wx.showToast({ title: '生成失败', icon: 'none' });
         return;
       }
@@ -543,18 +543,18 @@ Page({
         inviteExpiresAt: result.expires_at || '',
         inviteReused: Boolean(result.reused),
       });
-      wx.showToast({ title: result.reused ? '已复用分享卡' : '分享卡已生成', icon: 'success' });
+      wx.showToast({ title: result.reused ? '已复用行程单' : '行程单已准备', icon: 'success' });
     } catch (error) {
       console.error('[customer-home-preview] create invite failed', error);
       const errMsg = (error && (error.errMsg || error.message)) || '未知错误';
-      this.setData({ creatingInvite: false, error: `分享卡生成失败：${errMsg}` });
+      this.setData({ creatingInvite: false, error: `手机版行程单生成失败：${errMsg}` });
     }
   },
 
   buildTripInviteShare() {
     const { invitePath, customerHome, previewMeta, tripId } = this.data;
     if (!invitePath) {
-      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      wx.showToast({ title: '请先准备行程单', icon: 'none' });
       return {
         title: 'Farland 行程',
         path: 'pages/customer/home/home',
@@ -576,7 +576,7 @@ Page({
 
   onTripInviteShareTap() {
     if (!this.data.invitePath) {
-      wx.showToast({ title: '请先准备分享卡', icon: 'none' });
+      wx.showToast({ title: '请先准备行程单', icon: 'none' });
     }
   },
 

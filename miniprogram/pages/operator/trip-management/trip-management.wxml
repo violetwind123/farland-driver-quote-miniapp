@@ -3,7 +3,7 @@
     <view>
       <view class="kicker">TRIP OPS</view>
       <view class="title">行程管理</view>
-      <view class="desc">审核、发布客户行程，并发送每日评价卡。行程由网页端创建。</view>
+      <view class="desc">网页同步后先发布并转发客户第一版手机版行程单；成交后再处理每日评价等后续内容。</view>
     </view>
   </view>
 

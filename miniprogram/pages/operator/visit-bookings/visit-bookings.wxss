@@ -1,0 +1,168 @@
+@import "/styles/theme.wxss";
+
+/* 仅本页布局;day-header/visit-row/conflict-wrap/filter-chip/status-chip/
+   weather-inline/card-surface/card-ivory/empty-state 全部复用 theme,不重定义。 */
+
+.vb-page {
+  min-height: 100vh;
+  padding: 0 0 40rpx;
+  box-sizing: border-box;
+  background: var(--bg-page);
+}
+
+/* Hero */
+.vb-hero {
+  padding: 24rpx 32rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+.vb-sub {
+  font-size: 22rpx;
+  color: var(--ink-600);
+}
+.vb-stats {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 4rpx;
+  flex-wrap: wrap;
+}
+.vb-stat {
+  height: 38rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  font-size: 19rpx;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.vb-stat.week    { background: var(--brand-50);  color: var(--brand-600); }
+.vb-stat.pending { background: var(--warn-bg);   color: var(--warn); }
+.vb-stat.conflict{ background: var(--danger-bg); color: var(--danger); }
+
+/* Search (display-only) */
+.vb-search {
+  margin: 24rpx 32rpx 0;
+  background: var(--bg-card);
+  border: 1rpx solid var(--line);
+  border-radius: 999rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+  gap: 16rpx;
+  color: var(--ink-400);
+  font-size: 23rpx;
+}
+.vb-search-icon { font-size: 22rpx; }
+.vb-search-ph { color: var(--ink-400); }
+
+/* Filter row */
+.vb-filters {
+  margin: 14rpx 0 0;
+  padding: 0 32rpx;
+  white-space: nowrap;
+}
+.vb-filters .filter-chip + .filter-chip { margin-left: 10rpx; }
+
+/* Day group container */
+.vb-day {
+  margin: 22rpx 32rpx 0;
+}
+
+/* Row main column (shared by collapsed + conflict rows) */
+.vb-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  min-width: 0;
+}
+
+/* Expanded card */
+.vb-card {
+  padding: 24rpx 28rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+.vb-card + .vb-card { margin-top: 12rpx; }
+.vb-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+.vb-card-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+  flex: 1;
+}
+.vb-card-cn {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+.vb-card-en {
+  font-size: 20rpx;
+  color: var(--ink-400);
+}
+.vb-card-timerow {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+.vb-time {
+  font-family: var(--font-serif);
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+.vb-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-wrap: wrap;
+}
+.vb-pill {
+  height: 40rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 19rpx;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.vb-pill.ghost {
+  background: transparent;
+  border: 1rpx solid var(--line);
+  color: var(--ink-600);
+}
+.vb-line {
+  font-size: 21rpx;
+  color: var(--ink-600);
+  line-height: 1.5;
+}
+
+/* Advisor fallback */
+.vb-fallback {
+  margin: 20rpx 32rpx 0;
+  height: 84rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-700);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+/* Data-sync footnote */
+.vb-sync {
+  margin: 24rpx 32rpx 0;
+  text-align: center;
+  font-size: 18rpx;
+  color: var(--ink-300);
+}

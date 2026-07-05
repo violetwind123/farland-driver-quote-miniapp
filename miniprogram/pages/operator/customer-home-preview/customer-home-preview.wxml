@@ -4,7 +4,7 @@
       <view class="kicker">OPERATOR PREVIEW</view>
       <view class="title">Customer Preview Center</view>
     </view>
-    <view class="header-note">{{preview ? '高级复核工具。标准导入交付流程请在“导入客户行程”页面完成。' : '用于复核已导入行程状态、警告和发布情况。'}}</view>
+    <view class="header-note">{{preview ? '高级复核工具。常规交付流程请在“行程管理”页面完成。' : '用于复核已同步行程状态、警告和发布情况。'}}</view>
   </view>
 
   <view class="legacy-notice" bindtap="goTripManagement">
@@ -49,7 +49,7 @@
     </view>
 
     <view class="field-label">选择已有客户</view>
-    <view class="selector-hint">点选客户后会预览该客户最近的 Farland 行程；如需指定刚导入的行程，可先输入 trip_id。</view>
+    <view class="selector-hint">点选客户后会预览该客户最近的 Farland 行程；如需指定网页端同步的行程，可先输入 trip_id。</view>
     <view class="search-row">
       <input class="text-input" value="{{keyword}}" placeholder="客户称呼 / 手机 / 微信号" bindinput="onKeywordInput" />
       <button class="mini-btn" loading="{{customerLoading}}" bindtap="searchCustomers">搜索</button>
@@ -129,6 +129,22 @@
       <view wx:for="{{previewMeta.warnings}}" wx:key="*this" class="warning-row">{{item}}</view>
     </view>
 
+    <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
+      <view class="share-title">手机版行程单转发</view>
+      <view class="share-sub">
+        {{selectedCustomer ? '将当前选中客户记录为分享对象；客户主动保存后才计入已保存人数。' : '未选择客户时只准备临时行程单链接，不写 customer_trip_access。'}}
+      </view>
+      <button wx:if="{{!invitePath}}" class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createInvite">
+        准备手机版行程单
+      </button>
+      <view wx:else class="invite-ready-box">
+        <view class="invite-ready-title">手机版行程单已准备</view>
+        <view class="invite-ready-sub">{{inviteReused ? '已复用当前有效行程单。' : '可直接通过微信转发给客户。'}}</view>
+        <view wx:if="{{inviteExpiresAt}}" class="invite-ready-sub">有效期至 {{inviteExpiresAt}}</view>
+        <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发手机版行程单</button>
+      </view>
+    </view>
+
     <textarea
       class="note-input"
       value="{{reviewNote}}"
@@ -149,28 +165,13 @@
     <view wx:if="{{previewMeta.customer_would_see !== 'published'}}" class="release-open-hint">
       运营草稿预览会显示 draft 内容；客户真实页面在未发布前只显示等待状态，不显示草稿。
     </view>
-    <view wx:if="{{previewMeta.customer_would_see === 'published'}}" class="share-box">
-      <view class="share-title">客户分享卡</view>
-      <view class="share-sub">
-        {{selectedCustomer ? '将当前选中客户记录为分享对象；客户主动保存后才计入已保存人数。' : '未选择客户时只准备临时客户分享卡，不写 customer_trip_access。'}}
-      </view>
-      <button wx:if="{{!invitePath}}" class="primary-wide-btn" loading="{{creatingInvite}}" disabled="{{creatingInvite}}" bindtap="createInvite">
-        准备客户分享卡
-      </button>
-      <view wx:else class="invite-ready-box">
-        <view class="invite-ready-title">分享卡已准备</view>
-        <view class="invite-ready-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接通过微信转发给客户。'}}</view>
-        <view wx:if="{{inviteExpiresAt}}" class="invite-ready-sub">有效期至 {{inviteExpiresAt}}</view>
-        <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发客户分享卡</button>
-      </view>
-    </view>
   </view>
 
   <view class="panel customer-preview">
     <view class="section-title">客户真实页面入口</view>
     <view wx:if="{{!customerHome}}" class="empty-card">
       <view class="empty-title">暂无预览</view>
-      <view class="empty-sub">输入 trip_id 或从导入页进入后，先生成运营审核摘要。</view>
+      <view class="empty-sub">输入 trip_id 或从行程管理进入后，先生成运营审核摘要。</view>
     </view>
 
     <block wx:else>

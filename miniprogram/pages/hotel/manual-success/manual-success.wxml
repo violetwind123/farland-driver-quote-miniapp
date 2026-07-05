@@ -1,61 +1,58 @@
 <view class="success-page">
   <view class="success-hero">
-    <view class="status-mark">✓</view>
-    <view class="success-title">订单已提交</view>
-    <view class="success-copy">Farland 运营会联系你确认手动支付方式；付款确认后，再由运营完成酒店预订。</view>
+    <view class="success-badge"><view class="success-check">✓</view></view>
+    <view class="success-title">预订意向已提交</view>
+    <view class="success-copy">您的服务群顾问正在与酒店确认房态与价格，通常 30 分钟内在群内回复您。</view>
   </view>
 
   <view class="info-card">
-    <view class="section-title">订单信息</view>
     <view class="info-row">
-      <view class="info-label">订单号</view>
-      <view class="info-value">{{order.order_no || '待生成'}}</view>
+      <view class="info-label">酒店</view>
+      <view class="info-value">{{hotel.displayName}}</view>
     </view>
     <view class="info-row">
-      <view class="info-label">状态</view>
-      <view class="info-value">待手动支付确认</view>
+      <view class="info-label">房型</view>
+      <view class="info-value">{{room.roomSummary || room.displayName}}</view>
     </view>
     <view class="info-row">
-      <view class="info-label">应付总额</view>
-      <view class="info-value strong">{{payableText}}</view>
+      <view class="info-label">日期</view>
+      <view class="info-value">{{stayText}} · {{searchMeta}}</view>
+    </view>
+    <view class="info-row">
+      <view class="info-label">参考总价</view>
+      <view class="info-value"><text class="price-serif-inline">{{payableText}}</text><text class="price-note caption">含税费 · 以顾问确认为准</text></view>
+    </view>
+    <view class="info-row">
+      <view class="info-label">意向单号</view>
+      <view class="info-value serif-gold">{{order.order_no || '待生成'}}</view>
+      <view class="copy-chip gold" bindtap="copyOrderNo">复制</view>
     </view>
   </view>
 
-  <view class="hotel-card">
-    <image class="hotel-photo" src="{{hotel.displayPhoto}}" mode="aspectFill" />
-    <view class="hotel-info">
-      <view class="section-title">酒店与房型</view>
-      <view class="hotel-name">{{hotel.displayName}}</view>
-      <view wx:if="{{hotel.displayNameEn}}" class="hotel-name-en">{{hotel.displayNameEn}}</view>
-      <view wx:if="{{hotel.hasBadges}}" class="hotel-badges">
-        <text wx:for="{{hotel.displayBadges}}" wx:key="*this" wx:for-item="badge" class="hotel-badge">{{badge}}</text>
-      </view>
-      <view wx:if="{{hotel.hasTransport}}" class="transport-row">
-        <text wx:for="{{hotel.transportItems}}" wx:key="key" wx:for-item="tag" class="transport-pill {{tag.className}}">{{tag.label}}</text>
-      </view>
-      <view wx:if="{{hotel.transportNote}}" class="traffic-note">{{hotel.transportNote}}</view>
-      <view wx:if="{{hotel.displayAddress}}" class="muted-line">{{hotel.displayAddress}}</view>
-      <view class="stay-line">{{stayText}} · {{searchMeta}}</view>
-      <view class="room-line">{{room.roomSummary || room.displayName}}</view>
-      <view wx:if="{{room.hasTags}}" class="room-tags">
-        <text wx:for="{{room.displayTags}}" wx:key="*this" wx:for-item="tag" class="room-tag">{{tag}}</text>
-      </view>
-      <view wx:if="{{room.hasCancel}}" class="cancel-line">
-        <text wx:if="{{room.cancelBadge}}" class="cancel-badge">{{room.cancelBadge}}</text>
-        <text wx:if="{{room.cancelPolicy}}" class="cancel-copy">{{room.cancelPolicy}}</text>
-      </view>
+  <view class="progress-card">
+    <view class="prog-step">
+      <view class="prog-dot done"></view>
+      <view class="prog-name active">已提交</view>
+      <view class="prog-time">{{submittedTime}}</view>
+    </view>
+    <view class="prog-line"></view>
+    <view class="prog-step">
+      <view class="prog-dot current"></view>
+      <view class="prog-name current-txt">顾问确认中</view>
+      <view class="prog-time">约 30 分钟</view>
+    </view>
+    <view class="prog-line"></view>
+    <view class="prog-step">
+      <view class="prog-dot future"></view>
+      <view class="prog-name muted">完成预订</view>
+      <view class="prog-time faint">群内同步确认单</view>
     </view>
   </view>
 
-  <view class="info-card">
-    <view class="section-title">下一步</view>
-    <view class="step-line">1. 请等待 Farland 运营联系你确认支付方式。</view>
-    <view class="step-line">2. 手动支付完成后，运营会确认价格和库存并创建酒店订单。</view>
-    <view class="step-line">3. 酒店确认号出来后，会同步到你的 Farland 行程或由运营发给你。</view>
-  </view>
+  <view class="pay-warning card-ivory">小程序内不发起任何支付。费用确认后由您的 Farland 服务群顾问收取，请勿通过其他渠道转账。</view>
 
-  <view class="bottom-actions">
-    <button class="secondary-btn" bindtap="copyOrderNo">复制订单号</button>
-    <button class="primary-btn" bindtap="backToHotelSearch">返回酒店搜索</button>
+  <view class="action-bar">
+    <button class="cta-ghost" bindtap="continueBrowsing">继续浏览酒店</button>
+    <button class="cta-primary" bindtap="backToTrips">返回我的行程</button>
   </view>
 </view>

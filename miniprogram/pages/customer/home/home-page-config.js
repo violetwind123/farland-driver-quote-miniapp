@@ -21,6 +21,7 @@ const customerHomePageConfig = {
     dailyCharter: null,
     todayDriverCard: null,
     todayHotelCard: null,
+    visitCards: [],
     todayItinerary: null,
     showHomeEmpty: false,
     showLegacyTransport: false,
@@ -233,6 +234,7 @@ const customerHomePageConfig = {
           dailyCharter: null,
           todayDriverCard: null,
           todayHotelCard: null,
+          visitCards: [],
           todayItinerary: null,
           showHomeEmpty: false,
           showLegacyTransport: Boolean(invitedTransfer),
@@ -295,6 +297,7 @@ const customerHomePageConfig = {
           dailyCharter: null,
           todayDriverCard: null,
           todayHotelCard: null,
+          visitCards: [],
           todayItinerary: null,
           showHomeEmpty: false,
           showLegacyTransport: Boolean(invitedTransfer),
@@ -394,6 +397,7 @@ const customerHomePageConfig = {
       const todayItinerary = selectedTripDay
         ? this.buildTodayItineraryFromTripDay(selectedTripDay, activeTripOverview)
         : this.normalizeTodayItinerary(result.today_itinerary || null);
+      const visitCards = this.normalizeCustomerVisitCards(result.visit_cards || []);
       const flightCards = this.normalizeHomeFlightCards(result.flight_cards || []);
       const transferRequests = (result.transfer_requests || [])
         .filter((request) => (request.service_type || 'transfer') !== 'charter')
@@ -487,6 +491,7 @@ const customerHomePageConfig = {
         dailyCharter,
         todayDriverCard,
         todayHotelCard,
+        visitCards,
         todayItinerary,
         showHomeEmpty,
         showLegacyTransport: !hideModules.legacy_transport && !todayCard && !showHomeEmpty && hasTransport,
@@ -1753,6 +1758,16 @@ const customerHomePageConfig = {
       advisor: card.advisor || {},
       driver: driverAssigned ? normalizedDriver : null,
       driverPendingText: driverAssigned ? '' : '司机信息将在 Farland 完成确认后同步。',
+      trustStatusText: card.status_text || '',
+      updatedAtText: (() => {
+        if (!card.last_updated_at) return '';
+        const clock = this.extractTimeForDisplay(card.last_updated_at);
+        return /\d{1,2}:\d{2}/.test(clock) ? `更新于 ${clock}` : '';
+      })(),
+      changeSummaryText: card.change_summary || '',
+      serviceWindowLine: [card.vehicle_summary, card.party_summary].filter(Boolean).join(' · '),
+      nextDayTeaserText: card.next_day_teaser || '',
+      contactAdvisorLabel: (card.advisor && card.advisor.contact_label) || '联系顾问',
     };
   },
 
@@ -2163,6 +2178,11 @@ const customerHomePageConfig = {
       map_url: item.map_url || '',
     }));
     const daySectionCopy = this.buildDaySectionCopy(dayNo, day.date || '');
+    const cardStatusText = day.hasTimeConflict ? '待复核' : '已确认';
+    const cardVehicleSummary = day.transportBadge || transportSummary.vehicle_summary || transportSummary.vehicle_class || '车辆待确认';
+    const cardPartySummary = transportSummary.party_summary || '';
+    const cardAdvisor = context.advisor || {};
+    const lastUpdatedAtRaw = day.last_updated_at || day.lastUpdatedAt || overview.last_updated_at || overview.lastUpdatedAt || '';
     return {
       trip_id: tripId,
       trip_no: tripNo,
@@ -2208,7 +2228,17 @@ const customerHomePageConfig = {
         ...day.hotel,
         name: day.hotel.name || day.hotel.hotel_name || day.hotel.title || day.hotelBadge || '酒店安排',
       } : (day.hotelBadge ? { name: day.hotelBadge, arrival_time: '', address: '' } : null),
-      advisor: context.advisor || {},
+      advisor: cardAdvisor,
+      trustStatusText: cardStatusText || '',
+      updatedAtText: (() => {
+        if (!lastUpdatedAtRaw) return '';
+        const clock = this.extractTimeForDisplay(lastUpdatedAtRaw);
+        return /\d{1,2}:\d{2}/.test(clock) ? `更新于 ${clock}` : '';
+      })(),
+      changeSummaryText: day.change_summary || day.changeSummary || '',
+      serviceWindowLine: [cardVehicleSummary, cardPartySummary].filter(Boolean).join(' · '),
+      nextDayTeaserText: day.next_day_teaser || day.nextDayTeaser || '',
+      contactAdvisorLabel: (cardAdvisor && cardAdvisor.contact_label) || '联系顾问',
     };
   },
 
@@ -2621,6 +2651,53 @@ const customerHomePageConfig = {
     });
   },
 
+  // R5-5d 访校卡 VM:仅从后端已确认 + 白名单化的 visit_cards 派生展示文案,不臆造数据。
+  // P5 行程单 PNG:客户端二次 scheme 兜底。scheme 必须 ∈ {https:,cloud:,wxfile:},否则整对象 → null(入口隐藏)。
+  normalizeItinerarySheet(x) {
+    if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+    const pngUrl = (x.png_url == null ? '' : String(x.png_url)).trim();
+    const match = pngUrl.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
+    if (!match || ['https:', 'cloud:', 'wxfile:'].indexOf(match[1].toLowerCase()) === -1) return null;
+    return {
+      png_url: pngUrl,
+      width: x.width,
+      height: x.height,
+      order_no: x.order_no == null ? '' : String(x.order_no),
+      version: x.version,
+    };
+  },
+
+  normalizeCustomerVisitCards(list) {
+    return (Array.isArray(list) ? list : [])
+      .filter((card) => card && card.start_time && card.school_name)
+      .map((card) => {
+        const durationText = (card.duration_min != null && card.duration_min !== '')
+          ? ` · 约 ${card.duration_min} 分钟`
+          : '';
+        const timeRangeText = card.end_time
+          ? `– ${this.formatDisplayTime(card.end_time)}${durationText}`
+          : '';
+        const arriveEarlyText = (card.arrive_early_min != null && card.arrive_early_min !== '')
+          ? `请提前 ${card.arrive_early_min} 分钟`
+          : '';
+        const transportText = card.transport_note ? String(card.transport_note) : '';
+        const arriveText = [arriveEarlyText, transportText].filter(Boolean).join(' · ');
+        const weather = card.weather || null;
+        const weatherText = (weather && weather.hi != null && weather.hi !== '')
+          ? `${weather.hi}/${weather.lo}°C`
+          : '';
+        const weatherKind = (weather && weather.kind) || 'sun';
+        return {
+          ...card,
+          startTimeText: this.formatDisplayTime(card.start_time),
+          timeRangeText,
+          arriveText,
+          weatherText,
+          weatherKind,
+        };
+      });
+  },
+
   formatDisplayTime(value) {
     if (!value && value !== 0) return '';
     return String(value)
@@ -2939,6 +3016,9 @@ const customerHomePageConfig = {
       todayDriverCard: null,
       todayOverviewCard: null,
       todayHotelCard: null,
+      // P5 行程单 PNG:客户端 scheme 兜底;缺失/非法 → null(wxml 入口隐藏,gated)
+      itinerarySheet: this.normalizeItinerarySheet(snapshot.itinerary_sheet),
+      visitCards: this.normalizeCustomerVisitCards(snapshot.visit_cards || []),
       hotels,
       flights,
       transports: transportSource,
@@ -2997,6 +3077,7 @@ const customerHomePageConfig = {
       dailyCharter: null,
       todayDriverCard: null,
       todayHotelCard: null,
+      visitCards: [],
       todayItinerary: null,
       nextConfirmed: {},
       tripOverview: [],
@@ -3105,6 +3186,7 @@ const customerHomePageConfig = {
       dailyCharter: null,
       todayDriverCard: previewHome.todayDriverCard,
       todayHotelCard: previewHome.todayHotelCard,
+      visitCards: previewHome.visitCards || [],
       todayItinerary: previewHome.todayItinerary,
       hideModules: {},
       showHomeEmpty: !previewHome.hasContent,
@@ -3359,6 +3441,7 @@ const customerHomePageConfig = {
       todayCard: selectedTodayCard,
       todayDriverCard: selectedDriverCard,
       todayHotelCard: selectedHotelCard,
+      visitCards: this.normalizeCustomerVisitCards(home.visit_cards || []),
       todayItinerary,
       nextConfirmed: today ? {
         title: firstNode ? firstNode.title : today.title,
@@ -3837,6 +3920,16 @@ const customerHomePageConfig = {
       urls: [this.data.advisorQrPath],
       current: this.data.advisorQrPath,
     });
+  },
+
+  // P5 行程单 PNG:点开走 wx.previewImage(不内联大图);无 url 则提示生成中
+  previewItinerarySheet(e) {
+    const url = e.currentTarget.dataset.url;
+    if (!url) {
+      wx.showToast({ title: '行程单生成中', icon: 'none' });
+      return;
+    }
+    wx.previewImage({ urls: [url], current: url });
   },
 
   noop() {},

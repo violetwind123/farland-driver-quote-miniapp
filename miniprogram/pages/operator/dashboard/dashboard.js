@@ -67,6 +67,10 @@ Page({
     wx.navigateTo({ url: '/pages/operator/review-summary/review-summary' });
   },
 
+  openVisitBookings() {
+    wx.navigateTo({ url: '/pages/operator/visit-bookings/visit-bookings' });
+  },
+
   openCustomerHomePreview() {
     wx.navigateTo({
       url: '/pages/operator/customer-home-preview/customer-home-preview?preview_access_mode=temporary_guest',

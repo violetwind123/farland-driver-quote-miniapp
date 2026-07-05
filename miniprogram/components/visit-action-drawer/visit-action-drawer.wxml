@@ -1,0 +1,149 @@
+<!-- visit-action-drawer (design 5e) · emit-only operator action drawer -->
+<view class="drawer-mask {{visible ? 'open' : ''}}" bindtap="onClose"></view>
+
+<view class="drawer {{visible ? 'open' : ''}}" catchtap>
+  <view class="drawer-handle"></view>
+
+  <view class="drawer-head">
+    <view class="drawer-head-text">
+      <view class="school-name-serif">{{booking.school.nameCn}}</view>
+      <view class="school-sub">{{booking.school.nameEn}} · 当前状态 {{booking.statusText}}</view>
+    </view>
+    <view class="drawer-close" bindtap="onClose">✕</view>
+  </view>
+
+  <!-- seg-control: theme owns internals (.seg / .seg.active) -->
+  <view class="seg-control">
+    <view class="seg {{activeSeg === 'query' ? 'active' : ''}}" data-seg="query" bindtap="onSegTap">查询日期</view>
+    <view class="seg {{activeSeg === 'submit' ? 'active' : ''}}" data-seg="submit" bindtap="onSegTap">提交预约</view>
+    <view class="seg {{activeSeg === 'upload' ? 'active' : ''}}" data-seg="upload" bindtap="onSegTap">上传确认</view>
+    <view class="seg {{activeSeg === 'reschedule' ? 'active' : ''}}" data-seg="reschedule" bindtap="onSegTap">改期</view>
+    <view class="seg {{activeSeg === 'materials' ? 'active' : ''}}" data-seg="materials" bindtap="onSegTap">标记材料</view>
+  </view>
+
+  <!-- 查询日期 -->
+  <view wx:if="{{activeSeg === 'query'}}" class="panel">
+    <view class="panel-hint">向学校官方渠道查询本校可预约日期,回填后再提交预约。</view>
+    <view class="action-row">
+      <view class="cta-primary" bindtap="onQueryDate">查询官方可约日期</view>
+    </view>
+  </view>
+
+  <!-- 提交预约 -->
+  <view wx:if="{{activeSeg === 'submit'}}" class="panel">
+    <view class="panel-kicker">备选时段 · 至多 2 个</view>
+    <view class="slot-wrap">
+      <view
+        wx:for="{{booking.slots}}"
+        wx:key="key"
+        class="slot-chip {{selectedSlotKeys.indexOf(item.key) > -1 ? 'sel' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onSlotTap"
+      >
+        <view wx:if="{{selectedSlotKeys.indexOf(item.key) > -1}}" class="slot-check"></view>
+        {{item.dateText}}
+      </view>
+    </view>
+
+    <view class="panel-kicker">学生</view>
+    <view class="slot-wrap">
+      <view
+        wx:for="{{booking.students}}"
+        wx:key="id"
+        class="student-chip {{selectedStudentIds.indexOf(item.id) > -1 ? 'sel' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onStudentTap"
+      >{{item.name}} · {{item.grade}}</view>
+    </view>
+
+    <textarea
+      class="note-box"
+      placeholder="给学校的附言(选填)"
+      placeholder-class="note-ph"
+      value="{{noteText}}"
+      bindinput="onNoteInput"
+    ></textarea>
+
+    <view class="action-row">
+      <view class="cta-primary" bindtap="onSubmit">提交给学校</view>
+      <view class="cta-ghost" bindtap="onSaveDraft">存草稿</view>
+    </view>
+    <view class="cta-microcopy">提交后状态自动变为「学校待确认」,收到学校答复前客户不可见</view>
+  </view>
+
+  <!-- 上传确认 -->
+  <view wx:if="{{activeSeg === 'upload'}}" class="panel">
+    <view class="panel-hint">选择学校确认函文件、回填确认号与确认时段,提交后状态置为「已确认」。</view>
+    <view class="file-slot {{confirmFile ? 'picked' : ''}}" bindtap="onChooseConfirmFile">
+      {{confirmFile ? confirmFile.name : '选择确认函文件'}}
+    </view>
+    <input
+      class="confirm-input"
+      placeholder="确认号"
+      placeholder-class="note-ph"
+      value="{{confirmationNo}}"
+      bindinput="onConfirmNoInput"
+    />
+    <view class="panel-kicker">确认时段</view>
+    <view class="slot-input-row">
+      <picker mode="date" value="{{confirmSlotDate}}" bindchange="onConfirmSlotDate">
+        <view class="picker-cell">{{confirmSlotDate || '选择日期'}}</view>
+      </picker>
+    </view>
+    <view class="slot-input-row">
+      <picker mode="time" value="{{confirmSlotStart}}" bindchange="onConfirmSlotStart">
+        <view class="picker-cell">{{confirmSlotStart || '开始时间'}}</view>
+      </picker>
+      <picker mode="time" value="{{confirmSlotEnd}}" bindchange="onConfirmSlotEnd">
+        <view class="picker-cell">{{confirmSlotEnd || '结束时间'}}</view>
+      </picker>
+    </view>
+    <view class="action-row">
+      <view class="cta-primary" bindtap="onUploadConfirm">上传并标记已确认</view>
+    </view>
+  </view>
+
+  <!-- 改期 -->
+  <view wx:if="{{activeSeg === 'reschedule'}}" class="panel">
+    <view class="panel-hint">为已确认/时间冲突的预约设置新的确认时段,提交后状态回到「已确认」。</view>
+    <view class="panel-kicker">新的确认时段</view>
+    <view class="slot-input-row">
+      <picker mode="date" value="{{reschedDate}}" bindchange="onReschedDate">
+        <view class="picker-cell">{{reschedDate || '选择日期'}}</view>
+      </picker>
+    </view>
+    <view class="slot-input-row">
+      <picker mode="time" value="{{reschedStart}}" bindchange="onReschedStart">
+        <view class="picker-cell">{{reschedStart || '开始时间'}}</view>
+      </picker>
+      <picker mode="time" value="{{reschedEnd}}" bindchange="onReschedEnd">
+        <view class="picker-cell">{{reschedEnd || '结束时间'}}</view>
+      </picker>
+    </view>
+    <view class="action-row">
+      <view class="cta-primary" bindtap="onReschedule">提交改期</view>
+    </view>
+  </view>
+
+  <!-- 标记材料 -->
+  <view wx:if="{{activeSeg === 'materials'}}" class="panel">
+    <view class="panel-kicker">材料清单</view>
+    <view
+      wx:for="{{booking.materials}}"
+      wx:key="name"
+      class="material-row"
+    >
+      <view class="name">{{item.name}}{{item.required ? ' ·必需' : ''}}</view>
+      <view class="state {{item.status}}">{{item.status}}</view>
+    </view>
+    <view class="action-row">
+      <view class="cta-primary" bindtap="onMarkMaterials">更新材料状态</view>
+    </view>
+  </view>
+
+  <!-- toast -->
+  <view wx:if="{{toast.show}}" class="toast-dark drawer-toast">
+    <view class="toast-dot"></view>
+    {{toast.text}}
+  </view>
+</view>

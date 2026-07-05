@@ -8,8 +8,19 @@
   </view>
 
   <view class="result-toolbar">
-    <view class="result-count">{{loading ? '搜索中' : resultCount + ' 家酒店'}}</view>
     <view class="result-note">{{mode === 'campus' ? '参考学校酒店清单，预订前将重新确认价格' : '列表价为实时估算，预订前将重新确认'}}</view>
+  </view>
+
+  <view class="curated-head">
+    <view class="curated-copy">
+      <view class="curated-kicker">CURATED · 甄选</view>
+      <view class="curated-count">{{loading ? '搜索中' : ('为您找到 ' + resultCount + ' 家酒店')}}</view>
+    </view>
+    <view wx:if="{{!loading && !error && results.length}}" class="sort-row">
+      <view class="filter-chip {{sortKey === 'recommend' ? 'active' : ''}}" data-sort="recommend" bindtap="onSort">推荐</view>
+      <view class="filter-chip {{sortKey === 'price' ? 'active' : ''}}" data-sort="price" bindtap="onSort">价格</view>
+      <view class="filter-chip {{sortKey === 'distance' ? 'active' : ''}}" data-sort="distance" bindtap="onSort">距校区</view>
+    </view>
   </view>
 
   <view wx:if="{{loading}}" class="loading-block">
@@ -23,31 +34,28 @@
   </view>
 
   <view wx:else class="hotel-list">
-    <view wx:for="{{results}}" wx:for-index="index" wx:key="hotel_id" class="hotel-card {{item.canOpenDetail ? 'clickable' : ''}}" bindtap="openHotelDetail" data-index="{{index}}">
-      <image class="hotel-thumb" src="{{item.displayPhoto}}" mode="aspectFill" />
-      <view class="hotel-card-main">
-        <view class="card-top">
-          <view class="hotel-title-block">
-            <view class="hotel-name">{{item.displayName}}</view>
-            <view wx:if="{{item.displayNameEn}}" class="hotel-name-en">{{item.displayNameEn}}</view>
-          </view>
-          <view wx:if="{{item.displayTags && item.displayTags.length}}" class="badge-row">
-            <view wx:if="{{item.displayTags && item.displayTags.length}}" class="source-pill farland">{{item.displayTags[0]}}</view>
-          </view>
+    <view wx:for="{{results}}" wx:for-index="index" wx:key="hotel_id" class="hotel-card {{item.isRecommended ? 'recommended' : ''}} {{item.canOpenDetail ? 'clickable' : ''}}" bindtap="openHotelDetail" data-index="{{index}}">
+      <view class="hotel-media">
+        <image class="hotel-cover" src="{{item.displayPhoto}}" mode="aspectFill" />
+        <view wx:if="{{item.isRecommended}}" class="recommend-badge media-badge">顾问推荐</view>
+        <view wx:if="{{item.reviewScore}}" class="score-chip">{{item.reviewScore}}<text wx:if="{{item.reviewLabel}}" class="score-label">{{item.reviewLabel}}</text></view>
+      </view>
+      <view class="hotel-body">
+        <view class="hotel-name">{{item.displayName}}</view>
+        <view wx:if="{{item.displayNameEn}}" class="hotel-name-en">{{item.displayNameEn}}</view>
+        <view class="hotel-meta">{{item.metaLine || item.displayAddress}}</view>
+        <view wx:if="{{item.hasFacilityTags}}" class="facility-row">
+          <view wx:for="{{item.facilityTags}}" wx:key="key" wx:for-item="tag" class="facility-tag {{tag.className}}">{{tag.label}}</view>
         </view>
-        <view wx:if="{{item.hasTransport}}" class="transport-row">
-          <text wx:for="{{item.transportItems}}" wx:key="key" wx:for-item="tag" class="transport-pill {{tag.className}}">{{tag.label}}</text>
-        </view>
-        <view wx:if="{{item.transportNote}}" class="hotel-traffic">{{item.transportNote}}</view>
-        <view class="hotel-address">{{item.displayAddress}}</view>
         <view wx:if="{{item.hasReason}}" class="hotel-reason">{{item.displayReason}}</view>
-        <view class="price-row">
+        <view class="hotel-footer">
+          <view wx:if="{{item.itineraryNote}}" class="itin-pill">{{item.itineraryNote}}</view>
+          <view wx:else class="itin-spacer"></view>
           <view class="hotel-price">
             <text class="price-currency">{{item.priceCurrency}}</text>
             <text class="price-number">{{item.priceAmount}}</text>
-            <text class="price-suffix"> 起</text>
+            <text class="price-suffix"> / {{item.nights || 1}} 晚起</text>
           </view>
-          <view wx:if="{{item.canOpenDetail}}" class="detail-link">查看房型 ›</view>
         </view>
       </view>
     </view>

@@ -12,6 +12,7 @@
     "pages/customer/transfer-detail/transfer-detail",
     "pages/customer/benefits/benefits",
     "pages/customer/review-card/review-card",
+    "pages/customer/visit-dates/visit-dates",
     "pages/auth/login/login",
     "pages/operator/dashboard/dashboard",
     "pages/operator/hotel-orders/hotel-orders",
@@ -25,6 +26,8 @@
     "pages/operator/request-detail/request-detail",
     "pages/operator/driver-summary/driver-summary",
     "pages/operator/drivers-by-region/drivers-by-region",
+    "pages/operator/visit-bookings/visit-bookings",
+    "pages/operator/visit-booking-detail/visit-booking-detail",
     "pages/driver/quick-quote/quick-quote",
     "pages/driver/home/home"
   ],

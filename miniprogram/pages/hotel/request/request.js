@@ -126,6 +126,10 @@ Page({
     this.applyServiceType(type);
   },
 
+  openVisitDates() {
+    wx.navigateTo({ url: '/pages/customer/visit-dates/visit-dates' });
+  },
+
   onCityChipTap(e) {
     const city = e.currentTarget.dataset.city;
     if (!city) return;

@@ -9,100 +9,84 @@
   <swiper
     wx:if="{{todayCard && cards.length}}"
     class="destination-swiper"
+    style="{{stationHeight ? 'height:' + stationHeight + 'px;' : ''}}"
     current="{{currentIndex}}"
-    previous-margin="24rpx"
-    next-margin="34rpx"
+    previous-margin="0"
+    next-margin="18rpx"
     bindchange="onSwiperChange"
   >
-    <swiper-item wx:for="{{cards}}" wx:key="card_id" class="destination-swiper-item {{item.time_status}}">
-      <view wx:if="{{item.isSchoolVisitCard}}" class="school-visit-card-shell {{item.time_status}}">
-        <school-visit-card card="{{item}}" />
-      </view>
-
-      <view wx:elif="{{item.isInfoCard}}" class="destination-card info-card {{item.time_status}}">
-        <view class="info-card-head">
-          <view class="card-topline">
-            <view class="card-index">第 {{item.sequence}} 站 / 共 {{item.total_count || cards.length}} 站</view>
-            <view class="card-status {{item.time_status}}">{{item.timeStatusText}}</view>
-          </view>
-          <view class="card-type">{{item.typeText}}</view>
-        </view>
-
-        <view class="info-title">{{item.primaryName || item.title}}</view>
-        <view wx:if="{{item.secondaryName || item.subtitle}}" class="info-subtitle">{{item.secondaryName || item.subtitle}}</view>
-        <view wx:if="{{item.metaLine}}" class="info-meta">{{item.metaLine}}</view>
-
-        <view wx:if="{{item.detailItems && item.detailItems.length}}" class="info-detail-grid">
-          <view wx:for="{{item.detailItems}}" wx:key="label" wx:for-item="detail" class="info-detail-item {{detail.fullRow ? 'full-row' : ''}} {{detail.muted ? 'muted' : ''}}">
-            <view class="detail-label">{{detail.label}}</view>
-            <view class="detail-value compact">{{detail.value}}</view>
+    <swiper-item wx:for="{{cards}}" wx:key="card_id" class="station-item {{item.time_status}}">
+      <view class="station" style="{{stationHeight ? 'height:' + stationHeight + 'px;' : ''}}">
+        <!-- HERO -->
+        <view class="station-hero">
+          <view class="hero-wash"></view>
+          <view wx:if="{{item.heroWatermark}}" class="hero-watermark">{{item.heroWatermark}}</view>
+          <view class="hero-photo-flag">地点实拍图</view>
+          <view class="hero-scrim"></view>
+          <view class="hero-foot">
+            <view class="hero-badges">
+              <view class="hero-badge">{{item.typeText}}</view>
+              <view wx:if="{{item.timeStatusText}}" class="status-chip {{item.heroStatusClass}} hero-status">{{item.timeStatusText}}</view>
+            </view>
+            <view class="hero-time-row">
+              <view wx:if="{{item.heroTime}}" class="hero-time">{{item.heroTime}}</view>
+              <view wx:if="{{item.heroTimeSub}}" class="hero-time-sub">{{item.heroTimeSub}}</view>
+            </view>
+            <view class="hero-title">{{item.primaryName || item.title}}</view>
+            <view wx:if="{{item.heroSubtitle}}" class="hero-subtitle">{{item.heroSubtitle}}</view>
           </view>
         </view>
+        <view class="hero-swipe-glow"></view>
 
-        <view wx:if="{{item.plainDetailItems && item.plainDetailItems.length}}" class="plain-detail-list">
-          <view wx:for="{{item.plainDetailItems}}" wx:key="label" wx:for-item="detail" class="plain-detail-row">
-            <view class="plain-detail-label">{{detail.label}}</view>
-            <view class="plain-detail-value">{{detail.value}}</view>
+        <!-- CONTENT LAYER (slide-up sheet) -->
+        <scroll-view scroll-y class="station-sheet">
+          <view class="sheet-grabber"></view>
+          <block wx:if="{{item.isSchoolVisitCard}}">
+            <school-visit-card card="{{item}}" />
+          </block>
+          <block wx:else>
+            <view wx:if="{{item.aboutLines.length}}" class="sheet-kicker">关于这一站</view>
+            <view wx:for="{{item.aboutLines}}" wx:key="*this" wx:for-item="line" class="sheet-copy">{{line}}</view>
+
+            <view wx:if="{{item.factCells.length}}" class="fact-grid">
+              <view wx:for="{{item.factCells}}" wx:key="label" wx:for-item="f" class="fact-cell">
+                <view class="fact-label">{{f.label}}</view>
+                <view class="fact-value {{f.tone}}">{{f.value}}</view>
+              </view>
+            </view>
+
+            <view wx:if="{{item.highlights.length}}" class="sheet-kicker">参观看点</view>
+            <view wx:for="{{item.highlights}}" wx:key="title" wx:for-item="h" class="highlight-row">
+              <view class="highlight-idx">{{h.idx}}</view>
+              <view class="highlight-body">
+                <view class="highlight-title">{{h.title}}</view>
+                <view wx:if="{{h.desc}}" class="highlight-desc">{{h.desc}}</view>
+              </view>
+            </view>
+
+            <view wx:if="{{item.practicalRows.length}}" class="sheet-kicker">实用信息</view>
+            <view wx:if="{{item.practicalRows.length}}" class="practical-card">
+              <view wx:for="{{item.practicalRows}}" wx:key="label" wx:for-item="p" class="practical-row">
+                <view class="practical-label">{{p.label}}</view>
+                <view class="practical-value">{{p.value}}</view>
+              </view>
+            </view>
+          </block>
+        </scroll-view>
+
+        <!-- BOTTOM NODE STRIP -->
+        <view class="node-strip">
+          <view class="node-strip-head">
+            <view class="node-strip-title">今日行程 · 第 {{item.sequence}} 站 / 共 {{item.total_count || cards.length}} 站</view>
+            <view wx:if="{{item.nextNodeText}}" class="node-strip-next">下一站 {{item.nextNodeText}}</view>
           </view>
-        </view>
-
-        <view wx:if="{{item.introLines && item.introLines.length}}" class="info-section">
-          <view class="detail-label">{{item.sectionLabel || '说明'}}</view>
-          <view wx:for="{{item.introLines}}" wx:key="*this" wx:for-item="line" class="info-copy">{{line}}</view>
-        </view>
-
-        <view wx:if="{{item.tags && item.tags.length}}" class="info-section">
-          <view class="detail-label">{{item.tagLabel || '关注点'}}</view>
-          <view class="tag-row">
-            <view wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag" class="info-tag">{{tag}}</view>
-          </view>
-        </view>
-
-        <view wx:if="{{item.timeItems && item.timeItems.length}}" class="time-footer">
-          <view wx:for="{{item.timeItems}}" wx:key="label" wx:for-item="timeItem" class="time-cell">
-            <view class="time-label">{{timeItem.label}}</view>
-            <view class="time-value">{{timeItem.value}}</view>
-          </view>
-        </view>
-        <view wx:if="{{item.timeWarningText}}" class="time-warning">{{item.timeWarningText}}</view>
-      </view>
-
-      <view wx:else class="destination-card {{item.time_status}}">
-        <view class="card-topline">
-          <view class="card-index">{{item.sequence}} / {{cards.length}}</view>
-          <view class="card-status {{item.time_status}}">{{item.timeStatusText}}</view>
-        </view>
-        <view class="card-type">{{item.typeText}}</view>
-        <view wx:if="{{item.time}}" class="card-time">{{item.time}}</view>
-        <view class="card-title">{{item.title}}</view>
-
-        <view wx:if="{{item.location}}" class="detail-block">
-          <view class="detail-label">地点</view>
-          <view class="detail-value">{{item.location}}</view>
-        </view>
-
-        <view wx:if="{{item.show_route && item.route}}" class="detail-block">
-          <view class="detail-label">路线</view>
-          <view class="detail-value">{{item.route}}</view>
-        </view>
-
-        <view wx:if="{{item.arrival_estimate}}" class="detail-block">
-          <view class="detail-label">预计到达</view>
-          <view class="detail-value">{{item.arrival_estimate}}</view>
-        </view>
-
-        <view wx:if="{{item.show_travel_meta && item.detailLine}}" class="detail-block">
-          <view class="detail-label">{{item.type === 'hotel' ? '酒店信息' : '路段预估'}}</view>
-          <view class="detail-value">{{item.detailLine}}</view>
-        </view>
-
-        <view wx:if="{{item.note}}" class="detail-note">{{item.note}}</view>
-        <view wx:if="{{item.next_stop}}" class="detail-next">下一站：{{item.next_stop}}</view>
-
-        <view wx:if="{{item.timeItems && item.timeItems.length}}" class="time-footer">
-          <view wx:for="{{item.timeItems}}" wx:key="label" wx:for-item="timeItem" class="time-cell">
-            <view class="time-label">{{timeItem.label}}</view>
-            <view class="time-value">{{timeItem.value}}</view>
+          <view class="node-track">
+            <view class="node-track-line"></view>
+            <view wx:for="{{nodeStrip}}" wx:key="key" wx:for-item="n" class="node {{n.state}}">
+              <view class="node-dot {{n.state}}"></view>
+              <view class="node-time">{{n.time}}</view>
+              <view class="node-name">{{n.name}}</view>
+            </view>
           </view>
         </view>
       </view>

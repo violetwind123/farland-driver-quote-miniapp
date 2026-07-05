@@ -1,5 +1,8 @@
-.page { min-height: 100vh; padding: 28rpx; box-sizing: border-box; background: #F5F6FA; }
-.title { font-size: 38rpx; font-weight: 700; color: #17315f; margin-bottom: 24rpx; }
-.benefit-card { background: #fff; border-radius: 16rpx; padding: 28rpx; margin-bottom: 18rpx; }
-.benefit-title { font-size: 30rpx; font-weight: 700; color: #1f3266; }
-.benefit-desc { margin-top: 10rpx; color: #6E7788; font-size: 25rpx; line-height: 1.6; }
+@import "/styles/theme.wxss";
+page { font-size: 28rpx; }
+.page { min-height: 100vh; padding: 28rpx; box-sizing: border-box; background: var(--bg-page); }
+.section-kicker.gold { margin-bottom: 10rpx; }
+.title { font-family: var(--font-serif); font-size: 34rpx; font-weight: 600; color: var(--ink-900); line-height: 1.3; margin-bottom: 24rpx; }
+.benefit-card { background: var(--bg-card); border: 1rpx solid var(--line); border-radius: 32rpx; box-shadow: var(--shadow-card); box-sizing: border-box; padding: 28rpx; margin-bottom: 18rpx; }
+.benefit-title { font-size: 28rpx; font-weight: 600; color: var(--ink-900); line-height: 1.35; }
+.benefit-desc { margin-top: 10rpx; color: var(--ink-600); font-size: 24rpx; line-height: 1.65; }

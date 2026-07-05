@@ -1,0 +1,153 @@
+<!-- R5-5c 运营访校预约详情 -->
+<view class="vp-page">
+
+  <view wx:if="{{loading}}" class="vp-state">加载中…</view>
+  <view wx:elif="{{error}}" class="vp-state error">{{error}}</view>
+
+  <block wx:else>
+    <!-- ========== 头部 ========== -->
+    <view class="vp-head">
+      <view class="vp-head-row">
+        <view class="vp-head-main">
+          <view class="vp-title">{{schoolNameCn}}</view>
+          <view wx:if="{{schoolNameEn}}" class="vp-title-en">{{schoolNameEn}}</view>
+        </view>
+        <view class="status-chip {{statusChipClass}}">{{statusText}}</view>
+      </view>
+      <view class="vp-bigtime">{{bigTime}}</view>
+      <view wx:if="{{bigTimeSub}}" class="vp-bigtime-sub">{{bigTimeSub}}</view>
+      <view class="vp-meta-row">
+        <view wx:if="{{studentChipText}}" class="vp-meta-chip student">{{studentChipText}}</view>
+        <view wx:if="{{tripChipText}}" class="vp-meta-chip trip">{{tripChipText}}</view>
+      </view>
+    </view>
+
+    <!-- ========== 卡片 1 · 确认信息 ========== -->
+    <view wx:if="{{hasConfirmation}}" class="vp-card">
+      <view class="vp-card-head">
+        <text class="vp-card-kicker">确认信息</text>
+        <view class="vp-card-actions">
+          <text wx:if="{{confirmation.confirmationNo}}" class="vp-card-action" bindtap="onCopyConfirmationNo">确认号 {{confirmation.confirmationNo}}</text>
+        </view>
+      </view>
+      <view class="vp-confirm-row">
+        <view class="vp-file-thumb"><text>PDF</text></view>
+        <view class="vp-file-main">
+          <view class="vp-file-name">{{confirmation.fileName || '学校确认函'}}</view>
+          <view wx:if="{{confirmationUploadedText}}" class="vp-file-sub">{{confirmationUploadedText}}</view>
+        </view>
+        <view class="copy-chip gold" bindtap="onViewConfirmation">查看</view>
+      </view>
+    </view>
+
+    <!-- ========== 卡片 2 · 集合点 / 到达 ========== -->
+    <view wx:if="{{meetingPoint}}" class="vp-card">
+      <view class="vp-card-head">
+        <text class="vp-card-kicker">MEETING POINT</text>
+        <view class="vp-card-actions">
+          <text class="vp-card-action" bindtap="onCopyAddress">复制地址</text>
+          <text wx:if="{{canNavigate}}" class="vp-card-action" bindtap="onNavigate">导航</text>
+        </view>
+      </view>
+      <view class="vp-mp-name">{{meetingPoint.name}}</view>
+      <view wx:if="{{meetingPoint.addressEn}}" class="vp-mp-addr">{{meetingPoint.addressEn}}</view>
+      <image wx:if="{{meetingPoint.mapUrl}}" class="vp-map-placeholder" src="{{meetingPoint.mapUrl}}" mode="aspectFill" />
+      <view wx:else class="vp-map-placeholder"></view>
+
+      <view class="vp-arrival-row">
+        <view class="vp-arrival-label">到达</view>
+        <view class="vp-arrival-value">{{arriveByText}}<text wx:if="{{rainReminder}}" class="rain-note">{{rainReminder}}</text></view>
+      </view>
+      <view wx:if="{{booking.arrival.parkingNote}}" class="vp-arrival-row">
+        <view class="vp-arrival-label">停车</view>
+        <view class="vp-arrival-value">{{booking.arrival.parkingNote}}</view>
+      </view>
+      <view wx:if="{{booking.arrival.transportNote}}" class="vp-arrival-row">
+        <view class="vp-arrival-label">交通</view>
+        <view class="vp-arrival-value">{{booking.arrival.transportNote}}</view>
+      </view>
+    </view>
+
+    <!-- ========== 卡片 3 · 材料清单 ========== -->
+    <view wx:if="{{materialsTotal > 0}}" class="vp-card">
+      <view class="vp-card-head">
+        <text class="vp-card-kicker">材料清单 · {{materialsDoneCount}}/{{materialsTotal}}</text>
+      </view>
+      <view wx:for="{{materials}}" wx:key="name" class="material-row">
+        <view class="name">{{item.name}}</view>
+        <view class="state {{item.status}}">{{item.statusLabel}}<text wx:if="{{item.dueText}}" class="vp-material-due">· {{item.dueText}}</text></view>
+      </view>
+    </view>
+
+    <!-- ========== 卡片 4 · 内部信息(双门:isInternalView + .card-internal) ========== -->
+    <view wx:if="{{isInternalView}}" class="vp-card card-internal">
+      <view class="internal-label">
+        <text>仅内部可见 · 不下发客户端</text>
+      </view>
+
+      <view wx:if="{{visitOffice}}" class="vp-internal-row first">
+        <view class="vp-internal-label">Visit Office</view>
+        <view class="vp-internal-value">{{visitOffice.name}}{{visitOffice.email ? ' · ' : ''}}{{visitOffice.email}}</view>
+      </view>
+
+      <view wx:if="{{contactPerson}}" class="vp-internal-row">
+        <view class="vp-internal-label">联系人</view>
+        <view class="vp-internal-value">{{contactPerson.name}}{{contactPerson.role ? ' · ' : ''}}{{contactPerson.role}}{{contactPerson.phone ? ' · ' : ''}}{{contactPerson.phone}}</view>
+      </view>
+
+      <view wx:if="{{advisorNotes}}" class="vp-internal-row">
+        <view class="vp-internal-label">顾问备注</view>
+        <view class="vp-internal-value">{{advisorNotes}}</view>
+      </view>
+
+      <view wx:if="{{timelineLatest.length > 0}}" class="vp-internal-row">
+        <view class="vp-internal-label">时间线</view>
+        <view class="vp-internal-value">
+          <view wx:for="{{timelineLatest}}" wx:key="*this">{{item}}</view>
+          <view wx:if="{{timelineTotal > timelineLatest.length}}" class="vp-timeline-more" bindtap="onViewTimeline">查看全部 {{timelineTotal}} 条</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ========== 底部动作栏(§5 状态×动作) ========== -->
+  <view wx:if="{{!loading && !error && (primaryActions.length || secondaryActions.length)}}" class="action-bar">
+    <view
+      wx:for="{{primaryActions}}"
+      wx:key="key"
+      class="{{item.cls}}"
+      style="flex:1"
+      data-kind="{{item.kind}}"
+      data-key="{{item.key}}"
+      bindtap="onActionTap"
+    >{{item.label}}</view>
+    <view
+      wx:for="{{secondaryActions}}"
+      wx:key="key"
+      class="{{item.cls}}"
+      style="padding:0 32rpx"
+      data-kind="{{item.kind}}"
+      data-key="{{item.key}}"
+      bindtap="onActionTap"
+    >{{item.label}}</view>
+  </view>
+
+  <!-- ========== toast ========== -->
+  <view wx:if="{{toast.show}}" class="vp-toast-wrap">
+    <view class="toast-dark">{{toast.text}}</view>
+  </view>
+
+  <!-- ========== 5e 动作抽屉(emit-only) ========== -->
+  <visit-action-drawer
+    visible="{{drawerVisible}}"
+    booking="{{drawerBooking}}"
+    initialSeg="{{drawerInitialSeg}}"
+    bind:submit="onDrawerSubmit"
+    bind:upload-confirm="onDrawerUploadConfirm"
+    bind:reschedule="onDrawerReschedule"
+    bind:mark-materials="onDrawerMarkMaterials"
+    bind:query-date="onDrawerQueryDate"
+    bind:save-draft="onDrawerSaveDraft"
+    bind:close="onDrawerClose"
+  />
+</view>
