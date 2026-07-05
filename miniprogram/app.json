@@ -21,7 +21,6 @@
     "pages/operator/trip-management/trip-management",
     "pages/operator/review-summary/review-summary",
     "pages/operator/request-hall/request-hall",
-    "pages/operator/customer-home-preview/customer-home-preview",
     "pages/operator/customer-trip-detail/customer-trip-detail",
     "pages/operator/create-request/create-request",
     "pages/operator/request-detail/request-detail",
