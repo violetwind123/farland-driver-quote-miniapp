@@ -1,8 +1,19 @@
 const cloud = require('wx-server-sdk');
-const { requireRole } = require('./lib/auth');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+
+async function requireRole(cloudSdk, database, roles) {
+  const { OPENID } = cloudSdk.getWXContext();
+  if (!OPENID) return { ok: false, code: 401, message: '无法识别用户身份' };
+
+  const userRes = await database.collection('users').where({ openid: OPENID }).limit(1).get();
+  const user = userRes.data[0];
+  if (!user || user.status !== 'active' || !roles.includes(user.role)) {
+    return { ok: false, code: 403, message: '无权限访问' };
+  }
+  return { ok: true, openid: OPENID, user };
+}
 
 // 8 态(§2);运营端列表可见全部态,客户端才过滤到 confirmed
 const ALLOWED_STATUS = [
