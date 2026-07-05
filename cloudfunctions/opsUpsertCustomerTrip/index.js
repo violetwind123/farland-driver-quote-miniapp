@@ -16,6 +16,15 @@ const REQUIRED_FIELDS = [
 // status 枚举(对齐 schema);'discarded' 等运营生命周期态不得由 web 写,否则可隐藏已发布行程
 const ALLOWED_STATUS = ['draft', 'active', 'completed', 'cancelled', 'archived'];
 
+// P5 行程单 PNG:仅接受稳定/受控地址;拒 http:// / data: / 相对路径 / 跟踪像素
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:', 'wxfile:'];
+function itinerarySheetSchemeAllowed(pngUrl) {
+  const url = text(pngUrl);
+  if (!url) return false;
+  const match = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
+  return Boolean(match) && ITINERARY_SHEET_URL_SCHEMES.includes(match[1].toLowerCase());
+}
+
 // customer 子对象只保留展示字段;联系方式提到顶层,不进快照
 const CUSTOMER_CONTACT_KEYS = [
   'phone', 'mobile', 'tel', 'telephone', 'wechat', 'wechat_id', 'weixin',
@@ -180,6 +189,11 @@ function validatePayload(payload) {
   if (ids.includes(TRIP_091_NO)) {
     throw createError('TRIP_091_PROTECTED', '091 is a hardcoded trip and cannot be written via web sync.', 409);
   }
+  // P5 行程单 PNG:若带 itinerary_sheet.png_url,scheme 必须在白名单内(拒 http:// / data: / 相对路径)
+  if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.png_url)
+    && !itinerarySheetSchemeAllowed(payload.itinerary_sheet.png_url)) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_url scheme must be https:/cloud:/wxfile:.', 400);
+  }
 }
 
 // 只组装白名单 canonical source 字段;customer 剥离联系方式并提到顶层;深度剥内部/成本/供应商
@@ -227,6 +241,19 @@ function buildSourceDoc(payload) {
   };
   // 二次保险:customer 子对象绝不含联系方式
   CUSTOMER_CONTACT_KEYS.forEach((k) => { delete source.customer[k]; });
+  // P5 行程单 PNG:仅白名单展示键(显式挑字段,绝不 raw spread),url 已在 validatePayload 过 scheme 校验
+  if (isPlainObject(stripped.itinerary_sheet) && text(stripped.itinerary_sheet.png_url)) {
+    const sheet = stripped.itinerary_sheet;
+    source.itinerary_sheet = {
+      png_url: text(sheet.png_url),
+      width: sheet.width,
+      height: sheet.height,
+      order_no: text(sheet.order_no),
+      version: sheet.version,
+      generated_at: text(sheet.generated_at),
+      source_hash: text(sheet.source_hash),
+    };
+  }
   return source;
 }
 

@@ -37,6 +37,20 @@ const BLOCKED_SNAPSHOT_KEYS = new Set([
   'driver_cost',
   'margin',
   'audit_logs',
+  // R5-5d 访校卡黑名单:即使未来 caller 误 spread booking,递归 sanitize 也会剥离这些内部字段
+  'visitOffice',
+  'visit_office',
+  'contactPerson',
+  'contact_person',
+  'advisorNotes',
+  'advisor_notes',
+  'materials',
+  'requestedSlots',
+  'requested_slots',
+  'timeline',
+  'conflictWith',
+  'conflict_with',
+  'source_hash',
 ]);
 
 function safeString(value) {
@@ -141,6 +155,94 @@ function normalizeTimelineItem(item, index) {
     arrival_time: item.arrival_time || item.arrive_at || item.planned_arrival_time || '',
     aircraft: item.aircraft || '',
   });
+}
+
+// R5-5d 访校卡文案映射(仅客户英文口径,禁运营词汇)
+const VISIT_TYPE_TEXT = {
+  campus_tour: 'Campus Tour',
+  info_session: 'Info Session',
+  tour_plus_info: 'Tour + Info',
+  interview: 'Interview',
+};
+
+function visitWeatherKind(weather) {
+  const raw = safeString(weather && weather.kind).trim().toLowerCase();
+  if (raw === 'rain' || raw === 'snow' || raw === 'cloud' || raw === 'sun') return raw;
+  return 'sun';
+}
+
+function toFiniteNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+// R5-5d 访校卡:confirmed-only hard gate + 仅白名单字段。绝不 spread 原始 booking。
+// booking 来源为 web 写入 published_snapshot.visit_cards / visits 的已确认访校项。
+function buildCustomerVisitCard(booking, index) {
+  if (!isPlainObject(booking)) return null;
+  // 硬门:仅 status==='confirmed' 且存在 confirmedSlot 才对客户可见
+  if (safeString(booking.status).trim() !== 'confirmed') return null;
+  const confirmedSlot = booking.confirmedSlot || booking.confirmed_slot;
+  if (!isPlainObject(confirmedSlot)) return null;
+  const startTime = firstText([confirmedSlot.start, confirmedSlot.start_time]);
+  if (!startTime) return null;
+
+  const school = isPlainObject(booking.school) ? booking.school : {};
+  const nameCn = firstText([school.nameCn, school.name_cn, school.name]);
+  const nameEn = firstText([school.nameEn, school.name_en]);
+  const schoolName = nameCn || nameEn;
+  if (!schoolName) return null;
+
+  const endTime = firstText([confirmedSlot.end, confirmedSlot.end_time]);
+  const durationMin = toFiniteNumber(confirmedSlot.duration || confirmedSlot.duration_min || confirmedSlot.durationMin);
+
+  const visitTypeRaw = safeString(booking.visitType || booking.visit_type).trim();
+  const visitTypeText = VISIT_TYPE_TEXT[visitTypeRaw] || '';
+
+  const dayNo = toFiniteNumber(booking.dayNo || booking.day_no);
+  const dateText = firstText([booking.dateText, booking.date_text, booking.date]);
+  const dayBadgeText = [dayNo ? `Day ${dayNo}` : '', dateText].filter(Boolean).join(' · ');
+
+  const meetingPoint = isPlainObject(booking.meetingPoint) ? booking.meetingPoint
+    : (isPlainObject(booking.meeting_point) ? booking.meeting_point : {});
+  const arrival = isPlainObject(booking.arrival) ? booking.arrival : {};
+
+  // transportNote 仅为客户可见自由文本备注;禁止注入司机姓名/电话/车牌
+  const transportNote = firstText([arrival.transportNote, arrival.transport_note, booking.transportNote, booking.transport_note]);
+  const arriveEarlyMin = toFiniteNumber(arrival.arriveEarlyMin || arrival.arrive_early_min);
+
+  const weatherRaw = isPlainObject(booking.weather) ? booking.weather : null;
+  const weather = weatherRaw ? {
+    hi: toFiniteNumber(weatherRaw.hi),
+    lo: toFiniteNumber(weatherRaw.lo),
+    kind: visitWeatherKind(weatherRaw),
+  } : null;
+
+  // 仅白名单字段进入客户 payload;sanitizeCustomerObject 再兜底剥离任何黑名单键
+  return sanitizeCustomerObject({
+    id: makeId('visit', `${schoolName}-${startTime}`, index),
+    school_name: schoolName,
+    school_name_en: nameEn,
+    visit_type_text: visitTypeText,
+    day_badge_text: dayBadgeText,
+    date_text: dateText,
+    start_time: startTime,
+    end_time: endTime,
+    duration_min: durationMin,
+    meeting_point_name: firstText([meetingPoint.name]),
+    meeting_point_addr_en: firstText([meetingPoint.addressEn, meetingPoint.address_en]),
+    map_url: firstText([meetingPoint.mapUrl, meetingPoint.map_url]),
+    arrive_early_min: arriveEarlyMin,
+    transport_note: transportNote,
+    weather,
+  });
+}
+
+function buildCustomerVisitCards(snapshot) {
+  const source = Array.isArray(snapshot && snapshot.visit_cards)
+    ? snapshot.visit_cards
+    : (Array.isArray(snapshot && snapshot.visits) ? snapshot.visits : []);
+  return source.map(buildCustomerVisitCard).filter(Boolean);
 }
 
 function normalizeDayHotel(hotel, day, index) {
@@ -626,6 +728,23 @@ function applyAssignedCharterTransport(snapshot, transports) {
   });
 }
 
+// P5 行程单 PNG:仅回传 url + 展示 meta;scheme 必须 ∈ {https:,cloud:,wxfile:},否则整对象归一化为 null
+// (阻断 http:// / data: / 跟踪像素;此处覆盖 ...snapshot 展开,防未净化 url 透传)
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:', 'wxfile:'];
+function normalizeItinerarySheet(x) {
+  if (!isPlainObject(x)) return null;
+  const pngUrl = safeString(x.png_url).trim();
+  const match = pngUrl.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
+  if (!match || !ITINERARY_SHEET_URL_SCHEMES.includes(match[1].toLowerCase())) return null;
+  return {
+    png_url: pngUrl,
+    width: x.width,
+    height: x.height,
+    order_no: safeString(x.order_no),
+    version: x.version,
+  };
+}
+
 function normalizePublishedSnapshot(rawSnapshot) {
   const snapshot = sanitizeCustomerObject(rawSnapshot || {});
   if (!isPlainObject(snapshot) || !Object.keys(snapshot).length) return {};
@@ -652,6 +771,7 @@ function normalizePublishedSnapshot(rawSnapshot) {
   const tripSummary = isPlainObject(snapshot.trip_summary)
     ? snapshot.trip_summary
     : buildTripSummary({ ...normalized, hotel_cards: hotelCards, flight_cards: flightCards });
+  const visitCards = buildCustomerVisitCards(snapshot);
   return sanitizeCustomerObject({
     ...normalized,
     snapshot_model_version: 2,
@@ -660,6 +780,11 @@ function normalizePublishedSnapshot(rawSnapshot) {
     hotel_cards: hotelCards,
     flight_cards: flightCards,
     hotels: hotelCards,
+    // 覆盖 ...normalized 展开:原始 visits 不下发,仅保留白名单 visit_cards(权威赋值置于最后)
+    visits: undefined,
+    visit_cards: visitCards,
+    // 覆盖 ...normalized 展开:强制走 scheme 白名单归一化,缺失/非法 → null(入口隐藏)
+    itinerary_sheet: normalizeItinerarySheet(snapshot.itinerary_sheet),
   });
 }
 

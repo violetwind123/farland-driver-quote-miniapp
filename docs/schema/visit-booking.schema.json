@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://farland.example/schema/visit-booking.schema.json",
+  "title": "Farland Visit Booking (访校预约)",
+  "description": "Web-authoritative canonical source for the visit-booking (访校预约) module. Written ONLY by opsUpsertVisitBooking (HMAC-gated, same secret/headers/signature base as opsUpsertCustomerTrip). The visit_bookings collection stores the FULL §1 VisitBooking including internal blocks; the customer-read cloud functions (getCustomerVisitList / getCustomerVisitDetail) project the customer whitelist and additionally strip the blacklist, so the sanitize layer is enforced twice. Field source of truth: 访校预约模块-开发规格.md §1/§2 (the design HTML has NO backend region).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "external_visit_id",
+    "external_trip_id",
+    "school",
+    "visitType",
+    "status"
+  ],
+  "allOf": [
+    {
+      "$comment": "confirmedSlot (date+start) is required only when status === 'confirmed' — it is the single customer-visible time.",
+      "if": {
+        "properties": { "status": { "const": "confirmed" } }
+      },
+      "then": {
+        "properties": {
+          "confirmedSlot": {
+            "type": "object",
+            "required": ["date", "start"]
+          }
+        },
+        "required": ["confirmedSlot"]
+      }
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "external_visit_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Web-side unique dedupe / idempotency key. opsUpsertVisitBooking upserts visit_bookings by (external_visit_id, source_hash)."
+    },
+    "visit_id": {
+      "type": "string",
+      "description": "Stable visit id; defaults to external_visit_id if omitted."
+    },
+    "external_trip_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Parent customer_trips linkage. A visit BELONGS TO a customer trip; customer visit reads gate on the EXISTING customer_trip_access (openid<->trip binding) for this trip. There is NO separate visit_access collection."
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Resolved trip id; defaults to external_trip_id if omitted."
+    },
+    "school": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nameCn"],
+      "description": "School identity. Name primary key is nameCn (NOT school.name).",
+      "properties": {
+        "nameCn": { "type": "string", "minLength": 1 },
+        "nameEn": { "type": "string" },
+        "city": { "type": "string" },
+        "campus": { "type": "string" }
+      }
+    },
+    "visitType": {
+      "type": "string",
+      "enum": ["campus_tour", "info_session", "tour_plus_info", "interview"]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_query",
+        "available",
+        "submitted",
+        "awaiting_school",
+        "confirmed",
+        "materials_needed",
+        "conflict",
+        "cancelled"
+      ],
+      "description": "§2 8-state machine. Only 'confirmed' is customer-visible; all other states never reach the customer surface (cancelled 'disappears' by status filter)."
+    },
+    "status_text": {
+      "type": "string"
+    },
+    "requestedSlots": {
+      "type": "array",
+      "description": "INTERNAL — candidate slots submitted to the school (<=2).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "date": { "type": "string" },
+          "time": { "type": "string" }
+        }
+      }
+    },
+    "confirmedSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The ONLY customer-visible time.",
+      "properties": {
+        "date": { "type": "string" },
+        "start": { "type": "string" },
+        "end": { "type": "string" },
+        "tz": { "type": "string" }
+      }
+    },
+    "students": {
+      "type": "array",
+      "description": "INTERNAL PII — never reaches the customer surface.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "grade": { "type": "string" }
+        }
+      }
+    },
+    "meetingPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Customer-visible: name / addressEn / mapUrl.",
+      "properties": {
+        "name": { "type": "string" },
+        "addressEn": { "type": "string" },
+        "mapUrl": { "type": "string" }
+      }
+    },
+    "arrival": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "arriveEarlyMin and transportNote are customer-visible; parkingNote is internal.",
+      "properties": {
+        "arriveEarlyMin": { "type": ["integer", "null"] },
+        "parkingNote": { "type": "string", "description": "INTERNAL." },
+        "transportNote": { "type": "string" }
+      }
+    },
+    "visitOffice": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "INTERNAL — Visit Office contact block, operator-only.",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "portalUrl": { "type": "string" }
+      }
+    },
+    "contactPerson": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "INTERNAL — school contact person, operator-only.",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "email": { "type": "string" }
+      }
+    },
+    "confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "INTERNAL — confirmation letter. fileUrl is resolved via getTempFileURL inside the OPERATOR detail fn only; never surfaced to the customer.",
+      "properties": {
+        "fileID": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "confirmationNo": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "uploadedAt": { "type": "string" }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "description": "INTERNAL — materials checklist, operator-only.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "required": { "type": "boolean" },
+          "status": { "type": "string", "enum": ["missing", "submitted", "verified"] }
+        }
+      }
+    },
+    "advisorNotes": {
+      "type": "string",
+      "description": "INTERNAL — advisor notes, operator-only."
+    },
+    "conflictWith": {
+      "type": ["string", "null"],
+      "description": "INTERNAL — booking id of a same-student overlapping slot (parallel marker)."
+    },
+    "timeline": {
+      "type": "array",
+      "description": "INTERNAL — operator action timeline.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ts": { "type": "string" },
+          "actor": { "type": "string" },
+          "action": { "type": "string" }
+        }
+      }
+    },
+    "weather": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "NOAA/NWS T-1 pull. Customer-visible hint.",
+      "properties": {
+        "icon": { "type": "string" },
+        "high": { "type": "string" },
+        "low": { "type": "string" },
+        "precip": { "type": "string" }
+      }
+    },
+    "weatherSource": {
+      "type": "string",
+      "description": "Attribution string, default 'NOAA · NWS'."
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_type": { "type": "string" },
+        "source_id": { "type": "string" }
+      }
+    },
+    "source_hash": {
+      "type": "string",
+      "description": "Server-computed stableHash of the canonical source doc; drives idempotency. INTERNAL — never sent to the customer."
+    },
+    "created_by": { "type": "string" },
+    "created_at": { "type": "string" },
+    "updated_by": { "type": "string" },
+    "updated_at": { "type": "string" }
+  },
+  "x-customer-whitelist": {
+    "$comment": "Projected server-side by getCustomerVisitList / getCustomerVisitDetail. Enforced TWICE = allowlist-build + VISIT_CUSTOMER_BLACKLIST denylist strip. A customer sees a visit ONLY IF (a) active customer_trip_access to the linked trip_id AND (b) status === 'confirmed'.",
+    "fields": {
+      "school": ["nameCn", "nameEn"],
+      "confirmedSlot": ["date", "start", "end", "tz"],
+      "visitType": true,
+      "meetingPoint": ["name", "addressEn", "mapUrl"],
+      "arriveEarlyMin": true,
+      "transportNote": true,
+      "weather": ["icon", "high", "low", "precip"],
+      "weatherSource": "NOAA · NWS"
+    }
+  },
+  "x-customer-blacklist": {
+    "$comment": "VISIT_CUSTOMER_BLACKLIST — never reaches the customer surface, denylist-stripped after the allowlist build.",
+    "keys": [
+      "visitOffice",
+      "contactPerson",
+      "advisorNotes",
+      "materials",
+      "requestedSlots",
+      "timeline",
+      "students",
+      "conflictWith",
+      "confirmation",
+      "confirmation.fileID",
+      "confirmation.fileUrl",
+      "confirmation.confirmationNo",
+      "confirmation.uploadedBy",
+      "confirmation.uploadedAt",
+      "arrival.parkingNote",
+      "status (internal lifecycle)",
+      "source_hash"
+    ]
+  }
+}

@@ -29,6 +29,19 @@ const INTERNAL_KEYS = new Set([
   'supplier_notes',
   'supplier_private_note',
   'supplier_private_notes',
+  // R5-5d 访校卡黑名单
+  'visitOffice',
+  'visit_office',
+  'contactPerson',
+  'contact_person',
+  'advisorNotes',
+  'advisor_notes',
+  'materials',
+  'requestedSlots',
+  'requested_slots',
+  'timeline',
+  'conflictWith',
+  'conflict_with',
 ]);
 
 const CUSTOMER_SHARE_WAITING_MESSAGE = 'Farland 顾问正在为您核对行程安排，确认后将在这里显示。';
@@ -39,6 +52,19 @@ function safeString(value) {
 
 function isObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+const CUSTOMER_CONTACT_KEYS = [
+  'phone', 'mobile', 'tel', 'telephone', 'wechat', 'wechat_id', 'weixin',
+  'email', 'contact', 'contact_phone', 'contact_mobile', 'contact_info',
+];
+function stripCustomerContact(value) {
+  if (!isObject(value)) return value;
+  return Object.keys(value).reduce((acc, key) => {
+    if (CUSTOMER_CONTACT_KEYS.includes(key)) return acc;
+    acc[key] = value[key];
+    return acc;
+  }, {});
 }
 
 function sanitizeCustomerObject(value) {
@@ -138,6 +164,88 @@ function normalizeTimelineItem(item, index) {
     arrival_time: item.arrival_time || item.arrive_at || item.planned_arrival_time || '',
     aircraft: item.aircraft || '',
   });
+}
+
+// R5-5d 访校卡文案映射(仅客户英文口径,禁运营词汇)
+const VISIT_TYPE_TEXT = {
+  campus_tour: 'Campus Tour',
+  info_session: 'Info Session',
+  tour_plus_info: 'Tour + Info',
+  interview: 'Interview',
+};
+
+function visitWeatherKind(weather) {
+  const raw = safeString(weather && weather.kind).trim().toLowerCase();
+  if (raw === 'rain' || raw === 'snow' || raw === 'cloud' || raw === 'sun') return raw;
+  return 'sun';
+}
+
+function toFiniteNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+// R5-5d 访校卡:confirmed-only hard gate + 仅白名单字段。绝不 spread 原始 booking。
+function buildCustomerVisitCard(booking, index) {
+  if (!isObject(booking)) return null;
+  if (safeString(booking.status).trim() !== 'confirmed') return null;
+  const confirmedSlot = booking.confirmedSlot || booking.confirmed_slot;
+  if (!isObject(confirmedSlot)) return null;
+  const startTime = firstText([confirmedSlot.start, confirmedSlot.start_time]);
+  if (!startTime) return null;
+
+  const school = isObject(booking.school) ? booking.school : {};
+  const nameCn = firstText([school.nameCn, school.name_cn, school.name]);
+  const nameEn = firstText([school.nameEn, school.name_en]);
+  const schoolName = nameCn || nameEn;
+  if (!schoolName) return null;
+
+  const endTime = firstText([confirmedSlot.end, confirmedSlot.end_time]);
+  const durationMin = toFiniteNumber(confirmedSlot.duration || confirmedSlot.duration_min || confirmedSlot.durationMin);
+  const visitTypeRaw = safeString(booking.visitType || booking.visit_type).trim();
+  const visitTypeText = VISIT_TYPE_TEXT[visitTypeRaw] || '';
+  const dayNo = toFiniteNumber(booking.dayNo || booking.day_no);
+  const dateText = firstText([booking.dateText, booking.date_text, booking.date]);
+  const dayBadgeText = [dayNo ? `Day ${dayNo}` : '', dateText].filter(Boolean).join(' · ');
+
+  const meetingPoint = isObject(booking.meetingPoint) ? booking.meetingPoint
+    : (isObject(booking.meeting_point) ? booking.meeting_point : {});
+  const arrival = isObject(booking.arrival) ? booking.arrival : {};
+  // transportNote 仅客户可见自由文本;禁止注入司机身份信息
+  const transportNote = firstText([arrival.transportNote, arrival.transport_note, booking.transportNote, booking.transport_note]);
+  const arriveEarlyMin = toFiniteNumber(arrival.arriveEarlyMin || arrival.arrive_early_min);
+
+  const weatherRaw = isObject(booking.weather) ? booking.weather : null;
+  const weather = weatherRaw ? {
+    hi: toFiniteNumber(weatherRaw.hi),
+    lo: toFiniteNumber(weatherRaw.lo),
+    kind: visitWeatherKind(weatherRaw),
+  } : null;
+
+  return sanitizeCustomerObject({
+    id: makeId('visit', `${schoolName}-${startTime}`, index),
+    school_name: schoolName,
+    school_name_en: nameEn,
+    visit_type_text: visitTypeText,
+    day_badge_text: dayBadgeText,
+    date_text: dateText,
+    start_time: startTime,
+    end_time: endTime,
+    duration_min: durationMin,
+    meeting_point_name: firstText([meetingPoint.name]),
+    meeting_point_addr_en: firstText([meetingPoint.addressEn, meetingPoint.address_en]),
+    map_url: firstText([meetingPoint.mapUrl, meetingPoint.map_url]),
+    arrive_early_min: arriveEarlyMin,
+    transport_note: transportNote,
+    weather,
+  });
+}
+
+function buildCustomerVisitCards(snapshot) {
+  const source = Array.isArray(snapshot && snapshot.visit_cards)
+    ? snapshot.visit_cards
+    : (Array.isArray(snapshot && snapshot.visits) ? snapshot.visits : []);
+  return source.map(buildCustomerVisitCard).filter(Boolean);
 }
 
 function normalizeDayHotel(hotel, day, index) {
@@ -385,6 +493,23 @@ function buildTripSummary(snapshot, trip, hotelCards) {
   });
 }
 
+// P5 行程单 PNG:仅回传 url + 展示 meta;scheme 必须 ∈ {https:,cloud:,wxfile:},否则整对象归一化为 null
+// (阻断 http:// / data: / 跟踪像素;此处覆盖 ...snapshot 展开,防未净化 url 透传)
+const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:', 'wxfile:'];
+function normalizeItinerarySheet(x) {
+  if (!isObject(x)) return null;
+  const pngUrl = safeString(x.png_url).trim();
+  const match = pngUrl.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:)/);
+  if (!match || !ITINERARY_SHEET_URL_SCHEMES.includes(match[1].toLowerCase())) return null;
+  return {
+    png_url: pngUrl,
+    width: x.width,
+    height: x.height,
+    order_no: safeString(x.order_no),
+    version: x.version,
+  };
+}
+
 function ensureSnapshotV2(snapshot, trip) {
   if (!isObject(snapshot) || !Object.keys(snapshot).length) return null;
   const days = Array.isArray(snapshot.itinerary_days)
@@ -406,6 +531,7 @@ function ensureSnapshotV2(snapshot, trip) {
   const tripSummary = isObject(snapshot.trip_summary)
     ? snapshot.trip_summary
     : buildTripSummary({ ...normalized, flight_cards: flightCards }, trip, hotelCards);
+  const visitCards = buildCustomerVisitCards(snapshot);
   return sanitizeCustomerObject({
     ...normalized,
     snapshot_model_version: 2,
@@ -414,6 +540,11 @@ function ensureSnapshotV2(snapshot, trip) {
     hotel_cards: hotelCards,
     flight_cards: flightCards,
     hotels: hotelCards,
+    // 覆盖 ...normalized 展开:原始 visits 不下发,仅保留白名单 visit_cards(权威赋值置于最后)
+    visits: undefined,
+    visit_cards: visitCards,
+    // 覆盖 ...normalized 展开:强制走 scheme 白名单归一化,缺失/非法 → null(入口隐藏)
+    itinerary_sheet: normalizeItinerarySheet(snapshot.itinerary_sheet),
   });
 }
 
@@ -677,8 +808,8 @@ function compareCurrentTripRecency(a, b) {
   const aActive = !aEnd || aEnd >= Date.now() ? 1 : 0;
   const bActive = !bEnd || bEnd >= Date.now() ? 1 : 0;
   if (aActive !== bActive) return bActive - aActive;
-  const aUpdated = toTime(a.last_operator_previewed_at || a.updated_at || a.imported_at || a.created_at || a.start_at || '');
-  const bUpdated = toTime(b.last_operator_previewed_at || b.updated_at || b.imported_at || b.created_at || b.start_at || '');
+  const aUpdated = toTime(a.last_operator_previewed_at || a.updated_at || a.created_at || a.start_at || '');
+  const bUpdated = toTime(b.last_operator_previewed_at || b.updated_at || b.created_at || b.start_at || '');
   return bUpdated - aUpdated;
 }
 
@@ -771,6 +902,7 @@ function normalizeSnapshot(snapshot) {
   const transfers = Array.isArray(normalizedSnapshot.transfers) ? normalizedSnapshot.transfers : [];
   const charters = Array.isArray(normalizedSnapshot.charter_services) ? normalizedSnapshot.charter_services : [];
   const benefits = Array.isArray(normalizedSnapshot.benefits) ? normalizedSnapshot.benefits : [];
+  const visitCards = Array.isArray(normalizedSnapshot.visit_cards) ? normalizedSnapshot.visit_cards : [];
   return {
     ...normalizedSnapshot,
     display_title: hero.title || snapshot.title || 'Farland 行程',
@@ -788,6 +920,13 @@ function normalizeSnapshot(snapshot) {
     transfers,
     charter_services: charters,
     benefits,
+    // 覆盖 ...normalizedSnapshot 展开:客户对象只保留展示字段,剥离本人联系方式(兜底防线)
+    customer: isObject(normalizedSnapshot.customer)
+      ? stripCustomerContact(normalizedSnapshot.customer)
+      : normalizedSnapshot.customer,
+    // 覆盖 ...normalizedSnapshot 展开:原始 visits 不下发,只保留白名单 visit_cards(权威赋值置于最后)
+    visits: undefined,
+    visit_cards: visitCards,
   };
 }
 
@@ -872,6 +1011,7 @@ function buildCustomerHome({ snapshot, trip, customer, request, assignedTranspor
     transport_orders: assignedTransport ? [assignedTransport] : [],
     hotel_requests: snapshot.hotel_cards || snapshot.hotels || [],
     flight_cards: Array.isArray(snapshot.flight_cards) ? snapshot.flight_cards : [],
+    visit_cards: Array.isArray(snapshot.visit_cards) ? snapshot.visit_cards : [],
     benefits: snapshot.benefits || [],
     links: [],
   };
@@ -938,7 +1078,7 @@ exports.main = async (event = {}) => {
   const warnings = Array.isArray(trip && trip.warning_codes) ? trip.warning_codes.slice() : [];
   const criticalWarnings = Array.isArray(trip && trip.critical_warning_codes) ? trip.critical_warning_codes.slice() : [];
   if (trip && !isPublished) warnings.push('unpublished_trip');
-  if (trip && !isPublished && !hasSnapshot(trip.draft_snapshot) && snapshot) warnings.push('preview_from_import_source');
+  if (trip && !isPublished && !hasSnapshot(trip.draft_snapshot) && snapshot) warnings.push('preview_from_source_data');
   if (transportOrderHealth && transportOrderHealth.warning_code) warnings.push(transportOrderHealth.warning_code);
 
   return {
