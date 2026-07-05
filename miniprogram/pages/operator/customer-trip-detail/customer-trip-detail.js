@@ -855,6 +855,22 @@ Page({
     }
   },
 
+  openMobileItineraryPreview() {
+    const invitePath = String(this.data.invitePath || '').trim();
+    if (!invitePath) {
+      wx.showToast({ title: '请先准备行程单', icon: 'none' });
+      return;
+    }
+    const url = invitePath.startsWith('/') ? invitePath : `/${invitePath}`;
+    wx.navigateTo({
+      url,
+      fail: (error) => {
+        console.error('[customer-trip-detail] open mobile itinerary preview failed', error);
+        wx.showToast({ title: '手机版行程单打开失败', icon: 'none' });
+      },
+    });
+  },
+
   onShareAppMessage(options = {}) {
     const dataset = options.target && options.target.dataset ? options.target.dataset : {};
     if (dataset.shareType === 'review') {
@@ -924,17 +940,6 @@ Page({
     wx.setClipboardData({
       data: this.data.tripId,
       success: () => wx.showToast({ title: '已复制 trip_id', icon: 'success' }),
-    });
-  },
-
-  copyInvitePath() {
-    if (!this.data.invitePath) {
-      wx.showToast({ title: '请先准备行程单', icon: 'none' });
-      return;
-    }
-    wx.setClipboardData({
-      data: this.data.invitePath,
-      success: () => wx.showToast({ title: '已复制客户路径', icon: 'success' }),
     });
   },
 

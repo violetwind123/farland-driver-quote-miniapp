@@ -59,7 +59,7 @@
           <view class="workflow-step-index priority">1</view>
           <view class="workflow-step-copy">
             <view class="workflow-step-title">转发客户第一版行程单</view>
-            <view class="workflow-step-sub">主动作是微信转发；复制路径仅作内部兜底。</view>
+            <view class="workflow-step-sub">客户第一眼看到的手机版行程单，可先预览再微信转发。</view>
           </view>
           <view class="workflow-step-status">{{invitePath ? '可转发' : (hasPublished ? '待准备' : '待同步')}}</view>
         </view>
@@ -89,7 +89,7 @@
             </view>
             <view class="invite-sub">{{inviteReused ? '已复用当前有效分享卡。' : '可直接微信转发给客户。'}}</view>
             <button class="primary-wide-btn" open-type="share" bindtap="onTripInviteShareTap">转发手机版行程单</button>
-            <button class="secondary-wide-btn" bindtap="copyInvitePath">复制客户路径（备用）</button>
+            <button class="secondary-wide-btn" bindtap="openMobileItineraryPreview">预览手机版行程单</button>
           </view>
         </block>
       </view>
@@ -98,8 +98,8 @@
         <view class="workflow-step-head">
           <view class="workflow-step-index">2</view>
           <view class="workflow-step-copy">
-            <view class="workflow-step-title">预览客户页面</view>
-            <view class="workflow-step-sub">打开客户真实渲染链路。只读，不创建分享卡或保存记录。</view>
+            <view class="workflow-step-title">预览完整客户页</view>
+            <view class="workflow-step-sub">用于检查成交后的酒店、用车和每日评价等完整客户界面。</view>
           </view>
           <view class="workflow-step-status">{{hasPublished ? '可预览' : '待同步'}}</view>
         </view>
@@ -108,7 +108,7 @@
           loading="{{openingCustomerView}}"
           disabled="{{openingCustomerView || !hasPublished}}"
           bindtap="openCustomerFacingPreview"
-        >预览客户页面</button>
+        >预览完整客户页</button>
       </view>
 
     </view>
@@ -118,7 +118,7 @@
       <view class="section-toggle-head">
         <view>
           <view class="section-title no-margin">行程内容核对（运营用）</view>
-          <view class="snapshot-hint compact-hint">此为运营字段核对视图；客户页面请用上方「预览客户页面」。</view>
+          <view class="snapshot-hint compact-hint">此为运营字段核对视图；客户页面请用上方预览入口打开。</view>
         </view>
         <button class="mini-action" disabled="{{!activeSnapshot}}" bindtap="toggleDraftReview">
           {{draftReviewOpen ? '收起核对' : '展开核对'}}
