@@ -138,6 +138,9 @@ assert(!mobileWxml.includes('联系顾问'), 'mobile UI waiting/error state has 
 assert(mobileJs.includes('/pages/customer/mobile-itinerary/mobile-itinerary?trip_id='), 'mobile sheet share path stays on mobile itinerary');
 assert(!mobileJs.includes('/pages/customer/home/home?trip_id='), 'mobile sheet share path never falls back to customer/home');
 assert(operatorTripDetail.includes('/pages/customer/mobile-itinerary/mobile-itinerary?operator_mobile_preview=1'), 'operator preview opens mobile itinerary page');
+assert(operatorTripDetail.includes('operatorMobileItineraryDraftPreview = {'), 'operator preview stores a mobile itinerary preview object');
+assert(operatorTripDetail.includes('itinerary_sheet: sheet'), 'operator preview passes the generated itinerary sheet to mobile page');
+assert(!operatorTripDetail.includes("name: 'getOperatorCustomerHomePreview'"), 'operator mobile preview does not call legacy customer-home preview');
 
 assert(opsUpsertCustomerTripSource.includes('buildAutoPublishLifecycle'), 'web customer-trip sync has auto-publish lifecycle');
 assert(opsUpsertCustomerTripSource.includes('published_snapshot: draftSnapshot'), 'web customer-trip sync writes the customer-visible snapshot');

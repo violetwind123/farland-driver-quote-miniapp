@@ -39,9 +39,14 @@ Page({
 
   loadFromOperatorPreview() {
     const g = (app && app.globalData) || {};
-    const sheet = this.pickSheet(g.operatorCustomerSharePreview)
-      || this.pickSheet(g.operatorMobileItineraryDraftPreview);
-    this.setData({ loading: false, sheetUrl: sheet ? sheet.png_url : '' });
+    const preview = g.operatorCustomerSharePreview || g.operatorMobileItineraryDraftPreview || {};
+    const sheet = this.pickSheet(preview);
+    this.setData({
+      loading: false,
+      sheetUrl: sheet ? sheet.png_url : '',
+      tripId: this.data.tripId || preview.trip_id || preview.external_trip_id || '',
+      inviteCode: this.data.inviteCode || preview.invite_code || '',
+    });
   },
 
   async loadFromInvite(tripId, inviteCode) {

@@ -839,7 +839,7 @@ Page({
     }
   },
 
-  async previewMobileItineraryDraft() {
+  previewMobileItineraryDraft() {
     if (this.data.previewingDraft) return;
     if (!this.data.tripId) {
       wx.showToast({ title: '缺少 trip_id', icon: 'none' });
@@ -849,28 +849,22 @@ Page({
       wx.showToast({ title: '手机版行程单尚未生成', icon: 'none' });
       return;
     }
+    const sheet = this.data.preview && this.data.preview.itinerary_sheet;
+    if (!sheet || !sheet.png_url) {
+      wx.showToast({ title: '手机版行程单图片缺失', icon: 'none' });
+      return;
+    }
     this.setData({ previewingDraft: true, error: '' });
     try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'getOperatorCustomerHomePreview',
-        data: {
-          trip_id: this.data.tripId,
-          preview_access_mode: 'temporary_guest',
-        },
-      });
-      if (!result || !result.success || !result.customer_home) {
-        this.setData({ previewingDraft: false });
-        wx.showToast({ title: (result && result.message) || '行程预览加载失败', icon: 'none' });
-        return;
-      }
       const app = getApp();
       app.globalData.operatorMobileItineraryDraftPreview = {
-        customer_home: result.customer_home,
+        itinerary_sheet: sheet,
+        trip_id: this.data.preview.trip_id || this.data.tripId,
+        external_trip_id: this.data.preview.external_trip_id || '',
+        trip_no: this.data.preview.trip_no || '',
         preview_meta: {
-          ...(result.preview_meta || {}),
           operator_draft_preview: true,
         },
-        preview_customer: result.preview_customer || {},
       };
       delete app.globalData.operatorCustomerHomePreview;
       delete app.globalData.operatorCustomerSharePreview;
