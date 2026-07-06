@@ -57,6 +57,35 @@ function makeDb(store) {
   };
 }
 
+function makeFakeHttps(store) {
+  return {
+    get(url, callback) {
+      store.__fetches = store.__fetches || [];
+      store.__fetches.push(String(url && url.href ? url.href : url));
+      const handlers = {};
+      const response = {
+        statusCode: store.__fetchStatus || 200,
+        headers: store.__fetchHeaders || { 'content-type': 'image/jpeg' },
+        on(event, handler) { handlers[event] = handler; return response; },
+        resume() {},
+      };
+      const request = {
+        on() { return request; },
+        setTimeout() { return request; },
+        destroy(error) {
+          if (handlers.error && error) handlers.error(error);
+        },
+      };
+      process.nextTick(() => {
+        callback(response);
+        if (handlers.data) handlers.data(store.__fetchBuffer || Buffer.from('ffd8ffe000104a464946', 'hex'));
+        if (handlers.end) handlers.end();
+      });
+      return request;
+    },
+  };
+}
+
 function loadMain(store) {
   const source = fs.readFileSync(INDEX, 'utf8');
   const localRequire = createRequire(INDEX);
@@ -76,7 +105,11 @@ function loadMain(store) {
   const sandbox = {
     console, Buffer, Date, JSON, Number, RegExp, Set, String, Array, Object, Math, process,
     module: moduleObject, exports: moduleObject.exports,
-    require(r) { return r === 'wx-server-sdk' ? fakeCloud : localRequire(r); },
+    require(r) {
+      if (r === 'wx-server-sdk') return fakeCloud;
+      if (r === 'https') return makeFakeHttps(store);
+      return localRequire(r);
+    },
   };
   sandbox.global = sandbox;
   vm.runInNewContext(source, sandbox, { filename: INDEX });
@@ -331,11 +364,45 @@ async function check(name, fn) {
       && !doc.draft_snapshot.itinerary_sheet && !doc.published_snapshot.itinerary_sheet;
   });
 
-  // 15. itinerary_sheet png_base64 must be a PNG
+  // 15. itinerary_sheet image_url(JPEG) → fetched server-side and stored as CloudBase URL
+  await check('itinerary_sheet image_url jpeg → fetched and stored as cloud url only', async () => {
+    const store = {}; const main = loadMain(store);
+    const p = {
+      ...validPayload,
+      external_trip_id: 'WEB-INT-IMAGE-URL',
+      itinerary_sheet: {
+        format: 'jpeg',
+        width: 750,
+        order_no: '2026NBC096',
+        generated_at: '2026-07-06T13:20:00-04:00',
+        image_url: 'https://www.myfarland.com/sheet/trip_dcfb7ae57fde435e?k=22bc16d81483',
+      },
+    };
+    const r = await main(signedEvent(p));
+    const doc = store.customer_trips[0];
+    return r.success
+      && store.__fetches && store.__fetches[0] === p.itinerary_sheet.image_url
+      && store.__uploads && store.__uploads.length === 1
+      && /customer-itinerary-sheets\/2026NBC096\/v2026-07-06T13-20-00-04-00-[a-f0-9]{16}\.jpg/.test(store.__uploads[0].cloudPath)
+      && doc.itinerary_sheet && doc.itinerary_sheet.png_url.startsWith('cloud://test-env/customer-itinerary-sheets/2026NBC096/')
+      && doc.itinerary_sheet.format === 'jpeg'
+      && doc.itinerary_sheet.image_url === undefined
+      && doc.itinerary_sheet.width === 750
+      && !doc.draft_snapshot.itinerary_sheet && !doc.published_snapshot.itinerary_sheet;
+  });
+
+  // 16. itinerary_sheet png_base64 must be a PNG
   await check('itinerary_sheet png_base64 non-png → VALIDATION_ERROR', async () => {
     const store = {}; const main = loadMain(store);
     const r = await main(signedEvent({ ...validPayload, itinerary_sheet: { format: 'png', png_base64: Buffer.from('not png').toString('base64') } }));
     return !r.success && r.error_code === 'VALIDATION_ERROR' && !(store.__uploads && store.__uploads.length);
+  });
+
+  // 17. itinerary_sheet image_url must be HTTPS
+  await check('itinerary_sheet image_url non-https → VALIDATION_ERROR', async () => {
+    const store = {}; const main = loadMain(store);
+    const r = await main(signedEvent({ ...validPayload, itinerary_sheet: { format: 'jpeg', image_url: 'http://www.myfarland.com/sheet/x' } }));
+    return !r.success && r.error_code === 'VALIDATION_ERROR' && !(store.__fetches && store.__fetches.length);
   });
 
   console.log(failed ? `\nFAILED: ${failed}` : '\nPASS: all opsUpsertCustomerTrip cases');

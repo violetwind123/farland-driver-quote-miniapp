@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const https = require('https');
+const { URL } = require('url');
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -74,10 +76,16 @@ function createError(errorCode, message, code) {
 // itinerary_sheet:web 生成的手机版行程单图,写在 customer_trips 顶层,两层读取共用。
 // 后端持久 URL 仅允许 https/cloud;wxfile 是设备本地临时路径,不能作 web 持久 URL。
 const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
+const ITINERARY_SHEET_FETCH_SCHEMES = ['https:'];
 const MAX_ITINERARY_SHEET_BYTES = 6 * 1024 * 1024;
+const ITINERARY_SHEET_FETCH_TIMEOUT_MS = 10000;
 function itinerarySheetSchemeAllowed(url) {
   const m = /^([a-z][a-z0-9+.-]*:)/i.exec(text(url));
   return m ? ITINERARY_SHEET_URL_SCHEMES.includes(m[1].toLowerCase()) : false;
+}
+function itinerarySheetFetchSchemeAllowed(url) {
+  const m = /^([a-z][a-z0-9+.-]*:)/i.exec(text(url));
+  return m ? ITINERARY_SHEET_FETCH_SCHEMES.includes(m[1].toLowerCase()) : false;
 }
 function safeCloudPathSegment(value, fallback) {
   const cleaned = text(value).replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
@@ -100,16 +108,93 @@ function decodePngBase64(value) {
   }
   return buffer;
 }
+function detectSheetImage(buffer, contentType, declaredFormat) {
+  const ct = text(contentType).toLowerCase();
+  const fmt = text(declaredFormat).toLowerCase().replace(/^jpg$/, 'jpeg');
+  const isPng = buffer.length >= 8 && buffer.subarray(0, 8).toString('hex') === '89504e470d0a1a0a';
+  const isJpeg = buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (isPng) return { format: 'png', ext: 'png', contentType: 'image/png' };
+  if (isJpeg) return { format: 'jpeg', ext: 'jpg', contentType: 'image/jpeg' };
+  if (ct && !/^image\/(png|jpeg|jpg)\b/.test(ct)) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.image_url must return a PNG or JPEG image.', 400);
+  }
+  if (fmt === 'png' || fmt === 'jpeg') {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.image_url did not return a valid image.', 400);
+  }
+  throw createError('VALIDATION_ERROR', 'itinerary_sheet image must be PNG or JPEG.', 400);
+}
+function downloadImageUrl(url, redirectCount = 0) {
+  const rawUrl = text(url);
+  if (!itinerarySheetFetchSchemeAllowed(rawUrl)) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.image_url must be an https:// URL.', 400);
+  }
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch (error) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.image_url must be a valid URL.', 400);
+  }
+  return new Promise((resolve, reject) => {
+    const req = https.get(parsed, (res) => {
+      const status = Number(res.statusCode || 0);
+      const location = text(res.headers && res.headers.location);
+      if ([301, 302, 303, 307, 308].includes(status) && location) {
+        res.resume();
+        if (redirectCount >= 3) {
+          reject(createError('IMAGE_FETCH_FAILED', 'Too many redirects for itinerary_sheet.image_url.', 400));
+          return;
+        }
+        const nextUrl = new URL(location, parsed).toString();
+        downloadImageUrl(nextUrl, redirectCount + 1).then(resolve).catch(reject);
+        return;
+      }
+      if (status < 200 || status >= 300) {
+        res.resume();
+        reject(createError('IMAGE_FETCH_FAILED', `itinerary_sheet.image_url returned HTTP ${status}.`, 400));
+        return;
+      }
+      const chunks = [];
+      let total = 0;
+      res.on('data', (chunk) => {
+        const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        total += buf.length;
+        if (total > MAX_ITINERARY_SHEET_BYTES) {
+          req.destroy(createError('VALIDATION_ERROR', 'itinerary_sheet.image_url image is too large.', 400));
+          return;
+        }
+        chunks.push(buf);
+      });
+      res.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        if (!buffer.length) {
+          reject(createError('VALIDATION_ERROR', 'itinerary_sheet.image_url returned an empty image.', 400));
+          return;
+        }
+        resolve({ buffer, contentType: text(res.headers && res.headers['content-type']) });
+      });
+      res.on('error', reject);
+    });
+    req.setTimeout(ITINERARY_SHEET_FETCH_TIMEOUT_MS, () => {
+      req.destroy(createError('IMAGE_FETCH_FAILED', 'Timed out fetching itinerary_sheet.image_url.', 408));
+    });
+    req.on('error', reject);
+  });
+}
 async function persistItinerarySheetIfNeeded(payload) {
   const sheet = isPlainObject(payload && payload.itinerary_sheet) ? payload.itinerary_sheet : null;
   if (!sheet || itinerarySheetSchemeAllowed(sheet.png_url)) return payload;
-  if (!text(sheet.png_base64)) return payload;
+  if (!text(sheet.png_base64) && !text(sheet.image_url)) return payload;
 
-  const buffer = decodePngBase64(sheet.png_base64);
+  const fromUrl = text(sheet.image_url);
+  const downloaded = fromUrl ? await downloadImageUrl(fromUrl) : null;
+  const buffer = downloaded ? downloaded.buffer : decodePngBase64(sheet.png_base64);
+  const imageInfo = downloaded
+    ? detectSheetImage(buffer, downloaded.contentType, sheet.format)
+    : { format: 'png', ext: 'png', contentType: 'image/png' };
   const orderNo = safeCloudPathSegment(sheet.order_no || payload.external_trip_id || payload.trip_no || payload.trip_id, 'trip');
-  const version = safeCloudPathSegment(sheet.version || sheet.source_hash || Date.now(), 'latest');
+  const version = safeCloudPathSegment(sheet.version || sheet.source_hash || sheet.generated_at || 'latest', 'latest');
   const contentHash = crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 16);
-  const cloudPath = `customer-itinerary-sheets/${orderNo}/v${version}-${contentHash}.png`;
+  const cloudPath = `customer-itinerary-sheets/${orderNo}/v${version}-${contentHash}.${imageInfo.ext}`;
   const uploadRes = await cloud.uploadFile({ cloudPath, fileContent: buffer });
   const pngUrl = text(uploadRes && (uploadRes.fileID || uploadRes.fileId));
   if (!pngUrl || !itinerarySheetSchemeAllowed(pngUrl)) {
@@ -121,7 +206,8 @@ async function persistItinerarySheetIfNeeded(payload) {
       ...sheet,
       png_url: pngUrl,
       png_base64: undefined,
-      format: text(sheet.format) || 'png',
+      image_url: undefined,
+      format: imageInfo.format,
     },
   };
 }
@@ -130,6 +216,7 @@ function normalizeItinerarySheetSource(value) {
   const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : undefined);
   const out = {
     png_url: text(value.png_url),
+    format: text(value.format),
     width: num(value.width),
     height: num(value.height),
     order_no: text(value.order_no),
@@ -254,6 +341,10 @@ function validatePayload(payload) {
   if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.png_url)
       && !itinerarySheetSchemeAllowed(payload.itinerary_sheet.png_url)) {
     throw createError('VALIDATION_ERROR', 'itinerary_sheet.png_url must be an https:// or cloud:// URL.', 400);
+  }
+  if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.image_url)
+      && !itinerarySheetFetchSchemeAllowed(payload.itinerary_sheet.image_url)) {
+    throw createError('VALIDATION_ERROR', 'itinerary_sheet.image_url must be an https:// URL.', 400);
   }
   if (isPlainObject(payload.itinerary_sheet) && text(payload.itinerary_sheet.png_base64)
       && text(payload.itinerary_sheet.format || 'png').toLowerCase() !== 'png') {
