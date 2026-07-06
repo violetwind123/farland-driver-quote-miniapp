@@ -38,6 +38,13 @@ if (invite && appJson) {
     if (page !== PATH_A_LANDING) {
       violations.push(`R6 客户 invite share_path 落在 ${page},非 Path A 承载页 ${PATH_A_LANDING}:该页无 switchTab→itinerary-tab 转交,客户看不到带 bottombar 的行程 tab。`);
     }
+    // R6b:share_path 的 query 必须带 trip_id(或 external_trip_id/trip_no)与 invite_code。
+    // 只落对页但丢了 query,home.onLoad 拿不到参数 → 不 writeStoredTripInvite/switchTab 转交 → 客户进空页。
+    const hasTripParam = /[?&](trip_id|external_trip_id|trip_no)=/.test(tpl);
+    const hasInviteParam = /[?&]invite_code=/.test(tpl);
+    if (!hasTripParam || !hasInviteParam) {
+      violations.push('R6b 客户 invite share_path 缺 query 参数(需 trip_id/external_trip_id/trip_no 且 invite_code):home 收不到参数 → 不转交 → 客户点分享卡进空页。');
+    }
   }
 }
 
@@ -58,22 +65,31 @@ if (SELF_RENDER.test(miWxml) || SELF_RENDER.test(miWxss)) {
 // R4:itinerary-tab 必须自识别(__isItineraryTab)。分享卡落非 tab home 后 switchTab 到本 tab,
 // tab 靠这个标记才知道"我要读本地 invite 并渲染 invite 视图";没标记 → tab 走普通 my-trips → 客户看不到行程。
 const tabJs = read('miniprogram/pages/customer/itinerary-tab/itinerary-tab.js');
-if (!/__isItineraryTab/.test(tabJs)) {
-  violations.push('R4 itinerary-tab.js 缺 __isItineraryTab 标记:tab 无法自识别 → 读不回本地 invite,Path A 断(客户看不到带 bottombar 的行程)。');
+// 要求属性赋值 __isItineraryTab: true,而非仅字符串出现(否则注释里提一句就能骗过守卫,真标记删了也放行)。
+if (!/__isItineraryTab\s*:\s*true/.test(tabJs)) {
+  violations.push('R4 itinerary-tab.js 缺 __isItineraryTab: true 标记:tab 无法自识别 → 读不回本地 invite,Path A 断(客户看不到带 bottombar 的行程)。');
 }
 
-// R5:home-page-config 必须 (a) 把 trip invite switchTab 转交给 itinerary-tab(不在非 tab home 自渲染);
-//     (b) 本地 invite 存储 setStorageSync/getStorageSync 同键 round-trip —— switchTab 丢 query,靠本地键读回参数。
+// R5:home-page-config 的转交接线必须完整。不只查 token 是否存在,而是锚定"转交块"查接线一致
+//     (否则:switchTab 后漏 return→home 也自渲染;写端成死代码没真调用;存储对象字段名与读端不一致 —— 都能让功能坏但 token 还在)。
 const homeCfg = read('miniprogram/pages/customer/home/home-page-config.js');
-const HANDS_OFF = /switchTab\s*\(\s*\{[\s\S]{0,160}?itinerary-tab/;
-if (!HANDS_OFF.test(homeCfg)) {
-  violations.push('R5a home-page-config 未见 switchTab→itinerary-tab:分享卡落非 tab home 后必须转交带 bottombar 的 tab 渲染,不得在非 tab home 自渲染 invite。');
-}
 const INVITE_KEY = 'customer_active_trip_invite';
-const writesKey = new RegExp(`setStorageSync\\s*\\(\\s*['"\`]${INVITE_KEY}['"\`]`).test(homeCfg);
-const readsKey = new RegExp(`getStorageSync\\s*\\(\\s*['"\`]${INVITE_KEY}['"\`]`).test(homeCfg);
-if (!writesKey || !readsKey) {
-  violations.push(`R5b home-page-config 本地 invite 未 round-trip(需 setStorageSync+getStorageSync 同键 '${INVITE_KEY}'):tab switchTab 丢 query,靠本地键读回;缺任一端 → tab 打开是空页。`);
+// 转交块 = 非 tab home 拿到 trip invite 后的处理分支;锚定 guard 条件取块体。
+const handoffMatch = homeCfg.match(/tripInviteId\s*&&\s*!this\.__isItineraryTab\s*\)\s*\{([\s\S]{0,400}?)\n\s*\}/);
+const handoff = handoffMatch ? handoffMatch[1] : '';
+// R5a:转交块必须 switchTab→itinerary-tab 且以 return 早退(否则 onLoad 落到下方 setData/loadHome,非 tab home 自渲染 invite/双跳)。
+if (!/switchTab\s*\(\s*\{[\s\S]{0,120}?itinerary-tab/.test(handoff) || !/\breturn\b/.test(handoff)) {
+  violations.push('R5a home-page-config 转交块缺 switchTab→itinerary-tab 或缺 return 早退:分享卡落非 tab home 须转交带 bottombar 的 tab 并 return,不得自渲染 invite。');
+}
+// R5b:转交块内必须"实际"写本地 invite(写端锚定到转交路径,防止只在别处留死代码定义)。
+if (!/writeStoredTripInvite\s*\(/.test(handoff) && !new RegExp(`setStorageSync\\s*\\(\\s*['"\`]${INVITE_KEY}`).test(handoff)) {
+  violations.push(`R5b home-page-config 转交块内未写本地 invite(需调 writeStoredTripInvite 或 setStorageSync '${INVITE_KEY}'):switchTab 后 tab 无 query、本地也没存 → tab 空页。`);
+}
+// R5c:本地 invite round-trip 字段一致 —— 写端 setStorageSync 同键且对象含 trip_id;读端 getStorageSync 同键且以 .trip_id 取回。
+const writeObjOk = new RegExp(`setStorageSync\\s*\\(\\s*['"\`]${INVITE_KEY}['"\`]\\s*,\\s*\\{[\\s\\S]{0,200}?trip_id\\s*:`).test(homeCfg);
+const readRoundTrip = new RegExp(`getStorageSync\\s*\\(\\s*['"\`]${INVITE_KEY}['"\`]\\s*\\)[\\s\\S]{0,200}?\\.trip_id`).test(homeCfg);
+if (!writeObjOk || !readRoundTrip) {
+  violations.push('R5c home-page-config 本地 invite round-trip 字段不一致(写端对象须含 trip_id、读端须 getStorageSync 同键并以 .trip_id 取回):改字段名/键名会让 tab 读回 undefined → 空页。');
 }
 
 if (violations.length) {
@@ -82,4 +98,4 @@ if (violations.length) {
   console.error('规范:docs/product/itinerary-sheet-discipline.md');
   process.exit(1);
 }
-console.log('✓ 手机版行程单纪律通过 (R1 invite路径 / R2 客户只读 / R3 不自渲染 / R4 tab自识别 / R5 home转交+存储round-trip / R6 invite落home)');
+console.log('✓ 手机版行程单纪律通过 (R1 invite非tab / R2 客户只读 / R3 不自渲染 / R4 tab自识别 / R5a 转交块switchTab+return / R5b 块内真写本地 / R5c round-trip字段一致 / R6 invite落home / R6b 带query参数)');
