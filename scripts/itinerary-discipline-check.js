@@ -26,8 +26,18 @@ if (invite && appJson) {
   const m = invite.match(/buildTripSharePath[\s\S]{0,400}?return\s+`([^`]+)`/);
   const tpl = m ? m[1] : '';
   const page = tpl.replace(/^\//, '').split('?')[0];
-  if (page && tabPages.includes(page)) {
-    violations.push(`R1 客户 invite share_path 落在 tabBar 页(${page}):分享卡跳 tabBar 会丢参数,推送打不开。请落非 tab 承载页。`);
+  if (!m || !page) {
+    // 解析不到 share_path 就无法验 R1/R6 —— 不静默放行(否则重构 buildTripSharePath 会让守卫失效)。
+    violations.push('R1/R6 无法从 createCustomerTripInvite 解析 buildTripSharePath 的 share_path:守卫失效。请保持可解析,或同步更新本守卫。');
+  } else {
+    if (tabPages.includes(page)) {
+      violations.push(`R1 客户 invite share_path 落在 tabBar 页(${page}):分享卡跳 tabBar 会丢参数,推送打不开。请落非 tab 承载页。`);
+    }
+    // R6:Path A —— invite 必须落 home(承载 switchTab→tab 的转交逻辑)。落到别的非 tab 页(如 mobile-itinerary)会绕过 Path A,客户看不到带 bottombar 的行程 tab。
+    const PATH_A_LANDING = 'pages/customer/home/home';
+    if (page !== PATH_A_LANDING) {
+      violations.push(`R6 客户 invite share_path 落在 ${page},非 Path A 承载页 ${PATH_A_LANDING}:该页无 switchTab→itinerary-tab 转交,客户看不到带 bottombar 的行程 tab。`);
+    }
   }
 }
 
@@ -44,10 +54,32 @@ if (SELF_RENDER.test(miWxml) || SELF_RENDER.test(miWxss)) {
   violations.push('R3 mobile-itinerary 出现自渲染行程标记:手机版行程单只展示 web 生成的图片。');
 }
 
+// —— Path A 不变式(客户行程体验落带 bottombar 的「我的行程」tab)。规范见 docs §7 Path A。 ——
+// R4:itinerary-tab 必须自识别(__isItineraryTab)。分享卡落非 tab home 后 switchTab 到本 tab,
+// tab 靠这个标记才知道"我要读本地 invite 并渲染 invite 视图";没标记 → tab 走普通 my-trips → 客户看不到行程。
+const tabJs = read('miniprogram/pages/customer/itinerary-tab/itinerary-tab.js');
+if (!/__isItineraryTab/.test(tabJs)) {
+  violations.push('R4 itinerary-tab.js 缺 __isItineraryTab 标记:tab 无法自识别 → 读不回本地 invite,Path A 断(客户看不到带 bottombar 的行程)。');
+}
+
+// R5:home-page-config 必须 (a) 把 trip invite switchTab 转交给 itinerary-tab(不在非 tab home 自渲染);
+//     (b) 本地 invite 存储 setStorageSync/getStorageSync 同键 round-trip —— switchTab 丢 query,靠本地键读回参数。
+const homeCfg = read('miniprogram/pages/customer/home/home-page-config.js');
+const HANDS_OFF = /switchTab\s*\(\s*\{[\s\S]{0,160}?itinerary-tab/;
+if (!HANDS_OFF.test(homeCfg)) {
+  violations.push('R5a home-page-config 未见 switchTab→itinerary-tab:分享卡落非 tab home 后必须转交带 bottombar 的 tab 渲染,不得在非 tab home 自渲染 invite。');
+}
+const INVITE_KEY = 'customer_active_trip_invite';
+const writesKey = new RegExp(`setStorageSync\\s*\\(\\s*['"\`]${INVITE_KEY}['"\`]`).test(homeCfg);
+const readsKey = new RegExp(`getStorageSync\\s*\\(\\s*['"\`]${INVITE_KEY}['"\`]`).test(homeCfg);
+if (!writesKey || !readsKey) {
+  violations.push(`R5b home-page-config 本地 invite 未 round-trip(需 setStorageSync+getStorageSync 同键 '${INVITE_KEY}'):tab switchTab 丢 query,靠本地键读回;缺任一端 → tab 打开是空页。`);
+}
+
 if (violations.length) {
   console.error('✗ 手机版行程单纪律未通过:');
   violations.forEach((v) => console.error('  - ' + v));
   console.error('规范:docs/product/itinerary-sheet-discipline.md');
   process.exit(1);
 }
-console.log('✓ 手机版行程单纪律通过 (R1 invite路径 / R2 客户只读 / R3 不自渲染)');
+console.log('✓ 手机版行程单纪律通过 (R1 invite路径 / R2 客户只读 / R3 不自渲染 / R4 tab自识别 / R5 home转交+存储round-trip / R6 invite落home)');
