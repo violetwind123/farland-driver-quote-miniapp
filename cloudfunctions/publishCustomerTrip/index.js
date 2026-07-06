@@ -50,6 +50,35 @@ exports.main = async (event = {}) => {
   }
 
   const canonicalTripId = trip.trip_id || trip.external_trip_id || tripId;
+
+  // 收回:把已 release 的正式行程撤回草稿态(客户回落到第一层手机行程单图)。只翻可见标记,不动 published_snapshot;
+  // 不受关键警告 / draft 缺失拦截(撤回是收窄可见性,永远允许)。
+  if (event.release === false) {
+    const nowUnrelease = new Date().toISOString();
+    await db.collection('customer_trips').doc(trip._id).update({ data: {
+      customer_official_released: false,
+      updated_by: auth.user._id,
+      updated_by_openid: auth.openid,
+      updated_at: nowUnrelease,
+    } });
+    await writeAuditLog(db, {
+      actor_openid: auth.openid,
+      actor_user_id: auth.user._id,
+      actor_role: auth.user.role,
+      action: 'customer_trip_unreleased',
+      target_type: 'customer_trip',
+      target_id: trip._id,
+      detail: { trip_id: canonicalTripId, external_trip_id: trip.external_trip_id || '' },
+      created_at: nowUnrelease,
+    }).catch(() => null);
+    return {
+      success: true,
+      code: 0,
+      trip_id: canonicalTripId,
+      customer_official_released: false,
+    };
+  }
+
   const criticalWarningCodes = Array.isArray(trip.critical_warning_codes) ? trip.critical_warning_codes : [];
   if (criticalWarningCodes.length) {
     await writeAuditLog(db, {
@@ -94,6 +123,8 @@ exports.main = async (event = {}) => {
     published_version: nextVersion,
     review_status: 'approved',
     visibility_status: 'published',
+    // 第二层可见闸门:运营显式 release → 客户从第一层(手机行程单图)升级到正式行程卡片。
+    customer_official_released: true,
     reviewed_by: auth.user._id,
     reviewed_by_openid: auth.openid,
     reviewed_at: now,
@@ -134,5 +165,6 @@ exports.main = async (event = {}) => {
     visibility_status: 'published',
     published_version: nextVersion,
     published_at: now,
+    customer_official_released: true,
   };
 };

@@ -1384,7 +1384,9 @@ function normalizeItinerarySheet(value) {
 }
 
 function normalizePublishedTripSnapshot(trip) {
-  if (!trip || trip.visibility_status !== 'published' || !trip.published_snapshot || !Object.keys(trip.published_snapshot).length) return null;
+  // 第二层可见闸门:内容自动发布之外,还要运营 release(customer_official_released===true)才给正式行程卡片;
+  // 默认关 → 回落到 buildWaitingTripOverview 的第一层手机行程单图。与 getCustomerTripByInvite 一致。
+  if (!trip || trip.visibility_status !== 'published' || trip.customer_official_released !== true || !trip.published_snapshot || !Object.keys(trip.published_snapshot).length) return null;
   const snapshot = sanitizeCustomerObject(trip.published_snapshot || {});
   const days = Array.isArray(snapshot.itinerary_days)
     ? snapshot.itinerary_days.map(normalizeSnapshotDay)

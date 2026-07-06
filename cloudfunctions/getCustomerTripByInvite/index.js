@@ -811,6 +811,13 @@ function hasPublishedSnapshot(trip) {
   );
 }
 
+// 第二层可见闸门:内容自动发布(published_snapshot)之外,还要运营显式把行程 release 给客户
+// (customer_official_released===true)才升级到正式行程卡片;默认关 → 客户停在第一层手机行程单图。
+// 只闸客户读,不改 opsUpsert 自动发布内容;运营线下确认后在运营页点「发布正式行程」翻这个标记。
+function isOfficialReleasedToCustomer(trip) {
+  return hasPublishedSnapshot(trip) && trip && trip.customer_official_released === true;
+}
+
 // itinerary_sheet:web 生成的手机版行程单图,customer_trips 顶层字段,两层读取共用。
 // 只读顶层这一个字段(scheme 校验),绝不从 draft_snapshot 取任何其他字段。
 const ITINERARY_SHEET_URL_SCHEMES = ['https:', 'cloud:'];
@@ -954,7 +961,7 @@ exports.main = async (event = {}) => {
   // Layer 1 手机版行程单:顶层 itinerary_sheet 图,可见性只靠 access,与是否发布无关
   const itinerarySheet = normalizeItinerarySheet(trip.itinerary_sheet);
 
-  if (!hasPublishedSnapshot(trip)) {
+  if (!isOfficialReleasedToCustomer(trip)) {
     await writeAuditLog({
       actor_openid: OPENID,
       actor_user_id: user ? user._id : '',

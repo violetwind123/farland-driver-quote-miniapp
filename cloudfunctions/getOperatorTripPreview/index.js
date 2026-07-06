@@ -427,6 +427,8 @@ exports.main = async (event = {}) => {
     published_snapshot: compactSnapshotForOperatorPreview(trip.published_snapshot),
     ownership: ownershipProjection(trip),
     published_version: trip.published_version || 0,
+    // 第二层可见闸门:客户是否已看到正式行程卡片(运营 release 才为 true)。运营页据此渲染「发布/收回正式行程」。
+    customer_official_released: trip.customer_official_released === true,
     diff_summary: diffSummary(trip),
     // Layer 1 手机版行程单状态:运营据此渲染"预览/转发"按钮(转发不需要发布)
     itinerary_sheet: normalizeItinerarySheet(trip.itinerary_sheet),
