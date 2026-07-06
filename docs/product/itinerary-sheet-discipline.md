@@ -1,0 +1,47 @@
+# 手机版行程单 · 铁律(Itinerary Sheet Discipline)
+
+> 本文件是**权威规范**,优先级高于设计稿与任何 agent 的推断。任何做"手机版行程单 / mobile itinerary / 行程分享"相关改动的人/agent,动代码前必须先读本文并按此锁定路由、权限、UI 状态。
+> 强制校验:`node scripts/itinerary-discipline-check.js` 必须通过(违反即失败)。改规则要**先改本文 + owner 确认**,不许为了让某次改动过而放宽守卫。
+
+## 0. 一句话定义
+**手机版行程单 = web 生成的图片(长图 PNG / 确认单)。小程序只负责展示 / 预览 / 转发,永不端上渲染行程。**
+
+## 1. 生产(web)
+- web 生成手机版行程单图片,经 `opsUpsertCustomerTrip` 写入 `customer_trips` **顶层 `itinerary_sheet`**(`{png_url,width,height,order_no,version,generated_at,source_hash}`)。
+- `png_url` scheme **仅 `https:` / `cloud:`**(后端持久 URL);拒 `wxfile:`/`http:`/`data:`/相对路径。
+- 图不进 `draft_snapshot` / `published_snapshot`;客户读只读顶层 `itinerary_sheet` 这一个字段。
+
+## 2. 运营端(operator)
+- 运营详情页显示"手机版行程单 已生成 / 待网页生成"。
+- 运营可 **预览** + **微信转发**。**转发是运营动作。**
+- 运营预览可用独立页;运营预览态与客户正式访问**可共用展示壳,但客户侧不得因此获得二次转发能力**。
+
+## 3. 客户端(customer)—— 权限与入口
+- 客户从 **「我的行程」(`pages/customer/home/home`)** 进入查看手机版行程单。**「我的行程」是承载页,不是兼容页。**
+- 客户正式 invite `share_path` = **`/pages/customer/home/home?trip_id=..&invite_code=..`**。**不得**落 `mobile-itinerary`。【守卫 R1】
+- 客户界面**只读**:**不显示"转发行程单"按钮,不允许 `open-type="share"`,不开放二次转发。**【守卫 R2】
+- 小程序**不重新渲染行程卡片 / 行程概览 / 每日安排**(不从 `days`/`todayOverviewCard`/`daily_summary_cards`/`progressNodes` 拼页)。手机版行程单只展示 web 图。【守卫 R3】
+- 打开 invite **不自动创建 `customer_trip_access`**;绑定("保存到我的 Farland")是单独显式动作。
+
+## 4. `mobile-itinerary` 页的定位
+- 若保留 `pages/customer/mobile-itinerary`,**只能作运营预览 / 兼容跳转**,**不作客户正式二次分享页**。
+- 该页**不得**有 `open-type="share"`,**不得**自渲染行程。
+
+## 5. 其它模块不被覆盖
+- 酒店预订等客户功能**保持独立入口**,不被手机版行程单流程覆盖或改路由。
+
+## 6. 通用不变式(沿用)
+- **091**:不新增 id/内容键硬编码;`opsUpsert*` 保留 091 reject;不碰既有 091 gate。
+- **PII**:客户读一律 allowlist 投影 + denylist strip,禁止 `...doc` 裸 spread;不下发客户联系方式 / 司机身份(派单前)/ 成本 / 供应商。
+
+## 7. 待锁 · A/B(唯一未定项)
+客户"看到手机版行程单"之后,是否**额外**有一个 R3"正式行程"渲染层(行程总览 / today card / day-detail):
+- **A 单层(本文 §3 现写法)**:客户永远只看 web 图,小程序不渲染任何行程卡片/概览。
+- **B 两层**:图是第一步供客户确认;运营确认后发布,客户升级看小程序渲染的 R3 正式行程。
+> Owner 口头说 B,但 §3"不重新渲染行程卡片/概览"是 A 的写法——**此项冲突,须 owner 最终锁定**。锁 B 时,§3 的"不渲染"改为"仅 sheet_draft 阶段不渲染;发布后允许 R3",并相应放宽守卫 R3 的作用面(仅约束 sheet 展示壳,不约束 home 正式态)。§1/§2/§4/§5/§6 与 A/B 无关,恒生效。
+
+## 8. 当前代码合规状态(写本文时,HEAD=Codex 版)
+- ✗ **R1 违规**:`createCustomerTripInvite` invite 落 `mobile-itinerary`(应落 home)。
+- ✗ **R2 违规**:`mobile-itinerary.wxml` 有 `open-type="share"` 转发按钮(客户不应二次转发)。
+- ✓ R3:无自渲染残留。
+> 修复方向:invite path 改 home;去掉客户侧 sheet 页的转发按钮。修完 `node scripts/itinerary-discipline-check.js` 应通过。
