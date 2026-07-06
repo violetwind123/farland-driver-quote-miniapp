@@ -53,6 +53,14 @@
 
 **现状差距(接线项)**:Codex 把「我的行程」tab(`pages/customer/itinerary-tab`,本身是 `Page(home-page-config)`)固定成 `<include mobile-itinerary.wxml>`,**只显 sheet,已发布也不切到行程卡片**。第二层 = 让该 tab / 客户视图**按状态切换**:未发布(仅 sheet)显 sheet 图;已发布显 home 的行程卡片那一套 + sheet 降为"查看完整行程单"次要入口。接线时**不得破坏第一层的推送链路(image_url + 上传)与非 tab 路由**。§1/§2/§4/§5/§6 恒生效。
 
+**接线已完成(2026-07)**:invite→home、home 不再弹走行程 invite(三态自渲染)、itinerary-tab 改 include home.wxml。客户侧两层已通。
+
+### 7.1 待定 · 发布是"自动"还是"客户确认后手动"(owner 未定)
+B 的完整语义是「客户线下确认 → 运营**手动发布** → 才升级到正式行程」。但**当前 `opsUpsertCustomerTrip` 是 web 同步时 auto-publish**,`publishTrip` 手动按钮已被 Codex 删除——**没有"确认才发布"这道闸门**。运营详情页文案已按两层写,但发布实际是同步驱动、非手动确认。
+- **选项 A(现状)**:同步即发布,客户随即从看图升级到看正式行程卡片。简单,但少了"确认"gate。
+- **选项 B-full(要则加功能)**:重新引入 `publishTrip` 手动发布 + 把 auto-publish 改成"需运营确认后才发布";sheet 转发不受影响(第一层无需发布)。
+> 这是**功能改动**,须 owner 拍板后再做;在此之前保持选项 A,不擅自加闸门。
+
 ## 8. 当前代码合规状态(HEAD=Codex 版,已核实)
 - ✓ **R1 合规**:invite 落非 tab 的 `mobile-itinerary`——**这是正确的**(分享卡不能带参进 tabBar 页)。之前误判为违规,已改正守卫。
 - ✗ **R2 违规**:`mobile-itinerary.wxml` 有 `open-type="share"` 转发按钮(客户不应二次转发)——**唯一真缺口,需去掉**。
