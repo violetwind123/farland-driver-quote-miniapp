@@ -43,7 +43,7 @@
     <!-- 模块一 · 手机版行程单 -->
     <view class="panel workflow-panel">
       <view class="section-title">手机版行程单</view>
-      <view class="workflow-sub">网页端生成手机行程单图片并同步到小程序后，这里可预览客户真实看到的行程单并微信转发。</view>
+      <view class="workflow-sub">两层:①「手机版行程单」网页生成图片同步后,运营预览并转发给客户确认。②「正式行程」客户确认、网页同步已发布版后,客户在「我的行程」看到正式行程卡片(手机行程单图保留为「查看完整行程单」)。</view>
 
       <view wx:if="{{criticalWarningList.length || warningList.length}}" class="workflow-alert">
         <view class="warning-title">同步提醒</view>
@@ -59,7 +59,7 @@
           <view class="workflow-step-index priority">1</view>
           <view class="workflow-step-copy">
             <view class="workflow-step-title">手机行程单预览与转发</view>
-            <view class="workflow-step-sub">只展示网页生成的手机版行程单图片，不再由小程序重新渲染行程内容。</view>
+            <view class="workflow-step-sub">第一层 · 给客户确认用:客户打开看网页生成的手机版行程单图片(小程序只展示图,不重排行程)。</view>
           </view>
           <view class="workflow-step-status">{{canForwardSheet ? '已生成' : '待网页生成'}}</view>
         </view>
@@ -112,7 +112,7 @@
       <view class="section-toggle-head">
         <view>
           <view class="section-title no-margin">行程内容核对（运营用）</view>
-          <view class="snapshot-hint compact-hint">此为运营字段核对视图；客户真实页面只展示网页生成的手机版行程单图片。</view>
+          <view class="snapshot-hint compact-hint">此为运营字段核对视图。客户真实页面:未发布看手机版行程单图(第一层);已发布看正式行程卡片(第二层)。</view>
         </view>
         <button class="mini-action" disabled="{{!activeSnapshot}}" bindtap="toggleDraftReview">
           {{draftReviewOpen ? '收起核对' : '展开核对'}}
