@@ -27,7 +27,7 @@
 - 「我的行程」tab = **`pages/customer/itinerary-tab/itinerary-tab`**(不是 home;home 已不在 tabBar);客户保存后的行程在此 tab 查看。
 - 客户正式 invite `share_path` **必须落非 tabBar 承载页**(如 `pages/customer/mobile-itinerary`),**不得落 tabBar 页**。原因:**微信分享卡跳 tabBar 页会 switchTab 丢 query 参数**(trip_id/invite_code 收不到 → 推送打开是空页)。【守卫 R1】
 - 客户界面**只读**:**不显示"转发行程单"按钮,不允许 `open-type="share"`,不开放二次转发**(转发是运营动作)。客户可"保存图片到相册",但不可再分享行程卡。【守卫 R2】
-- 小程序**不重新渲染行程卡片 / 行程概览 / 每日安排**(不从 `days`/`todayOverviewCard`/`daily_summary_cards`/`progressNodes` 拼页)。手机版行程单只展示 web 图。【守卫 R3】
+- **手机版行程单 / sheet 展示壳**只展示 web 图,**不重新渲染行程卡片 / 行程概览 / 每日安排**(不从 `days`/`todayOverviewCard`/`daily_summary_cards`/`progressNodes` 拼页)。【守卫 R3】(注:第二层"正式行程"允许渲染 R3,见 §7——此禁令只约束 sheet 展示壳。)
 - 打开 invite **不自动创建 `customer_trip_access`**;绑定("保存到我的 Farland")是单独显式动作。
 
 ## 4. `mobile-itinerary` 页的定位
@@ -41,11 +41,15 @@
 - **091**:不新增 id/内容键硬编码;`opsUpsert*` 保留 091 reject;不碰既有 091 gate。
 - **PII**:客户读一律 allowlist 投影 + denylist strip,禁止 `...doc` 裸 spread;不下发客户联系方式 / 司机身份(派单前)/ 成本 / 供应商。
 
-## 7. 待锁 · A/B(唯一未定项)
-客户"看到手机版行程单"之后,是否**额外**有一个 R3"正式行程"渲染层(行程总览 / today card / day-detail):
-- **A 单层(本文 §3 现写法)**:客户永远只看 web 图,小程序不渲染任何行程卡片/概览。
-- **B 两层**:图是第一步供客户确认;运营确认后发布,客户升级看小程序渲染的 R3 正式行程。
-> Owner 口头说 B,但 §3"不重新渲染行程卡片/概览"是 A 的写法——**此项冲突,须 owner 最终锁定**。锁 B 时,§3 的"不渲染"改为"仅 sheet_draft 阶段不渲染;发布后允许 R3",并相应放宽守卫 R3 的作用面(仅约束 sheet 展示壳,不约束 home 正式态)。§1/§2/§4/§5/§6 与 A/B 无关,恒生效。
+## 7. 已锁 · 两层模型(B)—— owner 2026-07 最终确认
+- **第一层 · 手机版行程单(客户确认前)**:web 生成图 → 运营转发 → 客户在 mobile-itinerary **只读看图**(§1–§4)。给客户确认行程用;可见性靠 invite/access,**不需要发布**。
+- **第二层 · 正式行程(客户线下确认后)**:运营**发布** → 客户看小程序渲染的 **R3 正式行程 UI**(行程总览 / today card / day-detail),可见性靠 `published_snapshot`;手机版行程单图**降级为"查看完整行程单"次要入口**。
+
+**自渲染禁令(§3 的 R3)只作用于 sheet 展示壳,不作用于第二层正式行程:**
+- 手机版行程单 / mobile-itinerary:**永不自渲染**,只显 web 图。【守卫 R3 只管这里】
+- 第二层正式行程(home / day-detail 已发布态):**允许**渲染 R3 行程卡片/概览——那是本来就要的正式客户界面。
+
+**现状差距(重要)**:Codex 当前分支**只建了第一层(sheet)**;**第二层 R3 正式行程渲染 + "客户确认→运营发布→同一入口升级"流程在当前分支不存在,是待建项**。建它时不得破坏第一层的推送链路(image_url + 上传)与非 tab 路由。§1/§2/§4/§5/§6 恒生效。
 
 ## 8. 当前代码合规状态(HEAD=Codex 版,已核实)
 - ✓ **R1 合规**:invite 落非 tab 的 `mobile-itinerary`——**这是正确的**(分享卡不能带参进 tabBar 页)。之前误判为违规,已改正守卫。
