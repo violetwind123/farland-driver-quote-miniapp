@@ -105,6 +105,22 @@ const customerHomePageConfig = {
       this.applyOperatorCustomerHomePreview(operatorCustomerPreview);
       return;
     }
+    // Path A:分享卡只能落非 tab 页(switchTab 会丢 query)。非 tab home 接住参数后只负责
+    // 存本地 + switchTab 交给「我的行程」tab(自带 bottombar)渲染,自己不渲染 invite。
+    if (tripInviteId && !this.__isItineraryTab) {
+      this.writeStoredTripInvite({ trip_id: tripInviteId, invite_code: inviteCode });
+      wx.switchTab({ url: '/pages/customer/itinerary-tab/itinerary-tab' });
+      return;
+    }
+    // Path A:tab 无参进入时读本地存的 invite,复用 home 的 invite 三态视图(空态+草稿按钮 / 行程卡片 / 内联图)。
+    if (!tripInviteId && this.__isItineraryTab) {
+      const stored = this.readStoredTripInvite();
+      if (stored && stored.trip_id) {
+        this.setData({ tripInviteId: stored.trip_id, inviteCode: stored.invite_code || '', tripInviteMode: true });
+        this.loadHome();
+        return;
+      }
+    }
     this.setData({
       tripInviteId,
       tripInviteEntry,
@@ -136,6 +152,15 @@ const customerHomePageConfig = {
       this.applyOperatorCustomerHomePreview(operatorCustomerPreview);
       return;
     }
+    // Path A:已加载的 tab 收到新分享(本地 invite 变化)时切到新 invite。
+    if (this.__isItineraryTab) {
+      const stored = this.readStoredTripInvite();
+      if (stored && stored.trip_id && stored.trip_id !== this.data.tripInviteId) {
+        this.setData({ tripInviteId: stored.trip_id, inviteCode: stored.invite_code || '', tripInviteMode: true });
+        this.loadHome();
+        return;
+      }
+    }
     const preview = this.consumeOperatorPreview();
     if (!this.data.tripInviteMode && preview.requestId && (preview.requestId !== this.data.inviteRequestId || !this.data.operatorPreview)) {
       this.setData({
@@ -159,6 +184,29 @@ const customerHomePageConfig = {
       return decodeURIComponent(raw);
     } catch (error) {
       return raw;
+    }
+  },
+
+  // Path A:分享落非 tab home 时把 invite 存本地,让「我的行程」tab(switchTab 后无 query)能读回并渲染。
+  // 不建 customer_trip_access(不自动绑定);显式"保存到我的 Farland"仍是唯一服务端绑定路径。
+  writeStoredTripInvite(invite) {
+    if (!invite || !invite.trip_id) return;
+    try {
+      wx.setStorageSync('customer_active_trip_invite', {
+        trip_id: String(invite.trip_id),
+        invite_code: String(invite.invite_code || ''),
+      });
+    } catch (error) {
+      /* storage 失败不阻断:tab 仍可空态,客户可重开分享 */
+    }
+  },
+
+  readStoredTripInvite() {
+    try {
+      const stored = wx.getStorageSync('customer_active_trip_invite');
+      return stored && stored.trip_id ? stored : null;
+    } catch (error) {
+      return null;
     }
   },
 
