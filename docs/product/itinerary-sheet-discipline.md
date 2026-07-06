@@ -49,7 +49,9 @@
 - 手机版行程单 / mobile-itinerary:**永不自渲染**,只显 web 图。【守卫 R3 只管这里】
 - 第二层正式行程(home / day-detail 已发布态):**允许**渲染 R3 行程卡片/概览——那是本来就要的正式客户界面。
 
-**现状差距(重要)**:Codex 当前分支**只建了第一层(sheet)**;**第二层 R3 正式行程渲染 + "客户确认→运营发布→同一入口升级"流程在当前分支不存在,是待建项**。建它时不得破坏第一层的推送链路(image_url + 上传)与非 tab 路由。§1/§2/§4/§5/§6 恒生效。
+**第二层是复用现有代码,不是从零建**:R3 行程卡片那一套(行程总览 / today card / day-detail)**已存在于 `customer/home` + `customer/day-detail`**,完好。
+
+**现状差距(接线项)**:Codex 把「我的行程」tab(`pages/customer/itinerary-tab`,本身是 `Page(home-page-config)`)固定成 `<include mobile-itinerary.wxml>`,**只显 sheet,已发布也不切到行程卡片**。第二层 = 让该 tab / 客户视图**按状态切换**:未发布(仅 sheet)显 sheet 图;已发布显 home 的行程卡片那一套 + sheet 降为"查看完整行程单"次要入口。接线时**不得破坏第一层的推送链路(image_url + 上传)与非 tab 路由**。§1/§2/§4/§5/§6 恒生效。
 
 ## 8. 当前代码合规状态(HEAD=Codex 版,已核实)
 - ✓ **R1 合规**:invite 落非 tab 的 `mobile-itinerary`——**这是正确的**(分享卡不能带参进 tabBar 页)。之前误判为违规,已改正守卫。
