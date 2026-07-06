@@ -1,1 +1,2 @@
-<include src="../mobile-itinerary/mobile-itinerary.wxml" />
+<!-- 我的行程 tab = 完整客户 home(Page(home-page-config))。两层(B):已发布显行程卡片那套,未发布显手机行程单草稿入口。redirect 有 route 门控只作用于 home 页,不影响本 tab。 -->
+<include src="../home/home.wxml" />
