@@ -105,6 +105,29 @@
         </block>
       </view>
 
+      <view class="workflow-step-card">
+        <view class="workflow-step-head">
+          <view class="workflow-step-index {{preview.customer_official_released ? '' : 'priority'}}">2</view>
+          <view class="workflow-step-copy">
+            <view class="workflow-step-title">发布正式行程</view>
+            <view class="workflow-step-sub">第二层 · 客户线下确认后发布 → 客户在「我的行程」看到正式行程卡片;发布前只看第一层手机行程单图。</view>
+          </view>
+          <view class="workflow-step-status">{{preview.customer_official_released ? ('已发布 v' + (preview.published_version || 1)) : '未发布'}}</view>
+        </view>
+        <view wx:if="{{!hasDraft && !hasPublished}}" class="share-empty">
+          <view class="empty-title">等待网页端同步行程内容</view>
+          <view class="empty-sub">网页同步结构化行程后才能发布正式行程卡片;发布前客户看手机版行程单图。</view>
+        </view>
+        <block wx:else>
+          <view wx:if="{{preview.customer_official_released}}" class="workflow-btn-row">
+            <button class="secondary-wide-btn" loading="{{releasing}}" disabled="{{releasing}}" bindtap="unreleaseOfficialTrip">收回正式行程</button>
+          </view>
+          <view wx:else class="workflow-btn-row">
+            <button class="primary-wide-btn" loading="{{releasing}}" disabled="{{releasing || !hasDraft}}" bindtap="releaseOfficialTrip">发布正式行程</button>
+          </view>
+        </block>
+      </view>
+
     </view>
 
     <!-- 模块二 · 行程内容核对（运营用） -->

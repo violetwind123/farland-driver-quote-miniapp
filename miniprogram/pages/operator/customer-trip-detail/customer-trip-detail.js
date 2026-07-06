@@ -28,6 +28,7 @@ Page({
     refreshing: false,
     creatingInvite: false,
     previewingDraft: false,
+    releasing: false,
     tripId: '',
     error: '',
     preview: null,
@@ -500,11 +501,21 @@ Page({
         draft_day_status_text: '已废弃',
       };
     }
+    if (result.customer_official_released === true) {
+      return {
+        state_text: `正式行程已发布 v${version || 1}`,
+        customer_seeing_text: '客户看到正式行程卡片（第二层）',
+        next_step_text: '如客户线下需改动，可在下方「收回正式行程」退回手机行程单图',
+        flow_step: 2,
+        day_status_text: '已发布',
+        draft_day_status_text: '已发布',
+      };
+    }
     if (sheetReady) {
       return {
         state_text: '手机版行程单已生成',
-        customer_seeing_text: '客户会看到网页生成的手机版行程单',
-        next_step_text: '预览并转发客户',
+        customer_seeing_text: '客户会看到手机版行程单（第一层）',
+        next_step_text: '预览客户界面并转发；客户线下确认后在下方发布正式行程',
         flow_step: 1,
         day_status_text: '已生成',
         draft_day_status_text: '已生成',
@@ -836,6 +847,62 @@ Page({
         error: `客户分享链接生成失败：${errMsg}`,
       });
       wx.showToast({ title: '生成失败', icon: 'none' });
+    }
+  },
+
+  // 第二层 · 发布正式行程:翻 customer_official_released → 客户从第一层手机行程单图升级到正式行程卡片。
+  async releaseOfficialTrip() {
+    if (this.data.releasing) return;
+    if (!this.data.tripId) {
+      wx.showToast({ title: '缺少 trip_id', icon: 'none' });
+      return;
+    }
+    this.setData({ releasing: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'publishCustomerTrip',
+        data: { trip_id: this.data.tripId },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '发布失败', icon: 'none' });
+        this.setData({ releasing: false });
+        return;
+      }
+      wx.showToast({ title: '已发布，客户可见正式行程', icon: 'success' });
+      this.setData({ releasing: false });
+      this.loadPreview({ silent: true });
+    } catch (error) {
+      console.error('[customer-trip-detail] releaseOfficialTrip failed', error);
+      wx.showToast({ title: '发布失败', icon: 'none' });
+      this.setData({ releasing: false });
+    }
+  },
+
+  // 第二层 · 收回正式行程:release=false → 客户回落到第一层手机行程单图(内容不动)。
+  async unreleaseOfficialTrip() {
+    if (this.data.releasing) return;
+    if (!this.data.tripId) {
+      wx.showToast({ title: '缺少 trip_id', icon: 'none' });
+      return;
+    }
+    this.setData({ releasing: true });
+    try {
+      const { result } = await wx.cloud.callFunction({
+        name: 'publishCustomerTrip',
+        data: { trip_id: this.data.tripId, release: false },
+      });
+      if (!result || !result.success) {
+        wx.showToast({ title: (result && result.message) || '收回失败', icon: 'none' });
+        this.setData({ releasing: false });
+        return;
+      }
+      wx.showToast({ title: '已收回，客户回到行程单草稿', icon: 'success' });
+      this.setData({ releasing: false });
+      this.loadPreview({ silent: true });
+    } catch (error) {
+      console.error('[customer-trip-detail] unreleaseOfficialTrip failed', error);
+      wx.showToast({ title: '收回失败', icon: 'none' });
+      this.setData({ releasing: false });
     }
   },
 
