@@ -27,7 +27,8 @@ Page({
     } else {
       this.loadFromInvite(tripId, inviteCode);
     }
-    if (wx.showShareMenu) wx.showShareMenu({ menus: ['shareAppMessage'] });
+    // 客户端只读:关闭转发菜单,不开放二次转发(转发是运营动作)
+    if (wx.hideShareMenu) wx.hideShareMenu();
   },
 
   pickSheet(preview) {
@@ -108,13 +109,5 @@ Page({
       wx.showToast({ title: '保存失败，可长按图片保存', icon: 'none' });
     }
   },
-
-  onShareAppMessage() {
-    const tripId = this.data.tripId || '';
-    const inviteCode = this.data.inviteCode || '';
-    return {
-      title: 'Farland 手机版行程单',
-      path: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(tripId)}&invite_code=${encodeURIComponent(inviteCode)}`,
-    };
-  },
+  // 不定义 onShareAppMessage:客户端手机版行程单不开放二次转发(转发是运营动作)。
 });

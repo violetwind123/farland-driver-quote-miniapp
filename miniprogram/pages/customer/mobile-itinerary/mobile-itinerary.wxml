@@ -1,4 +1,4 @@
-<!-- 手机版行程单:只展示 web 生成的 itinerary_sheet 图 + 保存/转发。绝不端上自渲染。 -->
+<!-- 手机版行程单:只展示 web 生成的 itinerary_sheet 图 + 客户保存图片。客户不二次转发,绝不端上自渲染。 -->
 <view class="mi-page">
   <view wx:if="{{isOperatorPreview}}" class="mi-preview-banner">运营预览 · 客户看到的手机版行程单</view>
 
@@ -21,9 +21,9 @@
         bindtap="onPreview"
       />
     </scroll-view>
+    <!-- 客户端只读:只可保存图片,不开放二次转发(转发是运营动作,见 docs/product/itinerary-sheet-discipline.md R2) -->
     <view class="mi-actions">
-      <button class="mi-btn ghost" bindtap="onSave">保存图片</button>
-      <button class="mi-btn primary" open-type="share">转发行程单</button>
+      <button class="mi-btn primary" bindtap="onSave">保存图片到相册</button>
     </view>
   </block>
 

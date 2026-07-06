@@ -15,15 +15,19 @@ const read = (p) => {
 };
 const violations = [];
 
-// R1:客户正式 invite 分享路径必须落「我的行程」(/pages/customer/home/home),不得落 mobile-itinerary。
+// R1:客户正式 invite 分享路径**不得落 tabBar 页**。
+// 原因:微信分享卡跳 tabBar 页会走 switchTab 丢掉 query 参数(trip_id/invite_code 收不到 → 推送打开是空页)。
+// 所以 invite 必须落一个非 tab 的承载页(如 mobile-itinerary),参数才传得进去。
 const invite = read('cloudfunctions/createCustomerTripInvite/index.js');
-if (invite) {
+const appJson = read('miniprogram/app.json');
+if (invite && appJson) {
+  let tabPages = [];
+  try { tabPages = ((JSON.parse(appJson).tabBar || {}).list || []).map((x) => String(x.pagePath || '')); } catch (e) { /* ignore */ }
   const m = invite.match(/buildTripSharePath[\s\S]{0,400}?return\s+`([^`]+)`/);
   const tpl = m ? m[1] : '';
-  if (/mobile-itinerary/.test(tpl)) {
-    violations.push(`R1 客户 invite share_path 落在 mobile-itinerary,应落 /pages/customer/home/home。当前:${tpl}`);
-  } else if (tpl && !/pages\/customer\/home\/home/.test(tpl)) {
-    violations.push(`R1 客户 invite share_path 不是「我的行程」home:${tpl}`);
+  const page = tpl.replace(/^\//, '').split('?')[0];
+  if (page && tabPages.includes(page)) {
+    violations.push(`R1 客户 invite share_path 落在 tabBar 页(${page}):分享卡跳 tabBar 会丢参数,推送打不开。请落非 tab 承载页。`);
   }
 }
 
