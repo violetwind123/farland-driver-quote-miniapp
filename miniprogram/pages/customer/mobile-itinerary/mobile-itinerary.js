@@ -1,5 +1,5 @@
 // 手机版行程单 = web 生成的 itinerary_sheet 图的极简查看器。
-// 只展示 web 图 + 保存/转发,绝不端上自渲染 days/todayOverviewCard(见 docs/product/miniprogram-dev-guidelines.md)。
+// 只展示 web 图(客户只读:不下载/不转发/不长按保存),绝不端上自渲染 days/todayOverviewCard。客户正式入口已改为 home 内联;本页仅作运营预览/兼容。
 const app = getApp();
 
 function schemeOk(url) {
