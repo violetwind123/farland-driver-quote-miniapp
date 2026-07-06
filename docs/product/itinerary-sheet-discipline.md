@@ -61,6 +61,14 @@
 - **仍不自动绑定**:不建 `customer_trip_access`;本地存 invite 只是让 tab 记住"当前在看哪条",显式"保存到我的 Farland"仍是唯一服务端绑定路径(§3 末条不变)。零云函数改动。
 - 内联图 overlay `z-index` 低于自定义 tabBar,bottombar 保留;客户只读:无下载/保存/长按保存/转发。
 
+**守卫(scripts/itinerary-discipline-check.js,防回归,经对抗式变异测试 10/10)**:
+- **R4** `itinerary-tab.js` 必须有属性 `__isItineraryTab: true`(tab 自识别;仅注释提及不算)。
+- **R5a** home-page-config 转交块内须 `switchTab→itinerary-tab` 且 `return` 早退(漏 return→非 tab home 也自渲染/双跳)。
+- **R5b** 转交块内须**真调用** `writeStoredTripInvite`/`setStorageSync '${INVITE_KEY}'`(防写端成死代码)。
+- **R5c** 本地 invite round-trip 字段一致:写端对象含 `trip_id:`、读端 `getStorageSync` 同键后以 `.trip_id` 取回(防改键名/驼峰断链)。
+- **R6/R6b** invite `share_path` 必须落 `pages/customer/home/home` 且 query 带 `trip_id`(或 external_trip_id/trip_no)+ `invite_code`。
+- 改这些字段/键/标记名,须同步改守卫 + 本文(守卫是绊线,不是为让改动过而放宽)。
+
 ### 7.1 待定 · 发布是"自动"还是"客户确认后手动"(owner 未定)
 B 的完整语义是「客户线下确认 → 运营**手动发布** → 才升级到正式行程」。但**当前 `opsUpsertCustomerTrip` 是 web 同步时 auto-publish**,`publishTrip` 手动按钮已被 Codex 删除——**没有"确认才发布"这道闸门**。运营详情页文案已按两层写,但发布实际是同步驱动、非手动确认。
 - **选项 A(现状)**:同步即发布,客户随即从看图升级到看正式行程卡片。简单,但少了"确认"gate。
