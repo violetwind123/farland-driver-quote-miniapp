@@ -70,3 +70,33 @@
 逐条回填上面 `[ ]`,失败项贴现象 / 截图 / console。
 若 B / C 任一 tab 显示不对(比如 sheet_draft 显示了行程卡片、或已发布只显图),**先别改代码**,
 把 `getCustomerTripByInvite` 返回的 `stage` 值和 tab 当前 `data.tripInviteMode` / `data.tripInviteSheet` 贴出来给作者。
+
+---
+
+# 追加任务 · 第二层发布闸门(customer_official_released,owner 定:默认关)
+
+规范见 [`itinerary-sheet-discipline.md`](itinerary-sheet-discipline.md) §7.1。模型:内容照常自动发布(opsUpsert 不碰),但客户看不看得到**正式行程卡片**由运营手动 release 控制;默认关 → 行程停在草稿态(客户看手机行程单图),运营在运营详情页点「发布正式行程」才升级。
+
+## D1. 部署范围(这 4 个云函数须**一起**部署,缺一会出问题)
+- `getCustomerTripByInvite`(official 闸门加 `customer_official_released===true`)
+- `getCustomerHome`(同上)
+- `publishCustomerTrip`(发布写标记 true;`release:false` 收回)
+- `getOperatorTripPreview`(返回 `customer_official_released`)
+- 小程序:重新上传(含 `operator/customer-trip-detail/*` 的第一步/第二步、`customer/home/home-page-config.js` 的 op_preview 分支)。
+- ⚠️ **只部署读闸门不部署运营发布按钮**(或反之)= 客户全被闸死看不到正式行程 / 发布无效。务必同批。
+- ⚠️ opsUpsert **不在本批**,一行未改。
+
+## D2. 部署即行为变化(务必知会)
+部署后,**所有存量行程**(包括之前已给客户看正式行程卡片的)都会**回落到手机行程单图**,直到运营在运营详情页逐个点「发布正式行程」。这是 owner 要的默认关语义,不是 bug。上线前确认运营知道要去 release 存量行程。
+
+## D3. 验证清单(真机 / DevTools)
+用一条【已同步内容、有 sheet】的测试行程:
+- [ ] 运营详情页第二步显示「未发布」+「发布正式行程」按钮(要有 draft 才可点)
+- [ ] 发布前:客户 tab = 手机行程单图(第一层);运营页第一步「预览客户界面」打开也是图,且能返回运营页(不被顶到客户 tab)
+- [ ] 点「发布正式行程」→ toast 成功 → 客户 tab 刷新后 = 正式行程卡片(第二层);运营页第二步变「已发布 v?」+「收回正式行程」
+- [ ] 点「收回正式行程」→ 客户 tab 回落到手机行程单图;`published_snapshot` 内容不变(只是不可见)
+- [ ] 关键警告未清时点发布 → 被拦(`CRITICAL_WARNINGS_REMAIN`);无 draft 时发布按钮禁用
+- [ ] 回归:酒店 / 访校 / 评价卡等独立模块不受影响(评价上下文 `getRideReviewContext` 仍按 published 显示当天摘要——已知边界,未纳入闸门)
+
+## D4. 反馈
+逐条回填;若发布后客户 tab 仍显图(或未发布就显卡片),贴 `getOperatorTripPreview` 返回的 `customer_official_released` 与 `getCustomerTripByInvite` 的 `stage`。

@@ -69,11 +69,19 @@
 - **R6/R6b** invite `share_path` 必须落 `pages/customer/home/home` 且 query 带 `trip_id`(或 external_trip_id/trip_no)+ `invite_code`。
 - 改这些字段/键/标记名,须同步改守卫 + 本文(守卫是绊线,不是为让改动过而放宽)。
 
-### 7.1 待定 · 发布是"自动"还是"客户确认后手动"(owner 未定)
-B 的完整语义是「客户线下确认 → 运营**手动发布** → 才升级到正式行程」。但**当前 `opsUpsertCustomerTrip` 是 web 同步时 auto-publish**,`publishTrip` 手动按钮已被 Codex 删除——**没有"确认才发布"这道闸门**。运营详情页文案已按两层写,但发布实际是同步驱动、非手动确认。
-- **选项 A(现状)**:同步即发布,客户随即从看图升级到看正式行程卡片。简单,但少了"确认"gate。
-- **选项 B-full(要则加功能)**:重新引入 `publishTrip` 手动发布 + 把 auto-publish 改成"需运营确认后才发布";sheet 转发不受影响(第一层无需发布)。
-> 这是**功能改动**,须 owner 拍板后再做;在此之前保持选项 A,不擅自加闸门。
+### 7.1 已定并实现(owner 2026-07)· 发布 = 独立的"客户可见"闸门,默认关
+**内容自动发布保留**(`opsUpsertCustomerTrip` 不碰,web 同步照常写 `published_snapshot`、22/22 不破)。"发布/不发布"是**独立于内容发布的客户可见开关**:控制客户看不看得到**第二层正式行程卡片**;与内容是否 published 是两回事。
+
+- **闸门字段**:`customer_trips.customer_official_released`(布尔,顶层,非 web 内容 schema 字段,`opsUpsert` 不写它 → 默认 absent = 关)。
+- **客户读闸门**:official(第二层行程卡片)要求 `visibility_status==='published'` **且** `customer_official_released===true`;否则回落第一层手机行程单图。
+  - `getCustomerTripByInvite`:`isOfficialReleasedToCustomer(trip)`(替换原 `hasPublishedSnapshot` 调用点)。
+  - `getCustomerHome`:`normalizePublishedTripSnapshot` 加同条件。
+- **运营发布/收回**:`publishCustomerTrip`(role-gated)——发布路径写 `customer_official_released:true`;`event.release===false` 收回分支写 false(不动 `published_snapshot`、不受关键警告/draft 拦截)。运营详情页第二步「发布/收回正式行程」调它。
+- **默认关**:存量无此字段的行程一并回落第一层,等运营重新发布(owner 明确要的干净语义:草稿态 → 客户线下确认 → 运营发布 → 正式态)。
+- **运营预览**:运营详情页第一步「预览客户界面」走真实 invite 路径(`op_preview=1`,home 不 switchTab、内联渲染、可返回),经同一 release 闸门 → 忠实显示客户当前那一层。
+
+> 涉及云函数:`getCustomerTripByInvite` / `getCustomerHome` / `publishCustomerTrip` / `getOperatorTripPreview`(返回 `customer_official_released` 供运营页渲染)——**这 4 个须一起部署**,否则会出现"发布无效"或"客户全被闸死看不到正式行程"。
+> **边界(未纳入闸门,独立模块 §5)**:`getRideReviewContext` 的乘车评价上下文仍按 `visibility_status==='published'` 下发当天行程摘要,未加 release 闸门(评价发生在乘车后、行程早已进行,实务上已 release)。如需一并闸,单独决定。
 
 ## 8. 当前代码合规状态(HEAD=Codex 版,已核实)
 - ✓ **R1 合规**:invite 落非 tab 的 `mobile-itinerary`——**这是正确的**(分享卡不能带参进 tabBar 页)。之前误判为违规,已改正守卫。
