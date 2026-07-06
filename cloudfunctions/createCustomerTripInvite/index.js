@@ -79,9 +79,11 @@ function buildIntendedCustomerFields({ customer, bindMode, visibleUntil, nowIso 
 }
 
 // 客户分享主路径 = 独立手机版行程单页。该页只展示 web 生成的 itinerary_sheet 图,
-// 不再经过 customer/home 的旧版自渲染行程 UI。
+// 两层(B):客户分享落 home(非 tab 页,分享卡参数不丢)。home 按 stage 三态渲染:
+//   未发布 → 手机行程单草稿入口(点进 mobile-itinerary 看图);已发布 → 第二层「正式行程」行程卡片那一套 + 「查看完整行程单」次要入口。
+// 注:home 的行程卡片是发布后的正式客户 UI(第二层,见 docs/product/itinerary-sheet-discipline.md §7 允许渲染),不是被禁的 sheet 自渲染。
 function buildTripSharePath(canonicalTripId, inviteCode) {
-  return `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
+  return `/pages/customer/home/home?trip_id=${encodeURIComponent(canonicalTripId)}&invite_code=${encodeURIComponent(inviteCode)}`;
 }
 
 // itinerary_sheet:顶层字段,持久 URL(https/cloud)才算已生成
