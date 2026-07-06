@@ -177,7 +177,9 @@ const customerHomePageConfig = {
       && app.globalData.customerHomePreview.requestId
       && !tripInviteId
     );
-    if (isTransferInvite || hasTransferOperatorPreview) return false;
+    // 两层(B):行程 invite(带 trip_id)不再弹回 mobile-itinerary;由 home 自己按 stage 三态渲染
+    // (未发布→手机行程单草稿入口;已发布→第二层行程卡片那一套)。只有非行程的 legacy 直开才继续重定向。
+    if (isTransferInvite || hasTransferOperatorPreview || tripInviteId) return false;
 
     const url = this.buildMobileItineraryRedirectUrl(options);
     if (typeof this.setData === 'function') {
