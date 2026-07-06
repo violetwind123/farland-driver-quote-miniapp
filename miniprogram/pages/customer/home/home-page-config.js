@@ -62,6 +62,7 @@ const customerHomePageConfig = {
     tripInviteEntry: '',
     tripInviteTrip: null,
     tripInviteWaiting: false,
+    sheetInlineOpen: false,
     tripInviteMessage: '',
     tripInviteError: '',
     tripInviteAccessSource: '',
@@ -4285,16 +4286,18 @@ const customerHomePageConfig = {
   },
 
   // 打开手机版行程单(web 图查看器):sheet_draft 入口 + official 次要「查看完整行程单」共用
+  // 手机版行程单 = 当前页内联状态(保留底部 bottombar),不跳独立全屏页;客户只看图,不下载不转发
   openMobileItinerarySheet() {
-    const tripId = this.data.tripInviteId || (this.data.tripInviteTrip && this.data.tripInviteTrip.displayTripNo) || '';
-    const inviteCode = this.data.inviteCode || '';
-    if (!tripId) {
-      wx.showToast({ title: '缺少行程信息', icon: 'none' });
+    const sheet = this.data.tripInviteSheet;
+    if (!sheet || !sheet.png_url) {
+      wx.showToast({ title: '手机版行程单生成中', icon: 'none' });
       return;
     }
-    wx.navigateTo({
-      url: `/pages/customer/mobile-itinerary/mobile-itinerary?trip_id=${encodeURIComponent(tripId)}&invite_code=${encodeURIComponent(inviteCode)}`,
-    });
+    this.setData({ sheetInlineOpen: true });
+  },
+
+  closeItinerarySheetInline() {
+    this.setData({ sheetInlineOpen: false });
   },
 
   cacheTripDetailContext(days, context = {}) {

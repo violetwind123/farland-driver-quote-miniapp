@@ -32,6 +32,17 @@
   </view>
 
   <view wx:elif="{{tripInviteMode}}" class="trip-invite-view">
+    <!-- 手机版行程单内联查看:只一张图,不下载/不转发/不可长按保存;返回收起。底部 bottombar 由所在 tab 提供。 -->
+    <view wx:if="{{sheetInlineOpen}}" class="sheet-inline">
+      <view class="sheet-inline-bar">
+        <view class="sheet-inline-back" bindtap="closeItinerarySheetInline">‹ 返回</view>
+        <view class="sheet-inline-heading">手机版行程单</view>
+        <view class="sheet-inline-spacer"></view>
+      </view>
+      <scroll-view scroll-y="{{true}}" class="sheet-inline-scroll">
+        <image class="sheet-inline-img" src="{{tripInviteSheet.png_url}}" mode="widthFix" show-menu-by-longpress="{{false}}" />
+      </scroll-view>
+    </view>
     <view wx:if="{{operatorCustomerPreviewMode}}" class="operator-preview-banner card-surface">
       <view class="operator-preview-title">{{operatorCustomerPreviewMeta.operator_draft_preview ? '运营草稿预览' : '运营预览'}}</view>
       <view class="operator-preview-copy">

@@ -2803,3 +2803,49 @@
   color: var(--ink-300);
   font-size: 32rpx;
 }
+
+/* 手机版行程单内联查看:fixed 覆盖内容区,z-index 低于自定义 tabBar 以保留 bottombar;只一张图 */
+.sheet-inline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: var(--bg-page);
+  display: flex;
+  flex-direction: column;
+}
+.sheet-inline-bar {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: env(safe-area-inset-top) 24rpx 0;
+  border-bottom: 1rpx solid var(--line);
+  background: var(--bg-card);
+}
+.sheet-inline-back {
+  width: 140rpx;
+  font-size: 30rpx;
+  color: var(--brand-600);
+  font-weight: 600;
+}
+.sheet-inline-heading {
+  flex: 1;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.sheet-inline-spacer {
+  width: 140rpx;
+}
+.sheet-inline-scroll {
+  flex: 1;
+  min-height: 0;
+}
+.sheet-inline-img {
+  display: block;
+  width: 100%;
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+}

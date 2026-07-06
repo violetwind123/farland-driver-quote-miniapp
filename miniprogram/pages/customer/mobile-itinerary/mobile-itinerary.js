@@ -72,42 +72,6 @@ Page({
     }
   },
 
-  // cloud:// 需换临时链接后才能 previewImage / downloadFile;https/wxfile 直接用
-  resolveUrl(url) {
-    if (/^cloud:\/\//i.test(url) && wx.cloud && wx.cloud.getTempFileURL) {
-      return wx.cloud.getTempFileURL({ fileList: [url] })
-        .then((r) => (r && r.fileList && r.fileList[0] && r.fileList[0].tempFileURL) || '')
-        .catch(() => '');
-    }
-    return Promise.resolve(url);
-  },
-
-  onPreview() {
-    if (!this.data.sheetUrl) return;
-    this.resolveUrl(this.data.sheetUrl).then((url) => {
-      if (url) wx.previewImage({ urls: [url], current: url });
-    });
-  },
-
-  async onSave() {
-    if (!this.data.sheetUrl) {
-      wx.showToast({ title: '手机版行程单生成中', icon: 'none' });
-      return;
-    }
-    wx.showLoading({ title: '保存中' });
-    try {
-      const down = /^cloud:\/\//i.test(this.data.sheetUrl)
-        ? await wx.cloud.downloadFile({ fileID: this.data.sheetUrl })
-        : await wx.downloadFile({ url: await this.resolveUrl(this.data.sheetUrl) });
-      const filePath = down.tempFilePath;
-      if (!filePath) throw new Error('no temp file');
-      await wx.saveImageToPhotosAlbum({ filePath });
-      wx.hideLoading();
-      wx.showToast({ title: '已保存到相册', icon: 'success' });
-    } catch (err) {
-      wx.hideLoading();
-      wx.showToast({ title: '保存失败，可长按图片保存', icon: 'none' });
-    }
-  },
-  // 不定义 onShareAppMessage:客户端手机版行程单不开放二次转发(转发是运营动作)。
+  // 客户端只读:不提供下载/保存/预览大图/转发(去掉 onSave/onPreview/onShareAppMessage);
+  // 图片本身 show-menu-by-longpress=false,长按也不可保存。
 });
