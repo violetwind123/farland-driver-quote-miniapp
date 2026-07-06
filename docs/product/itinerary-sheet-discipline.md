@@ -53,7 +53,13 @@
 
 **现状差距(接线项)**:Codex 把「我的行程」tab(`pages/customer/itinerary-tab`,本身是 `Page(home-page-config)`)固定成 `<include mobile-itinerary.wxml>`,**只显 sheet,已发布也不切到行程卡片**。第二层 = 让该 tab / 客户视图**按状态切换**:未发布(仅 sheet)显 sheet 图;已发布显 home 的行程卡片那一套 + sheet 降为"查看完整行程单"次要入口。接线时**不得破坏第一层的推送链路(image_url + 上传)与非 tab 路由**。§1/§2/§4/§5/§6 恒生效。
 
-**接线已完成(2026-07)**:invite→home、home 不再弹走行程 invite(三态自渲染)、itinerary-tab 改 include home.wxml。客户侧两层已通。
+**接线已完成(2026-07)**:invite→home、itinerary-tab 改 include home.wxml、客户侧两层已通。
+
+**Path A · 客户行程体验落「我的行程」tab(owner 选定,2026-07)**:客户要在**带 bottombar** 的界面看行程(手机行程图 + 返回到"她的行程界面")。因分享卡只能落非 tab 页(switchTab 丢 query),最终形态:
+- 分享 `share_path` 落非 tab `pages/customer/home/home` 接住 `trip_id/invite_code`;home **只负责**存本地 `customer_active_trip_invite` + `switchTab` 到 `itinerary-tab`,**自己不渲染 invite**(取代早前"home 三态自渲染")。
+- `itinerary-tab`(`__isItineraryTab` 标记)无参进入 / onShow 收到新分享时,读本地 invite → 复用 home 的 invite 三态视图(空态+「查看行程草稿」按钮 / 行程卡片 / 内联图),tab 自带 bottombar。
+- **仍不自动绑定**:不建 `customer_trip_access`;本地存 invite 只是让 tab 记住"当前在看哪条",显式"保存到我的 Farland"仍是唯一服务端绑定路径(§3 末条不变)。零云函数改动。
+- 内联图 overlay `z-index` 低于自定义 tabBar,bottombar 保留;客户只读:无下载/保存/长按保存/转发。
 
 ### 7.1 待定 · 发布是"自动"还是"客户确认后手动"(owner 未定)
 B 的完整语义是「客户线下确认 → 运营**手动发布** → 才升级到正式行程」。但**当前 `opsUpsertCustomerTrip` 是 web 同步时 auto-publish**,`publishTrip` 手动按钮已被 Codex 删除——**没有"确认才发布"这道闸门**。运营详情页文案已按两层写,但发布实际是同步驱动、非手动确认。
