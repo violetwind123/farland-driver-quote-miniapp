@@ -109,8 +109,11 @@ const customerHomePageConfig = {
     // 存本地 + switchTab 交给「我的行程」tab(自带 bottombar)渲染,自己不渲染 invite。
     if (tripInviteId && !this.__isItineraryTab) {
       this.writeStoredTripInvite({ trip_id: tripInviteId, invite_code: inviteCode });
-      wx.switchTab({ url: '/pages/customer/itinerary-tab/itinerary-tab' });
-      return;
+      // 运营预览(op_preview=1):不 switchTab(会把运营顶到客户 tab 回不来),落下去在非 tab home 内联渲染三态,可 navigateBack。
+      if (this.decodeQueryValue(options.op_preview || '') !== '1') {
+        wx.switchTab({ url: '/pages/customer/itinerary-tab/itinerary-tab' });
+        return;
+      }
     }
     // Path A:tab 无参进入时读本地存的 invite,复用 home 的 invite 三态视图(空态+草稿按钮 / 行程卡片 / 内联图)。
     if (!tripInviteId && this.__isItineraryTab) {

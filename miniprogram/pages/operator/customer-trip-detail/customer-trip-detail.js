@@ -988,7 +988,9 @@ Page({
       wx.showToast({ title: '请先准备行程单', icon: 'none' });
       return;
     }
-    const url = invitePath.startsWith('/') ? invitePath : `/${invitePath}`;
+    const base = invitePath.startsWith('/') ? invitePath : `/${invitePath}`;
+    // op_preview=1:让 home 走"内联渲染三态、不 switchTab"的运营预览分支(否则 Path A 会把运营顶到客户 tab 回不来)。
+    const url = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'op_preview=1';
     wx.navigateTo({
       url,
       fail: (error) => {
