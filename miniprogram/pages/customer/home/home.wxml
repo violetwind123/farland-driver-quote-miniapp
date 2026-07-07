@@ -156,8 +156,9 @@
         <view class="today-driver-card card-surface">
           <view class="driver-summary-head">
             <view class="driver-summary-main">
+              <view class="driver-summary-title">今日用车</view>
+              <view wx:if="{{tripInviteTrip.todayDriverCard.vehicleLine}}" class="driver-summary-line">{{tripInviteTrip.todayDriverCard.vehicleLine}}</view>
               <view wx:if="{{tripInviteTrip.todayDriverCard.driverLine}}" class="driver-summary-sub">{{tripInviteTrip.todayDriverCard.driverLine}}</view>
-              <view wx:if="{{tripInviteTrip.todayDriverCard.vehicleLine}}" class="driver-summary-sub">{{tripInviteTrip.todayDriverCard.vehicleLine}}</view>
               <view wx:if="{{tripInviteTrip.todayDriverCard.plateLine}}" class="driver-summary-sub">{{tripInviteTrip.todayDriverCard.plateLine}}</view>
               <view wx:if="{{tripInviteTrip.todayDriverCard.helperText}}" class="driver-summary-sub">{{tripInviteTrip.todayDriverCard.helperText}}</view>
             </view>
@@ -341,8 +342,9 @@
                 <view class="today-driver-card card-surface">
                   <view class="driver-summary-head">
                     <view class="driver-summary-main">
+                      <view class="driver-summary-title">今日用车</view>
+                      <view wx:if="{{todayDriverCard.vehicleLine}}" class="driver-summary-line">{{todayDriverCard.vehicleLine}}</view>
                       <view wx:if="{{todayDriverCard.driverLine}}" class="driver-summary-sub">{{todayDriverCard.driverLine}}</view>
-                      <view wx:if="{{todayDriverCard.vehicleLine}}" class="driver-summary-sub">{{todayDriverCard.vehicleLine}}</view>
                       <view wx:if="{{todayDriverCard.plateLine}}" class="driver-summary-sub">{{todayDriverCard.plateLine}}</view>
                       <view wx:if="{{todayDriverCard.helperText}}" class="driver-summary-sub">{{todayDriverCard.helperText}}</view>
                     </view>
