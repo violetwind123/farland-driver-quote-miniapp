@@ -124,12 +124,12 @@
         </view>
       </view>
 
-      <!-- Layer 2 次要入口:发布后仍可查看/转发手机版行程单图 -->
+      <!-- Layer 2 次要入口:发布后仍可查看手机版行程单图 -->
       <view wx:if="{{tripInviteSheet.png_url}}" class="section-shell">
         <view class="itinerary-sheet-entry card-surface" bindtap="openMobileItinerarySheet" hover-class="itinerary-sheet-entry-hover">
           <view class="itinerary-sheet-entry-main">
             <view class="itinerary-sheet-entry-title">查看完整行程单</view>
-            <view class="itinerary-sheet-entry-sub">Farland 手机版行程单 · 可保存 / 转发</view>
+            <view class="itinerary-sheet-entry-sub">Farland 手机版行程单 · 只读查看</view>
           </view>
           <view class="itinerary-sheet-entry-chevron">›</view>
         </view>
