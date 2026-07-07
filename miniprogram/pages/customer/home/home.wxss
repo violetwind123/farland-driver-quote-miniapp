@@ -1068,17 +1068,129 @@
   font-weight: 560;
 }
 
+/* 时间轴交通方式图标:CSS 画版(车/步行/飞机),对齐设计稿 handoff;由 icon_type=drive/walk/flight 决定形状 */
 .segment-mode-icon {
-  flex: 0 0 auto;
+  position: relative;
+  flex: 0 0 34rpx;
+  width: 34rpx;
   height: 34rpx;
-  padding: 0 12rpx;
+  border-radius: 11rpx;
+  background: #F3F5FA;
+}
+.segment-icon-part {
+  position: absolute;
+  display: none;
+  box-sizing: border-box;
+  background: #5B6596;
+}
+.segment-mode-drive .segment-icon-a {
+  display: block;
+  left: 7rpx;
+  top: 13rpx;
+  width: 20rpx;
+  height: 9rpx;
+  border: 2rpx solid #5B6596;
+  border-radius: 6rpx 6rpx 4rpx 4rpx;
+  background: transparent;
+}
+.segment-mode-drive .segment-icon-b {
+  display: block;
+  left: 11rpx;
+  top: 9rpx;
+  width: 12rpx;
+  height: 7rpx;
+  border: 2rpx solid #5B6596;
+  border-bottom: 0;
+  border-radius: 7rpx 7rpx 0 0;
+  background: transparent;
+}
+.segment-mode-drive .segment-icon-c,
+.segment-mode-drive .segment-icon-d {
+  display: block;
+  top: 21rpx;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+}
+.segment-mode-drive .segment-icon-c {
+  left: 10rpx;
+}
+.segment-mode-drive .segment-icon-d {
+  right: 10rpx;
+}
+.segment-mode-walk .segment-icon-a {
+  display: block;
+  left: 14rpx;
+  top: 5rpx;
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+}
+.segment-mode-walk .segment-icon-b,
+.segment-mode-walk .segment-icon-c,
+.segment-mode-walk .segment-icon-d,
+.segment-mode-walk .segment-icon-e {
+  display: block;
+  height: 3rpx;
   border-radius: 999rpx;
-  background: rgba(91, 101, 150, 0.10);
-  color: var(--brand-600);
-  font-size: 20rpx;
-  line-height: 34rpx;
-  font-weight: 700;
-  text-align: center;
+  transform-origin: center;
+}
+.segment-mode-walk .segment-icon-b {
+  left: 15rpx;
+  top: 13rpx;
+  width: 12rpx;
+  transform: rotate(72deg);
+}
+.segment-mode-walk .segment-icon-c {
+  left: 9rpx;
+  top: 16rpx;
+  width: 12rpx;
+  transform: rotate(-24deg);
+}
+.segment-mode-walk .segment-icon-d {
+  left: 14rpx;
+  top: 23rpx;
+  width: 13rpx;
+  transform: rotate(38deg);
+}
+.segment-mode-walk .segment-icon-e {
+  left: 7rpx;
+  top: 24rpx;
+  width: 13rpx;
+  transform: rotate(-45deg);
+}
+.segment-mode-flight .segment-icon-a,
+.segment-mode-flight .segment-icon-b,
+.segment-mode-flight .segment-icon-c,
+.segment-mode-flight .segment-icon-d {
+  display: block;
+  height: 3rpx;
+  border-radius: 999rpx;
+  transform-origin: center;
+}
+.segment-mode-flight .segment-icon-a {
+  left: 5rpx;
+  top: 16rpx;
+  width: 24rpx;
+  transform: rotate(-18deg);
+}
+.segment-mode-flight .segment-icon-b {
+  left: 13rpx;
+  top: 11rpx;
+  width: 15rpx;
+  transform: rotate(28deg);
+}
+.segment-mode-flight .segment-icon-c {
+  left: 13rpx;
+  top: 20rpx;
+  width: 14rpx;
+  transform: rotate(-48deg);
+}
+.segment-mode-flight .segment-icon-d {
+  left: 5rpx;
+  top: 12rpx;
+  width: 9rpx;
+  transform: rotate(-58deg);
 }
 
 .traffic-pill {
