@@ -28,6 +28,7 @@ Page({
     refreshing: false,
     creatingInvite: false,
     previewingDraft: false,
+    previewingInterface: false,
     releasing: false,
     tripId: '',
     error: '',
@@ -903,6 +904,23 @@ Page({
       console.error('[customer-trip-detail] unreleaseOfficialTrip failed', error);
       wx.showToast({ title: '收回失败', icon: 'none' });
       this.setData({ releasing: false });
+    }
+  },
+
+  // 预览真实客户界面:走真实 invite 路径(op_preview,经 release 闸门)→ 未发布看第一层手机行程单图、已发布看正式行程卡片。
+  // 需要有效 invite 才能过 getCustomerTripByInvite 的 access 校验;没有就先建/复用(createTripInvite 幂等复用)。
+  async previewCustomerInterface() {
+    if (this.data.previewingInterface || this.data.creatingInvite) return;
+    this.setData({ previewingInterface: true });
+    try {
+      if (!this.data.invitePath) {
+        await this.createTripInvite();
+      }
+      if (this.data.invitePath) {
+        this.openMobileItineraryPreview();
+      }
+    } finally {
+      this.setData({ previewingInterface: false });
     }
   },
 

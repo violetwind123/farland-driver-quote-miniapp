@@ -67,7 +67,7 @@
           <view class="empty-title">等待网页端生成手机行程单</view>
           <view class="empty-sub">请在网站后台打开该行程，点击「推送客户 Push」生成并同步图片。同步成功后，小程序会在这里直接预览和转发。</view>
           <view class="workflow-btn-row">
-            <button class="secondary-wide-btn" disabled="{{true}}">预览手机行程单图</button>
+            <button class="secondary-wide-btn" disabled="{{true}}">预览客户界面</button>
             <button class="primary-wide-btn" disabled="{{true}}">转发客户</button>
           </view>
         </view>
@@ -85,10 +85,10 @@
           <view class="workflow-btn-row">
             <button
               class="secondary-wide-btn"
-              loading="{{previewingDraft}}"
-              disabled="{{previewingDraft}}"
-              bindtap="previewMobileItineraryDraft"
-            >预览手机行程单图</button>
+              loading="{{previewingInterface || creatingInvite}}"
+              disabled="{{previewingInterface || creatingInvite}}"
+              bindtap="previewCustomerInterface"
+            >预览客户界面</button>
             <button
               class="primary-wide-btn"
               loading="{{creatingInvite}}"
@@ -119,11 +119,10 @@
           <view class="empty-sub">网页同步结构化行程后才能发布正式行程卡片;发布前客户看手机版行程单图。</view>
         </view>
         <block wx:else>
-          <view wx:if="{{preview.customer_official_released}}" class="workflow-btn-row">
-            <button class="secondary-wide-btn" loading="{{releasing}}" disabled="{{releasing}}" bindtap="unreleaseOfficialTrip">收回正式行程</button>
-          </view>
-          <view wx:else class="workflow-btn-row">
-            <button class="primary-wide-btn" loading="{{releasing}}" disabled="{{releasing || !hasDraft}}" bindtap="releaseOfficialTrip">发布正式行程</button>
+          <view class="workflow-btn-row">
+            <button class="secondary-wide-btn" loading="{{previewingInterface || creatingInvite}}" disabled="{{previewingInterface || creatingInvite}}" bindtap="previewCustomerInterface">预览客户界面</button>
+            <button wx:if="{{preview.customer_official_released}}" class="secondary-wide-btn" loading="{{releasing}}" disabled="{{releasing}}" bindtap="unreleaseOfficialTrip">收回正式行程</button>
+            <button wx:else class="primary-wide-btn" loading="{{releasing}}" disabled="{{releasing || !hasDraft}}" bindtap="releaseOfficialTrip">发布正式行程</button>
           </view>
         </block>
       </view>
