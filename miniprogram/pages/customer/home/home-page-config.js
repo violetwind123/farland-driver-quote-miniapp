@@ -3120,6 +3120,14 @@ const customerHomePageConfig = {
       selectedDayNo,
       actualCurrentDayNo,
     );
+    // 3a 进度条:三态(past/today/future)与已完成轨道宽都相对**当前选中日**,随选日响应式重算
+    const progressNodesWithState = progressNodes.map((node) => ({
+      ...node,
+      state: Number(node.day_no) < selectedDayNo ? 'past' : (Number(node.day_no) === selectedDayNo ? 'today' : 'future'),
+    }));
+    const progressSelectedIndex = Math.max(0, (trip.days || []).findIndex((day) => Number(day.dayNo || day.day_no || 0) === selectedDayNo));
+    const progressDonePct = (trip.days || []).length ? `${((progressSelectedIndex / trip.days.length) * 100).toFixed(2)}%` : '0%';
+    const progressTrackInset = (trip.days || []).length ? `${((0.5 / trip.days.length) * 100).toFixed(2)}%` : '8.33%';
     const todayDriverCard = selectedDay ? this.buildPublishedTripTodayDriverCard(selectedDay, trip) : null;
     const selectedHotel = this.findHotelForTripDay(selectedDay, trip.hotels || []);
     const todayHotelCard = selectedHotel ? this.normalizeTodayHotelCard({
@@ -3135,7 +3143,10 @@ const customerHomePageConfig = {
       selected_day_no: selectedDayNo,
       currentDayNo: actualCurrentDayNo,
       actualCurrentDayNo,
-      progressNodes,
+      progressNodes: progressNodesWithState,
+      progressDonePct,
+      progressTrackInset,
+      progressTotalDays: (trip.days || []).length,
       currentProgressSummary: this.buildCurrentProgressSummary({
         visible: true,
         selected_day_no: selectedDayNo,
