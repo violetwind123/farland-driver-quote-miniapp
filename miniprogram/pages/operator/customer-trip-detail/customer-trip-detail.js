@@ -1006,14 +1006,20 @@ Page({
       wx.showToast({ title: '请先准备行程单', icon: 'none' });
       return;
     }
-    const base = invitePath.startsWith('/') ? invitePath : `/${invitePath}`;
-    // op_preview=1:让 home 走"内联渲染三态、不 switchTab"的运营预览分支(否则 Path A 会把运营顶到客户 tab 回不来)。
-    const url = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'op_preview=1';
-    wx.navigateTo({
-      url,
+    // 忠实预览:把 invite 经 globalData 传给 itinerary-tab,switchTab 落**带 bottombar 的真 tab**渲染
+    // (经真 getCustomerTripByInvite + release 闸门);tab 顶部有「退出运营预览」返回本页。
+    const app = getApp();
+    app.globalData = app.globalData || {};
+    app.globalData.operatorTripInvitePreview = {
+      trip_id: this.data.tripId,
+      invite_code: this.data.inviteCode || '',
+      return_trip_id: this.data.tripId,
+    };
+    wx.switchTab({
+      url: '/pages/customer/itinerary-tab/itinerary-tab',
       fail: (error) => {
-        console.error('[customer-trip-detail] open mobile itinerary preview failed', error);
-        wx.showToast({ title: '手机版行程单打开失败', icon: 'none' });
+        console.error('[customer-trip-detail] open customer interface preview failed', error);
+        wx.showToast({ title: '预览打开失败', icon: 'none' });
       },
     });
   },

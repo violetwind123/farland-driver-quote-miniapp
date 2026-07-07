@@ -2849,3 +2849,18 @@
   width: 100%;
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
+
+/* 运营预览客户界面 · 浮动退出条:z-index 高于内联图 overlay(50),预览时随处可退回运营页 */
+.op-preview-exit {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 12rpx);
+  left: 24rpx;
+  z-index: 60;
+  padding: 12rpx 22rpx;
+  background: rgba(28, 30, 42, 0.86);
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 600;
+  border-radius: 999rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.24);
+}

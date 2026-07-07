@@ -73,6 +73,8 @@ const customerHomePageConfig = {
     tripInviteShowSaveForm: false,
     tripInviteSaving: false,
     operatorCustomerPreviewMode: false,
+    operatorInvitePreview: false,
+    operatorInvitePreviewReturnTripId: '',
     operatorCustomerPreviewMeta: null,
     operatorDraftPreviewPayload: null,
     operatorPreviewDays: [],
@@ -109,12 +111,11 @@ const customerHomePageConfig = {
     // 存本地 + switchTab 交给「我的行程」tab(自带 bottombar)渲染,自己不渲染 invite。
     if (tripInviteId && !this.__isItineraryTab) {
       this.writeStoredTripInvite({ trip_id: tripInviteId, invite_code: inviteCode });
-      // 运营预览(op_preview=1):不 switchTab(会把运营顶到客户 tab 回不来),落下去在非 tab home 内联渲染三态,可 navigateBack。
-      if (this.decodeQueryValue(options.op_preview || '') !== '1') {
-        wx.switchTab({ url: '/pages/customer/itinerary-tab/itinerary-tab' });
-        return;
-      }
+      wx.switchTab({ url: '/pages/customer/itinerary-tab/itinerary-tab' });
+      return;
     }
+    // 运营"预览客户界面":消费 globalData 传入的 invite,落本 tab 忠实渲染(带 bottombar)+ 顶部退出条。
+    if (this.maybeEnterOperatorInvitePreview()) return;
     // Path A:tab 无参进入时读本地存的 invite,复用 home 的 invite 三态视图(空态+草稿按钮 / 行程卡片 / 内联图)。
     if (!tripInviteId && this.__isItineraryTab) {
       const stored = this.readStoredTripInvite();
@@ -155,6 +156,8 @@ const customerHomePageConfig = {
       this.applyOperatorCustomerHomePreview(operatorCustomerPreview);
       return;
     }
+    // 运营"预览客户界面":tab 显示时消费 globalData(operator switchTab 进来后 onShow 触发)。
+    if (this.maybeEnterOperatorInvitePreview()) return;
     // Path A:已加载的 tab 收到新分享(本地 invite 变化)时切到新 invite。
     if (this.__isItineraryTab) {
       const stored = this.readStoredTripInvite();
@@ -211,6 +214,39 @@ const customerHomePageConfig = {
     } catch (error) {
       return null;
     }
+  },
+
+  // 运营"预览客户界面":从 globalData 消费 invite,落 itinerary-tab 忠实渲染(带 bottombar);
+  // 只在 tab 生效,消费一次;顶部退出条(operatorInvitePreview)可返回运营页。
+  maybeEnterOperatorInvitePreview() {
+    if (!this.__isItineraryTab) return false;
+    const app = getApp();
+    const opPrev = app && app.globalData ? app.globalData.operatorTripInvitePreview : null;
+    if (!opPrev || !opPrev.trip_id) return false;
+    app.globalData.operatorTripInvitePreview = null;
+    this.setData({
+      tripInviteId: String(opPrev.trip_id),
+      inviteCode: String(opPrev.invite_code || ''),
+      tripInviteMode: true,
+      operatorInvitePreview: true,
+      operatorInvitePreviewReturnTripId: String(opPrev.return_trip_id || opPrev.trip_id),
+    });
+    this.loadHome();
+    return true;
+  },
+
+  exitOperatorInvitePreview() {
+    const returnTripId = this.data.operatorInvitePreviewReturnTripId || '';
+    this.setData({
+      operatorInvitePreview: false,
+      operatorInvitePreviewReturnTripId: '',
+      tripInviteMode: false,
+      tripInviteId: '',
+    });
+    const url = returnTripId
+      ? `/pages/operator/customer-trip-detail/customer-trip-detail?trip_id=${encodeURIComponent(returnTripId)}`
+      : '/pages/operator/customer-trip-detail/customer-trip-detail';
+    wx.navigateTo({ url, fail: () => wx.showToast({ title: '返回运营页失败', icon: 'none' }) });
   },
 
   redirectLegacyCustomerHome(options = {}) {
