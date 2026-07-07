@@ -2850,17 +2850,19 @@
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
 
-/* 运营预览客户界面 · 浮动退出条:z-index 高于内联图 overlay(50),预览时随处可退回运营页 */
+/* 运营预览客户界面 · 退出按钮:放右下角、避开标题与 bottombar,不挡客户视角;品牌色小 pill 与主体 UI 一致。
+   z-index 高于内联图 overlay(50),内联看图时也点得到。仅运营预览可见,不影响客户视图。 */
 .op-preview-exit {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 12rpx);
-  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(160rpx + env(safe-area-inset-bottom) + 20rpx);
   z-index: 60;
-  padding: 12rpx 22rpx;
-  background: rgba(28, 30, 42, 0.86);
+  padding: 14rpx 26rpx;
+  background: var(--brand-600, #2f3a72);
   color: #ffffff;
   font-size: 24rpx;
   font-weight: 600;
   border-radius: 999rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.24);
+  box-shadow: 0 8rpx 24rpx rgba(20, 24, 48, 0.24);
+  opacity: 0.96;
 }
