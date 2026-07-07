@@ -1,102 +1,81 @@
-# Codex 任务 · 部署并真机验证 Path A(客户行程体验落「我的行程」tab)
+# Codex 交接 · 部署并真机验证:客户行程两层主线
 
-> 交接给 Codex(负责 CloudBase / DevTools 部署与真机验证)。作者侧无 CloudBase / DevTools 权限,只提交代码(未 push)。
-> 守卫防的是**代码回归**,防不了**真机渲染**——本文的第 3 节验证清单才是重点。
+> 交接给 Codex(负责 CloudBase / DevTools 部署与真机验证)。作者侧无 CloudBase / DevTools 权限,只提交代码。
+> 本文是**合并版**,涵盖自上次上传 `e855fe5`(v2026.7.6)以来的全部改动:Path A tab + 第二层发布闸门 + 预览客户界面带 bottombar。
+> 守卫防的是**代码回归**,防不了**真机渲染**——第 5 节真机验证才是重点。
 
-## 背景:Path A 模型
-客户点分享卡 → 落非 tab 页 `pages/customer/home/home`(接住 `trip_id`/`invite_code`)
-→ home 只做两件事:把 invite 存本地键 `customer_active_trip_invite` + `wx.switchTab` 到
-  `pages/customer/itinerary-tab/itinerary-tab`,**自己不渲染 invite**
-→ `itinerary-tab`(带 `__isItineraryTab: true` 标记)无参进入 / onShow 收到新分享时读本地 invite
-  → 复用 home 的 invite 三态视图渲染:**未发布** = 空态 +「查看行程草稿」按钮 → 点开内联图;**已发布** = 行程卡片。
-→ tab 自带 bottombar;内联图 `z-index` 低于自定义 tabBar,bottombar 保留;客户只读(无下载 / 保存 / 长按 / 转发)。
+## 0. 业务主线(先懂这个;权威全文见 [`itinerary-sheet-discipline.md`](itinerary-sheet-discipline.md) 顶部「业务主线」表)
+1. 网页排行程 → 生成手机行程单图 → 同步(`opsUpsert` **自动**写 `published_snapshot` 内容 + 顶层 `itinerary_sheet` 图)。
+2. 运营:**预览客户界面** + **准备转发客户**(生成 invite)。
+3. 客户点分享卡 → 落「我的行程」tab(**带 bottombar**)→ 看**手机行程单图**(第一层 / 草稿态)→ 线下与顾问确认。
+4. 运营:客户确认后 → **发布正式行程**(`customer_official_released=true`)。
+5. 客户:tab 升级为**正式行程卡片**(第二层 / 正式态);手机行程单图降为「查看完整行程单」。
+6. 运营可**收回** → 客户回落第一层。
 
-不建 `customer_trip_access`(不自动绑定);显式「保存到我的 Farland」仍是唯一服务端绑定路径。
+**铁律**:内容发布(自动) ≠ 客户可见(手动 release,默认关);客户永远只读;实现不得突破主线。
 
-规范全文见 [`itinerary-sheet-discipline.md`](itinerary-sheet-discipline.md) §7 Path A。
+## 1. 分支(已 push,与远端同步)
+`codex/091-customer-card-ui`(HEAD `b3884c6`)
 
-## 分支 / 提交(本地,未 push;若 Codex 在远端请先让作者 push)
-- branch: `codex/091-customer-card-ui`
-- Path A 提交:`58a3ef0`(接线)→ `2b90471`/`934823c`(文档)→ `3e5a428`/`f98b77a`(守卫加固)
-- 本轮**只动 4 个文件**:`home-page-config.js`、`itinerary-tab.js`(需部署)、`itinerary-discipline-check.js`、`itinerary-sheet-discipline.md`(dev-only)
+## 2. 部署面(自 `e855fe5` 以来的全部改动)
+### 云函数(4 个,必须**一起**部署)
+- `getCustomerTripByInvite` — 官方闸门加 `customer_official_released===true`(未 release 回落第一层图)
+- `getCustomerHome` — 同上(`normalizePublishedTripSnapshot`)
+- `publishCustomerTrip` — 发布写 `customer_official_released:true`;`event.release===false` 收回
+- `getOperatorTripPreview` — 返回 `customer_official_released`
 
-## 1. 前置检查
-- 守卫必须过:`node scripts/itinerary-discipline-check.js`(应输出 ✓ R1..R6b 全过)
-- `node --check miniprogram/pages/customer/home/home-page-config.js`
-- `node --check miniprogram/pages/customer/itinerary-tab/itinerary-tab.js`
+### 小程序(5 个文件,重新上传)
+- `miniprogram/pages/customer/home/home-page-config.js`
+- `miniprogram/pages/customer/home/home.wxml`
+- `miniprogram/pages/customer/home/home.wxss`
+- `miniprogram/pages/operator/customer-trip-detail/customer-trip-detail.js`
+- `miniprogram/pages/operator/customer-trip-detail/customer-trip-detail.wxml`
 
-## 2. 部署范围(本轮只此)
-- 上传 2 个小程序文件(DevTools 上传 / 预览):
-  - `miniprogram/pages/customer/home/home-page-config.js`
-    (注意:此文件被 home 页和 itinerary-tab **共用**,一次上传同时影响两处)
-  - `miniprogram/pages/customer/itinerary-tab/itinerary-tab.js`
-- 云函数:本轮**无改动,不需重新部署**。
-  但请确认 `createCustomerTripInvite` 线上版 `buildTripSharePath` 返回的是
-  `/pages/customer/home/home?trip_id=...&invite_code=...`(Path A 的入口依赖它落 home)。
-  若线上还是旧的落 `mobile-itinerary`,请把该云函数按分支版本部署一次。
+### 不在本批
+`opsUpsertCustomerTrip` **一行未改,不要动**(22/22 + image_url 链路)。
 
-## 3. 真机 / DevTools 验证清单(重点)
-用两条测试行程各走一遍:一条【未发布但已生成 sheet】、一条【已发布】(如 096 / 102)。
+## 3. 前置检查(作者本地已全绿,你复核)
+- `node scripts/itinerary-discipline-check.js`（R1..R6b 全过）
+- `node scripts/ops-upsert-customer-trip-test.js`（仍 22/22）
+- `node --check` 上面 4 云函数 `index.js` + `home-page-config.js` + `customer-trip-detail.js`
+- 确认线上 `createCustomerTripInvite` 的 `buildTripSharePath` 返回 `/pages/customer/home/home?trip_id=...&invite_code=...`
+  （Path A 入口依赖;若线上还是旧的落 `mobile-itinerary`,按分支版本部署一次该云函数）
 
-### A. 入口跳转
-- [ ] 打开客户 invite 分享卡 → 短暂落 home 后自动 switchTab 到「我的行程」tab(不是停在无 bottombar 的 home)
-- [ ] tab 底部 bottombar(自定义 tabBar)可见,选中态在「我的行程」
+## 4. ⚠️ 两个硬提醒
+1. **4 个云函数必须同批**:只部署读闸门不部署运营发布按钮 = 客户全被闸死看不到正式行程。
+2. **部署即回落**:所有存量行程(含已给客户看正式行程的)会回落到手机行程单图,直到运营逐个点「发布正式行程」。
+   这是 owner 要的默认关语义,不是 bug——上线前知会运营去 release 存量行程。
 
-### B. 未发布(sheet_draft)
-- [ ] tab 显示「跟没有行程一样的空态 + 一个『查看行程草稿』按钮」
-- [ ] 点按钮 → 内联展开手机版行程单图,底部 bottombar 仍可见
-- [ ] 图不可长按保存、无转发按钮、无下载 / 保存入口
-- [ ] 点「返回」→ 回到空态 + 草稿按钮界面(不是退出小程序)
+## 5. 真机 / DevTools 验证(按主线走,用一条已同步、有 sheet 的测试行程,如 096 / 102)
 
-### C. 已发布(official)
-- [ ] tab 显示行程卡片(行程总览 / today card),不是只有一张图
-- [ ] 「查看完整行程单」作为次要入口仍能打开内联图(只读)
+### 入口(Path A)
+- [ ] 客户点分享卡 → 短暂落 home 后自动 `switchTab` 到「我的行程」tab,底部 bottombar 可见、选中「我的行程」
 
-### D. 复用 / 切换
-- [ ] 已在 tab 时再打开另一条 invite 分享卡 → tab 切到新行程(onShow 生效)
-- [ ] 手动切到 hotel tab 再切回「我的行程」→ 状态不丢、不重复请求
+### 第一层(未发布)
+- [ ] 运营页第二步显示「未发布」+「发布正式行程」按钮(有 draft 才可点)
+- [ ] 客户 tab = 手机行程单图(第一层);图不可长按保存、无转发、无下载
 
-### E. 回归(别被 Path A 带坏)
-- [ ] 运营端「客户主页预览 / 手机版行程单预览」照常
-- [ ] 手机版行程单推送链路(`image_url` + 服务端上传 `cloud://`)不受影响
+### 预览客户界面(重点:忠实 + 带 bottombar + 可返回)
+- [ ] 运营页第一步 / 第二步点「预览客户界面」→ `switchTab` 落**带 bottombar 的真 tab**,显示与客户所见一致(此时 = 第一层图)
+- [ ] tab 顶部有浮动「‹ 退出运营预览」→ 点它能返回运营详情页(不被顶死在客户 tab)
 
-## 4. 纪律(硬约束)
-- 不碰 091(docId `bf757c4c...`、`2026XBC091`):不新增写路径,保留 `opsUpsert*` 的 091 reject
-- 不下发客户 PII / 派单前司机身份 / 成本 / 供应商到客户面
-- 不动 `opsUpsertCustomerTrip` 的 `image_url` 链路(已 22/22 通过)
-- 只部署上面列的 2 个小程序文件;不顺手改别的
+### 发布(第一层 → 第二层)
+- [ ] 运营点「发布正式行程」→ toast 成功 → 客户 tab 刷新后 = 正式行程卡片(第二层);运营页第二步变「已发布 v?」+「收回正式行程」
+- [ ] 此时运营点「预览客户界面」→ 带 bottombar 的 tab 显示正式行程卡片(第二层)
 
-## 5. 反馈
-逐条回填上面 `[ ]`,失败项贴现象 / 截图 / console。
-若 B / C 任一 tab 显示不对(比如 sheet_draft 显示了行程卡片、或已发布只显图),**先别改代码**,
-把 `getCustomerTripByInvite` 返回的 `stage` 值和 tab 当前 `data.tripInviteMode` / `data.tripInviteSheet` 贴出来给作者。
+### 收回
+- [ ] 运营点「收回正式行程」→ 客户 tab 回落手机行程单图;`published_snapshot` 内容不变
 
----
+### 拦截 / 回归
+- [ ] 关键警告未清点发布被拦(`CRITICAL_WARNINGS_REMAIN`);无 draft 时发布按钮禁用
+- [ ] 酒店 / 访校 / 评价卡等独立模块不受影响(评价上下文 `getRideReviewContext` 仍按 published 显当天摘要,已知边界)
 
-# 追加任务 · 第二层发布闸门(customer_official_released,owner 定:默认关)
+## 6. 纪律(硬约束)
+- 不碰 091(`bf757c4c...` / `2026XBC091`):保留 `opsUpsert*` 的 091 reject
+- 不下发客户 PII / 派单前司机身份 / 成本 / 供应商
+- 不动 `opsUpsertCustomerTrip`;只部署上面列的 4 云函数 + 5 小程序文件
 
-规范见 [`itinerary-sheet-discipline.md`](itinerary-sheet-discipline.md) §7.1。模型:内容照常自动发布(opsUpsert 不碰),但客户看不看得到**正式行程卡片**由运营手动 release 控制;默认关 → 行程停在草稿态(客户看手机行程单图),运营在运营详情页点「发布正式行程」才升级。
-
-## D1. 部署范围(这 4 个云函数须**一起**部署,缺一会出问题)
-- `getCustomerTripByInvite`(official 闸门加 `customer_official_released===true`)
-- `getCustomerHome`(同上)
-- `publishCustomerTrip`(发布写标记 true;`release:false` 收回)
-- `getOperatorTripPreview`(返回 `customer_official_released`)
-- 小程序:重新上传(含 `operator/customer-trip-detail/*` 的第一步/第二步、`customer/home/home-page-config.js` 的 op_preview 分支)。
-- ⚠️ **只部署读闸门不部署运营发布按钮**(或反之)= 客户全被闸死看不到正式行程 / 发布无效。务必同批。
-- ⚠️ opsUpsert **不在本批**,一行未改。
-
-## D2. 部署即行为变化(务必知会)
-部署后,**所有存量行程**(包括之前已给客户看正式行程卡片的)都会**回落到手机行程单图**,直到运营在运营详情页逐个点「发布正式行程」。这是 owner 要的默认关语义,不是 bug。上线前确认运营知道要去 release 存量行程。
-
-## D3. 验证清单(真机 / DevTools)
-用一条【已同步内容、有 sheet】的测试行程:
-- [ ] 运营详情页第二步显示「未发布」+「发布正式行程」按钮(要有 draft 才可点)
-- [ ] 发布前:客户 tab = 手机行程单图(第一层);运营页第一步「预览客户界面」打开也是图,且能返回运营页(不被顶到客户 tab)
-- [ ] 点「发布正式行程」→ toast 成功 → 客户 tab 刷新后 = 正式行程卡片(第二层);运营页第二步变「已发布 v?」+「收回正式行程」
-- [ ] 点「收回正式行程」→ 客户 tab 回落到手机行程单图;`published_snapshot` 内容不变(只是不可见)
-- [ ] 关键警告未清时点发布 → 被拦(`CRITICAL_WARNINGS_REMAIN`);无 draft 时发布按钮禁用
-- [ ] 回归:酒店 / 访校 / 评价卡等独立模块不受影响(评价上下文 `getRideReviewContext` 仍按 published 显示当天摘要——已知边界,未纳入闸门)
-
-## D4. 反馈
-逐条回填;若发布后客户 tab 仍显图(或未发布就显卡片),贴 `getOperatorTripPreview` 返回的 `customer_official_released` 与 `getCustomerTripByInvite` 的 `stage`。
+## 7. 反馈
+逐条回填 `[ ]`。失败**先别改码**:
+- 发布相关 → 贴 `getOperatorTripPreview` 的 `customer_official_released` 与 `getCustomerTripByInvite` 的 `stage`
+- 入口 / 预览相关 → 贴 tab 的 `data.tripInviteMode` / `data.operatorInvitePreview`
