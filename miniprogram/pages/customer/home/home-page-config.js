@@ -3255,6 +3255,8 @@ const customerHomePageConfig = {
       node_id: `day_${day.dayNo || index + 1}`,
       type: 'trip_day',
       day_no: day.dayNo || index + 1,
+      // 3a 进度条:相对选中日的三态(past/today/future),供 trip-progress 组件渲染
+      state: (Number(day.dayNo || index + 1) < initialDayNo) ? 'past' : ((Number(day.dayNo || index + 1) === initialDayNo) ? 'today' : 'future'),
       label: `Day ${day.dayNo || index + 1}`,
       date: day.date || '',
       weekday: day.weekday || '',
@@ -3265,6 +3267,10 @@ const customerHomePageConfig = {
       status: Number(day.dayNo || index + 1) === initialDayNo ? 'current' : 'upcoming',
       statusText: Number(day.dayNo || index + 1) === initialDayNo ? '当前' : '待前往',
     })), initialDayNo, initialDayNo);
+    // 3a 进度条已完成轨道宽 = 选中日索引 / 总天数(左端锚 8.33% 与首列圆点对齐)
+    const progressSelectedIndex = Math.max(0, days.findIndex((day) => Number(day.dayNo || 0) === Number(initialDayNo)));
+    const progressDonePct = days.length ? `${((progressSelectedIndex / days.length) * 100).toFixed(2)}%` : '0%';
+    const progressTrackInset = days.length ? `${((0.5 / days.length) * 100).toFixed(2)}%` : '8.33%';
     const displayTripNo = hero.trip_no || snapshot.trip_no || snapshot.external_trip_id || snapshot.trip_id || '';
     const rawDisplayDateRange = hero.date_range || tripSummary.date_range_text || [snapshot.start_at || snapshot.date_start || '', snapshot.end_at || snapshot.date_end || ''].filter(Boolean).join(' - ');
     const displayDateRange = this.formatDisplayDateRange(rawDisplayDateRange);
@@ -3301,6 +3307,9 @@ const customerHomePageConfig = {
       currentDayNo: initialDayNo,
       actualCurrentDayNo: initialDayNo,
       progressNodes,
+      progressDonePct,
+      progressTrackInset,
+      progressTotalDays: days.length,
       todayDriverCard: null,
       todayOverviewCard: null,
       todayHotelCard: null,

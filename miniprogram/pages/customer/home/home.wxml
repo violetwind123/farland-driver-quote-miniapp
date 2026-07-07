@@ -136,19 +136,29 @@
       </view>
 
       <view class="trip-day-swipe-zone" data-source="invite" bindtouchstart="onDaySurfaceTouchStart" bindtouchmove="onDaySurfaceTouchMove" bindtouchend="onDaySurfaceTouchEnd" bindtouchcancel="onDaySurfaceTouchEnd">
-      <view wx:if="{{tripInviteTrip.progressNodes && tripInviteTrip.progressNodes.length > 1}}" class="section-shell progress-shell">
-        <view class="section-kicker">TRIP</view>
-        <view class="section-title">行程进度</view>
-        <scroll-view id="progress-strip-invite" class="daily-progress-strip card-surface" scroll-x="{{true}}" scroll-left="{{inviteProgressAxisScrollLeft}}" scroll-with-animation="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" data-source="invite" bindscroll="onProgressAxisScroll" bindtouchstart="onProgressAxisTouchStart" bindtouchend="onProgressAxisTouchEnd">
-          <view class="daily-progress-track">
-            <view wx:for="{{tripInviteTrip.progressNodes}}" wx:key="node_id" id="progress-day-invite-{{item.day_no}}" class="daily-progress-node {{item.status}} {{(item.selected || item.isSelected) ? 'selected' : ''}} {{item.isPast ? 'past' : ''}} {{item.isToday ? 'today' : ''}}" data-source="invite" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
-              <view class="daily-progress-dot"></view>
-              <view class="daily-progress-label">{{item.label}}</view>
-              <view wx:if="{{item.weekday || item.date}}" class="daily-progress-date">{{item.weekday}}{{item.weekday && item.date ? ' · ' : ''}}{{item.date}}</view>
-              <view class="daily-progress-sub">{{item.short_location || item.shortLocation || '行程'}}</view>
+      <view wx:if="{{tripInviteTrip.progressNodes && tripInviteTrip.progressNodes.length > 1}}" class="section-shell">
+        <view class="trip-progress-head">
+          <text class="tp-kicker">TRIP</text>
+          <text class="tp-title">行程进度</text>
+          <text wx:if="{{tripInviteTrip.progressTotalDays > 6}}" class="tp-hint">滑动查看全程 {{tripInviteTrip.progressTotalDays}} 天 →</text>
+        </view>
+        <view class="trip-progress">
+          <view class="track" style="left: {{tripInviteTrip.progressTrackInset}}; right: {{tripInviteTrip.progressTrackInset}}"></view>
+          <view class="track-done" style="left: {{tripInviteTrip.progressTrackInset}}; width: {{tripInviteTrip.progressDonePct}}"></view>
+          <view class="cols">
+            <view wx:for="{{tripInviteTrip.progressNodes}}" wx:key="node_id" class="col" data-source="invite" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
+              <view class="dot {{item.state === 'today' ? 'today' : (item.state === 'past' ? '' : 'future')}}"></view>
+              <view wx:if="{{item.state === 'today'}}" class="today-card">
+                <text class="day">{{item.label}}</text>
+                <text class="city">{{item.location_summary}}</text>
+              </view>
+              <block wx:else>
+                <text class="day {{item.state === 'past' ? 'past' : ''}}">{{item.label}}</text>
+                <text class="city {{item.state === 'past' ? 'past' : ''}}">{{item.location_summary}}</text>
+              </block>
             </view>
           </view>
-        </scroll-view>
+        </view>
       </view>
 
       <view class="trip-day-motion" style="{{inviteDaySwipeStyle}}">
