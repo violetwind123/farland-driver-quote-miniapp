@@ -1,6 +1,3 @@
 {
-  "navigationBarTitleText": "今日行程",
-  "usingComponents": {
-    "school-visit-card": "/components/school-visit-card/school-visit-card"
-  }
+  "navigationBarTitleText": "今日行程"
 }

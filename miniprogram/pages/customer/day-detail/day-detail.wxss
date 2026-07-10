@@ -74,10 +74,21 @@
   background: linear-gradient(158deg, #232B4A 0%, #4B568C 54%, #6C77AB 100%);
 }
 
+.hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .hero-wash {
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at 82% 6%, rgba(255, 255, 255, 0.18), transparent 52%);
+}
+
+.station-hero.has-image .hero-wash {
+  background: linear-gradient(135deg, rgba(35, 43, 74, 0.12), rgba(35, 43, 74, 0.36));
 }
 
 .hero-watermark {
@@ -90,21 +101,6 @@
   color: rgba(255, 255, 255, 0.06);
   line-height: 0.9;
   white-space: nowrap;
-}
-
-.hero-photo-flag {
-  position: absolute;
-  right: 32rpx;
-  top: 212rpx;
-  height: 48rpx;
-  padding: 0 20rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1rpx solid rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 19rpx;
-  display: flex;
-  align-items: center;
 }
 
 .hero-scrim {
@@ -335,11 +331,11 @@
 
 /* BOTTOM NODE STRIP */
 .node-strip {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 8;
+  z-index: 30;
   height: 212rpx;
   padding: 24rpx 36rpx calc(30rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
@@ -362,9 +358,13 @@
 }
 
 .node-strip-next {
+  max-width: 55%;
   color: var(--brand-600);
   font-size: 20rpx;
   font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .node-track {
@@ -392,6 +392,7 @@
   align-items: center;
   gap: 10rpx;
   flex: 1;
+  min-width: 0;
 }
 
 .node-dot {
@@ -437,6 +438,12 @@
 .node-name {
   font-size: 16rpx;
   color: var(--ink-300);
+  width: 100%;
+  overflow: hidden;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .node.current .node-name {

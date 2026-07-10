@@ -18,10 +18,10 @@
     <swiper-item wx:for="{{cards}}" wx:key="card_id" class="station-item {{item.time_status}}">
       <view class="station" style="{{stationHeight ? 'height:' + stationHeight + 'px;' : ''}}">
         <!-- HERO -->
-        <view class="station-hero">
+        <view class="station-hero {{item.heroImageUrl ? 'has-image' : ''}}">
+          <image wx:if="{{item.heroImageUrl}}" class="hero-image" src="{{item.heroImageUrl}}" mode="aspectFill" />
           <view class="hero-wash"></view>
           <view wx:if="{{item.heroWatermark}}" class="hero-watermark">{{item.heroWatermark}}</view>
-          <view class="hero-photo-flag">地点实拍图</view>
           <view class="hero-scrim"></view>
           <view class="hero-foot">
             <view class="hero-badges">
@@ -41,55 +41,50 @@
         <!-- CONTENT LAYER (slide-up sheet) -->
         <scroll-view scroll-y class="station-sheet">
           <view class="sheet-grabber"></view>
-          <block wx:if="{{item.isSchoolVisitCard}}">
-            <school-visit-card card="{{item}}" />
-          </block>
-          <block wx:else>
-            <view wx:if="{{item.aboutLines.length}}" class="sheet-kicker">关于这一站</view>
-            <view wx:for="{{item.aboutLines}}" wx:key="*this" wx:for-item="line" class="sheet-copy">{{line}}</view>
+          <view wx:if="{{item.aboutLines.length}}" class="sheet-kicker">关于这一站</view>
+          <view wx:for="{{item.aboutLines}}" wx:key="*this" wx:for-item="line" class="sheet-copy">{{line}}</view>
 
-            <view wx:if="{{item.factCells.length}}" class="fact-grid">
-              <view wx:for="{{item.factCells}}" wx:key="label" wx:for-item="f" class="fact-cell">
-                <view class="fact-label">{{f.label}}</view>
-                <view class="fact-value {{f.tone}}">{{f.value}}</view>
-              </view>
+          <view wx:if="{{item.factCells.length}}" class="fact-grid">
+            <view wx:for="{{item.factCells}}" wx:key="key" wx:for-item="f" class="fact-cell">
+              <view class="fact-label">{{f.label}}</view>
+              <view class="fact-value {{f.tone}}">{{f.value}}</view>
             </view>
+          </view>
 
-            <view wx:if="{{item.highlights.length}}" class="sheet-kicker">参观看点</view>
-            <view wx:for="{{item.highlights}}" wx:key="title" wx:for-item="h" class="highlight-row">
-              <view class="highlight-idx">{{h.idx}}</view>
-              <view class="highlight-body">
-                <view class="highlight-title">{{h.title}}</view>
-                <view wx:if="{{h.desc}}" class="highlight-desc">{{h.desc}}</view>
-              </view>
+          <view wx:if="{{item.highlights.length}}" class="sheet-kicker">参观看点</view>
+          <view wx:for="{{item.highlights}}" wx:key="title" wx:for-item="h" class="highlight-row">
+            <view class="highlight-idx">{{h.idx}}</view>
+            <view class="highlight-body">
+              <view class="highlight-title">{{h.title}}</view>
+              <view wx:if="{{h.desc}}" class="highlight-desc">{{h.desc}}</view>
             </view>
+          </view>
 
-            <view wx:if="{{item.practicalRows.length}}" class="sheet-kicker">实用信息</view>
-            <view wx:if="{{item.practicalRows.length}}" class="practical-card">
-              <view wx:for="{{item.practicalRows}}" wx:key="label" wx:for-item="p" class="practical-row">
-                <view class="practical-label">{{p.label}}</view>
-                <view class="practical-value">{{p.value}}</view>
-              </view>
+          <view wx:if="{{item.practicalRows.length}}" class="sheet-kicker">实用信息</view>
+          <view wx:if="{{item.practicalRows.length}}" class="practical-card">
+            <view wx:for="{{item.practicalRows}}" wx:key="key" wx:for-item="p" class="practical-row">
+              <view class="practical-label">{{p.label}}</view>
+              <view class="practical-value">{{p.value}}</view>
             </view>
-          </block>
+          </view>
         </scroll-view>
-
-        <!-- BOTTOM NODE STRIP -->
-        <view class="node-strip">
-          <view class="node-strip-head">
-            <view class="node-strip-title">今日行程 · 第 {{item.sequence}} 站 / 共 {{item.total_count || cards.length}} 站</view>
-            <view wx:if="{{item.nextNodeText}}" class="node-strip-next">下一站 {{item.nextNodeText}}</view>
-          </view>
-          <view class="node-track">
-            <view class="node-track-line"></view>
-            <view wx:for="{{nodeStrip}}" wx:key="key" wx:for-item="n" class="node {{n.state}}">
-              <view class="node-dot {{n.state}}"></view>
-              <view class="node-time">{{n.time}}</view>
-              <view class="node-name">{{n.name}}</view>
-            </view>
-          </view>
-        </view>
       </view>
     </swiper-item>
   </swiper>
+
+  <!-- 固定节点轴：上方站点内容可滑动，本控制条不随 swiper 移动。 -->
+  <view wx:if="{{todayCard && cards.length}}" class="node-strip">
+    <view class="node-strip-head">
+      <view class="node-strip-title">今日行程 · 第 {{currentCard.sequence || currentIndex + 1}} 站 / 共 {{cards.length}} 站</view>
+      <view wx:if="{{currentCard.nextNodeText}}" class="node-strip-next">下一站 {{currentCard.nextNodeText}}</view>
+    </view>
+    <view class="node-track">
+      <view class="node-track-line"></view>
+      <view wx:for="{{nodeStrip}}" wx:key="key" wx:for-item="n" class="node {{n.state}}" data-index="{{index}}" bindtap="selectNodeStripCard">
+        <view class="node-dot {{n.state}}"></view>
+        <view class="node-time">{{n.time}}</view>
+        <view class="node-name">{{n.name}}</view>
+      </view>
+    </view>
+  </view>
 </view>

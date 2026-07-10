@@ -478,7 +478,64 @@ Page({
   normalizeCardForDisplay(card, dayCard = {}) {
     if (this.isSchoolVisitCard(card)) return this.normalizeSchoolVisitCard(card, dayCard);
     if (this.isStructuredDestinationCardType(card)) return this.normalizeStructuredDestinationCard(card, dayCard);
-    return card;
+    return this.normalizeFallbackDestinationCard(card, dayCard);
+  },
+
+  resolveCustomerHeroImage(card = {}, displaySnapshot = {}) {
+    const candidates = [
+      card.hero_image_url,
+      card.heroImageUrl,
+      card.cover_image_url,
+      card.image_url,
+      displaySnapshot.hero_image_url,
+      displaySnapshot.cover_image_url,
+      displaySnapshot.image_url,
+      displaySnapshot.photo_url,
+    ];
+    const url = candidates.map((value) => String(value || '').trim()).find(Boolean) || '';
+    return /^(?:https:\/\/|cloud:\/\/)/i.test(url) ? url : '';
+  },
+
+  firstDistinctDisplayText(primaryText, candidates = []) {
+    const primary = String(primaryText || '').trim().toLocaleLowerCase();
+    return (Array.isArray(candidates) ? candidates : [])
+      .map((value) => String(value || '').trim())
+      .find((value) => value && value.toLocaleLowerCase() !== primary) || '';
+  },
+
+  normalizeFallbackDestinationCard(card = {}, dayCard = {}) {
+    const displaySnapshot = this.normalizeDisplaySnapshot(card);
+    const timeSnapshot = this.normalizeTimeSnapshot(card, dayCard);
+    const primaryName = card.title || displaySnapshot.name_en || displaySnapshot.name_zh || '行程节点';
+    const secondaryName = this.firstDistinctDisplayText(primaryName, [card.subtitle, displaySnapshot.name_zh]);
+    const aboutLines = this.normalizeIntroLines(displaySnapshot.intro_lines, card.note || card.description || '');
+    const practicalRows = [
+      card.location ? { key: 'location', label: '地点', value: card.location } : null,
+      card.show_route && card.route ? { key: 'route', label: '路线', value: card.route } : null,
+      card.arrival_estimate ? { key: 'arrival', label: '预计到达', value: card.arrival_estimate } : null,
+      card.show_travel_meta && card.detailLine ? { key: 'travel', label: '路段预估', value: card.detailLine } : null,
+    ].filter(Boolean);
+    const highlightSource = Array.isArray(displaySnapshot.highlight_tags) ? displaySnapshot.highlight_tags : [];
+    return {
+      ...card,
+      display_snapshot: displaySnapshot,
+      time_snapshot: timeSnapshot,
+      primaryName,
+      secondaryName,
+      heroTime: card.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || '',
+      heroTimeSub: this.buildHeroTimeSub(timeSnapshot),
+      heroSubtitle: this.firstDistinctDisplayText(primaryName, [displaySnapshot.location_text, card.location, secondaryName]),
+      heroWatermark: this.buildHeroWatermark(displaySnapshot.name_en || primaryName),
+      heroImageUrl: this.resolveCustomerHeroImage(card, displaySnapshot),
+      aboutLines,
+      factCells: [],
+      highlights: highlightSource.slice(0, 5).map((title, index) => ({
+        idx: String(index + 1).padStart(2, '0'),
+        title: String(title || ''),
+        desc: '',
+      })).filter((item) => item.title),
+      practicalRows,
+    };
   },
 
   hasExplicitUiFlags(card = {}) {
@@ -523,6 +580,37 @@ Page({
     const timeSnapshot = this.normalizeSchoolTimeSnapshot(card, dayCard);
     const timeItems = this.buildTimeItems(card.card_type || 'school_visit_card', timeSnapshot, {}, card, dayCard);
     const uiFlags = this.normalizeUiFlags(card);
+    const appointmentTime = /^\d{1,2}:\d{2}$/.test(String(timeSnapshot.appointment_time || ''))
+      ? timeSnapshot.appointment_time
+      : '';
+    const heroTime = appointmentTime
+      || timeSnapshot.start_time
+      || timeSnapshot.arrival_time
+      || card.time
+      || '';
+    const factCells = [];
+    if (displaySnapshot.entity_type_text) {
+      factCells.push({ key: 'type', label: '类型', value: displaySnapshot.entity_type_text, tone: '' });
+    }
+    if (displaySnapshot.location_text) {
+      factCells.push({ key: 'location', label: '位置', value: displaySnapshot.location_text, tone: '' });
+    }
+    (displaySnapshot.ranking_badges || []).slice(0, Math.max(0, 3 - factCells.length)).forEach((badge, index) => {
+      factCells.push({
+        key: `ranking-${index}`,
+        label: badge.system || '学校信息',
+        value: badge.display_text || '',
+        tone: '',
+      });
+    });
+    const practicalRows = [
+      displaySnapshot.address ? { key: 'address', label: '地址', value: displaySnapshot.address } : null,
+      timeSnapshot.arrival_time ? { key: 'arrival', label: '预计到达', value: timeSnapshot.arrival_time } : null,
+      timeSnapshot.appointment_time ? { key: 'appointment', label: '参观安排', value: timeSnapshot.appointment_time } : null,
+      timeSnapshot.end_time ? { key: 'leave', label: '预计离开', value: timeSnapshot.end_time } : null,
+    ].filter(Boolean);
+    const primaryName = displaySnapshot.name_en || displaySnapshot.name_zh || card.title || '学校访问';
+    const secondaryName = this.firstDistinctDisplayText(primaryName, [displaySnapshot.name_zh]);
     return {
       ...card,
       card_type: card.card_type || 'school_visit_card',
@@ -535,6 +623,21 @@ Page({
       display_snapshot: displaySnapshot,
       time_snapshot: timeSnapshot,
       timeItems,
+      primaryName,
+      secondaryName,
+      heroTime,
+      heroTimeSub: this.buildHeroTimeSub(timeSnapshot),
+      heroSubtitle: this.firstDistinctDisplayText(primaryName, [displaySnapshot.address, displaySnapshot.location_text, secondaryName]),
+      heroWatermark: this.buildHeroWatermark(displaySnapshot.name_en || card.title || ''),
+      heroImageUrl: this.resolveCustomerHeroImage(card, displaySnapshot),
+      aboutLines: displaySnapshot.intro_lines || [],
+      factCells: factCells.filter((item) => item.value),
+      highlights: (displaySnapshot.strengths || []).map((item, index) => ({
+        idx: String(index + 1).padStart(2, '0'),
+        title: item.title || '',
+        desc: item.desc || '',
+      })).filter((item) => item.title),
+      practicalRows,
       title: displaySnapshot.name_en || displaySnapshot.name_zh || card.title || '学校访问',
       chipText: `${timeSnapshot.arrival_time || timeSnapshot.appointment_time || timeSnapshot.start_time || card.time || ''} ${displaySnapshot.name_en || displaySnapshot.name_zh || card.title || '访校'}`.trim(),
     };
@@ -621,8 +724,9 @@ Page({
       timeItems,
       heroTime: card.time || timeSnapshot.appointment_time || timeSnapshot.start_time || timeSnapshot.arrival_time || '',
       heroTimeSub: this.buildHeroTimeSub(timeSnapshot),
-      heroSubtitle: displaySnapshot.location_text || displaySnapshot.address || secondaryName || '',
+      heroSubtitle: this.firstDistinctDisplayText(primaryName, [displaySnapshot.location_text, displaySnapshot.address, secondaryName]),
       heroWatermark: this.buildHeroWatermark(displaySnapshot.name_en || primaryName),
+      heroImageUrl: this.resolveCustomerHeroImage(card, displaySnapshot),
       aboutLines: introLines,
       factCells: this.buildFactCells(cardType, detailItems),
       highlights: this.buildHighlights(displaySnapshot),
@@ -664,7 +768,8 @@ Page({
     return (Array.isArray(detailItems) ? detailItems : [])
       .filter((item) => item && item.value)
       .slice(0, 3)
-      .map((item) => ({
+      .map((item, index) => ({
+        key: `fact-${index}-${item.label || ''}`,
         label: item.label || '',
         value: item.value,
         tone: item.muted ? 'muted' : '',
@@ -690,7 +795,7 @@ Page({
   buildPracticalRows(card = {}, displaySnapshot = {}) {
     const rows = [];
     const meet = displaySnapshot.address || card.location || '';
-    if (meet) rows.push({ label: '集合', value: meet });
+    if (meet) rows.push({ key: 'meeting', label: '集合', value: meet });
     return rows;
   },
 
@@ -1493,11 +1598,26 @@ Page({
 
   onSwiperChange(e) {
     const currentIndex = e.detail.current || 0;
+    const cards = this.decorateCardsWithTimeStatus(this.data.cards, this.data.todayCard || {}, currentIndex);
     this.setData({
       currentIndex,
-      currentCard: this.data.cards[currentIndex] || null,
+      cards,
+      currentCard: cards[currentIndex] || null,
       hasSwipedDayCards: this.data.hasSwipedDayCards || e.detail.source === 'touch',
-      nodeStrip: this.buildNodeStrip(this.data.cards, currentIndex),
+      nodeStrip: this.buildNodeStrip(cards, currentIndex),
+    });
+  },
+
+  selectNodeStripCard(e) {
+    const index = Number(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.index);
+    if (!Number.isInteger(index) || index < 0 || index >= this.data.cards.length) return;
+    const cards = this.decorateCardsWithTimeStatus(this.data.cards, this.data.todayCard || {}, index);
+    this.setData({
+      currentIndex: index,
+      cards,
+      currentCard: cards[index] || null,
+      hasSwipedDayCards: true,
+      nodeStrip: this.buildNodeStrip(cards, index),
     });
   },
 
