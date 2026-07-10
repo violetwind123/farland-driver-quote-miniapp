@@ -1681,8 +1681,11 @@ const customerHomePageConfig = {
     return source.map((node, index) => {
       const isDeparture = Boolean(node.isDeparture) || index === 0;
       const connectorTravelMeta = this.decorateConnectorTravelMeta(node.connectorTravelMeta || node.connector_travel_meta || null);
+      const titleText = String(node.title || '').trim().toLocaleLowerCase();
+      const subtitleText = String(node.subtitle || '').trim();
       return {
         ...node,
+        subtitle: subtitleText && subtitleText.toLocaleLowerCase() !== titleText ? subtitleText : '',
         cap: isDeparture ? '出发' : '到达',
         nodeClass: isDeparture ? 'depart' : (node.nodeClass || ''),
         hasTail: index < source.length - 1,
@@ -1728,7 +1731,7 @@ const customerHomePageConfig = {
     return {
       visible: true,
       driveText: minutes ? `${hours ? `${hours}h` : ''}${remainder ? `${remainder}min` : (hours ? '' : '0min')}` : '',
-      distanceText: miles ? `${String(miles).replace(/\.0$/, '')}mi` : '',
+      distanceText: miles ? `${String(miles).replace(/\.0$/, '')} 英里` : '',
     };
   },
 
@@ -1736,7 +1739,18 @@ const customerHomePageConfig = {
     const raw = String(date || '').trim();
     const match = raw.match(/(?:\d{4}[-/])?(\d{1,2})[-/](\d{1,2})/);
     const dateText = match ? `${Number(match[1])}月${Number(match[2])}日` : raw;
-    return [dateText, weekday || ''].filter(Boolean).join(' ');
+    const weekdayText = String(weekday || '').trim();
+    const weekdayMap = {
+      sun: '周日', sunday: '周日',
+      mon: '周一', monday: '周一',
+      tue: '周二', tuesday: '周二',
+      wed: '周三', wednesday: '周三',
+      thu: '周四', thursday: '周四',
+      fri: '周五', friday: '周五',
+      sat: '周六', saturday: '周六',
+    };
+    const localizedWeekday = weekdayMap[weekdayText.toLowerCase()] || weekdayText;
+    return [dateText, localizedWeekday].filter(Boolean).join(' ');
   },
 
   buildOverviewNodeSet(routeStops = [], context = {}) {
@@ -2039,7 +2053,7 @@ const customerHomePageConfig = {
     const serviceWindowText = this.formatDisplayTime(
       (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
     );
-    const departureTime = this.extractTimeForDisplay(
+    const explicitDepartureTime = this.extractTimeForDisplay(
       card.estimated_departure_time_raw
         || card.estimatedDepartureTimeRaw
         || card.estimated_departure_time
@@ -2051,6 +2065,10 @@ const customerHomePageConfig = {
         || card.departureTime
         || '',
     );
+    const firstNodeTime = this.extractTimeForDisplay(
+      ((destinationCards.find((item) => item && item.time) || {}).time) || '',
+    );
+    const departureTime = explicitDepartureTime || firstNodeTime;
     const daySectionCopy = this.buildDaySectionCopy(card.day_no || card.dayNo || 0, card.date || '');
     const hotel = card.hotel
       ? {
@@ -2059,9 +2077,9 @@ const customerHomePageConfig = {
         }
       : null;
     const pickupText = this.getDayPickupText(card);
-    const departureRouteStops = pickupText || departureTime || serviceWindowText ? [{
+    const departureRouteStops = pickupText || explicitDepartureTime || serviceWindowText ? [{
       id: `${card.day_no || card.dayNo || 'today'}-departure`,
-      time: departureTime || serviceWindowText || '',
+      time: explicitDepartureTime || serviceWindowText || departureTime || '',
       title: '上车出发',
       subtitle: this.formatPickupLine(pickupText) || '预计出发',
       pickupAddress: pickupText,
@@ -2518,8 +2536,12 @@ const customerHomePageConfig = {
       subtitle: item.location || item.location_name || item.city || '',
     }));
     const pickupText = this.getDayPickupText(day);
-    const departureTime = this.resolveDayDepartureTime(day);
-    const departureRouteStops = pickupText || departureTime ? [{
+    const explicitDepartureTime = this.resolveDayDepartureTime(day);
+    const firstNodeTime = this.extractTimeForDisplay(
+      ((rawTimelineItems.find((item) => item && item.time) || {}).time) || '',
+    );
+    const departureTime = explicitDepartureTime || firstNodeTime;
+    const departureRouteStops = pickupText || explicitDepartureTime ? [{
       id: `${dayNo}-departure`,
       time: departureTime,
       title: '上车出发',
@@ -3117,15 +3139,24 @@ const customerHomePageConfig = {
   formatDisplayDateRange(value) {
     const text = String(value || '').trim();
     if (!text) return '';
-    const matches = text.match(/\d{4}-\d{2}-\d{2}/g);
-    if (!matches || !matches.length) return text;
+    const matches = [...text.matchAll(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/g)];
+    if (!matches.length) return text;
     const dates = [];
     matches.forEach((item) => {
-      const normalized = item.replace(/-/g, '/');
-      if (!dates.includes(normalized)) dates.push(normalized);
+      const normalized = {
+        year: Number(item[1]),
+        month: Number(item[2]),
+        day: Number(item[3]),
+      };
+      const key = `${normalized.year}-${normalized.month}-${normalized.day}`;
+      if (!dates.some((date) => date.key === key)) dates.push({ ...normalized, key });
     });
-    if (dates.length === 1) return dates[0];
-    return dates.slice(0, 2).join(' - ');
+    if (dates.length === 1) return `${dates[0].month}月${dates[0].day}日`;
+    const [start, end] = dates;
+    if (start.year === end.year) {
+      return `${start.month}月${start.day}日 - ${end.month}月${end.day}日`;
+    }
+    return `${start.year}年${start.month}月${start.day}日 - ${end.year}年${end.month}月${end.day}日`;
   },
 
   async loadTripInviteHome() {

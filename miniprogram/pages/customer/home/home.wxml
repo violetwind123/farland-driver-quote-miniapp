@@ -31,9 +31,12 @@
     <button class="claim-submit" loading="{{claimingTemporaryAccess}}" bindtap="claimTemporaryAccess">查看本次行程</button>
   </view>
 
-  <view wx:elif="{{tripInviteMode}}" class="trip-invite-view">
-    <!-- 运营"预览客户界面"退出条:忠实落 tab(带 bottombar),点此返回运营页 -->
-    <view wx:if="{{operatorInvitePreview}}" class="op-preview-exit" bindtap="exitOperatorInvitePreview">退出运营预览</view>
+  <view wx:elif="{{tripInviteMode}}" class="trip-invite-view {{operatorInvitePreview ? 'operator-preview-active' : ''}}">
+    <!-- 运营预览工具条独立占位，不遮挡客户卡片；内联行程单先使用其自身返回按钮。 -->
+    <view wx:if="{{operatorInvitePreview && !sheetInlineOpen}}" class="op-preview-exit" bindtap="exitOperatorInvitePreview">
+      <text class="op-preview-exit__label">运营预览</text>
+      <text class="op-preview-exit__action">退出预览</text>
+    </view>
     <!-- 手机版行程单内联查看:只一张图,不下载/不转发/不可长按保存;返回收起。底部 bottombar 由所在 tab 提供。 -->
     <view wx:if="{{sheetInlineOpen}}" class="sheet-inline">
       <view class="sheet-inline-bar">

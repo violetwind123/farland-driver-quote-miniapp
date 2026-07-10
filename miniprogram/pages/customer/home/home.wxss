@@ -2962,21 +2962,38 @@
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
 
-/* 运营预览客户界面 · 退出按钮:放右下角、避开标题与 bottombar,不挡客户视角;品牌色小 pill 与主体 UI 一致。
-   z-index 高于内联图 overlay(50),内联看图时也点得到。仅运营预览可见,不影响客户视图。 */
+/* 运营预览工具条独立占位，避免覆盖客户卡片；客户真实界面不渲染此区域。 */
+.trip-invite-view.operator-preview-active {
+  padding-top: calc(68rpx + env(safe-area-inset-top));
+}
+
 .op-preview-exit {
   position: fixed;
-  right: 24rpx;
-  bottom: calc(160rpx + env(safe-area-inset-bottom) + 20rpx);
+  left: 0;
+  right: 0;
+  top: 0;
   z-index: 60;
-  padding: 14rpx 26rpx;
-  background: var(--brand-600, #2f3a72);
-  color: #ffffff;
-  font-size: 24rpx;
+  height: calc(68rpx + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 28rpx 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(247, 248, 252, 0.98);
+  border-bottom: 1rpx solid rgba(27, 35, 64, 0.08);
+  color: var(--ink-600, #5A6178);
+  font-size: 22rpx;
   font-weight: 600;
-  border-radius: 999rpx;
-  box-shadow: 0 8rpx 24rpx rgba(20, 24, 48, 0.24);
-  opacity: 0.96;
+  box-shadow: 0 8rpx 24rpx rgba(20, 24, 48, 0.08);
+}
+
+.op-preview-exit__label {
+  color: var(--ink-400, #9096A8);
+}
+
+.op-preview-exit__action {
+  color: var(--brand-600, #57639E);
+  font-weight: 700;
 }
 
 /* ===== 3a 定稿 · 行程进度条(trip-progress:6 等分列居中,今天=高亮胶囊,无日期行) ===== */
