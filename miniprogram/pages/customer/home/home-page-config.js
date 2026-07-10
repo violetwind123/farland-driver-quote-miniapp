@@ -76,6 +76,7 @@ const customerHomePageConfig = {
     tripInviteSaving: false,
     operatorCustomerPreviewMode: false,
     operatorInvitePreview: false,
+    operatorInvitePreviewTripId: '',
     operatorInvitePreviewReturnTripId: '',
     operatorCustomerPreviewMeta: null,
     operatorDraftPreviewPayload: null,
@@ -113,6 +114,7 @@ const customerHomePageConfig = {
     // 存本地 + switchTab 交给「我的行程」tab(自带 bottombar)渲染,自己不渲染 invite。
     if (tripInviteId && !this.__isItineraryTab) {
       this.writeStoredTripInvite({ trip_id: tripInviteId, invite_code: inviteCode });
+      this.writeTripInviteHandoff({ trip_id: tripInviteId, invite_code: inviteCode });
       wx.switchTab({ url: '/pages/customer/itinerary-tab/itinerary-tab' });
       return;
     }
@@ -120,10 +122,9 @@ const customerHomePageConfig = {
     if (this.maybeEnterOperatorInvitePreview()) return;
     // Path A:tab 无参进入时读本地存的 invite,复用 home 的 invite 三态视图(空态+草稿按钮 / 行程卡片 / 内联图)。
     if (!tripInviteId && this.__isItineraryTab) {
-      const stored = this.readStoredTripInvite();
+      const stored = this.consumeTripInviteHandoff() || this.readStoredTripInvite();
       if (stored && stored.trip_id) {
-        this.setData({ tripInviteId: stored.trip_id, inviteCode: stored.invite_code || '', tripInviteMode: true });
-        this.loadHome();
+        this.applyCustomerTripInvite(stored);
         return;
       }
     }
@@ -160,12 +161,23 @@ const customerHomePageConfig = {
     }
     // 运营"预览客户界面":tab 显示时消费 globalData(operator switchTab 进来后 onShow 触发)。
     if (this.maybeEnterOperatorInvitePreview()) return;
+    // 分享卡 handoff 是一次明确的客户入口；它必须结束任何残留运营预览，避免 099 内容仍带 096 返回目标。
+    const tripInviteHandoff = this.consumeTripInviteHandoff();
+    if (tripInviteHandoff) {
+      this.applyCustomerTripInvite(tripInviteHandoff);
+      return;
+    }
+    // 运营预览不写客户 active invite；预览存续期间不得被旧客户缓存覆盖。
+    if (this.data.operatorInvitePreview) {
+      this.refreshPhoneLocalTripDaySelection();
+      this.scrollToPendingCustomerHomeTarget();
+      return;
+    }
     // Path A:已加载的 tab 收到新分享(本地 invite 变化)时切到新 invite。
     if (this.__isItineraryTab) {
       const stored = this.readStoredTripInvite();
       if (stored && stored.trip_id && stored.trip_id !== this.data.tripInviteId) {
-        this.setData({ tripInviteId: stored.trip_id, inviteCode: stored.invite_code || '', tripInviteMode: true });
-        this.loadHome();
+        this.applyCustomerTripInvite(stored);
         return;
       }
     }
@@ -218,6 +230,44 @@ const customerHomePageConfig = {
     }
   },
 
+  writeTripInviteHandoff(invite) {
+    if (!invite || !invite.trip_id) return;
+    const app = getApp();
+    app.globalData = app.globalData || {};
+    app.globalData.customerTripInviteHandoff = {
+      trip_id: String(invite.trip_id),
+      invite_code: String(invite.invite_code || ''),
+    };
+  },
+
+  consumeTripInviteHandoff() {
+    const app = getApp();
+    const handoff = app && app.globalData ? app.globalData.customerTripInviteHandoff : null;
+    if (!handoff || !handoff.trip_id) return null;
+    delete app.globalData.customerTripInviteHandoff;
+    return handoff;
+  },
+
+  applyCustomerTripInvite(invite) {
+    if (!invite || !invite.trip_id) return;
+    this.setData({
+      tripInviteId: String(invite.trip_id),
+      inviteCode: String(invite.invite_code || ''),
+      tripInviteMode: true,
+      tripInviteTrip: null,
+      tripInviteSheet: null,
+      tripInviteSheetDraft: false,
+      sheetInlineOpen: false,
+      tripInviteWaiting: false,
+      tripInviteMessage: '',
+      tripInviteError: '',
+      operatorInvitePreview: false,
+      operatorInvitePreviewTripId: '',
+      operatorInvitePreviewReturnTripId: '',
+    });
+    this.loadHome();
+  },
+
   // 运营"预览客户界面":从 globalData 消费 invite,落 itinerary-tab 忠实渲染(带 bottombar);
   // 只在 tab 生效,消费一次;顶部退出条(operatorInvitePreview)可返回运营页。
   maybeEnterOperatorInvitePreview() {
@@ -230,7 +280,15 @@ const customerHomePageConfig = {
       tripInviteId: String(opPrev.trip_id),
       inviteCode: String(opPrev.invite_code || ''),
       tripInviteMode: true,
+      tripInviteTrip: null,
+      tripInviteSheet: null,
+      tripInviteSheetDraft: false,
+      sheetInlineOpen: false,
+      tripInviteWaiting: false,
+      tripInviteMessage: '',
+      tripInviteError: '',
       operatorInvitePreview: true,
+      operatorInvitePreviewTripId: String(opPrev.trip_id),
       operatorInvitePreviewReturnTripId: String(opPrev.return_trip_id || opPrev.trip_id),
     });
     this.loadHome();
@@ -238,9 +296,12 @@ const customerHomePageConfig = {
   },
 
   exitOperatorInvitePreview() {
-    const returnTripId = this.data.operatorInvitePreviewReturnTripId || '';
+    const returnTripId = this.data.operatorInvitePreviewTripId
+      || this.data.operatorInvitePreviewReturnTripId
+      || '';
     this.setData({
       operatorInvitePreview: false,
+      operatorInvitePreviewTripId: '',
       operatorInvitePreviewReturnTripId: '',
       tripInviteMode: false,
       tripInviteId: '',
@@ -3068,6 +3129,10 @@ const customerHomePageConfig = {
   },
 
   async loadTripInviteHome() {
+    const requestSeq = (this.__tripInviteLoadSeq || 0) + 1;
+    this.__tripInviteLoadSeq = requestSeq;
+    const requestTripId = String(this.data.tripInviteId || '');
+    const requestInviteCode = String(this.data.inviteCode || '');
     this.setData({
       loading: true,
       tripInviteError: '',
@@ -3082,10 +3147,16 @@ const customerHomePageConfig = {
       const { result } = await wx.cloud.callFunction({
         name: 'getCustomerTripByInvite',
         data: {
-          trip_id: this.data.tripInviteId,
-          invite_code: this.data.inviteCode,
+          trip_id: requestTripId,
+          invite_code: requestInviteCode,
         },
       });
+
+      if (
+        requestSeq !== this.__tripInviteLoadSeq
+        || requestTripId !== String(this.data.tripInviteId || '')
+        || requestInviteCode !== String(this.data.inviteCode || '')
+      ) return;
 
       if (!result || !result.success) {
         this.setData({
@@ -3141,10 +3212,10 @@ const customerHomePageConfig = {
 
       const trip = this.normalizePublishedTrip(result.trip || {});
       this.cacheTripDetailContext(trip.days, {
-        trip_id: this.data.tripInviteId,
+        trip_id: requestTripId,
         trip_no: trip.displayTripNo,
         overview: {
-          trip_id: this.data.tripInviteId,
+          trip_id: requestTripId,
           trip_no: trip.displayTripNo,
           city_summary: trip.displayCity,
         },
@@ -3183,6 +3254,11 @@ const customerHomePageConfig = {
         this.scrollToPendingCustomerHomeTarget();
       });
     } catch (error) {
+      if (
+        requestSeq !== this.__tripInviteLoadSeq
+        || requestTripId !== String(this.data.tripInviteId || '')
+        || requestInviteCode !== String(this.data.inviteCode || '')
+      ) return;
       console.error('[customer-home] getCustomerTripByInvite failed', error);
       this.setData({
         loading: false,
