@@ -1681,14 +1681,18 @@ const customerHomePageConfig = {
       const type = String(node.card_type || node.cardType || node.type || node.item_type || '').toLowerCase();
       const isMeal = type === 'meal' || /午餐|lunch/i.test(String(node.title || ''));
       const isDeparture = Boolean(node.isDeparture) || (!hasExplicitDeparture && index === 0 && !isMeal);
+      const isEnd = index === source.length - 1;
       const connectorTravelMeta = this.decorateConnectorTravelMeta(node.connectorTravelMeta || node.connector_travel_meta || null);
       const titleText = String(node.title || '').trim().toLocaleLowerCase();
       const subtitleText = String(node.subtitle || '').trim();
+      const nodeClass = [node.nodeClass || '', isDeparture ? 'depart' : '', isEnd ? 'end' : '']
+        .filter(Boolean)
+        .join(' ');
       return {
         ...node,
         subtitle: subtitleText && subtitleText.toLocaleLowerCase() !== titleText ? subtitleText : '',
         cap: isDeparture ? '出发' : (isMeal ? '用餐' : '到达'),
-        nodeClass: isDeparture ? 'depart' : (node.nodeClass || ''),
+        nodeClass,
         hasTail: index < source.length - 1,
         connectorTravelMeta,
         connector_travel_meta: connectorTravelMeta,

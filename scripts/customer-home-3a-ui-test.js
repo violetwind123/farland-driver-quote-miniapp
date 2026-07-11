@@ -23,6 +23,15 @@ assert.equal(
   'zero-duration placeholder travel metadata must not render a customer chip',
 );
 
+const endpointNodes = page.decorateRouteStopsFor3A([
+  { id: 'start', title: '上车出发', isDeparture: true },
+  { id: 'sight', title: '参访景点' },
+  { id: 'end', title: '今日终点' },
+]);
+assert(endpointNodes[0].nodeClass.split(/\s+/).includes('depart'), 'departure must render as a hollow endpoint');
+assert.equal(endpointNodes[1].nodeClass, '', 'intermediate destination must use the small solid node');
+assert(endpointNodes[2].nodeClass.split(/\s+/).includes('end'), 'last destination must render as a hollow endpoint');
+
 const normalized = page.normalizeTodayCard({
   trip_id: '2026NBC099_TEST',
   day_no: 1,
@@ -175,6 +184,8 @@ assert.equal((wxml.match(/class="segment-mode-label"/g) || []).length, 3, 'all t
 assert(!wxml.includes('segment-mode-icon'), 'itinerary travel metadata must not render the old CSS vehicle icon');
 assert(!wxss.includes('font-family: var(--font-serif)'), 'formal trip UI must use the shared sans-serif stack');
 assert(wxss.includes('repeating-linear-gradient'), 'formal trip hero must retain the shared subtle texture');
+assert(/\.stop-row \.node\s*\{[^}]*width:\s*14rpx;[^}]*height:\s*14rpx;/s.test(wxss), 'intermediate itinerary nodes must be the smaller 14rpx solid dots');
+assert(/\.stop-row \.node\.depart,\s*\.stop-row \.node\.end\s*\{[^}]*width:\s*20rpx;[^}]*background:\s*#FFFFFF;/s.test(wxss), 'start and end nodes must share the 20rpx hollow style');
 assert(wxml.includes("operator-preview-active"), 'operator preview must reserve its own toolbar space');
 assert(wxml.includes("operatorInvitePreview && !sheetInlineOpen"), 'inline sheet must keep its own unobstructed toolbar');
 const exitRule = (wxss.match(/\.op-preview-exit\s*\{([^}]*)\}/) || [])[1] || '';
