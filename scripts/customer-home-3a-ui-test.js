@@ -32,6 +32,25 @@ assert(endpointNodes[0].nodeClass.split(/\s+/).includes('depart'), 'departure mu
 assert.equal(endpointNodes[1].nodeClass, '', 'intermediate destination must use the small solid node');
 assert(endpointNodes[2].nodeClass.split(/\s+/).includes('end'), 'last destination must render as a hollow endpoint');
 
+const mealInterruptedRoute = page.attachConnectorTravelMeta([
+  { id: 'depart', title: '上车出发', isDeparture: true },
+  { id: 'school', title: 'The Peddie School', travelMeta: { hasContent: false } },
+  { id: 'lunch', card_type: 'meal', title: '午餐 Lunch', travelMeta: { hasContent: false } },
+  {
+    id: 'museum',
+    title: 'The Metropolitan Museum of Art',
+    travelMeta: {
+      hasContent: true,
+      icon_type: 'drive',
+      drive_time_text: '约1小时32分钟',
+      distance_text: '55.4mi',
+      traffic_text: '适中',
+    },
+  },
+]);
+assert.equal(mealInterruptedRoute[1].connectorTravelMeta.drive_time_text, '约1小时32分钟', 'travel to a later destination must stay under its true origin when an unlocated meal sits between them');
+assert.equal(mealInterruptedRoute[2].connectorTravelMeta, null, 'an unlocated meal must not steal the preceding route segment');
+
 const normalized = page.normalizeTodayCard({
   trip_id: '2026NBC099_TEST',
   day_no: 1,
@@ -51,6 +70,21 @@ const normalized = page.normalizeTodayCard({
 assert.equal(normalized.departureTime, '12:00', 'day header should fall back to the first itinerary node time');
 assert.equal(normalized.routeStops.length, 1, 'fallback display time must not synthesize a duplicate departure node');
 assert.equal(normalized.fullNodes[0].subtitle, '', 'identical title and subtitle should render once');
+
+const noPickupDeparture = page.normalizeTodayCard({
+  trip_id: 'DEPARTURE-COPY-TEST',
+  day_no: 1,
+  estimated_departure_time: '10:35',
+  destination_cards: [{ card_id: 'school', time: '10:50', title: 'The Peddie School' }],
+});
+assert.equal(noPickupDeparture.fullNodes[0].subtitle, '', 'synthetic departure must not repeat the expected-departure copy');
+
+const publishedNoPickupDeparture = page.buildTodayCardFromTripDay({
+  dayNo: 1,
+  estimatedDepartureTime: '10:35',
+  timelineItems: [{ id: 'school', time: '10:50', title: 'The Peddie School' }],
+}, { trip_id: 'DEPARTURE-COPY-TEST', trip_no: 'DEPARTURE-COPY-TEST', overview: {} });
+assert.equal(publishedNoPickupDeparture.fullNodes[0].subtitle, '', 'published invite departure must not repeat the expected-departure copy');
 
 const publishedCard = page.buildTodayCardFromTripDay({
   dayNo: 1,

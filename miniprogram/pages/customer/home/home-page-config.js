@@ -1674,6 +1674,31 @@ const customerHomePageConfig = {
     };
   },
 
+  isMealRouteStopWithoutTravel(item = {}) {
+    const type = String(item.card_type || item.cardType || item.type || item.item_type || '').toLowerCase();
+    const isMeal = type === 'meal' || /午餐|lunch/i.test(String(item.title || ''));
+    const meta = item.travelMeta || item.travel_meta || item.travel_snapshot || item.travelSnapshot || {};
+    return isMeal && !meta.hasContent;
+  },
+
+  attachConnectorTravelMeta(routeStops = []) {
+    const source = Array.isArray(routeStops) ? routeStops : [];
+    const connectors = source.map(() => null);
+    for (let destinationIndex = 1; destinationIndex < source.length; destinationIndex += 1) {
+      let originIndex = destinationIndex - 1;
+      while (originIndex > 0 && this.isMealRouteStopWithoutTravel(source[originIndex])) {
+        originIndex -= 1;
+      }
+      const connector = this.getConnectorTravelMeta(source[destinationIndex], source[originIndex]);
+      if (connector) connectors[originIndex] = connector;
+    }
+    return source.map((item, index) => ({
+      ...item,
+      connectorTravelMeta: connectors[index],
+      connector_travel_meta: connectors[index],
+    }));
+  },
+
   decorateRouteStopsFor3A(routeStops = []) {
     const source = Array.isArray(routeStops) ? routeStops : [];
     const hasExplicitDeparture = source.some((node) => Boolean(node && node.isDeparture));
@@ -2112,48 +2137,42 @@ const customerHomePageConfig = {
       id: `${card.day_no || card.dayNo || 'today'}-departure`,
       time: explicitDepartureTime || serviceWindowText || departureTime || '',
       title: '上车出发',
-      subtitle: this.formatPickupLine(pickupText) || '预计出发',
+      subtitle: this.formatPickupLine(pickupText),
       pickupAddress: pickupText,
       isDeparture: true,
     }] : [];
     const visibleRouteStops = this.mergeDepartureRouteStops(destinationCards, departureRouteStops);
-    const routeStops = visibleRouteStops.map((item, index, visibleItems) => {
-      const nextItem = visibleItems[index + 1] || null;
-      const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
-      return {
-        id: item.card_id || item.id,
-        card_id: item.card_id || item.id,
-        card_type: item.card_type || item.cardType || item.type || item.item_type || '',
-        type: item.type || item.item_type || item.card_type || '',
-        item_type: item.item_type || item.type || item.card_type || '',
-        day_no: item.day_no || item.dayNo || card.day_no || card.dayNo || 0,
-        sequence: item.sequence || 0,
-        parent_group_id: item.parent_group_id || item.parentGroupId || '',
-        parent_group_title: item.parent_group_title || item.parentGroupTitle || '',
-        group_sequence: item.group_sequence || item.groupSequence || 0,
-        display_snapshot: item.display_snapshot || item.displaySnapshot || null,
-        time_snapshot: item.time_snapshot || item.timeSnapshot || null,
-        travel_snapshot: item.travel_snapshot || item.travelSnapshot || null,
-        route_check_id: item.route_check_id || item.routeCheckId || '',
-        hotel_stay_id: item.hotel_stay_id || item.stay_id || '',
-        time: item.time,
-        title: item.title,
-        subtitle: item.subtitle || item.location || item.location_name || item.city || '',
-        location: item.location || item.location_name || '',
-        location_name: item.location_name || item.location || '',
-        pickupAddress: item.pickupAddress || '',
-        isDeparture: Boolean(item.isDeparture),
-        legMeta: item.legMeta || '',
-        travelMeta: item.travelMeta || item.travel_meta || null,
-        travel_meta: item.travel_meta || item.travelMeta || null,
-        connectorTravelMeta,
-        connector_travel_meta: connectorTravelMeta,
-        driveText: item.driveText || '',
-        distanceText: item.distanceText || '',
-        trafficText: item.trafficText || '',
-        trafficLevel: item.trafficLevel || 'unknown',
-      };
-    });
+    const routeStops = this.attachConnectorTravelMeta(visibleRouteStops.map((item) => ({
+      id: item.card_id || item.id,
+      card_id: item.card_id || item.id,
+      card_type: item.card_type || item.cardType || item.type || item.item_type || '',
+      type: item.type || item.item_type || item.card_type || '',
+      item_type: item.item_type || item.type || item.card_type || '',
+      day_no: item.day_no || item.dayNo || card.day_no || card.dayNo || 0,
+      sequence: item.sequence || 0,
+      parent_group_id: item.parent_group_id || item.parentGroupId || '',
+      parent_group_title: item.parent_group_title || item.parentGroupTitle || '',
+      group_sequence: item.group_sequence || item.groupSequence || 0,
+      display_snapshot: item.display_snapshot || item.displaySnapshot || null,
+      time_snapshot: item.time_snapshot || item.timeSnapshot || null,
+      travel_snapshot: item.travel_snapshot || item.travelSnapshot || null,
+      route_check_id: item.route_check_id || item.routeCheckId || '',
+      hotel_stay_id: item.hotel_stay_id || item.stay_id || '',
+      time: item.time,
+      title: item.title,
+      subtitle: item.subtitle || item.location || item.location_name || item.city || '',
+      location: item.location || item.location_name || '',
+      location_name: item.location_name || item.location || '',
+      pickupAddress: item.pickupAddress || '',
+      isDeparture: Boolean(item.isDeparture),
+      legMeta: item.legMeta || '',
+      travelMeta: item.travelMeta || item.travel_meta || null,
+      travel_meta: item.travel_meta || item.travelMeta || null,
+      driveText: item.driveText || '',
+      distanceText: item.distanceText || '',
+      trafficText: item.trafficText || '',
+      trafficLevel: item.trafficLevel || 'unknown',
+    })));
     const overviewNodeSet = this.buildOverviewNodeSet(routeStops, {
       dayNo: card.day_no || card.dayNo || 0,
       city: card.city_summary || card.city || '',
@@ -2574,20 +2593,12 @@ const customerHomePageConfig = {
       id: `${dayNo}-departure`,
       time: departureTime,
       title: '上车出发',
-      subtitle: this.formatPickupLine(pickupText) || '预计出发',
+      subtitle: this.formatPickupLine(pickupText),
       pickupAddress: pickupText,
       isDeparture: true,
     }] : [];
     const visibleRouteStops = this.mergeDepartureRouteStops(routeStopSource, departureRouteStops);
-    const routeStops = visibleRouteStops.map((item, index) => {
-      const nextItem = visibleRouteStops[index + 1] || null;
-      const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
-      return {
-        ...item,
-        connectorTravelMeta,
-        connector_travel_meta: connectorTravelMeta,
-      };
-    });
+    const routeStops = this.attachConnectorTravelMeta(visibleRouteStops);
     const overviewNodeSet = this.buildOverviewNodeSet(routeStops, {
       dayNo,
       city: day.city || overview.city_summary || overview.city_route_text || '',
