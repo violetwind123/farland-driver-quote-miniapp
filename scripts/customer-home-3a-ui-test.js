@@ -186,6 +186,9 @@ assert(!wxss.includes('font-family: var(--font-serif)'), 'formal trip UI must us
 assert(wxss.includes('repeating-linear-gradient'), 'formal trip hero must retain the shared subtle texture');
 assert(/\.stop-row \.node\s*\{[^}]*width:\s*14rpx;[^}]*height:\s*14rpx;/s.test(wxss), 'intermediate itinerary nodes must be the smaller 14rpx solid dots');
 assert(/\.stop-row \.node\.depart,\s*\.stop-row \.node\.end\s*\{[^}]*width:\s*20rpx;[^}]*background:\s*#FFFFFF;/s.test(wxss), 'start and end nodes must share the 20rpx hollow style');
+assert(/\.stop-row\s*\{[^}]*min-height:\s*64rpx;[^}]*padding-bottom:\s*10rpx;/s.test(wxss), 'timeline stop rows must keep readable vertical breathing room');
+assert(/\.stop-row \+ \.stop-row\s*\{[^}]*margin-top:\s*12rpx;/s.test(wxss), 'adjacent stops without travel metadata must not crowd each other');
+assert(/\.seg-row\s*\{[^}]*flex:\s*0 0 68rpx;/s.test(wxss), 'travel segments must keep readable vertical breathing room');
 assert(wxml.includes("operator-preview-active"), 'operator preview must reserve its own toolbar space');
 assert(wxml.includes("operatorInvitePreview && !sheetInlineOpen"), 'inline sheet must keep its own unobstructed toolbar');
 const exitRule = (wxss.match(/\.op-preview-exit\s*\{([^}]*)\}/) || [])[1] || '';

@@ -3101,12 +3101,18 @@
 .three-a-timeline {
   display: flex;
   flex-direction: column;
-  margin-top: 18rpx;
+  margin-top: 24rpx;
 }
 .stop-row {
   display: flex;
   gap: 24rpx;
+  min-height: 64rpx;
+  padding-bottom: 10rpx;
+  box-sizing: border-box;
   flex-shrink: 0;
+}
+.stop-row + .stop-row {
+  margin-top: 12rpx;
 }
 .stop-row .time-col {
   width: 80rpx;
@@ -3172,11 +3178,11 @@
 .stop-row .title {
   color: var(--ink-900, #1B2340);
   font-size: 27rpx;
-  line-height: 1.35;
+  line-height: 1.42;
   font-weight: 600;
 }
 .stop-row .sub {
-  margin-top: 6rpx;
+  margin-top: 8rpx;
   color: var(--ink-400, #9096A8);
   font-size: 22rpx;
   line-height: 1.4;
@@ -3195,7 +3201,7 @@
 .seg-row {
   display: flex;
   gap: 24rpx;
-  flex: 0 0 44rpx;
+  flex: 0 0 68rpx;
 }
 .seg-row .time-col {
   width: 80rpx;
@@ -3214,7 +3220,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 8rpx 0;
+  padding: 14rpx 0;
 }
 .drive-tag {
   display: inline-flex;
