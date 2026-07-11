@@ -2944,8 +2944,11 @@
   padding: 24rpx 32rpx 22rpx;
   border-radius: 32rpx;
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0, rgba(255, 255, 255, 0.10) 2rpx, transparent 7rpx) 0 0 / 38rpx 38rpx,
-    radial-gradient(circle, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0.05) 2rpx, transparent 6rpx) 18rpx 12rpx / 54rpx 54rpx,
+    radial-gradient(circle at 14% 27%, rgba(255, 255, 255, 0.18) 0, rgba(255, 255, 255, 0.07) 2rpx, transparent 8rpx),
+    radial-gradient(circle at 34% 76%, rgba(255, 255, 255, 0.14) 0, rgba(255, 255, 255, 0.05) 2rpx, transparent 7rpx),
+    radial-gradient(circle at 58% 22%, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0.04) 2rpx, transparent 7rpx),
+    radial-gradient(circle at 76% 70%, rgba(255, 255, 255, 0.15) 0, rgba(255, 255, 255, 0.05) 2rpx, transparent 8rpx),
+    radial-gradient(circle at 92% 36%, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0.04) 2rpx, transparent 7rpx),
     linear-gradient(145deg, #6974AB 0%, var(--brand-500, #6672A8) 56%, var(--brand-600, #57639E) 100%);
   box-shadow: 0 18rpx 42rpx rgba(27, 35, 64, 0.14);
 }

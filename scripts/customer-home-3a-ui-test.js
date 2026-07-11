@@ -364,7 +364,8 @@ assert.equal((wxml.match(/class="pickup-detail"/g) || []).length, 3, 'all three 
 assert(!wxml.includes('segment-mode-icon'), 'itinerary travel metadata must not render the old CSS vehicle icon');
 assert(!wxss.includes('font-family: var(--font-serif)'), 'formal trip UI must use the shared sans-serif stack');
 assert(!wxss.includes('repeating-linear-gradient'), 'formal trip hero must not use the rejected diagonal stripe texture');
-assert(/\.trip-hero\.three-a-hero\s*\{[^}]*radial-gradient\(circle,[^}]*\/ 38rpx 38rpx/s.test(wxss), 'formal trip hero must use the shared dotted halo texture');
+assert(/\.trip-hero\.three-a-hero\s*\{[^}]*radial-gradient\(circle at 14% 27%/s.test(wxss), 'formal trip hero must use sparse non-repeating point glows');
+assert(!/\.trip-hero\.three-a-hero\s*\{[^}]*\/\s*\d+rpx\s+\d+rpx/s.test(wxss), 'formal trip hero must not tile the point glows into a polka-dot pattern');
 assert(/\.stop-row \.node\s*\{[^}]*width:\s*14rpx;[^}]*height:\s*14rpx;/s.test(wxss), 'intermediate itinerary nodes must be the smaller 14rpx solid dots');
 assert(/\.stop-row \.node\.pickup,\s*\.stop-row \.node\.depart,\s*\.stop-row \.node\.end\s*\{[^}]*width:\s*20rpx;[^}]*background:\s*#FFFFFF;/s.test(wxss), 'pickup, start, and end nodes must share the 20rpx hollow style');
 assert(/\.pickup-detail\s*\{[^}]*color:\s*var\(--brand-600/s.test(wxss), 'international clearance copy must use the restrained itinerary accent style');
