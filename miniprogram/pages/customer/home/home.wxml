@@ -165,7 +165,7 @@
             </view>
             <view wx:if="{{tripInviteTrip.todayOverviewCard.departureTime || tripInviteTrip.todayOverviewCard.startTime}}" class="day-head-right">
               <view class="depart-time">{{tripInviteTrip.todayOverviewCard.departureTime || tripInviteTrip.todayOverviewCard.startTime}}</view>
-              <view class="depart-cap">预计出发</view>
+              <view class="depart-cap">{{tripInviteTrip.todayOverviewCard.departureCaption || '预计出发'}}</view>
             </view>
           </view>
 
@@ -373,7 +373,7 @@
                     </view>
                     <view wx:if="{{todayCard.departureTime || todayCard.startTime}}" class="day-head-right">
                       <view class="depart-time">{{todayCard.departureTime || todayCard.startTime}}</view>
-                      <view class="depart-cap">预计出发</view>
+                      <view class="depart-cap">{{todayCard.departureCaption || '预计出发'}}</view>
                     </view>
                   </view>
 
@@ -610,7 +610,7 @@
           </view>
           <view wx:if="{{todayCard.departureTime || todayCard.startTime}}" class="day-head-right">
             <view class="depart-time">{{todayCard.departureTime || todayCard.startTime}}</view>
-            <view class="depart-cap">预计出发</view>
+            <view class="depart-cap">{{todayCard.departureCaption || '预计出发'}}</view>
           </view>
         </view>
 

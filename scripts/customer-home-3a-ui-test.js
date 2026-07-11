@@ -162,6 +162,66 @@ assert.equal(publishedCard.departureTime, '12:00', 'published invite card should
 assert.equal(publishedCard.routeStops.length, 1, 'published invite fallback must not duplicate the first node');
 assert.equal(publishedCard.fullNodes[0].subtitle, '', 'published invite card should suppress duplicate location text');
 
+const airportPickupCard = page.buildTodayCardFromTripDay({
+  dayNo: 1,
+  estimatedDepartureTime: '22:42',
+  timelineItems: [
+    {
+      id: 'jfk-pickup',
+      card_type: 'transfer',
+      time: '23:00',
+      title: 'JFK Airport',
+      route: 'JFK Airport (接机) → JFK Airport',
+      note: '接机后前往酒店',
+      ui_flags: { show_route: false, show_travel_meta: true },
+      travel_snapshot: { drive_time_text: '0:03', distance_text: '1.6mi', traffic_text: 'Good' },
+    },
+    {
+      id: 'hotel',
+      card_type: 'hotel_arrival_card',
+      time: '次日 01:20',
+      title: 'Hyatt Regency Princeton',
+      travel_snapshot: { drive_time_text: '1:20', distance_text: '64.8mi', traffic_text: 'Good' },
+    },
+  ],
+}, { trip_id: 'AIRPORT-PICKUP-TEST', trip_no: 'AIRPORT-PICKUP-TEST', overview: {} });
+assert.equal(airportPickupCard.departureTime, '23:00', 'airport pickup header must use the real pickup time, not a synthetic pre-airport departure');
+assert.equal(airportPickupCard.departureCaption, '接机时间');
+assert.deepEqual(airportPickupCard.routeStops.map((item) => item.title), ['JFK Airport', 'Hyatt Regency Princeton']);
+assert.deepEqual(airportPickupCard.displayRouteStops.map((item) => item.cap), ['接机', '到达']);
+assert(airportPickupCard.displayRouteStops[0].nodeClass.split(/\s+/).includes('pickup'), 'airport pickup must render as the hollow start endpoint');
+assert.equal(airportPickupCard.displayRouteStops[0].connectorTravelMeta.drive_time_text, '约1小时20分钟');
+assert.equal(airportPickupCard.dayStats.driveText, '1h20min');
+assert.equal(airportPickupCard.dayStats.distanceText, '64.8 英里');
+assert.equal(airportPickupCard.timeline_items[0].ui_flags.show_travel_meta, false, 'phantom inbound airport leg must stay hidden on the day-detail card');
+
+const normalizedAirportPickupCard = page.normalizeTodayCard({
+  day_no: 1,
+  estimated_departure_time: '22:42',
+  service_window: { label: '22:42 出发' },
+  destination_cards: [
+    {
+      card_id: 'jfk-pickup',
+      card_type: 'transfer',
+      time: '23:00',
+      title: 'JFK Airport',
+      route: 'Airport pickup at JFK',
+      travel_snapshot: { drive_time_text: '0:03', distance_text: '1.6mi' },
+    },
+    {
+      card_id: 'hotel',
+      card_type: 'hotel_arrival_card',
+      time: '次日 01:20',
+      title: 'Hyatt Regency Princeton',
+      travel_snapshot: { drive_time_text: '1:20', distance_text: '64.8mi' },
+    },
+  ],
+});
+assert.equal(normalizedAirportPickupCard.departureTime, '23:00');
+assert.equal(normalizedAirportPickupCard.serviceWindowText, '23:00');
+assert.equal(normalizedAirportPickupCard.service_window.label, '23:00 接机');
+assert.deepEqual(normalizedAirportPickupCard.displayRouteStops.map((item) => item.cap), ['接机', '到达']);
+
 const ordered = page.normalizeTodayCard({
   trip_id: 'ORDER-TEST',
   day_no: 2,
@@ -270,12 +330,13 @@ assert.equal(page.normalizeTodayHotelCard(dayTwoHotel).checkOutDate, '2026-07-13
 const wxml = fs.readFileSync(path.join(__dirname, '../miniprogram/pages/customer/home/home.wxml'), 'utf8');
 const wxss = fs.readFileSync(path.join(__dirname, '../miniprogram/pages/customer/home/home.wxss'), 'utf8');
 assert.equal((wxml.match(/class="segment-mode-label"/g) || []).length, 3, 'all three itinerary render paths must use the text travel-mode label');
-assert.equal((wxml.match(/class="depart-cap">预计出发<\/view>/g) || []).length, 3, 'all three itinerary render paths must show expected departure only in the day header');
+assert.equal((wxml.match(/departureCaption \|\| '预计出发'/g) || []).length, 3, 'all three itinerary render paths must support airport-pickup header copy');
 assert(!wxml.includes('segment-mode-icon'), 'itinerary travel metadata must not render the old CSS vehicle icon');
 assert(!wxss.includes('font-family: var(--font-serif)'), 'formal trip UI must use the shared sans-serif stack');
-assert(wxss.includes('repeating-linear-gradient'), 'formal trip hero must retain the shared subtle texture');
+assert(!wxss.includes('repeating-linear-gradient'), 'formal trip hero must not use the rejected diagonal stripe texture');
+assert(/\.trip-hero\.three-a-hero\s*\{[^}]*radial-gradient\(circle,[^}]*\/ 38rpx 38rpx/s.test(wxss), 'formal trip hero must use the shared dotted halo texture');
 assert(/\.stop-row \.node\s*\{[^}]*width:\s*14rpx;[^}]*height:\s*14rpx;/s.test(wxss), 'intermediate itinerary nodes must be the smaller 14rpx solid dots');
-assert(/\.stop-row \.node\.depart,\s*\.stop-row \.node\.end\s*\{[^}]*width:\s*20rpx;[^}]*background:\s*#FFFFFF;/s.test(wxss), 'start and end nodes must share the 20rpx hollow style');
+assert(/\.stop-row \.node\.pickup,\s*\.stop-row \.node\.depart,\s*\.stop-row \.node\.end\s*\{[^}]*width:\s*20rpx;[^}]*background:\s*#FFFFFF;/s.test(wxss), 'pickup, start, and end nodes must share the 20rpx hollow style');
 assert(/\.stop-row \.node-col,\s*\.seg-row \.node-col\s*\{[^}]*position:\s*relative;[^}]*width:\s*20rpx;/s.test(wxss), 'timeline node columns must establish the centered line axis');
 assert(/\.stop-row \.node-col \.link\s*\{[^}]*top:\s*16rpx;[^}]*bottom:\s*-40rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'stop connectors must run from one node center to the next');
 assert(/\.seg-row \.node-col \.link\s*\{[^}]*top:\s*0;[^}]*bottom:\s*-16rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'travel-segment connectors must continue through the next node center');

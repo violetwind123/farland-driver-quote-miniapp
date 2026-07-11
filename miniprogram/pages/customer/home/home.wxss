@@ -2944,8 +2944,8 @@
   padding: 24rpx 32rpx 22rpx;
   border-radius: 32rpx;
   background:
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0, rgba(255, 255, 255, 0.035) 1rpx, transparent 1rpx, transparent 16rpx),
-    repeating-linear-gradient(45deg, rgba(27, 35, 64, 0.025) 0, rgba(27, 35, 64, 0.025) 1rpx, transparent 1rpx, transparent 20rpx),
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0, rgba(255, 255, 255, 0.10) 2rpx, transparent 7rpx) 0 0 / 38rpx 38rpx,
+    radial-gradient(circle, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0.05) 2rpx, transparent 6rpx) 18rpx 12rpx / 54rpx 54rpx,
     linear-gradient(145deg, #6974AB 0%, var(--brand-500, #6672A8) 56%, var(--brand-600, #57639E) 100%);
   box-shadow: 0 18rpx 42rpx rgba(27, 35, 64, 0.14);
 }
@@ -3176,6 +3176,7 @@
   border: 3rpx solid #C4C8D4;
   box-sizing: border-box;
 }
+.stop-row .node.pickup,
 .stop-row .node.depart,
 .stop-row .node.end {
   width: 20rpx;

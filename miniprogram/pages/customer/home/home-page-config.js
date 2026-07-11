@@ -1724,7 +1724,8 @@ const customerHomePageConfig = {
     return source.map((node, index) => {
       const type = String(node.card_type || node.cardType || node.type || node.item_type || '').toLowerCase();
       const isMeal = type === 'meal' || /午餐|lunch/i.test(String(node.title || ''));
-      const isDeparture = Boolean(node.isDeparture) || (!hasExplicitDeparture && index === 0 && !isMeal);
+      const isAirportPickup = Boolean(node.isAirportPickup) || this.isAirportPickupRouteStop(node);
+      const isDeparture = !isAirportPickup && (Boolean(node.isDeparture) || (!hasExplicitDeparture && index === 0 && !isMeal));
       const isEnd = index === source.length - 1;
       const connectorTravelMeta = this.decorateConnectorTravelMeta(node.connectorTravelMeta || node.connector_travel_meta || null);
       const titleText = String(node.title || '').trim().toLocaleLowerCase();
@@ -1733,13 +1734,14 @@ const customerHomePageConfig = {
         (total, character) => total + (/[^\x00-\x7F]/.test(character) ? 2 : 1),
         0,
       );
-      const nodeClass = [node.nodeClass || '', isDeparture ? 'depart' : '', isEnd ? 'end' : '']
+      const nodeClass = [node.nodeClass || '', isAirportPickup ? 'pickup' : '', isDeparture ? 'depart' : '', isEnd ? 'end' : '']
         .filter(Boolean)
         .join(' ');
       return {
         ...node,
         subtitle: subtitleText && subtitleText.toLocaleLowerCase() !== titleText ? subtitleText : '',
-        cap: isDeparture ? '出发' : (isMeal ? '用餐' : '到达'),
+        isAirportPickup,
+        cap: isAirportPickup ? '接机' : (isDeparture ? '出发' : (isMeal ? '用餐' : '到达')),
         nodeClass,
         timelineTitleLong: titleWidthUnits > 38,
         hasTail: index < source.length - 1,
@@ -2073,6 +2075,35 @@ const customerHomePageConfig = {
       || '';
   },
 
+  isAirportPickupRouteStop(item = {}) {
+    const snapshot = item.display_snapshot || item.displaySnapshot || {};
+    const text = [
+      item.route,
+      item.note,
+      item.customer_note,
+      item.task_description,
+      item.execution_note,
+      item.service_type,
+      item.service_type_label,
+      snapshot.entity_type_text,
+    ].map((value) => String(value || '').trim()).filter(Boolean).join(' ');
+    return /接机|airport\s*(?:pick[ -]?up|arrival transfer)/i.test(text);
+  },
+
+  normalizeAirportPickupStartCard(item = {}, index = 0) {
+    if (index !== 0 || !this.isAirportPickupRouteStop(item)) return item;
+    const uiFlags = item.ui_flags || item.uiFlags || {};
+    return {
+      ...item,
+      isAirportPickup: true,
+      ui_flags: {
+        ...uiFlags,
+        show_route: false,
+        show_travel_meta: false,
+      },
+    };
+  },
+
   mergeDepartureRouteStops(routeStops = [], departureStops = []) {
     const stops = Array.isArray(routeStops) ? routeStops : [];
     const departure = Array.isArray(departureStops) ? departureStops[0] : null;
@@ -2141,7 +2172,7 @@ const customerHomePageConfig = {
       const time = this.formatDisplayTime(item.time || '');
       const arrivalEstimate = this.formatDisplayTime(item.arrival_estimate || '');
       const routeLeg = this.normalizeRouteLegMeta(item);
-      return {
+      return this.normalizeAirportPickupStartCard({
         ...item,
         ...routeLeg,
         time,
@@ -2149,7 +2180,7 @@ const customerHomePageConfig = {
         card_id: item.card_id || item.id || `${item.time || 'node'}-${index}`,
         sequence: item.sequence || index + 1,
         chipLabel: `${time || ''} ${item.title || ''}`.trim(),
-      };
+      }, index);
     });
     const serviceWindowText = this.formatDisplayTime(
       (card.service_window && card.service_window.label) || card.service_window || card.depart_time || '',
@@ -2169,7 +2200,9 @@ const customerHomePageConfig = {
     const firstNodeTime = this.extractTimeForDisplay(
       ((destinationCards.find((item) => item && item.time) || {}).time) || '',
     );
-    const departureTime = explicitDepartureTime || firstNodeTime;
+    const isAirportPickup = this.isAirportPickupRouteStop(destinationCards[0]);
+    const departureTime = isAirportPickup ? firstNodeTime : (explicitDepartureTime || firstNodeTime);
+    const displayServiceWindowText = isAirportPickup ? departureTime : serviceWindowText;
     const daySectionCopy = this.buildDaySectionCopy(card.day_no || card.dayNo || 0, card.date || '');
     const hotel = card.hotel
       ? {
@@ -2179,7 +2212,7 @@ const customerHomePageConfig = {
       : null;
     const pickupText = this.getDayPickupText(card);
     const mergeSamePlaceDeparture = this.shouldMergeSamePlaceDeparture(destinationCards[0], departureTime, pickupText);
-    const departureRouteStops = !mergeSamePlaceDeparture && (pickupText || explicitDepartureTime || serviceWindowText) ? [{
+    const departureRouteStops = !isAirportPickup && !mergeSamePlaceDeparture && (pickupText || explicitDepartureTime || serviceWindowText) ? [{
       id: `${card.day_no || card.dayNo || 'today'}-departure`,
       time: explicitDepartureTime || serviceWindowText || departureTime || '',
       title: '上车出发',
@@ -2211,6 +2244,7 @@ const customerHomePageConfig = {
       location_name: item.location_name || item.location || '',
       pickupAddress: item.pickupAddress || '',
       isDeparture: Boolean(item.isDeparture),
+      isAirportPickup: Boolean(item.isAirportPickup),
       legMeta: item.legMeta || '',
       travelMeta: item.travelMeta || item.travel_meta || null,
       travel_meta: item.travel_meta || item.travelMeta || null,
@@ -2240,12 +2274,17 @@ const customerHomePageConfig = {
       overviewSubtitle: this.buildOverviewSubtitle(card.day_no || card.dayNo || 0, card.weekday || '', card.date || ''),
       timeline_items: timelineItems,
       destination_cards: destinationCards,
-      serviceWindowText,
+      serviceWindowText: displayServiceWindowText,
       departureTime,
-      estimated_departure_time_raw: card.estimated_departure_time_raw || card.estimatedDepartureTimeRaw || '',
-      estimated_departure_time: card.estimated_departure_time || card.estimatedDepartureTime || departureTime || '',
+      departureCaption: isAirportPickup ? '接机时间' : '预计出发',
+      isAirportPickup,
+      service_type: isAirportPickup ? 'transfer' : card.service_type,
+      service_window: isAirportPickup && departureTime ? { label: `${departureTime} 接机` } : card.service_window,
+      depart_time: isAirportPickup ? departureTime : card.depart_time,
+      estimated_departure_time_raw: isAirportPickup ? departureTime : (card.estimated_departure_time_raw || card.estimatedDepartureTimeRaw || ''),
+      estimated_departure_time: isAirportPickup ? departureTime : (card.estimated_departure_time || card.estimatedDepartureTime || departureTime || ''),
       startTime: departureTime || card.startTime || card.start_time_text || '',
-      transportTitle: (card.transport_summary && card.transport_summary.title) || (card.service_type === 'charter' ? '今日包车服务' : '今日接送安排'),
+      transportTitle: (card.transport_summary && card.transport_summary.title) || (isAirportPickup || card.service_type !== 'charter' ? '今日接送安排' : '今日包车服务'),
       transportStatusText: driverAssigned
         ? ''
         : ((card.transport_summary && card.transport_summary.status_text) || '车辆已确认，司机信息待同步'),
@@ -2621,22 +2660,23 @@ const customerHomePageConfig = {
       || (assignedDriver && (assignedDriver.name || assignedDriver.phone) ? 'assigned' : 'pending');
     const isDriverAssigned = driverVisibility === 'assigned' && assignedDriver;
     const rawTimelineItems = day.timelineItems || [];
-    const routeStopSource = rawTimelineItems.map((item, index) => ({
+    const routeStopSource = rawTimelineItems.map((item, index) => this.normalizeAirportPickupStartCard({
       ...item,
       ...this.normalizeRouteLegMeta(item),
       id: item.id || `${dayNo}-${index}`,
       time: item.time || '',
       title: item.title || '行程节点',
       subtitle: item.location || item.location_name || item.city || '',
-    }));
+    }, index));
     const pickupText = this.getDayPickupText(day);
     const explicitDepartureTime = this.resolveDayDepartureTime(day);
     const firstNodeTime = this.extractTimeForDisplay(
       ((rawTimelineItems.find((item) => item && item.time) || {}).time) || '',
     );
-    const departureTime = explicitDepartureTime || firstNodeTime;
+    const isAirportPickup = this.isAirportPickupRouteStop(routeStopSource[0]);
+    const departureTime = isAirportPickup ? firstNodeTime : (explicitDepartureTime || firstNodeTime);
     const mergeSamePlaceDeparture = this.shouldMergeSamePlaceDeparture(routeStopSource[0], departureTime, pickupText);
-    const departureRouteStops = !mergeSamePlaceDeparture && (pickupText || explicitDepartureTime) ? [{
+    const departureRouteStops = !isAirportPickup && !mergeSamePlaceDeparture && (pickupText || explicitDepartureTime) ? [{
       id: `${dayNo}-departure`,
       time: departureTime,
       title: '上车出发',
@@ -2652,7 +2692,7 @@ const customerHomePageConfig = {
       nodeCount: rawTimelineItems.length,
     });
     const dayStats = this.buildDayTravelStats(overviewNodeSet.fullNodes || routeStops);
-    const timelineItems = rawTimelineItems.map((item, index) => ({
+    const timelineItems = rawTimelineItems.map((item, index) => this.normalizeAirportPickupStartCard({
       ...this.normalizeRouteLegMeta(item),
       card_id: item.card_id || item.id || `${dayNo}-${index}`,
       card_type: item.card_type || item.cardType || item.type || item.item_type || 'custom',
@@ -2684,7 +2724,7 @@ const customerHomePageConfig = {
       latitude: item.latitude || item.lat || item.map_latitude || '',
       longitude: item.longitude || item.lng || item.map_longitude || '',
       map_url: item.map_url || '',
-    }));
+    }, index));
     const daySectionCopy = this.buildDaySectionCopy(dayNo, day.date || '');
     const cardStatusText = day.hasTimeConflict ? '待复核' : '已确认';
     const cardVehicleSummary = day.transportBadge || transportSummary.vehicle_summary || transportSummary.vehicle_class || '车辆待确认';
@@ -2712,13 +2752,15 @@ const customerHomePageConfig = {
       weatherText: day.weatherText || day.weather_text || '',
       weatherKind: day.weatherKind || day.weather_kind || 'sunny',
       dayStats,
-      service_type: transportSummary.service_type || transportSummary.type || 'charter',
+      service_type: isAirportPickup ? 'transfer' : (transportSummary.service_type || transportSummary.type || 'charter'),
       startTime: departureTime || day.startTime || '',
       departureTime,
-      estimated_departure_time_raw: day.estimatedDepartureTimeRaw || day.estimated_departure_time_raw || '',
-      estimated_departure_time: day.estimatedDepartureTime || day.estimated_departure_time || departureTime || '',
+      departureCaption: isAirportPickup ? '接机时间' : '预计出发',
+      isAirportPickup,
+      estimated_departure_time_raw: isAirportPickup ? departureTime : (day.estimatedDepartureTimeRaw || day.estimated_departure_time_raw || ''),
+      estimated_departure_time: isAirportPickup ? departureTime : (day.estimatedDepartureTime || day.estimated_departure_time || departureTime || ''),
       depart_time: departureTime || day.startTime || '',
-      service_window: departureTime ? { label: `${departureTime} 出发` } : null,
+      service_window: departureTime ? { label: `${departureTime} ${isAirportPickup ? '接机' : '出发'}` } : null,
       vehicle_summary: day.transportBadge || transportSummary.vehicle_summary || transportSummary.vehicle_class || '车辆待确认',
       party_summary: transportSummary.party_summary || '',
       transport_summary: transportSummary && Object.keys(transportSummary).length ? transportSummary : (day.transportBadge ? { title: day.transportBadge } : null),
