@@ -3137,6 +3137,7 @@
 }
 .stop-row .node-col,
 .seg-row .node-col {
+  position: relative;
   width: 20rpx;
   flex-shrink: 0;
   display: flex;
@@ -3150,6 +3151,7 @@
   border-radius: 999rpx;
   background: var(--brand-500, #6672A8);
   flex-shrink: 0;
+  z-index: 1;
 }
 .stop-row .node.future {
   background: #FFFFFF;
@@ -3166,8 +3168,11 @@
   box-sizing: border-box;
 }
 .stop-row .node-col .link {
-  width: 1rpx;
-  flex: 1;
+  position: absolute;
+  top: 16rpx;
+  bottom: -40rpx;
+  left: 9rpx;
+  width: 2rpx;
   background: rgba(27, 35, 64, 0.10);
 }
 .stop-body {
@@ -3211,8 +3216,11 @@
   justify-content: center;
 }
 .seg-row .node-col .link {
-  width: 1rpx;
-  align-self: stretch;
+  position: absolute;
+  top: 0;
+  bottom: -16rpx;
+  left: 9rpx;
+  width: 2rpx;
   background: rgba(27, 35, 64, 0.10);
 }
 .seg-row .tag-slot {
