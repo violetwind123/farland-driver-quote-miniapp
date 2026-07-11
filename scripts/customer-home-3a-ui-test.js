@@ -79,12 +79,42 @@ const noPickupDeparture = page.normalizeTodayCard({
 });
 assert.equal(noPickupDeparture.fullNodes[0].subtitle, '', 'synthetic departure must not repeat the expected-departure copy');
 
+const samePlaceDeparture = page.normalizeTodayCard({
+  trip_id: 'SAME-PLACE-DEPARTURE-TEST',
+  day_no: 1,
+  estimated_departure_time: '10:35',
+  destination_cards: [{
+    card_id: 'school',
+    time: '10:50',
+    title: 'The Peddie School',
+    arrival_estimate: '10:35',
+    travel_snapshot: { source_drive_time_text: '0:00', drive_time_text: '' },
+  }],
+});
+assert.equal(samePlaceDeparture.fullNodes.length, 1, 'same-place zero-distance departure must not create a duplicate timeline row');
+assert.equal(samePlaceDeparture.fullNodes[0].title, 'The Peddie School');
+assert(samePlaceDeparture.fullNodes[0].nodeClass.split(/\s+/).includes('depart'), 'the first real same-place stop must become the hollow start endpoint');
+
 const publishedNoPickupDeparture = page.buildTodayCardFromTripDay({
   dayNo: 1,
   estimatedDepartureTime: '10:35',
   timelineItems: [{ id: 'school', time: '10:50', title: 'The Peddie School' }],
 }, { trip_id: 'DEPARTURE-COPY-TEST', trip_no: 'DEPARTURE-COPY-TEST', overview: {} });
 assert.equal(publishedNoPickupDeparture.fullNodes[0].subtitle, '', 'published invite departure must not repeat the expected-departure copy');
+
+const publishedSamePlaceDeparture = page.buildTodayCardFromTripDay({
+  dayNo: 1,
+  estimatedDepartureTime: '10:35',
+  timelineItems: [{
+    id: 'school',
+    time: '10:50',
+    title: 'The Peddie School',
+    arrival_estimate: '10:35',
+    travel_snapshot: { source_drive_time_text: '0:00', drive_time_text: '' },
+  }],
+}, { trip_id: 'SAME-PLACE-DEPARTURE-TEST', trip_no: 'SAME-PLACE-DEPARTURE-TEST', overview: {} });
+assert.equal(publishedSamePlaceDeparture.fullNodes.length, 1, 'published same-place departure must not create a duplicate timeline row');
+assert.equal(publishedSamePlaceDeparture.fullNodes[0].title, 'The Peddie School');
 
 const publishedCard = page.buildTodayCardFromTripDay({
   dayNo: 1,
@@ -215,6 +245,7 @@ assert.equal(page.normalizeTodayHotelCard(dayTwoHotel).checkOutDate, '2026-07-13
 const wxml = fs.readFileSync(path.join(__dirname, '../miniprogram/pages/customer/home/home.wxml'), 'utf8');
 const wxss = fs.readFileSync(path.join(__dirname, '../miniprogram/pages/customer/home/home.wxss'), 'utf8');
 assert.equal((wxml.match(/class="segment-mode-label"/g) || []).length, 3, 'all three itinerary render paths must use the text travel-mode label');
+assert.equal((wxml.match(/class="depart-cap">预计出发<\/view>/g) || []).length, 3, 'all three itinerary render paths must show expected departure only in the day header');
 assert(!wxml.includes('segment-mode-icon'), 'itinerary travel metadata must not render the old CSS vehicle icon');
 assert(!wxss.includes('font-family: var(--font-serif)'), 'formal trip UI must use the shared sans-serif stack');
 assert(wxss.includes('repeating-linear-gradient'), 'formal trip hero must retain the shared subtle texture');

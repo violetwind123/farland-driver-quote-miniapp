@@ -2075,6 +2075,27 @@ const customerHomePageConfig = {
     ];
   },
 
+  shouldMergeSamePlaceDeparture(firstStop = {}, departureTime = '', pickupText = '') {
+    if (!firstStop || pickupText) return false;
+    const travel = firstStop.travel_snapshot || firstStop.travelSnapshot || {};
+    const rawDuration = String(
+      travel.source_drive_time_text
+        || travel.drive_time_text
+        || firstStop.source_drive_time_text
+        || firstStop.drive_time_text
+        || firstStop.drive_time
+        || '',
+    ).trim();
+    if (!/^(?:0+:)?0{1,2}(?::0{2})?$|^0\s*(?:min|mins|minute|minutes|分钟)$/i.test(rawDuration)) return false;
+    const firstArrival = this.extractTimeForDisplay(
+      firstStop.arrival_estimate
+        || (firstStop.time_snapshot && firstStop.time_snapshot.arrival_time)
+        || (firstStop.timeSnapshot && firstStop.timeSnapshot.arrival_time)
+        || '',
+    );
+    return Boolean(firstArrival && departureTime && firstArrival === departureTime);
+  },
+
   normalizeTodayCard(card) {
     if (!card) return null;
     const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
@@ -2133,7 +2154,8 @@ const customerHomePageConfig = {
         }
       : null;
     const pickupText = this.getDayPickupText(card);
-    const departureRouteStops = pickupText || explicitDepartureTime || serviceWindowText ? [{
+    const mergeSamePlaceDeparture = this.shouldMergeSamePlaceDeparture(destinationCards[0], departureTime, pickupText);
+    const departureRouteStops = !mergeSamePlaceDeparture && (pickupText || explicitDepartureTime || serviceWindowText) ? [{
       id: `${card.day_no || card.dayNo || 'today'}-departure`,
       time: explicitDepartureTime || serviceWindowText || departureTime || '',
       title: '上车出发',
@@ -2589,7 +2611,8 @@ const customerHomePageConfig = {
       ((rawTimelineItems.find((item) => item && item.time) || {}).time) || '',
     );
     const departureTime = explicitDepartureTime || firstNodeTime;
-    const departureRouteStops = pickupText || explicitDepartureTime ? [{
+    const mergeSamePlaceDeparture = this.shouldMergeSamePlaceDeparture(routeStopSource[0], departureTime, pickupText);
+    const departureRouteStops = !mergeSamePlaceDeparture && (pickupText || explicitDepartureTime) ? [{
       id: `${dayNo}-departure`,
       time: departureTime,
       title: '上车出发',
