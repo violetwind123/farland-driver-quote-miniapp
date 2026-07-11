@@ -171,7 +171,7 @@
 
           <view class="timeline three-a-timeline">
             <block wx:for="{{tripInviteTrip.todayOverviewCard.displayRouteStops || tripInviteTrip.todayOverviewCard.routeStops}}" wx:key="id">
-              <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}}">
+              <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}} {{item.detailText ? 'has-detail' : ''}}">
               <view class="stop-row">
                 <view class="time-col">
                   <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -184,6 +184,7 @@
                 <view class="stop-body">
                   <view class="title">{{item.title}}<text wx:if="{{item.hasChange}}" class="chg-badge">时间有变</text></view>
                   <view wx:if="{{item.subtitle}}" class="sub">{{item.subtitle}}</view>
+                  <view wx:if="{{item.detailText}}" class="pickup-detail">{{item.detailText}}</view>
                 </view>
               </view>
               <view wx:if="{{item.connectorTravelMeta && item.connectorTravelMeta.hasContent}}" class="seg-row">
@@ -379,7 +380,7 @@
 
                   <view class="timeline three-a-timeline">
                     <block wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id">
-                      <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}}">
+                      <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}} {{item.detailText ? 'has-detail' : ''}}">
                       <view class="stop-row">
                         <view class="time-col">
                           <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -392,6 +393,7 @@
                         <view class="stop-body">
                           <view class="title">{{item.title}}<text wx:if="{{item.hasChange}}" class="chg-badge">时间有变</text></view>
                           <view wx:if="{{item.subtitle}}" class="sub">{{item.subtitle}}</view>
+                          <view wx:if="{{item.detailText}}" class="pickup-detail">{{item.detailText}}</view>
                         </view>
                       </view>
                       <view wx:if="{{item.connectorTravelMeta && item.connectorTravelMeta.hasContent}}" class="seg-row">
@@ -616,7 +618,7 @@
 
         <view class="timeline three-a-timeline">
           <block wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id">
-            <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}}">
+            <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}} {{item.detailText ? 'has-detail' : ''}}">
             <view class="stop-row">
               <view class="time-col">
                 <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -629,6 +631,7 @@
               <view class="stop-body">
                 <view class="title">{{item.title}}<text wx:if="{{item.hasChange}}" class="chg-badge">时间有变</text></view>
                 <view wx:if="{{item.subtitle}}" class="sub">{{item.subtitle}}</view>
+                <view wx:if="{{item.detailText}}" class="pickup-detail">{{item.detailText}}</view>
               </view>
             </view>
             <view wx:if="{{item.connectorTravelMeta && item.connectorTravelMeta.hasContent}}" class="seg-row">

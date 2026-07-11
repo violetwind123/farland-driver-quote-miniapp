@@ -167,33 +167,53 @@ const airportPickupCard = page.buildTodayCardFromTripDay({
   estimatedDepartureTime: '22:42',
   timelineItems: [
     {
+      id: 'untimed-lunch-placeholder',
+      card_type: 'meal',
+      title: '午餐 Lunch',
+      note: '午餐时间请自行安排',
+    },
+    {
       id: 'jfk-pickup',
       card_type: 'transfer',
       time: '23:00',
       title: 'JFK Airport',
       route: 'JFK Airport (接机) → JFK Airport',
-      note: '接机后前往酒店',
+      note: '接机：韩亚航空 OZ224（21:05 ICN → 23:00 JFK）抵达；入境及提取行李预留约 60 分钟。Terminal 1 到达层。',
       ui_flags: { show_route: false, show_travel_meta: true },
       travel_snapshot: { drive_time_text: '0:03', distance_text: '1.6mi', traffic_text: 'Good' },
     },
     {
       id: 'hotel',
       card_type: 'hotel_arrival_card',
-      time: '次日 01:20',
+      time: '次日 01:19',
       title: 'Hyatt Regency Princeton',
-      travel_snapshot: { drive_time_text: '1:20', distance_text: '64.8mi', traffic_text: 'Good' },
+      travel_snapshot: { drive_time_text: '1:19', distance_text: '64.7mi', traffic_text: 'Good' },
     },
   ],
 }, { trip_id: 'AIRPORT-PICKUP-TEST', trip_no: 'AIRPORT-PICKUP-TEST', overview: {} });
-assert.equal(airportPickupCard.departureTime, '23:00', 'airport pickup header must use the real pickup time, not a synthetic pre-airport departure');
-assert.equal(airportPickupCard.departureCaption, '接机时间');
-assert.deepEqual(airportPickupCard.routeStops.map((item) => item.title), ['JFK Airport', 'Hyatt Regency Princeton']);
-assert.deepEqual(airportPickupCard.displayRouteStops.map((item) => item.cap), ['接机', '到达']);
+assert.equal(airportPickupCard.departureTime, '23:00', 'airport pickup header must use the scheduled flight arrival, not a synthetic pre-airport departure');
+assert.equal(airportPickupCard.departureCaption, '航班抵达');
+assert.equal(airportPickupCard.service_window.label, '次日 00:00–01:00 接机');
+assert.deepEqual(airportPickupCard.routeStops.map((item) => item.title), ['韩亚航空 OZ224 · JFK Airport', 'Hyatt Regency Princeton']);
+assert.deepEqual(airportPickupCard.displayRouteStops.map((item) => item.cap), ['抵达', '到达']);
 assert(airportPickupCard.displayRouteStops[0].nodeClass.split(/\s+/).includes('pickup'), 'airport pickup must render as the hollow start endpoint');
-assert.equal(airportPickupCard.displayRouteStops[0].connectorTravelMeta.drive_time_text, '约1小时20分钟');
-assert.equal(airportPickupCard.dayStats.driveText, '1h20min');
-assert.equal(airportPickupCard.dayStats.distanceText, '64.8 英里');
+assert.equal(airportPickupCard.displayRouteStops[0].subtitle, 'Terminal 1 · 国际航班');
+assert.equal(airportPickupCard.displayRouteStops[0].detailText, '预计出关 次日 00:00–01:00 · 抵达后约 60–120 分钟');
+assert.equal(airportPickupCard.displayRouteStops[0].connectorTravelMeta.drive_time_text, '约1小时19分钟');
+assert.equal(airportPickupCard.displayRouteStops[1].time, '次日 01:19');
+assert.equal(airportPickupCard.displayRouteStops[1].detailText, '预计抵达窗口 次日 01:19–02:19');
+assert.equal(airportPickupCard.dayStats.driveText, '1h19min');
+assert.equal(airportPickupCard.dayStats.distanceText, '64.7 英里');
 assert.equal(airportPickupCard.timeline_items[0].ui_flags.show_travel_meta, false, 'phantom inbound airport leg must stay hidden on the day-detail card');
+assert.equal(airportPickupCard.timeline_items.length, 2, 'untimed and unanchored meal placeholders before a pickup must not become customer stops');
+assert.equal(
+  page.stripMealPlaceholdersBeforeAirportPickup([
+    { card_type: 'meal', title: '午餐 Lunch', anchor_type: 'route_midpoint_anchor', is_virtual_anchor: true },
+    { card_type: 'transfer', title: 'JFK Airport', route: 'JFK Airport 接机' },
+  ]).length,
+  2,
+  'a real lunch routing anchor must remain in the itinerary',
+);
 
 const normalizedAirportPickupCard = page.normalizeTodayCard({
   day_no: 1,
@@ -206,6 +226,12 @@ const normalizedAirportPickupCard = page.normalizeTodayCard({
       time: '23:00',
       title: 'JFK Airport',
       route: 'Airport pickup at JFK',
+      flight_no: 'OZ224',
+      airline: 'Asiana Airlines',
+      terminal: 'Terminal 1',
+      international: true,
+      clearance_min_minutes: 60,
+      clearance_max_minutes: 120,
       travel_snapshot: { drive_time_text: '0:03', distance_text: '1.6mi' },
     },
     {
@@ -219,8 +245,11 @@ const normalizedAirportPickupCard = page.normalizeTodayCard({
 });
 assert.equal(normalizedAirportPickupCard.departureTime, '23:00');
 assert.equal(normalizedAirportPickupCard.serviceWindowText, '23:00');
-assert.equal(normalizedAirportPickupCard.service_window.label, '23:00 接机');
-assert.deepEqual(normalizedAirportPickupCard.displayRouteStops.map((item) => item.cap), ['接机', '到达']);
+assert.equal(normalizedAirportPickupCard.service_window.label, '次日 00:00–01:00 接机');
+assert.deepEqual(normalizedAirportPickupCard.displayRouteStops.map((item) => item.cap), ['抵达', '到达']);
+assert.equal(normalizedAirportPickupCard.displayRouteStops[0].title, 'Asiana Airlines OZ224 · JFK Airport');
+assert.equal(normalizedAirportPickupCard.displayRouteStops[1].time, '次日 01:20');
+assert.equal(normalizedAirportPickupCard.displayRouteStops[1].detailText, '预计抵达窗口 次日 01:20–02:20');
 
 const ordered = page.normalizeTodayCard({
   trip_id: 'ORDER-TEST',
@@ -331,20 +360,24 @@ const wxml = fs.readFileSync(path.join(__dirname, '../miniprogram/pages/customer
 const wxss = fs.readFileSync(path.join(__dirname, '../miniprogram/pages/customer/home/home.wxss'), 'utf8');
 assert.equal((wxml.match(/class="segment-mode-label"/g) || []).length, 3, 'all three itinerary render paths must use the text travel-mode label');
 assert.equal((wxml.match(/departureCaption \|\| '预计出发'/g) || []).length, 3, 'all three itinerary render paths must support airport-pickup header copy');
+assert.equal((wxml.match(/class="pickup-detail"/g) || []).length, 3, 'all three itinerary render paths must show the international clearance window');
 assert(!wxml.includes('segment-mode-icon'), 'itinerary travel metadata must not render the old CSS vehicle icon');
 assert(!wxss.includes('font-family: var(--font-serif)'), 'formal trip UI must use the shared sans-serif stack');
 assert(!wxss.includes('repeating-linear-gradient'), 'formal trip hero must not use the rejected diagonal stripe texture');
 assert(/\.trip-hero\.three-a-hero\s*\{[^}]*radial-gradient\(circle,[^}]*\/ 38rpx 38rpx/s.test(wxss), 'formal trip hero must use the shared dotted halo texture');
 assert(/\.stop-row \.node\s*\{[^}]*width:\s*14rpx;[^}]*height:\s*14rpx;/s.test(wxss), 'intermediate itinerary nodes must be the smaller 14rpx solid dots');
 assert(/\.stop-row \.node\.pickup,\s*\.stop-row \.node\.depart,\s*\.stop-row \.node\.end\s*\{[^}]*width:\s*20rpx;[^}]*background:\s*#FFFFFF;/s.test(wxss), 'pickup, start, and end nodes must share the 20rpx hollow style');
+assert(/\.pickup-detail\s*\{[^}]*color:\s*var\(--brand-600/s.test(wxss), 'international clearance copy must use the restrained itinerary accent style');
 assert(/\.stop-row \.node-col,\s*\.seg-row \.node-col\s*\{[^}]*position:\s*relative;[^}]*width:\s*20rpx;/s.test(wxss), 'timeline node columns must establish the centered line axis');
 assert(/\.stop-row \.node-col \.link\s*\{[^}]*top:\s*16rpx;[^}]*bottom:\s*-40rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'stop connectors must run from one node center to the next');
 assert(/\.seg-row \.node-col \.link\s*\{[^}]*top:\s*0;[^}]*bottom:\s*-16rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'travel-segment connectors must continue through the next node center');
 assert.equal((wxml.match(/class="timeline-step /g) || []).length, 3, 'all three itinerary render paths must wrap each stop with its following travel segment');
 assert.equal((wxml.match(/item\.hasDateGapBefore \? 'has-date-gap'/g) || []).length, 3, 'all three progress render paths must break non-consecutive date ranges');
 assert.equal((wxml.match(/item\.timelineTitleLong \? 'long-title'/g) || []).length, 3, 'all three itinerary render paths must apply long-title spacing');
+assert.equal((wxml.match(/item\.detailText \? 'has-detail'/g) || []).length, 3, 'all three itinerary render paths must reserve clearance-copy spacing');
 assert(/\.timeline-step\s*\{[^}]*position:\s*relative;[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s.test(wxss), 'timeline steps must establish a dynamic midpoint reference');
 assert(/\.timeline-step\.has-segment\.long-title \.seg-row\s*\{[^}]*flex-basis:\s*120rpx;/s.test(wxss), 'wrapped titles must reserve enough room around centered travel tags');
+assert(/\.timeline-step\.has-segment\.has-detail \.tag-slot\s*\{[^}]*top:\s*auto;[^}]*bottom:\s*13rpx;[^}]*transform:\s*none;/s.test(wxss), 'airport clearance copy must not overlap the following travel tag');
 assert(/\.seg-row \.tag-slot\s*\{[^}]*top:\s*calc\(50% \+ 16rpx\);[^}]*left:\s*148rpx;[^}]*transform:\s*translateY\(-50%\);/s.test(wxss), 'travel tags must sit at the midpoint between adjacent node centers');
 assert(/\.stop-row\s*\{[^}]*min-height:\s*64rpx;[^}]*padding-bottom:\s*10rpx;/s.test(wxss), 'timeline stop rows must keep readable vertical breathing room');
 assert(/\.timeline-step\.no-segment\.has-tail\s*\{[^}]*padding-bottom:\s*12rpx;/s.test(wxss), 'adjacent stops without travel metadata must not crowd each other');

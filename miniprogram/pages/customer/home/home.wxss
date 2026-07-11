@@ -3211,6 +3211,13 @@
   font-size: 22rpx;
   line-height: 1.4;
 }
+.pickup-detail {
+  margin-top: 8rpx;
+  color: var(--brand-600, #57639E);
+  font-size: 20rpx;
+  line-height: 1.45;
+  font-weight: 600;
+}
 .chg-badge {
   display: inline-flex;
   margin-left: 10rpx;
@@ -3229,6 +3236,11 @@
 }
 .timeline-step.has-segment.long-title .seg-row {
   flex-basis: 120rpx;
+}
+.timeline-step.has-segment.has-detail .tag-slot {
+  top: auto;
+  bottom: 13rpx;
+  transform: none;
 }
 .seg-row .time-col {
   width: 80rpx;
