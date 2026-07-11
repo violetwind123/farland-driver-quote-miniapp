@@ -31,6 +31,8 @@ const endpointNodes = page.decorateRouteStopsFor3A([
 assert(endpointNodes[0].nodeClass.split(/\s+/).includes('depart'), 'departure must render as a hollow endpoint');
 assert.equal(endpointNodes[1].nodeClass, '', 'intermediate destination must use the small solid node');
 assert(endpointNodes[2].nodeClass.split(/\s+/).includes('end'), 'last destination must render as a hollow endpoint');
+assert.equal(page.decorateRouteStopsFor3A([{ title: '夏校离校 - 学校接学生（Ding Music Hall / The Peddie School）' }])[0].timelineTitleLong, true, 'mixed-language titles that wrap must reserve extra travel spacing');
+assert.equal(page.decorateRouteStopsFor3A([{ title: 'The Metropolitan Museum of Art' }])[0].timelineTitleLong, false, 'single-line titles must retain the standard travel spacing');
 
 const mealInterruptedRoute = page.attachConnectorTravelMeta([
   { id: 'depart', title: '上车出发', isDeparture: true },
@@ -255,7 +257,9 @@ assert(/\.stop-row \.node-col,\s*\.seg-row \.node-col\s*\{[^}]*position:\s*relat
 assert(/\.stop-row \.node-col \.link\s*\{[^}]*top:\s*16rpx;[^}]*bottom:\s*-40rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'stop connectors must run from one node center to the next');
 assert(/\.seg-row \.node-col \.link\s*\{[^}]*top:\s*0;[^}]*bottom:\s*-16rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'travel-segment connectors must continue through the next node center');
 assert.equal((wxml.match(/class="timeline-step /g) || []).length, 3, 'all three itinerary render paths must wrap each stop with its following travel segment');
+assert.equal((wxml.match(/item\.timelineTitleLong \? 'long-title'/g) || []).length, 3, 'all three itinerary render paths must apply long-title spacing');
 assert(/\.timeline-step\s*\{[^}]*position:\s*relative;[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s.test(wxss), 'timeline steps must establish a dynamic midpoint reference');
+assert(/\.timeline-step\.has-segment\.long-title \.seg-row\s*\{[^}]*flex-basis:\s*120rpx;/s.test(wxss), 'wrapped titles must reserve enough room around centered travel tags');
 assert(/\.seg-row \.tag-slot\s*\{[^}]*top:\s*calc\(50% \+ 16rpx\);[^}]*left:\s*148rpx;[^}]*transform:\s*translateY\(-50%\);/s.test(wxss), 'travel tags must sit at the midpoint between adjacent node centers');
 assert(/\.stop-row\s*\{[^}]*min-height:\s*64rpx;[^}]*padding-bottom:\s*10rpx;/s.test(wxss), 'timeline stop rows must keep readable vertical breathing room');
 assert(/\.timeline-step\.no-segment\.has-tail\s*\{[^}]*padding-bottom:\s*12rpx;/s.test(wxss), 'adjacent stops without travel metadata must not crowd each other');

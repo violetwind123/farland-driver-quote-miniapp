@@ -1710,6 +1710,10 @@ const customerHomePageConfig = {
       const connectorTravelMeta = this.decorateConnectorTravelMeta(node.connectorTravelMeta || node.connector_travel_meta || null);
       const titleText = String(node.title || '').trim().toLocaleLowerCase();
       const subtitleText = String(node.subtitle || '').trim();
+      const titleWidthUnits = Array.from(String(node.title || '')).reduce(
+        (total, character) => total + (/[^\x00-\x7F]/.test(character) ? 2 : 1),
+        0,
+      );
       const nodeClass = [node.nodeClass || '', isDeparture ? 'depart' : '', isEnd ? 'end' : '']
         .filter(Boolean)
         .join(' ');
@@ -1718,6 +1722,7 @@ const customerHomePageConfig = {
         subtitle: subtitleText && subtitleText.toLocaleLowerCase() !== titleText ? subtitleText : '',
         cap: isDeparture ? '出发' : (isMeal ? '用餐' : '到达'),
         nodeClass,
+        timelineTitleLong: titleWidthUnits > 38,
         hasTail: index < source.length - 1,
         connectorTravelMeta,
         connector_travel_meta: connectorTravelMeta,

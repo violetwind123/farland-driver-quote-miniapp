@@ -3213,6 +3213,9 @@
   gap: 24rpx;
   flex: 0 0 68rpx;
 }
+.timeline-step.has-segment.long-title .seg-row {
+  flex-basis: 120rpx;
+}
 .seg-row .time-col {
   width: 80rpx;
   flex-shrink: 0;

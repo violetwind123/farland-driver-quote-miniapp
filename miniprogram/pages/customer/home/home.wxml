@@ -171,7 +171,7 @@
 
           <view class="timeline three-a-timeline">
             <block wx:for="{{tripInviteTrip.todayOverviewCard.displayRouteStops || tripInviteTrip.todayOverviewCard.routeStops}}" wx:key="id">
-              <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}}">
+              <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}}">
               <view class="stop-row">
                 <view class="time-col">
                   <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -379,7 +379,7 @@
 
                   <view class="timeline three-a-timeline">
                     <block wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id">
-                      <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}}">
+                      <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}}">
                       <view class="stop-row">
                         <view class="time-col">
                           <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -616,7 +616,7 @@
 
         <view class="timeline three-a-timeline">
           <block wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id">
-            <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}}">
+            <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}} {{item.timelineTitleLong ? 'long-title' : ''}}">
             <view class="stop-row">
               <view class="time-col">
                 <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
