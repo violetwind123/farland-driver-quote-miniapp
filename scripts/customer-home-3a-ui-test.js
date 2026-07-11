@@ -10,6 +10,13 @@ const page = Object.assign({}, config);
 assert.equal(page.formatDisplayDateRange('2026-07-11 - 2026-07-25'), '7月11日 - 7月25日');
 assert.equal(page.formatDisplayDateRange('2026-12-31 - 2027-01-02'), '2026年12月31日 - 2027年1月2日');
 assert.equal(page.formatDayHeaderDate('2026-07-11', 'Sat'), '7月11日 周六');
+assert.equal(page.getProgressDateGapDays('2026-07-15', '2026-07-25'), 10);
+const progressWithDateGap = page.decorateTripProgressNodes([
+  { day_no: 5, date: '2026-07-15', label: 'Day 5' },
+  { day_no: 6, date: '2026-07-25', label: 'Day 6' },
+], 6, 5);
+assert.equal(progressWithDateGap[0].hasDateGapBefore, false);
+assert.equal(progressWithDateGap[1].hasDateGapBefore, true, 'non-consecutive itinerary dates must break the progress track');
 assert.equal(page.formatTrafficText('Moderate', 'moderate'), '适中');
 assert.equal(page.formatTrafficText('车流适中', 'moderate'), '适中');
 assert.equal(page.formatTrafficText('始终', 'moderate'), '适中');
@@ -257,6 +264,7 @@ assert(/\.stop-row \.node-col,\s*\.seg-row \.node-col\s*\{[^}]*position:\s*relat
 assert(/\.stop-row \.node-col \.link\s*\{[^}]*top:\s*16rpx;[^}]*bottom:\s*-40rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'stop connectors must run from one node center to the next');
 assert(/\.seg-row \.node-col \.link\s*\{[^}]*top:\s*0;[^}]*bottom:\s*-16rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'travel-segment connectors must continue through the next node center');
 assert.equal((wxml.match(/class="timeline-step /g) || []).length, 3, 'all three itinerary render paths must wrap each stop with its following travel segment');
+assert.equal((wxml.match(/item\.hasDateGapBefore \? 'has-date-gap'/g) || []).length, 3, 'all three progress render paths must break non-consecutive date ranges');
 assert.equal((wxml.match(/item\.timelineTitleLong \? 'long-title'/g) || []).length, 3, 'all three itinerary render paths must apply long-title spacing');
 assert(/\.timeline-step\s*\{[^}]*position:\s*relative;[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s.test(wxss), 'timeline steps must establish a dynamic midpoint reference');
 assert(/\.timeline-step\.has-segment\.long-title \.seg-row\s*\{[^}]*flex-basis:\s*120rpx;/s.test(wxss), 'wrapped titles must reserve enough room around centered travel tags');
@@ -264,6 +272,10 @@ assert(/\.seg-row \.tag-slot\s*\{[^}]*top:\s*calc\(50% \+ 16rpx\);[^}]*left:\s*1
 assert(/\.stop-row\s*\{[^}]*min-height:\s*64rpx;[^}]*padding-bottom:\s*10rpx;/s.test(wxss), 'timeline stop rows must keep readable vertical breathing room');
 assert(/\.timeline-step\.no-segment\.has-tail\s*\{[^}]*padding-bottom:\s*12rpx;/s.test(wxss), 'adjacent stops without travel metadata must not crowd each other');
 assert(/\.seg-row\s*\{[^}]*flex:\s*0 0 68rpx;/s.test(wxss), 'travel segments must keep readable vertical breathing room');
+assert(/\.trip-progress \.track,\s*\.trip-progress \.track-done\s*\{[^}]*top:\s*11rpx;/s.test(wxss), 'progress track must pass through the dot centers');
+assert(/\.trip-progress \.cols\s*\{[^}]*position:\s*relative;[^}]*display:\s*flex;/s.test(wxss), 'progress tracks must use the equal-width columns as their coordinate system');
+assert(/\.trip-progress \.col\s*\{[^}]*min-width:\s*0;/s.test(wxss), 'progress columns must remain equal-width');
+assert(/\.trip-progress \.col\.has-date-gap::before\s*\{[^}]*left:\s*-50%;[^}]*width:\s*100%;/s.test(wxss), 'date-gap nodes must mask the preceding progress segment');
 assert(wxml.includes("operator-preview-active"), 'operator preview must reserve its own toolbar space');
 assert(wxml.includes("operatorInvitePreview && !sheetInlineOpen"), 'inline sheet must keep its own unobstructed toolbar');
 const exitRule = (wxss.match(/\.op-preview-exit\s*\{([^}]*)\}/) || [])[1] || '';

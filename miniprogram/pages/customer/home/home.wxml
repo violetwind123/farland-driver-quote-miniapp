@@ -126,10 +126,10 @@
           <text wx:if="{{tripInviteTrip.progressTotalDays > 6}}" class="tp-hint">滑动查看全程 {{tripInviteTrip.progressTotalDays}} 天 →</text>
         </view>
         <view class="trip-progress">
-          <view class="track" style="left: {{tripInviteTrip.progressTrackInset}}; right: {{tripInviteTrip.progressTrackInset}}"></view>
-          <view class="track-done" style="left: {{tripInviteTrip.progressTrackInset}}; width: {{tripInviteTrip.progressDonePct}}"></view>
           <view class="cols">
-            <view wx:for="{{tripInviteTrip.progressNodes}}" wx:key="node_id" class="col" data-source="invite" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
+            <view class="track" style="left: {{tripInviteTrip.progressTrackInset}}; right: {{tripInviteTrip.progressTrackInset}}"></view>
+            <view class="track-done" style="left: {{tripInviteTrip.progressTrackInset}}; width: {{tripInviteTrip.progressDonePct}}"></view>
+            <view wx:for="{{tripInviteTrip.progressNodes}}" wx:key="node_id" class="col {{item.hasDateGapBefore ? 'has-date-gap' : ''}}" data-source="invite" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
               <view class="dot {{item.state === 'today' ? 'today' : (item.state === 'past' ? '' : 'future')}}"></view>
               <view wx:if="{{item.state === 'today'}}" class="today-card">
                 <text class="day">{{item.label}}</text>
@@ -334,10 +334,10 @@
                   <text wx:if="{{tripProgress.progressTotalDays > 6}}" class="tp-hint">滑动查看全程 {{tripProgress.progressTotalDays}} 天 →</text>
                 </view>
                 <view class="trip-progress">
-                  <view class="track" style="left: {{tripProgress.progressTrackInset}}; right: {{tripProgress.progressTrackInset}}"></view>
-                  <view class="track-done" style="left: {{tripProgress.progressTrackInset}}; width: {{tripProgress.progressDonePct}}"></view>
                   <view class="cols">
-                    <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="col" data-source="home" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
+                    <view class="track" style="left: {{tripProgress.progressTrackInset}}; right: {{tripProgress.progressTrackInset}}"></view>
+                    <view class="track-done" style="left: {{tripProgress.progressTrackInset}}; width: {{tripProgress.progressDonePct}}"></view>
+                    <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="col {{item.hasDateGapBefore ? 'has-date-gap' : ''}}" data-source="home" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
                       <view class="dot {{item.state === 'today' ? 'today' : (item.state === 'past' ? '' : 'future')}}"></view>
                       <view wx:if="{{item.state === 'today'}}" class="today-card">
                         <text class="day">{{item.label}}</text>
@@ -571,10 +571,10 @@
         <text wx:if="{{tripProgress.progressTotalDays > 6}}" class="tp-hint">滑动查看全程 {{tripProgress.progressTotalDays}} 天 →</text>
       </view>
       <view class="trip-progress">
-        <view class="track" style="left: {{tripProgress.progressTrackInset}}; right: {{tripProgress.progressTrackInset}}"></view>
-        <view class="track-done" style="left: {{tripProgress.progressTrackInset}}; width: {{tripProgress.progressDonePct}}"></view>
         <view class="cols">
-          <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="col" data-source="home" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
+          <view class="track" style="left: {{tripProgress.progressTrackInset}}; right: {{tripProgress.progressTrackInset}}"></view>
+          <view class="track-done" style="left: {{tripProgress.progressTrackInset}}; width: {{tripProgress.progressDonePct}}"></view>
+          <view wx:for="{{tripProgress.nodes}}" wx:key="node_id" class="col {{item.hasDateGapBefore ? 'has-date-gap' : ''}}" data-source="home" data-day-no="{{item.day_no}}" bindtap="selectTripProgressDay" hover-class="daily-progress-node-hover">
             <view class="dot {{item.state === 'today' ? 'today' : (item.state === 'past' ? '' : 'future')}}"></view>
             <view wx:if="{{item.state === 'today'}}" class="today-card">
               <text class="day">{{item.label}}</text>

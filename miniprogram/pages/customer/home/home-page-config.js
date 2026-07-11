@@ -863,13 +863,30 @@ const customerHomePageConfig = {
     return sourceDays[sourceDays.length - 1].dayNo;
   },
 
+  getProgressDateGapDays(previousDate = '', currentDate = '') {
+    const previousKey = this.toDateKey(previousDate);
+    const currentKey = this.toDateKey(currentDate);
+    const toUtcDay = (value) => {
+      const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return match ? Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : NaN;
+    };
+    const previousUtc = toUtcDay(previousKey);
+    const currentUtc = toUtcDay(currentKey);
+    if (!Number.isFinite(previousUtc) || !Number.isFinite(currentUtc)) return 0;
+    return Math.max(0, Math.round((currentUtc - previousUtc) / 86400000));
+  },
+
   decorateTripProgressNodes(nodes, selectedDayNo = 0, currentDayNo = 0) {
     const todayKey = this.getTodayDateKey();
     const selected = Number(selectedDayNo || 0);
     const current = Number(currentDayNo || 0);
-    return (Array.isArray(nodes) ? nodes : []).map((node, index) => {
+    const sourceNodes = Array.isArray(nodes) ? nodes : [];
+    return sourceNodes.map((node, index) => {
       const dayNo = Number(node.day_no || node.dayNo || index + 1);
       const dateKey = this.toDateKey(node.date);
+      const dateGapDays = index > 0
+        ? this.getProgressDateGapDays(sourceNodes[index - 1].date, node.date)
+        : 0;
       const isPast = Boolean(dateKey && todayKey && dateKey < todayKey);
       const isToday = Boolean(dateKey && todayKey && dateKey === todayKey);
       const isSelected = Boolean(selected && dayNo === selected);
@@ -885,6 +902,8 @@ const customerHomePageConfig = {
         isSelected,
         selected: isSelected,
         selectable: true,
+        dateGapDays,
+        hasDateGapBefore: dateGapDays > 1,
         short_location: node.short_location || node.shortLocation || this.getShortProgressLocation(node),
         departure_time: this.resolveDayDepartureTime(node),
         statusText: isSelected
