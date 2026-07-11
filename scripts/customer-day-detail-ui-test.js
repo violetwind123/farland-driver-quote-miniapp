@@ -21,11 +21,15 @@ function createPage() {
 
 const wxmlPath = path.join(__dirname, '../miniprogram/pages/customer/day-detail/day-detail.wxml');
 const wxml = fs.readFileSync(wxmlPath, 'utf8');
+const wxss = fs.readFileSync(path.join(__dirname, '../miniprogram/pages/customer/day-detail/day-detail.wxss'), 'utf8');
 const swiperClose = wxml.indexOf('</swiper>');
 const nodeStrip = wxml.indexOf('class="node-strip"');
 assert(swiperClose >= 0 && nodeStrip > swiperClose, 'the fixed node strip must live outside swiper');
 assert(!wxml.includes('<school-visit-card'), 'day detail must not embed the legacy full-height school card');
 assert(!wxml.includes('hero-photo-flag'), 'do not claim a real photo when no image URL exists');
+assert(wxml.includes('class="hero-credit"'), 'licensed hero images must render their attribution');
+assert(!wxss.includes('font-family: var(--font-serif)'), 'day detail must use the shared sans-serif stack');
+assert(wxss.includes('repeating-linear-gradient'), 'day detail base sheet must retain the shared subtle texture');
 
 const page = createPage();
 const school = page.normalizeSchoolVisitCard({
@@ -64,6 +68,45 @@ const generic = page.normalizeFallbackDestinationCard({
 assert.equal(generic.primaryName, '午餐');
 assert.deepEqual(generic.aboutLines, ['已为客户预留午餐时间']);
 assert(generic.practicalRows.some((row) => row.label === '地点'));
+
+const enrichedGeneric = page.normalizeFallbackDestinationCard({
+  card_id: '099-airport-enriched',
+  type: 'transfer',
+  title: 'JFK Airport',
+  display_snapshot: {
+    name_zh: '纽约肯尼迪国际机场',
+    address: 'JFK Airport Terminal 1, Jamaica, NY 11430',
+    hero_image_url: 'cloud://test/customer-place-images/jfk.jpg',
+    image_credit: 'Photo credit',
+    strengths: [{ title: '航站楼复核', desc: '出发前再次核对。' }],
+  },
+}, {});
+assert.equal(enrichedGeneric.heroImageUrl, 'cloud://test/customer-place-images/jfk.jpg');
+assert.equal(enrichedGeneric.imageCredit, 'Photo credit');
+assert(enrichedGeneric.practicalRows.some((row) => row.value.includes('Terminal 1')));
+assert(!enrichedGeneric.practicalRows.some((row) => row.label === '地点'));
+assert.equal(enrichedGeneric.highlights[0].desc, '出发前再次核对。');
+
+assert.deepEqual(
+  page.resolveKnownTrip091HotelDates(
+    { title: 'Hyatt Regency Princeton' },
+    {},
+    null,
+    { trip_no: '2026NBC_TEST' },
+  ),
+  {},
+  'non-091 Hyatt hotels must never inherit 091 stay dates',
+);
+assert.deepEqual(
+  page.resolveKnownTrip091HotelBookingInfo(
+    { title: 'Hyatt Regency Princeton' },
+    {},
+    null,
+    { trip_no: '2026NBC_TEST' },
+  ),
+  {},
+  'non-091 Hyatt hotels must never inherit the 091 confirmation number',
+);
 
 const duplicateLabel = page.normalizeFallbackDestinationCard({
   card_id: '099-airport',

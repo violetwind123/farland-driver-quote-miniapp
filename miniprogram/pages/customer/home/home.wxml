@@ -190,7 +190,7 @@
                 <view class="node-col"><view class="link"></view></view>
                 <view class="tag-slot">
                   <view class="drive-tag">
-                    <view wx:if="{{item.connectorTravelMeta.icon_type}}" class="segment-mode-icon segment-mode-{{item.connectorTravelMeta.icon_type}}" aria-label="{{item.connectorTravelMeta.icon_label}}"><view class="segment-icon-part segment-icon-a"></view><view class="segment-icon-part segment-icon-b"></view><view class="segment-icon-part segment-icon-c"></view><view class="segment-icon-part segment-icon-d"></view><view class="segment-icon-part segment-icon-e"></view></view>
+                    <text wx:if="{{item.connectorTravelMeta.icon_label}}" class="segment-mode-label">{{item.connectorTravelMeta.icon_label}}</text>
                     <text wx:if="{{item.connectorTravelMeta.driveTagText}}" class="dist">{{item.connectorTravelMeta.driveTagText}}</text>
                     <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic {{item.connectorTravelMeta.traffic_class}}">{{item.connectorTravelMeta.traffic_text}}</text>
                   </view>
@@ -396,7 +396,7 @@
                         <view class="node-col"><view class="link"></view></view>
                         <view class="tag-slot">
                           <view class="drive-tag">
-                            <view wx:if="{{item.connectorTravelMeta.icon_type}}" class="segment-mode-icon segment-mode-{{item.connectorTravelMeta.icon_type}}" aria-label="{{item.connectorTravelMeta.icon_label}}"><view class="segment-icon-part segment-icon-a"></view><view class="segment-icon-part segment-icon-b"></view><view class="segment-icon-part segment-icon-c"></view><view class="segment-icon-part segment-icon-d"></view><view class="segment-icon-part segment-icon-e"></view></view>
+                            <text wx:if="{{item.connectorTravelMeta.icon_label}}" class="segment-mode-label">{{item.connectorTravelMeta.icon_label}}</text>
                             <text wx:if="{{item.connectorTravelMeta.driveTagText}}" class="dist">{{item.connectorTravelMeta.driveTagText}}</text>
                             <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic {{item.connectorTravelMeta.traffic_class}}">{{item.connectorTravelMeta.traffic_text}}</text>
                           </view>
@@ -631,7 +631,7 @@
               <view class="node-col"><view class="link"></view></view>
               <view class="tag-slot">
                 <view class="drive-tag">
-                  <view wx:if="{{item.connectorTravelMeta.icon_type}}" class="segment-mode-icon segment-mode-{{item.connectorTravelMeta.icon_type}}" aria-label="{{item.connectorTravelMeta.icon_label}}"><view class="segment-icon-part segment-icon-a"></view><view class="segment-icon-part segment-icon-b"></view><view class="segment-icon-part segment-icon-c"></view><view class="segment-icon-part segment-icon-d"></view><view class="segment-icon-part segment-icon-e"></view></view>
+                  <text wx:if="{{item.connectorTravelMeta.icon_label}}" class="segment-mode-label">{{item.connectorTravelMeta.icon_label}}</text>
                   <text wx:if="{{item.connectorTravelMeta.driveTagText}}" class="dist">{{item.connectorTravelMeta.driveTagText}}</text>
                   <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic {{item.connectorTravelMeta.traffic_class}}">{{item.connectorTravelMeta.traffic_text}}</text>
                 </view>

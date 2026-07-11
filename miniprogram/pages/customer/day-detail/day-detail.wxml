@@ -23,6 +23,7 @@
           <view class="hero-wash"></view>
           <view wx:if="{{item.heroWatermark}}" class="hero-watermark">{{item.heroWatermark}}</view>
           <view class="hero-scrim"></view>
+          <view wx:if="{{item.imageCredit}}" class="hero-credit">{{item.imageCredit}}</view>
           <view class="hero-foot">
             <view class="hero-badges">
               <view class="hero-badge">{{item.typeText}}</view>

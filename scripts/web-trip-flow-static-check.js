@@ -109,7 +109,19 @@ const webSource = {
     supplier_note: 'internal supplier note',
   }],
   itinerary_days: [
-    { day_no: 1, date: '2026-08-01', city: 'New York', title: 'Day 1', timeline_items: [{ item_id: 'i1', title: 'NYU', internal_note: 'secret' }] },
+    {
+      day_no: 1,
+      date: '2026-08-01',
+      city: 'New York',
+      title: 'Day 1',
+      timeline_items: [{
+        item_id: 'i1',
+        title: 'NYU',
+        internal_note: 'secret',
+        travel_snapshot: { drive_time_text: '15分钟', distance_text: '3mi' },
+        ui_flags: { show_route: false, show_travel_meta: true },
+      }],
+    },
     { day_no: 2, date: '2026-08-02', city: 'New York', title: 'Day 2', timeline_items: [{ item_id: 'i2', title: 'Columbia' }] },
   ],
   flights: [], documents: [], transfers: [], charter_services: [],
@@ -143,6 +155,9 @@ assert(viewCustomerContactHits.length === 0, `customer view: customer has NO con
 const viewInternalHits = findKeyPaths(customerView, INTERNAL_KEYS);
 assert(viewInternalHits.length === 0, `customer view has NO internal/supplier/cost keys (found: ${viewInternalHits.join(', ') || 'none'})`);
 assert(Array.isArray(customerView.itinerary_days) && customerView.itinerary_days.length === 2, 'customer view keeps 2 days');
+const firstCustomerItem = customerView.itinerary_days[0].timeline_items[0];
+assert(firstCustomerItem.travel_snapshot && firstCustomerItem.travel_snapshot.drive_time_text === '15分钟', 'customer view keeps safe travel_snapshot');
+assert(firstCustomerItem.ui_flags && firstCustomerItem.ui_flags.show_route === false, 'customer view keeps safe ui_flags');
 
 console.log(failed ? `\nFAILED: ${failed} assertion(s)` : '\nPASS: web source flows through build + customer view with no customer PII');
 process.exit(failed ? 1 : 0);

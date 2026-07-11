@@ -509,8 +509,14 @@ Page({
     const primaryName = card.title || displaySnapshot.name_en || displaySnapshot.name_zh || '行程节点';
     const secondaryName = this.firstDistinctDisplayText(primaryName, [card.subtitle, displaySnapshot.name_zh]);
     const aboutLines = this.normalizeIntroLines(displaySnapshot.intro_lines, card.note || card.description || '');
+    const location = String(card.location || '').trim();
+    const duplicateLocationNames = [primaryName, displaySnapshot.name_en, displaySnapshot.name_zh]
+      .map((value) => String(value || '').trim().toLocaleLowerCase())
+      .filter(Boolean);
+    const showLocation = location && !duplicateLocationNames.includes(location.toLocaleLowerCase());
     const practicalRows = [
-      card.location ? { key: 'location', label: '地点', value: card.location } : null,
+      displaySnapshot.address ? { key: 'address', label: '地址', value: displaySnapshot.address } : null,
+      showLocation ? { key: 'location', label: '地点', value: location } : null,
       card.show_route && card.route ? { key: 'route', label: '路线', value: card.route } : null,
       card.arrival_estimate ? { key: 'arrival', label: '预计到达', value: card.arrival_estimate } : null,
       card.show_travel_meta && card.detailLine ? { key: 'travel', label: '路段预估', value: card.detailLine } : null,
@@ -527,13 +533,10 @@ Page({
       heroSubtitle: this.firstDistinctDisplayText(primaryName, [displaySnapshot.location_text, card.location, secondaryName]),
       heroWatermark: this.buildHeroWatermark(displaySnapshot.name_en || primaryName),
       heroImageUrl: this.resolveCustomerHeroImage(card, displaySnapshot),
+      imageCredit: displaySnapshot.image_credit || '',
       aboutLines,
       factCells: [],
-      highlights: highlightSource.slice(0, 5).map((title, index) => ({
-        idx: String(index + 1).padStart(2, '0'),
-        title: String(title || ''),
-        desc: '',
-      })).filter((item) => item.title),
+      highlights: this.buildHighlights(displaySnapshot, highlightSource),
       practicalRows,
     };
   },
@@ -630,6 +633,7 @@ Page({
       heroSubtitle: this.firstDistinctDisplayText(primaryName, [displaySnapshot.address, displaySnapshot.location_text, secondaryName]),
       heroWatermark: this.buildHeroWatermark(displaySnapshot.name_en || card.title || ''),
       heroImageUrl: this.resolveCustomerHeroImage(card, displaySnapshot),
+      imageCredit: displaySnapshot.image_credit || '',
       aboutLines: displaySnapshot.intro_lines || [],
       factCells: factCells.filter((item) => item.value),
       highlights: (displaySnapshot.strengths || []).map((item, index) => ({
@@ -727,6 +731,7 @@ Page({
       heroSubtitle: this.firstDistinctDisplayText(primaryName, [displaySnapshot.location_text, displaySnapshot.address, secondaryName]),
       heroWatermark: this.buildHeroWatermark(displaySnapshot.name_en || primaryName),
       heroImageUrl: this.resolveCustomerHeroImage(card, displaySnapshot),
+      imageCredit: displaySnapshot.image_credit || '',
       aboutLines: introLines,
       factCells: this.buildFactCells(cardType, detailItems),
       highlights: this.buildHighlights(displaySnapshot),
@@ -776,12 +781,22 @@ Page({
       }));
   },
 
-  // highlight_tags is string-only, so highlights are title-only. desc is always ''
-  // (the WXML keeps a wx:if h.desc guard so no description element ever renders)
-  // until a structured highlights[{title,desc}] field exists on the card VM.
-  buildHighlights(displaySnapshot = {}) {
-    const tags = Array.isArray(displaySnapshot.highlight_tags) ? displaySnapshot.highlight_tags : [];
-    return tags
+  buildHighlights(displaySnapshot = {}, fallbackTags = []) {
+    const strengths = Array.isArray(displaySnapshot.strengths) ? displaySnapshot.strengths : [];
+    const detailed = strengths
+      .map((item) => (typeof item === 'string' ? { title: item, desc: '' } : {
+        title: String((item && (item.title || item.label || item.name)) || '').trim(),
+        desc: String((item && (item.desc || item.description)) || '').trim(),
+      }))
+      .filter((item) => item.title)
+      .slice(0, 5);
+    if (detailed.length) {
+      return detailed.map((item, i) => ({ ...item, idx: String(i + 1).padStart(2, '0') }));
+    }
+    const tags = Array.isArray(displaySnapshot.highlight_tags) && displaySnapshot.highlight_tags.length
+      ? displaySnapshot.highlight_tags
+      : fallbackTags;
+    return (Array.isArray(tags) ? tags : [])
       .map((tag) => String(tag || '').trim())
       .filter(Boolean)
       .slice(0, 5)
@@ -1049,6 +1064,7 @@ Page({
 
   resolveKnownTrip091HotelDates(card = {}, displaySnapshot = {}, hotel = null, dayCard = {}) {
     const tripNo = String(dayCard.trip_no || dayCard.tripNo || card.trip_no || card.tripNo || '').trim().toUpperCase();
+    if (tripNo !== '2026XBC091') return {};
     const key = [
       tripNo,
       card.stay_id,
@@ -1092,6 +1108,7 @@ Page({
 
   resolveKnownTrip091HotelBookingInfo(card = {}, displaySnapshot = {}, hotel = null, dayCard = {}) {
     const tripNo = String(dayCard.trip_no || dayCard.tripNo || card.trip_no || card.tripNo || '').trim().toUpperCase();
+    if (tripNo !== '2026XBC091') return {};
     const key = [
       tripNo,
       card.stay_id,

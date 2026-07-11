@@ -1361,10 +1361,14 @@ const customerHomePageConfig = {
       if (hours && minutes) return `约${hours}小时${minutes}分钟`;
       if (hours) return `约${hours}小时`;
       if (minutes) return `约${minutes}分钟`;
+      return '';
     }
 
     const minutesOnly = raw.match(/^(\d+(?:\.\d+)?)\s*(min|mins|minute|minutes)$/i);
-    if (minutesOnly) return `约${Number(minutesOnly[1])}分钟`;
+    if (minutesOnly) {
+      const minutes = Number(minutesOnly[1]);
+      return minutes > 0 ? `约${minutes}分钟` : '';
+    }
 
     return /^约/.test(raw) ? raw : `约${raw}`;
   },
@@ -1386,26 +1390,20 @@ const customerHomePageConfig = {
     if (!text) return 'unknown';
     if (/walk|walking|foot|pedestrian|步行|徒步/.test(text)) return 'walk';
     if (/good|smooth|light|clear|顺畅|良好/.test(text)) return 'good';
-    if (/moderate|medium|normal|适中|一般/.test(text)) return 'moderate';
+    if (/moderate|medium|normal|适中|始终|一般/.test(text)) return 'moderate';
     if (/heavy|congest|busy|slow|拥堵|缓慢/.test(text)) return 'heavy';
     return 'unknown';
   },
 
   formatTrafficText(value, level) {
     const raw = String(value || '').trim();
-    if (raw) {
-      if (/^(walk|walking|foot|pedestrian)$/i.test(raw) || raw === '步行') return '步行';
-      if (/^good$/i.test(raw)) return '通畅';
-      if (/^moderate$/i.test(raw)) return '车流适中';
-      if (/^heavy$/i.test(raw)) return '拥堵';
-      if (/^unknown$/i.test(raw)) return '';
-      return raw;
-    }
+    if (/traffic[-\s]?aware estimate|predictive traffic|traffic estimate|maps_current|路况预估/i.test(raw)) return '';
     if (level === 'good') return '通畅';
-    if (level === 'moderate') return '车流适中';
+    if (level === 'moderate') return '适中';
     if (level === 'heavy') return '拥堵';
     if (level === 'walk') return '步行';
-    return '';
+    if (!raw || /^unknown$/i.test(raw)) return '';
+    return raw;
   },
 
   normalizeTravelMode(item = {}, explicitMeta = {}, formattedMeta = {}) {
@@ -1473,7 +1471,7 @@ const customerHomePageConfig = {
   getTravelModeLabel(mode) {
     if (mode === 'walk') return '步行';
     if (mode === 'flight') return '飞行';
-    return '开车';
+    return '车程';
   },
 
   getTravelModeIcon(mode) {
@@ -1678,15 +1676,18 @@ const customerHomePageConfig = {
 
   decorateRouteStopsFor3A(routeStops = []) {
     const source = Array.isArray(routeStops) ? routeStops : [];
+    const hasExplicitDeparture = source.some((node) => Boolean(node && node.isDeparture));
     return source.map((node, index) => {
-      const isDeparture = Boolean(node.isDeparture) || index === 0;
+      const type = String(node.card_type || node.cardType || node.type || node.item_type || '').toLowerCase();
+      const isMeal = type === 'meal' || /午餐|lunch/i.test(String(node.title || ''));
+      const isDeparture = Boolean(node.isDeparture) || (!hasExplicitDeparture && index === 0 && !isMeal);
       const connectorTravelMeta = this.decorateConnectorTravelMeta(node.connectorTravelMeta || node.connector_travel_meta || null);
       const titleText = String(node.title || '').trim().toLocaleLowerCase();
       const subtitleText = String(node.subtitle || '').trim();
       return {
         ...node,
         subtitle: subtitleText && subtitleText.toLocaleLowerCase() !== titleText ? subtitleText : '',
-        cap: isDeparture ? '出发' : '到达',
+        cap: isDeparture ? '出发' : (isMeal ? '用餐' : '到达'),
         nodeClass: isDeparture ? 'depart' : (node.nodeClass || ''),
         hasTail: index < source.length - 1,
         connectorTravelMeta,
@@ -2019,6 +2020,32 @@ const customerHomePageConfig = {
       || '';
   },
 
+  mergeDepartureRouteStops(routeStops = [], departureStops = []) {
+    const stops = Array.isArray(routeStops) ? routeStops : [];
+    const departure = Array.isArray(departureStops) ? departureStops[0] : null;
+    if (!departure) return stops;
+    const toMinutes = (value) => {
+      const raw = String(value || '');
+      const clock = this.extractTimeForDisplay(raw);
+      const match = String(clock).match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+      if (!match) return null;
+      const minutes = Number(match[1]) * 60 + Number(match[2]);
+      return /次日/.test(raw) ? minutes + 24 * 60 : minutes;
+    };
+    const departureMinutes = toMinutes(departure.time);
+    if (departureMinutes === null) return [departure, ...stops];
+    const insertionIndex = stops.findIndex((item) => {
+      const itemMinutes = toMinutes(item && item.time);
+      return itemMinutes !== null && itemMinutes >= departureMinutes;
+    });
+    if (insertionIndex < 0) return [...stops, departure];
+    return [
+      ...stops.slice(0, insertionIndex),
+      departure,
+      ...stops.slice(insertionIndex),
+    ];
+  },
+
   normalizeTodayCard(card) {
     if (!card) return null;
     const driverVisibility = card.driver_visibility === 'assigned' ? 'assigned' : 'pending';
@@ -2085,10 +2112,8 @@ const customerHomePageConfig = {
       pickupAddress: pickupText,
       isDeparture: true,
     }] : [];
-    const routeStops = [
-      ...departureRouteStops,
-      ...destinationCards,
-    ].map((item, index, visibleItems) => {
+    const visibleRouteStops = this.mergeDepartureRouteStops(destinationCards, departureRouteStops);
+    const routeStops = visibleRouteStops.map((item, index, visibleItems) => {
       const nextItem = visibleItems[index + 1] || null;
       const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
       return {
@@ -2549,10 +2574,7 @@ const customerHomePageConfig = {
       pickupAddress: pickupText,
       isDeparture: true,
     }] : [];
-    const visibleRouteStops = [
-      ...departureRouteStops,
-      ...routeStopSource,
-    ];
+    const visibleRouteStops = this.mergeDepartureRouteStops(routeStopSource, departureRouteStops);
     const routeStops = visibleRouteStops.map((item, index) => {
       const nextItem = visibleRouteStops[index + 1] || null;
       const connectorTravelMeta = this.getConnectorTravelMeta(nextItem, item);
@@ -2672,6 +2694,36 @@ const customerHomePageConfig = {
 
   findHotelForTripDay(day, hotels) {
     if (!day) return null;
+    const dayNo = Number(day.dayNo || day.day_no || 0);
+    const dayDate = String(day.date || '').slice(0, 10);
+    const sourceHotels = Array.isArray(hotels) ? hotels : [];
+    const candidates = sourceHotels.map((hotel, index) => {
+      const dates = this.resolveHotelStayDates(hotel);
+      const checkInDate = String(dates.checkInDate || '').slice(0, 10);
+      const checkOutDate = String(dates.checkOutDate || '').slice(0, 10);
+      const linkedDayNo = Number(hotel.linkedDayNo || hotel.linked_day_no || hotel.day_no || 0);
+      const hasStayRange = Boolean(checkInDate && checkOutDate);
+      const coversDay = Boolean(
+        dayDate
+        && hasStayRange
+        && checkInDate <= dayDate
+        && dayDate < checkOutDate
+      );
+      const idKey = String(hotel.hotel_id || hotel.hotel_stay_id || hotel.stay_id || hotel.id || '');
+      let score = 0;
+      if (coversDay) score += 1000;
+      if (hasStayRange) score += 200;
+      if (linkedDayNo === dayNo) score += 100;
+      if (checkInDate === dayDate) score += 50;
+      if (/hotel[_-]?stay/i.test(idKey)) score += 20;
+      return { hotel, index, score, coversDay, linkedDayNo };
+    }).filter((item) => item.coversDay || item.linkedDayNo === dayNo);
+
+    if (candidates.length) {
+      candidates.sort((left, right) => right.score - left.score || left.index - right.index);
+      return candidates[0].hotel;
+    }
+
     if (day.hotel) {
       return {
         ...day.hotel,
@@ -2679,10 +2731,7 @@ const customerHomePageConfig = {
         linkedDayNo: Number(day.hotel.linked_day_no || day.dayNo || day.day_no || 0),
       };
     }
-    const dayNo = Number(day.dayNo || day.day_no || 0);
-    const sourceHotels = Array.isArray(hotels) ? hotels : [];
-    return sourceHotels.find((hotel) => Number(hotel.linkedDayNo || hotel.linked_day_no || hotel.day_no || 0) === dayNo)
-      || null;
+    return null;
   },
 
   buildTodayItineraryFromTripDay(day, overview = {}) {
@@ -4786,9 +4835,14 @@ const customerHomePageConfig = {
         entity_ref: item.entity_ref || item.entityRef || null,
         display_snapshot: item.display_snapshot || item.displaySnapshot || null,
         time_snapshot: item.time_snapshot || item.timeSnapshot || null,
+        travel_snapshot: item.travel_snapshot || item.travelSnapshot || null,
+        route_check_id: item.route_check_id || item.routeCheckId || '',
+        ui_flags: item.ui_flags || item.uiFlags || null,
+        hotel_stay_id: item.hotel_stay_id || item.stay_id || '',
         id: item.id || `${dayNo}-${index}`,
         item_id: item.id || `${dayNo}-${index}`,
         type: item.type || item.item_type || 'custom',
+        item_type: item.item_type || item.type || 'custom',
         time: item.time || '',
         title: item.title || '行程节点',
         location: item.location || item.location_name || '',

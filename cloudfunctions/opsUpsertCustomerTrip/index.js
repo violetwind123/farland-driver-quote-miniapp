@@ -2,6 +2,11 @@ const crypto = require('crypto');
 const https = require('https');
 const { URL } = require('url');
 const cloud = require('wx-server-sdk');
+const {
+  CONTENT_ENRICHMENT_VERSION,
+  enrichHotels,
+  enrichItineraryDays,
+} = require('./customerPlaceProfiles');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -357,6 +362,8 @@ function buildSourceDoc(payload) {
   const stripped = deepStrip(payload, STRIP_KEYS);
   const rawCustomer = isPlainObject(stripped.customer) ? stripped.customer : {};
   const displayName = text(rawCustomer.display_name) || text(rawCustomer.name);
+  const itineraryDays = enrichItineraryDays(Array.isArray(stripped.itinerary_days) ? stripped.itinerary_days : []);
+  const hotels = enrichHotels(Array.isArray(stripped.hotels) ? stripped.hotels : []);
   const source = {
     schema_version: '1.0.0',
     external_trip_id: text(stripped.external_trip_id),
@@ -386,10 +393,11 @@ function buildSourceDoc(payload) {
     customer_wechat_id: text(rawCustomer.wechat_id),
     source: { source_type: (stripped.source && text(stripped.source.source_type)) || 'web_ops', source_id: (stripped.source && text(stripped.source.source_id)) || '' },
     advisor: isPlainObject(stripped.advisor) ? stripped.advisor : {},
-    hotels: Array.isArray(stripped.hotels) ? stripped.hotels : [],
-    hotel_requests: Array.isArray(stripped.hotels) ? stripped.hotels : [],
-    itinerary_days: Array.isArray(stripped.itinerary_days) ? stripped.itinerary_days : [],
-    daily_itinerary: Array.isArray(stripped.itinerary_days) ? stripped.itinerary_days : [],
+    hotels,
+    hotel_requests: hotels,
+    itinerary_days: itineraryDays,
+    daily_itinerary: itineraryDays,
+    content_enrichment_version: CONTENT_ENRICHMENT_VERSION,
     flights: Array.isArray(stripped.flights) ? stripped.flights : [],
     transfers: Array.isArray(stripped.transfers) ? stripped.transfers : [],
     charter_services: Array.isArray(stripped.charter_services) ? stripped.charter_services : [],

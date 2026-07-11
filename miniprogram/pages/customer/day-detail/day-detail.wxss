@@ -4,7 +4,9 @@
   min-height: 100vh;
   padding: 0;
   box-sizing: border-box;
-  background: var(--bg-page);
+  background:
+    repeating-linear-gradient(135deg, rgba(102, 114, 168, 0.025) 0, rgba(102, 114, 168, 0.025) 1rpx, transparent 1rpx, transparent 18rpx),
+    var(--bg-page);
 }
 
 .empty-state {
@@ -60,7 +62,9 @@
   position: relative;
   height: 100vh;
   overflow: hidden;
-  background: var(--bg-page);
+  background:
+    repeating-linear-gradient(135deg, rgba(102, 114, 168, 0.025) 0, rgba(102, 114, 168, 0.025) 1rpx, transparent 1rpx, transparent 18rpx),
+    var(--bg-page);
 }
 
 /* HERO */
@@ -95,7 +99,7 @@
   position: absolute;
   right: -12rpx;
   top: 88rpx;
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 144rpx;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.06);
@@ -110,6 +114,21 @@
   bottom: 0;
   height: 344rpx;
   background: linear-gradient(180deg, transparent 0%, rgba(20, 26, 50, 0.30) 44%, rgba(20, 26, 50, 0.74) 100%);
+}
+
+.hero-credit {
+  position: absolute;
+  top: 14rpx;
+  right: 22rpx;
+  z-index: 3;
+  max-width: 70%;
+  padding: 4rpx 10rpx;
+  border-radius: 6rpx;
+  background: rgba(20, 26, 50, 0.48);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14rpx;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .hero-foot {
@@ -151,7 +170,7 @@
 }
 
 .hero-time {
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 84rpx;
   font-weight: 700;
   color: #FFFFFF;
@@ -165,7 +184,7 @@
 }
 
 .hero-title {
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 40rpx;
   font-weight: 600;
   color: #FFFFFF;
@@ -194,7 +213,9 @@
   right: 0;
   top: 464rpx;
   bottom: 212rpx;
-  background: var(--bg-page);
+  background:
+    repeating-linear-gradient(135deg, rgba(102, 114, 168, 0.025) 0, rgba(102, 114, 168, 0.025) 1rpx, transparent 1rpx, transparent 18rpx),
+    var(--bg-page);
   border-radius: 52rpx 52rpx 0 0;
   box-shadow: 0 -24rpx 60rpx rgba(15, 20, 40, 0.20);
   padding: 22rpx 40rpx 32rpx;
@@ -276,7 +297,7 @@
 }
 
 .highlight-idx {
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 26rpx;
   font-weight: 700;
   color: var(--brand-600);

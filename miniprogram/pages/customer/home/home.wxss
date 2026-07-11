@@ -99,7 +99,7 @@
 
 .trip-hero-title {
   margin-top: 8rpx;
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 38rpx;
   line-height: 1.18;
   font-weight: 700;
@@ -844,7 +844,7 @@
 .driver-card-time {
   margin-top: 8rpx;
   color: var(--brand-600);
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 46rpx;
   line-height: 1.08;
   font-weight: 780;
@@ -975,7 +975,7 @@
 
 .departure-time {
   color: var(--brand-600);
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 46rpx;
   line-height: 1.05;
   font-weight: 800;
@@ -1066,131 +1066,6 @@
   font-size: 21rpx;
   line-height: 1.35;
   font-weight: 560;
-}
-
-/* 时间轴交通方式图标:CSS 画版(车/步行/飞机),对齐设计稿 handoff;由 icon_type=drive/walk/flight 决定形状 */
-.segment-mode-icon {
-  position: relative;
-  flex: 0 0 34rpx;
-  width: 34rpx;
-  height: 34rpx;
-  border-radius: 11rpx;
-  background: #F3F5FA;
-}
-.segment-icon-part {
-  position: absolute;
-  display: none;
-  box-sizing: border-box;
-  background: #5B6596;
-}
-.segment-mode-drive .segment-icon-a {
-  display: block;
-  left: 7rpx;
-  top: 13rpx;
-  width: 20rpx;
-  height: 9rpx;
-  border: 2rpx solid #5B6596;
-  border-radius: 6rpx 6rpx 4rpx 4rpx;
-  background: transparent;
-}
-.segment-mode-drive .segment-icon-b {
-  display: block;
-  left: 11rpx;
-  top: 9rpx;
-  width: 12rpx;
-  height: 7rpx;
-  border: 2rpx solid #5B6596;
-  border-bottom: 0;
-  border-radius: 7rpx 7rpx 0 0;
-  background: transparent;
-}
-.segment-mode-drive .segment-icon-c,
-.segment-mode-drive .segment-icon-d {
-  display: block;
-  top: 21rpx;
-  width: 5rpx;
-  height: 5rpx;
-  border-radius: 50%;
-}
-.segment-mode-drive .segment-icon-c {
-  left: 10rpx;
-}
-.segment-mode-drive .segment-icon-d {
-  right: 10rpx;
-}
-.segment-mode-walk .segment-icon-a {
-  display: block;
-  left: 14rpx;
-  top: 5rpx;
-  width: 6rpx;
-  height: 6rpx;
-  border-radius: 50%;
-}
-.segment-mode-walk .segment-icon-b,
-.segment-mode-walk .segment-icon-c,
-.segment-mode-walk .segment-icon-d,
-.segment-mode-walk .segment-icon-e {
-  display: block;
-  height: 3rpx;
-  border-radius: 999rpx;
-  transform-origin: center;
-}
-.segment-mode-walk .segment-icon-b {
-  left: 15rpx;
-  top: 13rpx;
-  width: 12rpx;
-  transform: rotate(72deg);
-}
-.segment-mode-walk .segment-icon-c {
-  left: 9rpx;
-  top: 16rpx;
-  width: 12rpx;
-  transform: rotate(-24deg);
-}
-.segment-mode-walk .segment-icon-d {
-  left: 14rpx;
-  top: 23rpx;
-  width: 13rpx;
-  transform: rotate(38deg);
-}
-.segment-mode-walk .segment-icon-e {
-  left: 7rpx;
-  top: 24rpx;
-  width: 13rpx;
-  transform: rotate(-45deg);
-}
-.segment-mode-flight .segment-icon-a,
-.segment-mode-flight .segment-icon-b,
-.segment-mode-flight .segment-icon-c,
-.segment-mode-flight .segment-icon-d {
-  display: block;
-  height: 3rpx;
-  border-radius: 999rpx;
-  transform-origin: center;
-}
-.segment-mode-flight .segment-icon-a {
-  left: 5rpx;
-  top: 16rpx;
-  width: 24rpx;
-  transform: rotate(-18deg);
-}
-.segment-mode-flight .segment-icon-b {
-  left: 13rpx;
-  top: 11rpx;
-  width: 15rpx;
-  transform: rotate(28deg);
-}
-.segment-mode-flight .segment-icon-c {
-  left: 13rpx;
-  top: 20rpx;
-  width: 14rpx;
-  transform: rotate(-48deg);
-}
-.segment-mode-flight .segment-icon-d {
-  left: 5rpx;
-  top: 12rpx;
-  width: 9rpx;
-  transform: rotate(-58deg);
 }
 
 .traffic-pill {
@@ -2787,7 +2662,7 @@
   position: absolute;
   right: 4rpx;
   top: 8rpx;
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 88rpx;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.07);
@@ -2814,7 +2689,7 @@
 .visit-hero-title {
   position: relative;
   margin-top: 8rpx;
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 34rpx;
   font-weight: 600;
   color: #FFFFFF;
@@ -2826,7 +2701,7 @@
   gap: 16rpx;
 }
 .visit-time-big {
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 48rpx;
   font-weight: 700;
   color: var(--ink-900);
@@ -3055,7 +2930,10 @@
   margin: 0 8rpx;
   padding: 24rpx 32rpx 22rpx;
   border-radius: 32rpx;
-  background: linear-gradient(148deg, #232B4A 0%, #4B568C 62%, #6C77AB 100%);
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0, rgba(255, 255, 255, 0.035) 1rpx, transparent 1rpx, transparent 16rpx),
+    repeating-linear-gradient(45deg, rgba(27, 35, 64, 0.025) 0, rgba(27, 35, 64, 0.025) 1rpx, transparent 1rpx, transparent 20rpx),
+    linear-gradient(145deg, #6974AB 0%, var(--brand-500, #6672A8) 56%, var(--brand-600, #57639E) 100%);
   box-shadow: 0 18rpx 42rpx rgba(27, 35, 64, 0.14);
 }
 .trip-hero__mark {
@@ -3074,7 +2952,7 @@
   margin-top: 4rpx;
   max-width: 420rpx;
   color: #FFFFFF;
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 42rpx;
   line-height: 1.2;
   font-weight: 700;
@@ -3208,7 +3086,7 @@
 }
 .depart-time {
   color: var(--brand-600, #57639E);
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-size: 38rpx;
   line-height: 1.08;
   font-weight: 700;
@@ -3348,8 +3226,10 @@
   box-sizing: border-box;
   font-variant-numeric: tabular-nums;
 }
-.drive-tag .segment-mode-icon {
-  flex-basis: 34rpx;
+.drive-tag .segment-mode-label {
+  color: var(--ink-600, #5A6178);
+  font-size: 21rpx;
+  font-weight: 700;
 }
 .drive-tag .dist {
   color: var(--ink-600, #5A6178);
