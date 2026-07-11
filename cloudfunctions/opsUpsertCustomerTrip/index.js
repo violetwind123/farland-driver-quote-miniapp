@@ -435,6 +435,11 @@ function buildDailySummaryCards(sourceDoc) {
       weekday: text(day.weekday),
       title: text(day.title) || `Day ${dayNo}`,
       city: text(day.city),
+      weather_text: text(day.weather_text || day.weatherText),
+      weather_kind: text(day.weather_kind || day.weatherKind),
+      weather_source: text(day.weather_source),
+      weather_mode: text(day.weather_mode),
+      weather_generated_at: text(day.weather_generated_at),
       start_time_text: text(day.start_time_text || day.estimated_departure_time || day.estimated_departure_time_raw || day.start_time),
       estimated_departure_time_raw: text(day.estimated_departure_time_raw),
       estimated_departure_time: text(day.estimated_departure_time),
@@ -541,6 +546,30 @@ function buildAutoPublishLifecycle(draftSnapshot, now, previousVersion = 0, opti
   };
 }
 
+const DAY_WEATHER_KEYS = [
+  'weather_text', 'weather_kind', 'weather_source', 'weather_mode', 'weather_generated_at',
+];
+function preserveExistingDayWeather(sourceDoc, existing) {
+  const incomingDays = Array.isArray(sourceDoc && sourceDoc.itinerary_days) ? sourceDoc.itinerary_days : [];
+  const existingDays = Array.isArray(existing && existing.itinerary_days)
+    ? existing.itinerary_days
+    : (existing && existing.draft_snapshot && Array.isArray(existing.draft_snapshot.itinerary_days)
+      ? existing.draft_snapshot.itinerary_days
+      : []);
+  if (!incomingDays.length || !existingDays.length) return sourceDoc;
+  const byDate = new Map(existingDays.map((day) => [text(day && day.date).slice(0, 10), day]));
+  const byDayNo = new Map(existingDays.map((day) => [Number(day && day.day_no), day]));
+  const mergedDays = incomingDays.map((day) => {
+    if (text(day && day.weather_text)) return day;
+    const previous = byDate.get(text(day && day.date).slice(0, 10)) || byDayNo.get(Number(day && day.day_no));
+    if (!previous || !text(previous.weather_text)) return day;
+    const weather = {};
+    DAY_WEATHER_KEYS.forEach((key) => { if (previous[key] != null && previous[key] !== '') weather[key] = previous[key]; });
+    return { ...day, ...weather };
+  });
+  return { ...sourceDoc, itinerary_days: mergedDays, daily_itinerary: mergedDays };
+}
+
 exports.main = async (event = {}) => {
   try {
     const { headers, rawBody, payload } = parseEvent(event);
@@ -548,11 +577,9 @@ exports.main = async (event = {}) => {
     validatePayload(payload);
 
     const persistedPayload = await persistItinerarySheetIfNeeded(payload);
-    const sourceDoc = buildSourceDoc(persistedPayload);
-    const sourceHash = stableHash(sourceDoc);
+    let sourceDoc = buildSourceDoc(persistedPayload);
     const externalTripId = sourceDoc.external_trip_id;
     const now = new Date().toISOString();
-    const draftSnapshot = buildDraftSnapshot(sourceDoc);
 
     const existingRes = await db.collection('customer_trips')
       .where({ external_trip_id: externalTripId })
@@ -564,6 +591,10 @@ exports.main = async (event = {}) => {
     if (existing && existing._id === TRIP_091_DOC_ID) {
       return { success: false, code: 409, error_code: 'TRIP_091_PROTECTED', message: '091 cannot be written via web sync.' };
     }
+
+    sourceDoc = preserveExistingDayWeather(sourceDoc, existing);
+    const sourceHash = stableHash(sourceDoc);
+    const draftSnapshot = buildDraftSnapshot(sourceDoc);
 
     // 幂等:同 external_trip_id + 同 source_hash → 不重写；若旧记录缺客户版快照,补齐自动启用。
     if (existing && text(existing.source_hash) === sourceHash) {

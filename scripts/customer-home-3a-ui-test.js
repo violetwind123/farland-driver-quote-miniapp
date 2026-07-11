@@ -30,6 +30,22 @@ assert.equal(
   'zero-duration placeholder travel metadata must not render a customer chip',
 );
 
+const weatherDay = page.normalizePublishedTripDay({
+  day_no: 1,
+  date: '2026-07-11',
+  title: 'Day 1',
+  weather_text: '29/22°C',
+  weather_kind: 'cloudy',
+  timeline_items: [],
+}, 0);
+assert.equal(weatherDay.weatherText, '29/22°C', 'published itinerary day must retain synchronized weather text');
+assert.equal(weatherDay.weatherKind, 'cloudy', 'published itinerary day must retain synchronized weather icon kind');
+assert.equal(
+  page.buildTodayCardFromTripDay(weatherDay, { trip_no: 'WEATHER-TEST', overview: {} }).weatherText,
+  '29/22°C',
+  'formal itinerary card must render weather received from web sync',
+);
+
 const endpointNodes = page.decorateRouteStopsFor3A([
   { id: 'start', title: '上车出发', isDeparture: true },
   { id: 'sight', title: '参访景点' },

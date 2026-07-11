@@ -234,6 +234,17 @@
         "weekday": { "type": "string" },
         "title": { "type": "string" },
         "city": { "type": "string" },
+        "weather_text": { "type": "string" },
+        "weather_kind": {
+          "type": "string",
+          "enum": ["sunny", "cloudy", "thunder"]
+        },
+        "weather_source": { "type": "string" },
+        "weather_mode": {
+          "type": "string",
+          "enum": ["forecast", "trend", "climate"]
+        },
+        "weather_generated_at": { "type": "string" },
         "start_time_text": { "type": "string" },
         "displayed_start_time_raw": { "type": "string" },
         "estimated_departure_time_raw": { "type": "string" },
@@ -427,6 +438,17 @@
         "title": { "type": "string", "minLength": 1 },
         "city": { "type": "string" },
         "summary": { "type": "string" },
+        "weather_text": { "type": "string" },
+        "weather_kind": {
+          "type": "string",
+          "enum": ["sunny", "cloudy", "thunder"]
+        },
+        "weather_source": { "type": "string" },
+        "weather_mode": {
+          "type": "string",
+          "enum": ["forecast", "trend", "climate"]
+        },
+        "weather_generated_at": { "type": "string" },
         "displayed_start_time_raw": { "type": "string" },
         "estimated_departure_time_raw": { "type": "string" },
         "displayed_start_time": { "type": "string" },

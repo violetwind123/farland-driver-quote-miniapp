@@ -262,7 +262,7 @@
           </view>
         </view>
         <view class="visit-tail-note">其余学校确认后会出现在这里，顾问会第一时间通知您</view>
-        <view class="weather-source"><text>天气数据来源 美国国家海洋和大气管理局 NOAA · NWS</text></view>
+        <view class="weather-source"><text>天气数据来源 NOAA / NWS 与 Open-Meteo</text></view>
       </view>
     </block>
   </view>
@@ -506,7 +506,7 @@
                   </view>
                 </view>
                 <view class="visit-tail-note">其余学校确认后会出现在这里，顾问会第一时间通知您</view>
-                <view class="weather-source"><text>天气数据来源 美国国家海洋和大气管理局 NOAA · NWS</text></view>
+                <view class="weather-source"><text>天气数据来源 NOAA / NWS 与 Open-Meteo</text></view>
               </view>
             </view>
           </scroll-view>
@@ -744,7 +744,7 @@
         </view>
       </view>
       <view class="visit-tail-note">其余学校确认后会出现在这里，顾问会第一时间通知您</view>
-      <view class="weather-source"><text>天气数据来源 美国国家海洋和大气管理局 NOAA · NWS</text></view>
+      <view class="weather-source"><text>天气数据来源 NOAA / NWS 与 Open-Meteo</text></view>
     </view>
 
     <view wx:if="{{!useHomePaneSwiper && !inviteMode && !showHomeEmpty && showTransferRequests}}" class="section-shell">

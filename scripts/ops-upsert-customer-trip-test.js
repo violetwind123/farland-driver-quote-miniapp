@@ -138,7 +138,17 @@ const validPayload = {
   advisor: { name: 'Farland' },
   itinerary_sheet: { png_url: 'https://cdn.myfarland.com/mobile-itinerary/web-int-001.png', order_no: 'LEGACY-IGNORED', width: 1080, height: 2400 },
   hotels: [{ hotel_id: 'h1', name: 'Riu', phone: '212-555', check_in_date: '2026-08-01', supplier_note: 'x', linked_day_no: 1 }],
-  itinerary_days: [{ day_no: 1, date: '2026-08-01', title: 'D1', timeline_items: [{ item_id: 'i1', title: 'NYU', internal_note: 'secret' }] }],
+  itinerary_days: [{
+    day_no: 1,
+    date: '2026-08-01',
+    title: 'D1',
+    weather_text: '29/22°C',
+    weather_kind: 'cloudy',
+    weather_source: 'nws',
+    weather_mode: 'forecast',
+    weather_generated_at: '2026-07-10T12:00:00.000Z',
+    timeline_items: [{ item_id: 'i1', title: 'NYU', internal_note: 'secret' }],
+  }],
 };
 const noSheetPayload = (() => {
   const cloned = JSON.parse(JSON.stringify(validPayload));
@@ -178,6 +188,35 @@ async function check(name, fn) {
       && r.review_status === 'approved' && r.visibility_status === 'published'
       && doc && doc.draft_snapshot && doc.draft_snapshot.itinerary_days
       && doc.published_snapshot && doc.published_snapshot.itinerary_days;
+  });
+
+  await check('weather survives source, snapshots, and daily summary cards', async () => {
+    const store = {}; const main = loadMain(store);
+    await main(signedEvent(validPayload));
+    const doc = store.customer_trips[0];
+    const sourceDay = doc.itinerary_days && doc.itinerary_days[0];
+    const draftDay = doc.draft_snapshot && doc.draft_snapshot.itinerary_days && doc.draft_snapshot.itinerary_days[0];
+    const summary = doc.draft_snapshot && doc.draft_snapshot.daily_summary_cards && doc.draft_snapshot.daily_summary_cards[0];
+    return sourceDay && sourceDay.weather_text === '29/22°C' && sourceDay.weather_kind === 'cloudy'
+      && draftDay && draftDay.weather_source === 'nws' && draftDay.weather_mode === 'forecast'
+      && summary && summary.weather_text === '29/22°C' && summary.weather_kind === 'cloudy';
+  });
+
+  await check('weather is retained when a later web payload omits weather', async () => {
+    const store = {}; const main = loadMain(store);
+    await main(signedEvent(validPayload));
+    const next = JSON.parse(JSON.stringify(validPayload));
+    next.title = '美东访校更新版';
+    delete next.itinerary_days[0].weather_text;
+    delete next.itinerary_days[0].weather_kind;
+    delete next.itinerary_days[0].weather_source;
+    delete next.itinerary_days[0].weather_mode;
+    delete next.itinerary_days[0].weather_generated_at;
+    const r = await main(signedEvent(next));
+    const doc = store.customer_trips[0];
+    return r.success && doc.title === '美东访校更新版'
+      && doc.itinerary_days[0].weather_text === '29/22°C'
+      && doc.draft_snapshot.daily_summary_cards[0].weather_kind === 'cloudy';
   });
 
   await check('customer PII stripped to top-level', async () => {

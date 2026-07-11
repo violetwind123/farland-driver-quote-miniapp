@@ -4358,6 +4358,8 @@ const customerHomePageConfig = {
       title: summaryCard.title || day.title || `Day ${day.day_no || index + 1}`,
       city: summaryCard.city || day.city || '',
       summary: day.summary || '',
+      weatherText: summaryCard.weather_text || summaryCard.weatherText || day.weather_text || day.weatherText || '',
+      weatherKind: summaryCard.weather_kind || summaryCard.weatherKind || day.weather_kind || day.weatherKind || 'sunny',
       startTime,
       estimatedDepartureTimeRaw: day.estimated_departure_time_raw || day.estimatedDepartureTimeRaw || '',
       estimatedDepartureTime: day.estimated_departure_time || day.estimatedDepartureTime || startTime || '',
