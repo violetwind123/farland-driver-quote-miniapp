@@ -254,8 +254,11 @@ assert(/\.stop-row \.node\.depart,\s*\.stop-row \.node\.end\s*\{[^}]*width:\s*20
 assert(/\.stop-row \.node-col,\s*\.seg-row \.node-col\s*\{[^}]*position:\s*relative;[^}]*width:\s*20rpx;/s.test(wxss), 'timeline node columns must establish the centered line axis');
 assert(/\.stop-row \.node-col \.link\s*\{[^}]*top:\s*16rpx;[^}]*bottom:\s*-40rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'stop connectors must run from one node center to the next');
 assert(/\.seg-row \.node-col \.link\s*\{[^}]*top:\s*0;[^}]*bottom:\s*-16rpx;[^}]*left:\s*9rpx;[^}]*width:\s*2rpx;/s.test(wxss), 'travel-segment connectors must continue through the next node center');
+assert.equal((wxml.match(/class="timeline-step /g) || []).length, 3, 'all three itinerary render paths must wrap each stop with its following travel segment');
+assert(/\.timeline-step\s*\{[^}]*position:\s*relative;[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s.test(wxss), 'timeline steps must establish a dynamic midpoint reference');
+assert(/\.seg-row \.tag-slot\s*\{[^}]*top:\s*calc\(50% \+ 16rpx\);[^}]*left:\s*148rpx;[^}]*transform:\s*translateY\(-50%\);/s.test(wxss), 'travel tags must sit at the midpoint between adjacent node centers');
 assert(/\.stop-row\s*\{[^}]*min-height:\s*64rpx;[^}]*padding-bottom:\s*10rpx;/s.test(wxss), 'timeline stop rows must keep readable vertical breathing room');
-assert(/\.stop-row \+ \.stop-row\s*\{[^}]*margin-top:\s*12rpx;/s.test(wxss), 'adjacent stops without travel metadata must not crowd each other');
+assert(/\.timeline-step\.no-segment\.has-tail\s*\{[^}]*padding-bottom:\s*12rpx;/s.test(wxss), 'adjacent stops without travel metadata must not crowd each other');
 assert(/\.seg-row\s*\{[^}]*flex:\s*0 0 68rpx;/s.test(wxss), 'travel segments must keep readable vertical breathing room');
 assert(wxml.includes("operator-preview-active"), 'operator preview must reserve its own toolbar space');
 assert(wxml.includes("operatorInvitePreview && !sheetInlineOpen"), 'inline sheet must keep its own unobstructed toolbar');

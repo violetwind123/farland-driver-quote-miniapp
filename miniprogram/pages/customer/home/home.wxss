@@ -3103,6 +3103,14 @@
   flex-direction: column;
   margin-top: 24rpx;
 }
+.timeline-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.timeline-step.no-segment.has-tail {
+  padding-bottom: 12rpx;
+}
 .stop-row {
   display: flex;
   gap: 24rpx;
@@ -3110,9 +3118,6 @@
   padding-bottom: 10rpx;
   box-sizing: border-box;
   flex-shrink: 0;
-}
-.stop-row + .stop-row {
-  margin-top: 12rpx;
 }
 .stop-row .time-col {
   width: 80rpx;
@@ -3224,11 +3229,15 @@
   background: rgba(27, 35, 64, 0.10);
 }
 .seg-row .tag-slot {
-  flex: 1;
+  position: absolute;
+  top: calc(50% + 16rpx);
+  right: 0;
+  left: 148rpx;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 14rpx 0;
+  padding: 0;
+  transform: translateY(-50%);
 }
 .drive-tag {
   display: inline-flex;

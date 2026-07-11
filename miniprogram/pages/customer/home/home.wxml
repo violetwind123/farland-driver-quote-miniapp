@@ -171,6 +171,7 @@
 
           <view class="timeline three-a-timeline">
             <block wx:for="{{tripInviteTrip.todayOverviewCard.displayRouteStops || tripInviteTrip.todayOverviewCard.routeStops}}" wx:key="id">
+              <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}}">
               <view class="stop-row">
                 <view class="time-col">
                   <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -195,6 +196,7 @@
                     <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic {{item.connectorTravelMeta.traffic_class}}">{{item.connectorTravelMeta.traffic_text}}</text>
                   </view>
                 </view>
+              </view>
               </view>
             </block>
           </view>
@@ -377,6 +379,7 @@
 
                   <view class="timeline three-a-timeline">
                     <block wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id">
+                      <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}}">
                       <view class="stop-row">
                         <view class="time-col">
                           <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -401,6 +404,7 @@
                             <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic {{item.connectorTravelMeta.traffic_class}}">{{item.connectorTravelMeta.traffic_text}}</text>
                           </view>
                         </view>
+                      </view>
                       </view>
                     </block>
                   </view>
@@ -612,6 +616,7 @@
 
         <view class="timeline three-a-timeline">
           <block wx:for="{{todayCard.displayRouteStops || todayCard.routeStops}}" wx:key="id">
+            <view class="timeline-step {{item.connectorTravelMeta && item.connectorTravelMeta.hasContent ? 'has-segment' : 'no-segment'}} {{item.hasTail ? 'has-tail' : 'is-last'}}">
             <view class="stop-row">
               <view class="time-col">
                 <view class="t {{item.nodeClass === 'depart' ? 'depart' : ''}}">{{item.time}}</view>
@@ -636,6 +641,7 @@
                   <text wx:if="{{item.connectorTravelMeta.traffic_text}}" class="traffic {{item.connectorTravelMeta.traffic_class}}">{{item.connectorTravelMeta.traffic_text}}</text>
                 </view>
               </view>
+            </view>
             </view>
           </block>
         </view>
