@@ -580,9 +580,12 @@ page { font-size: 28rpx; }
 .hotel-result-price {
   margin-top: 18rpx;
   color: #353F8E;
+  font-family: var(--font-ui);
   font-size: 27rpx;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
 }
 
 .room-lines {
@@ -604,7 +607,10 @@ page { font-size: 28rpx; }
 .room-price {
   flex: 0 0 auto;
   color: #4A56A5;
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
 }
 
 .advisor-service-card {

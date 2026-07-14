@@ -68,8 +68,8 @@
 
     <view class="utility-card" bindtap="openHotelRequest">
       <view>
-        <view class="utility-title">酒店预订页</view>
-        <view class="utility-desc">直接查看客户侧酒店需求界面</view>
+        <view class="utility-title">酒店推荐与预订</view>
+        <view class="utility-desc">按学校查找酒店，进入详情后转发给客户。</view>
       </view>
       <view class="chevron">›</view>
     </view>

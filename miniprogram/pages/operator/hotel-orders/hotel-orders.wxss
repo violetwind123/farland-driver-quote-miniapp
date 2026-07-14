@@ -117,9 +117,12 @@
 
 .price-value {
   color: #53609A;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
   font-size: 30rpx;
   line-height: 1.25;
-  font-weight: 780;
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
 }
 
 .actions {

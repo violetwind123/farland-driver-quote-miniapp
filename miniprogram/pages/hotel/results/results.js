@@ -134,7 +134,7 @@ Page({
       hotel.source_type,
       hotel.reason && /official/i.test(hotel.reason) ? '学校官方清单' : '',
     ]);
-    const priceParts = hotelUi.formatPriceParts(priceText, hotel.currency || 'RMB');
+    const priceParts = hotelUi.formatPriceParts(priceText, hotel.currency || '');
     const displayName = hotelUi.normalizeLabel(hotel.name || hotel.name_en || '酒店');
     const displayNameEn = hotelUi.normalizeLabel(hotel.name_en || '');
     const transport = hotelUi.buildHotelTransport(hotel);
@@ -158,7 +158,8 @@ Page({
       priceCurrency: priceParts.currency || 'RMB',
       priceAmount: priceParts.amount || '待确认',
       detailHotelId: hotel.elong_hotel_id || hotel.provider_hotel_id || (source === 'elong' ? hotel.hotel_id : ''),
-      canOpenDetail: hasProviderMatch,
+      canOpenDetail: Boolean(displayName),
+      canQueryLive: hasProviderMatch,
       transportItems: transport.items,
       transportNote: transport.note,
       hasTransport: transport.hasTransport,
@@ -195,8 +196,8 @@ Page({
   openHotelDetail(e) {
     const index = parseInt(e.currentTarget.dataset.index, 10);
     const hotel = this.data.results[index];
-    if (!hotel || !hotel.canOpenDetail || !hotel.detailHotelId) {
-      wx.showToast({ title: '这家酒店暂未匹配实时房态', icon: 'none' });
+    if (!hotel || !hotel.canOpenDetail) {
+      wx.showToast({ title: '酒店详情暂不可用', icon: 'none' });
       return;
     }
     const saved = wx.getStorageSync('hotelSearchParams') || {};

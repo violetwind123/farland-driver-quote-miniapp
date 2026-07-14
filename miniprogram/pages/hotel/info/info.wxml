@@ -1,0 +1,78 @@
+<view class="info-page">
+  <view wx:if="{{loading}}" class="info-empty">
+    <view class="info-empty-title">正在加载酒店详情</view>
+    <view class="info-empty-copy">请稍候，正在读取酒店图片与访校信息。</view>
+  </view>
+
+  <view wx:elif="{{error}}" class="info-empty">
+    <view class="info-empty-title">酒店详情无法打开</view>
+    <view class="info-empty-copy">{{error}}</view>
+  </view>
+
+  <block wx:elif="{{hotel}}">
+    <view wx:if="{{hotel.hasGallery}}" class="gallery-wrap" bindtap="previewGallery">
+      <swiper
+        class="gallery-swiper"
+        circular="{{hotel.galleryCount > 1}}"
+        bindchange="onGalleryChange"
+      >
+        <swiper-item wx:for="{{hotel.galleryImages}}" wx:key="*this">
+          <image class="gallery-image" src="{{item}}" mode="aspectFill" />
+        </swiper-item>
+      </swiper>
+      <view class="gallery-counter">{{imageCounter}}</view>
+    </view>
+
+    <view class="summary-band">
+      <view class="summary-action-row">
+        <view class="recommendation-label">{{hotel.recommendationLabel}}</view>
+        <button wx:if="{{shareReady}}" class="share-hotel-btn" open-type="share">分享酒店</button>
+      </view>
+      <view class="info-hotel-name">{{hotel.displayName}}</view>
+      <view wx:if="{{hotel.displayNameEn}}" class="info-hotel-name-en">{{hotel.displayNameEn}}</view>
+      <view wx:if="{{contextLabel}}" class="school-context">访校参考 · {{contextLabel}}</view>
+      <view wx:if="{{hotel.hasTransport}}" class="info-transport-row">
+        <view
+          wx:for="{{hotel.transportItems}}"
+          wx:key="key"
+          wx:for-item="tag"
+          class="info-transport-tag {{tag.className}}"
+        >{{tag.label}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{hotel.reason}}" class="content-band">
+      <view class="section-title">为什么推荐</view>
+      <view class="section-copy">{{hotel.reason}}</view>
+    </view>
+
+    <view wx:if="{{hotel.hasAmenities}}" class="content-band">
+      <view class="section-title">酒店设施与服务</view>
+      <view class="facility-grid">
+        <view wx:for="{{hotel.amenityLabels}}" wx:key="*this" class="facility-item">
+          <view class="facility-mark"></view>
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{hotel.hasLocation}}" class="content-band">
+      <view class="section-title">位置与访校交通</view>
+      <view wx:if="{{hotel.displayAddress}}" class="location-row">
+        <view class="location-copy">
+          <view class="detail-label">酒店地址</view>
+          <view class="detail-value">{{hotel.displayAddress}}</view>
+        </view>
+        <button class="copy-address-btn" bindtap="copyAddress">复制</button>
+      </view>
+      <view wx:if="{{hotel.transportNote}}" class="route-row">
+        <view class="detail-label">访校提示</view>
+        <view class="detail-value">{{hotel.transportNote}}</view>
+      </view>
+    </view>
+
+    <view class="service-note">
+      酒店图片、设施及交通信息供参考，实际情况以酒店现场为准；房价、库存和取消条件以提交预订时的实时结果为准。
+    </view>
+  </block>
+</view>

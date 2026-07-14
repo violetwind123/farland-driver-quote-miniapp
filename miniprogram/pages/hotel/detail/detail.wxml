@@ -7,24 +7,28 @@
     </view>
   </view>
 
-  <view wx:if="{{notice}}" class="notice-card">{{notice}}</view>
-
   <view wx:if="{{error}}" class="empty-card error-card">
-    <view class="empty-title">{{error}}</view>
-    <view class="empty-copy">请返回列表选择其他已匹配酒店。</view>
+    <view class="empty-title">酒店详情无法打开</view>
+    <view class="empty-copy">{{error}}</view>
   </view>
 
-  <view wx:elif="{{loading && !hotel}}" class="empty-card">
-    <view class="empty-title">正在查询实时房型</view>
-    <view class="empty-copy">正在按当前入住日期、房间数和人数读取实时房态。</view>
-  </view>
-
-  <block wx:else>
+  <block wx:elif="{{hotel}}">
     <view class="hotel-hero">
       <view class="hero-image-wrap">
-        <image class="hero-image" src="{{hotel.displayPhoto}}" mode="aspectFill" />
+        <swiper
+          class="hero-gallery"
+          indicator-dots="{{hotel.galleryCount > 1}}"
+          indicator-color="rgba(255,255,255,0.55)"
+          indicator-active-color="#ffffff"
+          circular="{{hotel.galleryCount > 1}}"
+        >
+          <swiper-item wx:for="{{hotel.galleryImages}}" wx:key="*this">
+            <image class="hero-image" src="{{item}}" mode="aspectFill" />
+          </swiper-item>
+        </swiper>
         <view class="hero-mask"></view>
         <view class="hero-overlay">
+          <view class="source-pill">{{hotel.recommendationLabel}}</view>
           <view class="hotel-name">{{hotel.displayName}}</view>
           <view wx:if="{{hotel.displayNameEn}}" class="hotel-name-en">{{hotel.displayNameEn}}</view>
           <view wx:if="{{hotel.hasTransport}}" class="transport-row">
@@ -33,15 +37,89 @@
         </view>
       </view>
       <view class="hero-body">
-        <view wx:if="{{hotel.transportNote}}" class="traffic-note">{{hotel.transportNote}}</view>
-        <view class="hotel-address">{{hotel.displayAddress}}</view>
-        <view wx:if="{{hotel.reason}}" class="hotel-reason">{{hotel.reason}}</view>
+        <view class="hotel-facts">
+          <view wx:if="{{hotel.transportNote}}" class="hotel-fact">
+            <view class="hotel-fact-label">访校交通</view>
+            <view class="hotel-fact-value">{{hotel.transportNote}}</view>
+          </view>
+          <view class="hotel-fact">
+            <view class="hotel-fact-label">酒店地址</view>
+            <view class="hotel-fact-value">{{hotel.displayAddress}}</view>
+          </view>
+          <view wx:if="{{hotel.reason}}" class="hotel-fact">
+            <view class="hotel-fact-label">推荐理由</view>
+            <view class="hotel-fact-value recommendation-copy">{{hotel.reason}}</view>
+          </view>
+        </view>
+        <view wx:if="{{hotel.hasAmenityPreview}}" class="amenity-row">
+          <view wx:for="{{hotel.amenityPreview}}" wx:key="*this" class="amenity-chip">{{item}}</view>
+        </view>
+        <view class="hotel-info-entry" hover-class="hotel-info-entry-pressed" bindtap="openHotelInfo">
+          <view class="hotel-info-copy">
+            <view class="hotel-info-title">查看完整酒店详情</view>
+            <view class="hotel-info-subtitle">{{hotel.infoSummary}}</view>
+          </view>
+          <view class="hotel-info-chevron">›</view>
+        </view>
         <view class="price-row">
-          <view class="hotel-price"><text class="price-currency">{{hotel.priceCurrency}}</text><text class="price-number">{{hotel.priceAmount}}</text></view>
-          <view class="price-note">价格为实时估算，提交前将重新确认</view>
+          <block wx:if="{{livePriceAvailable}}">
+            <view class="price-eyebrow">当前实时参考价</view>
+            <view class="hotel-price"><text class="price-currency">{{hotel.priceCurrency}}</text><text class="price-number">{{hotel.priceAmount}}</text></view>
+            <view class="price-note">按当前入住条件查询，提交前将重新确认</view>
+          </block>
+          <block wx:elif="{{hotel.referencePrice}}">
+            <view class="price-eyebrow">历史参考区间</view>
+            <view class="reference-price">{{hotel.referencePrice}}</view>
+            <view class="price-note">请选择日期查询实时房价</view>
+          </block>
+          <block wx:else>
+            <view class="price-eyebrow">实时价格</view>
+            <view class="price-pending">选择日期查询实时房价</view>
+          </block>
         </view>
       </view>
     </view>
+
+    <view class="stay-editor">
+      <view class="stay-editor-head">
+        <view>
+          <view class="stay-editor-title">入住信息</view>
+          <view class="stay-editor-note">修改后重新查询价格和库存</view>
+        </view>
+        <view wx:if="{{nights}}" class="night-badge">{{nights}}晚</view>
+      </view>
+      <view class="stay-date-row">
+        <picker mode="date" value="{{checkInDate}}" start="{{todayDate}}" data-field="check_in_date" bindchange="onDateChange">
+          <view class="stay-date-cell">
+            <view class="stay-label">入住</view>
+            <view class="stay-value">{{checkInDate || '选择日期'}}</view>
+          </view>
+        </picker>
+        <view class="stay-arrow">→</view>
+        <picker mode="date" value="{{checkOutDate}}" start="{{checkInDate || todayDate}}" data-field="check_out_date" bindchange="onDateChange">
+          <view class="stay-date-cell">
+            <view class="stay-label">退房</view>
+            <view class="stay-value">{{checkOutDate || '选择日期'}}</view>
+          </view>
+        </picker>
+      </view>
+      <view class="occupancy-row">
+        <picker range="{{roomOptions}}" value="{{roomOptionIndex}}" data-field="rooms" bindchange="onOccupancyChange">
+          <view class="occupancy-control"><text>房间</text><text class="occupancy-value">{{searchRooms}}间 ›</text></view>
+        </picker>
+        <picker range="{{guestOptions}}" value="{{guestOptionIndex}}" data-field="guests" bindchange="onOccupancyChange">
+          <view class="occupancy-control"><text>入住人</text><text class="occupancy-value">{{searchGuests}}人 ›</text></view>
+        </picker>
+      </view>
+      <button
+        class="refresh-price-btn"
+        disabled="{{loading || !hasProviderMatch}}"
+        loading="{{loading}}"
+        bindtap="refreshLiveRooms"
+      >{{hasProviderMatch ? (loading ? '查询中...' : '查询实时房价') : '实时房态待接入'}}</button>
+    </view>
+
+    <view wx:if="{{notice}}" class="notice-card">{{notice}}</view>
 
     <view class="section-head">
       <view class="section-title">可选房型</view>
@@ -53,9 +131,19 @@
       <view class="empty-copy">正在按当前入住日期、房间数和人数读取实时房态。</view>
     </view>
 
+    <view wx:elif="{{!hasProviderMatch}}" class="empty-card supplier-pending-card">
+      <view class="empty-title">实时房态正在接入</view>
+      <view class="empty-copy">酒店信息可以查看和转发；房型及价格请先联系 Farland 顾问确认。</view>
+    </view>
+
+    <view wx:elif="{{!hasValidDates}}" class="empty-card">
+      <view class="empty-title">请选择入住日期</view>
+      <view class="empty-copy">选择入住和退房日期后，即可查询艺龙实时房型及取消政策。</view>
+    </view>
+
     <view wx:elif="{{!rooms.length}}" class="empty-card">
-      <view class="empty-title">暂无可展示房型</view>
-      <view class="empty-copy">可返回列表换酒店，或稍后重新查询。</view>
+      <view class="empty-title">当前条件暂无可展示房型</view>
+      <view class="empty-copy">可调整日期重新查询，或联系顾问协助确认。</view>
     </view>
 
     <view wx:else class="room-list">
@@ -77,12 +165,56 @@
     </view>
   </block>
 
-  <view class="bottom-actions">
-    <view class="bottom-summary">
-      <view wx:if="{{selectedRoom}}" class="summary-total price-serif">{{selectedRoom.displayPrice}}</view>
-      <view wx:else class="summary-total price-serif muted">未选房型</view>
-      <view class="summary-hint">无需在线支付，提交后由顾问确认</view>
+  <view wx:elif="{{loading}}" class="empty-card">
+    <view class="empty-title">正在加载酒店信息</view>
+    <view class="empty-copy">请稍候，Farland 正在读取酒店详情。</view>
+  </view>
+
+  <view wx:if="{{hotel}}" class="bottom-actions">
+    <block wx:if="{{isOperator}}">
+      <view class="bottom-summary">
+        <view class="operator-share-label">运营转发</view>
+        <view class="summary-hint">{{shareStatusText}}</view>
+      </view>
+      <button
+        wx:if="{{shareReady}}"
+        class="bottom-btn share-btn"
+        open-type="share"
+      >转发给客户</button>
+      <button
+        wx:else
+        class="bottom-btn share-btn"
+        loading="{{shareLoading}}"
+        disabled="{{shareLoading}}"
+        bindtap="prepareShare"
+      >{{shareLoading ? '准备中...' : '准备分享'}}</button>
+    </block>
+    <block wx:else>
+      <view class="bottom-summary">
+        <view wx:if="{{selectedRoom}}" class="summary-total price-serif">{{selectedRoom.displayPrice}}</view>
+        <view wx:elif="{{!hasProviderMatch}}" class="summary-total muted">房价待确认</view>
+        <view wx:else class="summary-total muted">{{hasValidDates ? '未选房型' : '请选择日期'}}</view>
+        <view class="summary-hint">无需在线支付，提交后由顾问确认</view>
+      </view>
+      <button wx:if="{{!hasProviderMatch}}" class="bottom-btn" bindtap="contactAdvisor">联系顾问</button>
+      <button wx:elif="{{loading}}" class="bottom-btn" disabled="{{true}}">查询中...</button>
+      <button wx:elif="{{!hasValidDates || !rooms.length}}" class="bottom-btn" bindtap="refreshLiveRooms">查询房价</button>
+      <button wx:else class="bottom-btn" disabled="{{!selectedRoom}}" bindtap="continueBooking">{{selectedRoom ? '预订' : '选择房型'}}</button>
+    </block>
+  </view>
+
+  <view wx:if="{{showAdvisorQr}}" class="advisor-qr-mask" catchtap="closeAdvisorQr">
+    <view class="advisor-qr-modal" catchtap="noop">
+      <view class="advisor-qr-title">添加 Farland 顾问微信</view>
+      <view class="advisor-qr-copy">长按识别二维码，顾问将协助确认房型与价格。</view>
+      <image
+        class="advisor-qr-image"
+        src="{{advisorQrPath}}"
+        mode="aspectFit"
+        show-menu-by-longpress="{{true}}"
+        bindtap="previewAdvisorQr"
+      />
+      <button class="advisor-qr-close" bindtap="closeAdvisorQr">关闭</button>
     </view>
-    <button class="bottom-btn" disabled="{{!selectedRoom}}" bindtap="continueBooking">{{selectedRoom ? '预订' : '选择房型'}}</button>
   </view>
 </view>

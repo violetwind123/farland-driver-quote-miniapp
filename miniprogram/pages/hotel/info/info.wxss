@@ -1,0 +1,274 @@
+@import "/styles/theme.wxss";
+
+page {
+  background: var(--bg-page);
+  font-size: 28rpx;
+}
+
+.info-page {
+  min-height: 100vh;
+  padding-bottom: 64rpx;
+  box-sizing: border-box;
+  background: var(--bg-page);
+}
+
+.gallery-wrap {
+  position: relative;
+  width: 100%;
+  height: 430rpx;
+  overflow: hidden;
+  background: var(--bg-internal);
+}
+
+.gallery-swiper,
+.gallery-image {
+  display: block;
+  width: 100%;
+  height: 430rpx;
+}
+
+.gallery-counter {
+  position: absolute;
+  right: 24rpx;
+  bottom: 22rpx;
+  min-width: 72rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  box-sizing: border-box;
+  background: rgba(27, 35, 64, 0.72);
+  color: #FFFFFF;
+  font-family: var(--font-ui);
+  font-size: 20rpx;
+  line-height: 1.2;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-band,
+.content-band {
+  padding: 30rpx 28rpx;
+  border-bottom: 1rpx solid var(--line);
+  box-sizing: border-box;
+  background: var(--bg-card);
+}
+
+.recommendation-label {
+  display: inline-flex;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 20rpx;
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+.summary-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  min-height: 58rpx;
+}
+
+.share-hotel-btn {
+  flex: 0 0 auto;
+  width: 132rpx;
+  height: 58rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 14rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 21rpx;
+  line-height: 58rpx;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.share-hotel-btn::after {
+  border: 0;
+}
+
+.info-hotel-name {
+  margin-top: 18rpx;
+  color: var(--ink-900);
+  font-family: var(--font-serif);
+  font-size: 40rpx;
+  line-height: 1.18;
+  font-weight: 650;
+}
+
+.info-hotel-name-en {
+  margin-top: 8rpx;
+  color: var(--ink-600);
+  font-size: 23rpx;
+  line-height: 1.4;
+  font-weight: 520;
+}
+
+.school-context {
+  margin-top: 16rpx;
+  color: var(--ink-400);
+  font-size: 21rpx;
+  line-height: 1.45;
+}
+
+.info-transport-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.info-transport-tag {
+  padding: 9rpx 14rpx;
+  border-radius: 14rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 21rpx;
+  line-height: 1.2;
+  font-weight: 620;
+}
+
+.info-transport-tag.traffic {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.info-transport-tag.traffic.moderate,
+.info-transport-tag.traffic.high {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.section-title {
+  color: var(--ink-900);
+  font-size: 28rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.section-copy {
+  margin-top: 14rpx;
+  color: var(--ink-600);
+  font-size: 24rpx;
+  line-height: 1.7;
+}
+
+.facility-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 26rpx;
+  row-gap: 20rpx;
+  margin-top: 22rpx;
+}
+
+.facility-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
+  color: var(--ink-600);
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.facility-item text {
+  min-width: 0;
+  word-break: break-word;
+}
+
+.facility-mark {
+  flex: 0 0 auto;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--brand-500);
+}
+
+.location-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.location-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-label {
+  color: var(--ink-400);
+  font-size: 20rpx;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.detail-value {
+  margin-top: 7rpx;
+  color: var(--ink-600);
+  font-size: 23rpx;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.copy-address-btn {
+  flex: 0 0 auto;
+  width: 92rpx;
+  height: 58rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 12rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 21rpx;
+  line-height: 58rpx;
+  font-weight: 650;
+}
+
+.copy-address-btn::after {
+  border: 0;
+}
+
+.route-row {
+  margin-top: 24rpx;
+  padding-top: 22rpx;
+  border-top: 1rpx solid var(--line);
+}
+
+.service-note {
+  margin: 22rpx 24rpx 0;
+  padding: 22rpx 24rpx;
+  border: 1rpx solid rgba(166, 136, 91, 0.14);
+  border-radius: 16rpx;
+  box-sizing: border-box;
+  background: var(--bg-ivory);
+  color: var(--ink-400);
+  font-size: 21rpx;
+  line-height: 1.6;
+}
+
+.info-empty {
+  margin: 36rpx 24rpx;
+  padding: 40rpx 30rpx;
+  border: 1rpx solid var(--line);
+  border-radius: 24rpx;
+  background: var(--bg-card);
+  text-align: center;
+}
+
+.info-empty-title {
+  color: var(--ink-900);
+  font-size: 29rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.info-empty-copy {
+  margin-top: 10rpx;
+  color: var(--ink-400);
+  font-size: 22rpx;
+  line-height: 1.5;
+}

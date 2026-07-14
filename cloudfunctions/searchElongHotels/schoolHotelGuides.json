@@ -1143,14 +1143,26 @@
     "lodging": [
       {
         "name": "Marriott Hartford Windsor Airport",
+        "recommendationLabel": "综合首选",
         "type": "Hotel",
         "group": "Marriott",
         "distance": "8.6 mi",
         "driveTime": "~18 min",
-        "whyZh": "Farland 在该访校路线实际预订入住过的酒店。",
+        "whyZh": "Farland 在该访校路线实际预订入住过，综合交通和入住体验，是送学陪同的优先选择。",
         "whyEn": "A hotel Farland has actually booked on this school-visit route.",
         "sourceType": "Farland itinerary-matched",
-        "url": "",
+        "url": "https://www.marriott.com/en-us/hotels/bdlap-marriott-hartford-windsor-airport/overview/",
+        "images": [
+          "/assets/images/hotel-marriott-hartford-windsor-exterior.jpg",
+          "/assets/images/hotel-marriott-hartford-windsor-room.jpg",
+          "/assets/images/hotel-marriott-hartford-windsor-pool.jpg"
+        ],
+        "amenities": [
+          "室内泳池",
+          "免费停车",
+          "机场接驳",
+          "健身中心"
+        ],
         "verifyNoteZh": "预订前请再次核对房态。",
         "priceTier": "$$–$$$",
         "priceBand": "$153.75–$480.70",
@@ -1166,7 +1178,7 @@
         "bookingRecordCount": 13,
         "hotelCity": "Windsor",
         "hotelState": "CT",
-        "hotelAddress": "Marriott Hartford Windsor Airport, Windsor, CT",
+        "hotelAddress": "28 Day Hill Road, Windsor, CT 06095",
         "hotelLat": 41.873879,
         "hotelLng": -72.668164
       },
@@ -1197,14 +1209,26 @@
       },
       {
         "name": "Homewood Suites Windsor Locks Bradley Airport",
+        "recommendationLabel": "带厨房套房",
         "type": "Suites",
         "group": "Hilton",
         "distance": "5.1 mi",
         "driveTime": "~11 min",
-        "whyZh": "Farland 在该访校路线实际预订入住过的酒店。",
-        "whyEn": "A hotel Farland has actually booked on this school-visit route.",
+        "whyZh": "房内配备厨房，适合送校后陪住数日；Farland 在该访校路线实际预订入住过。",
+        "whyEn": "In-room kitchens make this a practical multi-night family stay; Farland has also booked it on this school-visit route.",
         "sourceType": "Farland-curated",
-        "url": "",
+        "url": "https://www.hilton.com/en/hotels/wndlkhw-homewood-suites-windsor-locks-hartford/",
+        "images": [
+          "/assets/images/hotel-homewood-windsor-locks-exterior.jpg",
+          "/assets/images/hotel-homewood-windsor-locks-suite.jpg",
+          "/assets/images/hotel-homewood-windsor-locks-kitchen.jpg"
+        ],
+        "amenities": [
+          "房内厨房",
+          "免费热早餐",
+          "免费停车",
+          "适合长住"
+        ],
         "verifyNoteZh": "预订前请再次核对房态。",
         "priceTier": "$$",
         "priceBand": "$170–280",
@@ -1216,7 +1240,7 @@
         "priceDataStatus": "needs_confirmed_order_match",
         "hotelCity": "Windsor Locks",
         "hotelState": "CT",
-        "hotelAddress": "Homewood Suites Windsor Locks Bradley Airport, Windsor Locks, CT",
+        "hotelAddress": "65 Ella Grasso Turnpike, Windsor Locks, CT 06096",
         "hotelLat": 41.919036,
         "hotelLng": -72.671482
       },

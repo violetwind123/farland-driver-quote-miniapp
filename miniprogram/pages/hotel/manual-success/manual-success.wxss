@@ -77,10 +77,12 @@ page { font-size: 28rpx; }
 }
 
 .price-serif-inline {
-  font-family: var(--font-serif);
+  font-family: var(--font-ui);
   color: var(--ink-900);
   font-size: 30rpx;
-  font-weight: 700;
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
 }
 
 .price-note {

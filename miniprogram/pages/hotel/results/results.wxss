@@ -296,6 +296,9 @@ page { font-size: 28rpx; }
 .hotel-price {
   min-width: 0;
   color: var(--ink-900);
+  font-family: var(--font-ui);
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
   line-height: 1;
   white-space: nowrap;
 }
@@ -303,15 +306,17 @@ page { font-size: 28rpx; }
 .price-currency {
   color: var(--brand-600);
   font-size: 22rpx;
-  font-weight: 600;
-  margin-right: 5rpx;
+  font-weight: 500;
+  margin-right: 4rpx;
+  letter-spacing: 0;
 }
 
 .price-number {
-  font-family: var(--font-serif);
+  font-family: var(--font-ui);
   color: var(--ink-900);
   font-size: 38rpx;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .price-suffix {

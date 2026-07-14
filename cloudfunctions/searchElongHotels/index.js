@@ -673,6 +673,8 @@ function normalizeSchoolHotel(hotel, school, index) {
     hotel_id: `school_${school.slug}_${index}`,
     farland_hotel_id: `school_${school.slug}_${index}`,
     school_slug: school.slug,
+    school_name: school.schoolName,
+    school_name_zh: school.schoolNameZh,
     name: firstText(hotel, ['name']),
     name_en: firstText(hotel, ['name']),
     provider: matchedElongHotel ? 'elong' : '',
@@ -704,6 +706,11 @@ function normalizeSchoolHotel(hotel, school, index) {
     price_data_status: firstText(hotel, ['priceDataStatus']),
     booking_record_count: firstNumber(hotel, ['bookingRecordCount']),
     tags: Array.isArray(hotel.tags) ? hotel.tags : [],
+    amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
+    facilities: Array.isArray(hotel.facilities) ? hotel.facilities : [],
+    images: Array.isArray(hotel.images) ? hotel.images : [],
+    image_url: Array.isArray(hotel.images) && hotel.images.length ? hotel.images[0] : '',
+    recommendation_label: firstText(hotel, ['recommendationLabel']),
   });
 }
 

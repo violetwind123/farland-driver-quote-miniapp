@@ -49,6 +49,7 @@ page { font-size: 28rpx; }
 }
 
 .hotel-hero,
+.stay-editor,
 .room-card,
 .empty-card,
 .notice-card {
@@ -65,13 +66,14 @@ page { font-size: 28rpx; }
 
 .hero-image-wrap {
   position: relative;
-  height: 306rpx;
+  height: 360rpx;
   overflow: hidden;
 }
 
+.hero-gallery,
 .hero-image {
   width: 100%;
-  height: 306rpx;
+  height: 360rpx;
   display: block;
 }
 
@@ -82,6 +84,7 @@ page { font-size: 28rpx; }
   right: 0;
   bottom: 0;
   background: linear-gradient(180deg, rgba(27, 35, 64, 0.05) 18%, rgba(27, 35, 64, 0.62) 100%);
+  pointer-events: none;
 }
 
 .hero-overlay {
@@ -89,6 +92,7 @@ page { font-size: 28rpx; }
   left: 24rpx;
   right: 24rpx;
   bottom: 24rpx;
+  pointer-events: none;
 }
 
 .source-pill {
@@ -104,21 +108,28 @@ page { font-size: 28rpx; }
 
 .hotel-name {
   margin-top: 14rpx;
+  display: -webkit-box;
+  overflow: hidden;
   color: #FFFFFF;
   font-family: var(--font-serif);
   font-size: 42rpx;
   line-height: 1.08;
   font-weight: 700;
   text-shadow: 0 4rpx 12rpx rgba(0,0,0,0.22);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .hotel-name-en {
   margin-top: 8rpx;
+  overflow: hidden;
   color: rgba(255,255,255,0.82);
   font-size: 22rpx;
   line-height: 1.3;
   font-weight: 520;
   text-shadow: 0 3rpx 10rpx rgba(0,0,0,0.18);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .transport-row {
@@ -149,12 +160,9 @@ page { font-size: 28rpx; }
 }
 
 .hero-body {
-  padding: 24rpx 28rpx 28rpx;
+  padding: 10rpx 28rpx 28rpx;
 }
 
-.hotel-address,
-.hotel-reason,
-.traffic-note,
 .empty-copy,
 .notice-card {
   color: var(--ink-600);
@@ -162,36 +170,146 @@ page { font-size: 28rpx; }
   line-height: 1.5;
 }
 
-.traffic-note {
-  margin-bottom: 10rpx;
+.hotel-facts {
+  width: 100%;
 }
 
-.hotel-reason {
-  margin-top: 10rpx;
+.hotel-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.hotel-fact:last-child {
+  border-bottom: 0;
+}
+
+.hotel-fact-label {
+  flex: 0 0 104rpx;
+  padding-top: 2rpx;
+  color: var(--ink-400);
+  font-size: 21rpx;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.hotel-fact-value {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-600);
+  font-size: 23rpx;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.recommendation-copy {
   color: var(--ink-400);
 }
 
+.amenity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.amenity-chip {
+  max-width: 100%;
+  padding: 8rpx 14rpx;
+  border-radius: 14rpx;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 21rpx;
+  line-height: 1.2;
+  font-weight: 650;
+  box-sizing: border-box;
+}
+
+.hotel-info-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  padding: 22rpx 0;
+  border-top: 1rpx solid var(--line);
+  border-bottom: 1rpx solid var(--line);
+}
+
+.hotel-info-entry-pressed {
+  opacity: 0.62;
+}
+
+.hotel-info-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.hotel-info-title {
+  color: var(--ink-900);
+  font-size: 25rpx;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.hotel-info-subtitle {
+  margin-top: 5rpx;
+  overflow: hidden;
+  color: var(--ink-400);
+  font-size: 20rpx;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotel-info-chevron {
+  flex: 0 0 auto;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 38rpx;
+  line-height: 43rpx;
+  text-align: center;
+}
+
 .price-row {
-  margin-top: 18rpx;
+  margin-top: 22rpx;
+}
+
+.price-eyebrow {
+  margin-bottom: 7rpx;
+  color: var(--ink-400);
+  font-size: 20rpx;
+  line-height: 1.3;
+  font-weight: 550;
 }
 
 .hotel-price {
   color: var(--brand-600);
+  font-family: var(--font-ui);
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
   line-height: 1;
 }
 
 .price-currency {
   color: var(--brand-600);
   font-size: 22rpx;
-  font-weight: 600;
-  margin-right: 6rpx;
+  font-weight: 500;
+  margin-right: 4rpx;
+  letter-spacing: 0;
 }
 
 .price-number {
-  font-family: var(--font-serif);
+  font-family: var(--font-ui);
   color: var(--brand-600);
   font-size: 52rpx;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .price-note {
@@ -199,6 +317,156 @@ page { font-size: 28rpx; }
   color: var(--ink-400);
   font-size: 21rpx;
   line-height: 1.35;
+}
+
+.reference-price,
+.price-pending {
+  color: var(--brand-600);
+  font-family: var(--font-ui);
+  font-size: 38rpx;
+  line-height: 1.2;
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
+}
+
+.price-pending {
+  color: var(--ink-600);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-size: 26rpx;
+  font-weight: 650;
+}
+
+.stay-editor {
+  margin-top: 22rpx;
+  padding: 26rpx;
+}
+
+.stay-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.stay-editor-title {
+  color: var(--ink-900);
+  font-size: 29rpx;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.stay-editor-note {
+  margin-top: 6rpx;
+  color: var(--ink-400);
+  font-size: 21rpx;
+  line-height: 1.35;
+}
+
+.night-badge {
+  flex: 0 0 auto;
+  padding: 7rpx 14rpx;
+  border-radius: 14rpx;
+  background: var(--gold-50);
+  color: var(--gold-700);
+  font-size: 22rpx;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.stay-date-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.stay-date-row picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.stay-date-cell {
+  min-width: 0;
+  padding: 18rpx;
+  border-radius: 14rpx;
+  background: var(--bg-page);
+  box-sizing: border-box;
+}
+
+.stay-label {
+  color: var(--ink-400);
+  font-size: 20rpx;
+  line-height: 1.2;
+}
+
+.stay-value {
+  margin-top: 7rpx;
+  color: var(--ink-900);
+  font-size: 25rpx;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.stay-arrow {
+  flex: 0 0 auto;
+  color: var(--ink-300);
+  font-size: 26rpx;
+}
+
+.occupancy-row {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 14rpx;
+}
+
+.occupancy-row picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.occupancy-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 18rpx;
+  border: 1rpx solid var(--line);
+  border-radius: 14rpx;
+  color: var(--ink-600);
+  font-size: 22rpx;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+.occupancy-value {
+  color: var(--ink-900);
+  font-weight: 700;
+}
+
+.refresh-price-btn {
+  margin: 18rpx 0 0;
+  height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 14rpx;
+  background: var(--brand-600);
+  color: #FFFFFF;
+  font-size: 25rpx;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.refresh-price-btn[disabled] {
+  background: var(--brand-50);
+  color: var(--ink-400);
+}
+
+.refresh-price-btn::after {
+  border: none;
+}
+
+.notice-card {
+  margin-top: 18rpx;
 }
 
 .section-head {
@@ -300,18 +568,20 @@ page { font-size: 28rpx; }
   flex: 0 0 auto;
   max-width: 230rpx;
   color: var(--brand-600);
-  font-family: var(--font-serif);
+  font-family: var(--font-ui);
   font-size: 32rpx;
   line-height: 1.25;
   text-align: right;
-  font-weight: 760;
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
 }
 
 .room-price text {
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-family: var(--font-ui);
   color: var(--brand-600);
   font-size: 21rpx;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .room-tags {
@@ -392,6 +662,7 @@ page { font-size: 28rpx; }
   display: flex;
   align-items: center;
   gap: 24rpx;
+  z-index: 30;
 }
 
 .bottom-summary {
@@ -400,8 +671,17 @@ page { font-size: 28rpx; }
 }
 
 .summary-total {
+  font-family: var(--font-ui);
   font-size: 40rpx;
   line-height: 1.1;
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
+}
+
+.summary-total.price-serif {
+  font-family: var(--font-ui);
+  font-weight: 500;
 }
 
 .summary-total.muted {
@@ -415,6 +695,13 @@ page { font-size: 28rpx; }
   line-height: 1.3;
 }
 
+.operator-share-label {
+  color: var(--brand-600);
+  font-size: 25rpx;
+  line-height: 1.2;
+  font-weight: 750;
+}
+
 .bottom-btn {
   margin: 0;
   flex: 0 0 auto;
@@ -425,7 +712,7 @@ page { font-size: 28rpx; }
   background: linear-gradient(180deg, #727EB5 0%, #5F6BA6 100%);
   color: #FFFFFF;
   font-size: 28rpx;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
   font-weight: 600;
   box-shadow: 0 16rpx 36rpx rgba(95, 107, 166, 0.32);
 }
@@ -435,5 +722,75 @@ page { font-size: 28rpx; }
 }
 
 .bottom-btn::after {
+  border: none;
+}
+
+.share-btn {
+  min-width: 280rpx;
+}
+
+.supplier-pending-card {
+  border-color: rgba(166, 136, 91, 0.18);
+  background: var(--bg-ivory);
+}
+
+.advisor-qr-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 44rpx;
+  box-sizing: border-box;
+  background: rgba(18, 24, 38, 0.46);
+}
+
+.advisor-qr-modal {
+  width: 100%;
+  padding: 34rpx;
+  box-sizing: border-box;
+  border-radius: 32rpx;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-float);
+}
+
+.advisor-qr-title {
+  color: var(--ink-900);
+  font-size: 32rpx;
+  line-height: 1.3;
+  font-weight: 700;
+  text-align: center;
+}
+
+.advisor-qr-copy {
+  margin-top: 10rpx;
+  color: var(--ink-600);
+  font-size: 24rpx;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.advisor-qr-image {
+  display: block;
+  width: 430rpx;
+  height: 430rpx;
+  margin: 30rpx auto 0;
+  border-radius: 24rpx;
+  background: var(--bg-card);
+}
+
+.advisor-qr-close {
+  margin: 28rpx 0 0;
+  height: 78rpx;
+  line-height: 78rpx;
+  border-radius: 999rpx;
+  background: var(--brand-600);
+  color: #FFFFFF;
+  font-size: 25rpx;
+  font-weight: 650;
+}
+
+.advisor-qr-close::after {
   border: none;
 }

@@ -194,7 +194,7 @@ Page({
       || fallback.displayPrice
       || fallback.price_text
       || '价格待确认';
-    const priceParts = hotelUi.formatPriceParts(displayPrice, room.currency || fallback.currency || (price && price.currency) || 'RMB');
+    const priceParts = hotelUi.formatPriceParts(displayPrice, room.currency || fallback.currency || (price && price.currency) || '');
     const displayTags = hotelUi.normalizeRoomChips({
       ...fallback,
       ...room,
@@ -328,7 +328,7 @@ Page({
     const checkInText = this.formatDateForBar(search.check_in_date);
     const checkOutText = this.formatDateForBar(search.check_out_date);
     const priceText = (price && price.payable_text) || room.price_text || room.displayPrice || '待确认';
-    const priceParts = hotelUi.formatPriceParts(priceText, (price && price.currency) || room.currency || 'RMB');
+    const priceParts = hotelUi.formatPriceParts(priceText, (price && price.currency) || room.currency || '');
     return {
       barCheckInText: checkInText,
       barCheckOutText: checkOutText,

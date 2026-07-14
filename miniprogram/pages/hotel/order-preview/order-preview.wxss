@@ -50,7 +50,6 @@
   text-overflow: ellipsis;
 }
 
-.recap-strip,
 .hotel-card,
 .section-card,
 .empty-card,
@@ -91,25 +90,6 @@
 .error-card .empty-title,
 .error-card .empty-copy {
   color: #B64747;
-}
-
-.recap-strip {
-  padding: 24rpx 28rpx;
-  background: #FFFFFF;
-}
-
-.recap-main {
-  color: #1C1B29;
-  font-size: 28rpx;
-  line-height: 1.35;
-  font-weight: 750;
-}
-
-.recap-sub {
-  margin-top: 8rpx;
-  color: #8B8A9C;
-  font-size: 22rpx;
-  line-height: 1.45;
 }
 
 .hotel-card {
@@ -337,10 +317,13 @@
 .price-value {
   flex: 0 0 auto;
   color: #1C1B29;
+  font-family: var(--font-ui);
   font-size: 24rpx;
   line-height: 1.35;
-  font-weight: 720;
+  font-weight: 500;
   text-align: right;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
 }
 
 .daily-price-value {
@@ -382,21 +365,26 @@
 .total-price {
   flex: 0 0 auto;
   color: #353F8E;
+  font-family: var(--font-ui);
   line-height: 1;
   white-space: nowrap;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
 }
 
 .total-currency {
   color: #4A56A5;
   font-size: 23rpx;
-  font-weight: 650;
-  margin-right: 6rpx;
+  font-weight: 500;
+  margin-right: 4rpx;
+  letter-spacing: 0;
 }
 
 .total-amount {
-  font-family: "Cormorant Garamond", Georgia, "Songti SC", serif;
+  font-family: var(--font-ui);
   font-size: 54rpx;
-  font-weight: 780;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .card-title-row {
@@ -575,20 +563,24 @@ textarea::placeholder {
   flex: 1;
   min-width: 0;
   color: #4A56A5;
+  font-family: var(--font-ui);
   font-size: 22rpx;
   line-height: 1;
-  font-weight: 650;
+  font-weight: 500;
+  font-variant-numeric: proportional-nums;
+  letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .bottom-amount {
-  margin-left: 6rpx;
+  margin-left: 4rpx;
   color: #353F8E;
-  font-family: "Cormorant Garamond", Georgia, "Songti SC", serif;
+  font-family: var(--font-ui);
   font-size: 44rpx;
-  font-weight: 780;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .bottom-btn {

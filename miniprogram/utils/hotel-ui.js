@@ -91,16 +91,40 @@ function shouldShowStar(value) {
   return Number.isFinite(numeric) && numeric > 0;
 }
 
+function normalizeCurrencyCode(value) {
+  const text = safeString(value).trim().toUpperCase();
+  if (!text) return '';
+  if (text === '$' || text === 'US$' || text === 'USD') return 'USD';
+  if (['RMB', 'CNY', '￥', '¥'].includes(text)) return 'RMB';
+  return /^[A-Z]{3}$/.test(text) ? text : '';
+}
+
+function inferCurrencyFromText(text) {
+  const value = safeString(text);
+  if (/\$|US\$/i.test(value)) return 'USD';
+  const prefix = value.match(/(?:^|[\s(])([A-Z]{3}|RMB|CNY|USD)(?=\s*[0-9])/i);
+  return normalizeCurrencyCode(prefix && prefix[1]);
+}
+
+function formatMoneyAmount(value) {
+  const amount = Number(safeString(value).replace(/,/g, ''));
+  if (!Number.isFinite(amount) || amount <= 0) return '';
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
 function formatMoneyText(value, currency) {
   const text = safeString(value);
   if (!text) return '';
-  const match = text.match(/([A-Z]{3}|RMB|CNY|USD)?\s*([0-9][0-9,]*(?:\.\d+)?)/i);
-  if (!match) return normalizeLabel(text);
-  const code = safeString(currency || match[1] || '').toUpperCase();
-  const amount = Number(match[2].replace(/,/g, ''));
-  if (!Number.isFinite(amount) || amount <= 0) return '';
-  const rounded = Math.round(amount);
-  return `${code || 'RMB'} ${rounded.toLocaleString('en-US')}`;
+  const matches = Array.from(text.matchAll(/[0-9][0-9,]*(?:\.\d+)?/g)).map((match) => match[0]);
+  if (!matches.length) return normalizeLabel(text);
+  const code = normalizeCurrencyCode(currency) || inferCurrencyFromText(text) || 'RMB';
+  const first = formatMoneyAmount(matches[0]);
+  if (!first) return '';
+  const second = matches[1] && /[-~至到]/.test(text) ? formatMoneyAmount(matches[1]) : '';
+  return `${code} ${second ? `${first}-${second}` : first}`;
 }
 
 function formatPriceParts(value, currency) {
@@ -203,21 +227,37 @@ function buildHotelTransport(hotel = {}) {
   };
 }
 
-function resolveHotelImage(hotel = {}, index = 0) {
-  const images = [
+function resolveImageValue(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'object') {
+    return safeString(value.url || value.image_url || value.src || value.Url || value.ImageUrl);
+  }
+  return '';
+}
+
+function resolveHotelImages(hotel = {}, index = 0) {
+  const candidates = [
+    ...(Array.isArray(hotel.images) ? hotel.images : []),
+    ...(Array.isArray(hotel.photos) ? hotel.photos : []),
     hotel.image_url,
     hotel.image,
     hotel.photo_url,
     hotel.thumbnail,
     hotel.cover,
-  ].filter(Boolean);
-  if (images[0]) return images[0];
+  ].map(resolveImageValue).filter(Boolean);
+  const images = unique(candidates).slice(0, 8);
+  if (images.length) return images;
   const fallbacks = [
     '/assets/images/hotel-lobby-01.jpg',
     '/assets/images/hotel-member-bg.jpg',
     '/assets/images/hotel-soft-bg.jpg',
   ];
-  return fallbacks[index % fallbacks.length];
+  return [fallbacks[index % fallbacks.length]];
+}
+
+function resolveHotelImage(hotel = {}, index = 0) {
+  return resolveHotelImages(hotel, index)[0];
 }
 
 module.exports = {
@@ -232,5 +272,6 @@ module.exports = {
   compactCancelText,
   buildFullAddress,
   buildHotelTransport,
+  resolveHotelImages,
   resolveHotelImage,
 };

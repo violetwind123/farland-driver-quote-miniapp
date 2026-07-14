@@ -3,7 +3,7 @@
     <view class="back-button" bindtap="goBack">‹</view>
     <view class="nav-copy">
       <view class="nav-title">{{recapText || '订单确认'}}</view>
-      <view class="nav-subtitle">{{stayText}} · {{searchMeta}}</view>
+      <view class="nav-subtitle">{{search.guests || 2}}人入住</view>
     </view>
   </view>
 
@@ -20,11 +20,6 @@
   </view>
 
   <block wx:else>
-    <view class="recap-strip">
-      <view class="recap-main">{{recapText}}</view>
-      <view class="recap-sub">提交后由 Farland 运营确认付款与供应商订单。</view>
-    </view>
-
     <view class="hotel-card">
       <view class="hotel-image-wrap">
         <image class="hotel-image" src="{{hotel.displayPhoto}}" mode="aspectFill" />
